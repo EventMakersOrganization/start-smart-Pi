@@ -11,7 +11,7 @@
 
 *ESPRIT - Academic Year 2025-2026*
 
-[Features](#-features) • [Tech Stack](#-technology-stack) • [Installation](#-installation) • [Team](#-team)
+[Features](#-features) • [Tech Stack](#-technology-stack)  • [Team](#-team)
 
 </div>
 
