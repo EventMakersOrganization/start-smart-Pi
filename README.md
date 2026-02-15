@@ -82,35 +82,7 @@ Frontend (Angular) ──► Backend (Node.js/NestJS) ──┬──► MongoDB
 
 ### Team Technova - 4Twin3
 
-<table>
-  <tr>
-    <td align="center" width="150">
-      <img src="https://github.com/your-org/adaptive-learning-platform/raw/main/docs/team/oussema.jpg" width="120px" style="border-radius: 50%;" alt="Oussema Bani"/><br />
-      <sub><b>Oussema Bani</b></sub><br />
-      <sub>Full-Stack Developer</sub>
-    </td>
-    <td align="center" width="150">
-      <img src="https://github.com/your-org/adaptive-learning-platform/raw/main/docs/team/jacem.jpg" width="120px" style="border-radius: 50%;" alt="Jacem Guesmi"/><br />
-      <sub><b>Jacem Guesmi</b></sub><br />
-      <sub>AI & Backend</sub>
-    </td>
-    <td align="center" width="150">
-      <img src="https://github.com/your-org/adaptive-learning-platform/raw/main/docs/team/zeineb.jpg" width="120px" style="border-radius: 50%;" alt="Zeineb Ghezaiel"/><br />
-      <sub><b>Zeineb Ghezaiel</b></sub><br />
-      <sub>Frontend Developer</sub>
-    </td>
-    <td align="center" width="150">
-      <img src="https://github.com/your-org/adaptive-learning-platform/raw/main/docs/team/abir.jpg" width="120px" style="border-radius: 50%;" alt="Abir Ben Brahem"/><br />
-      <sub><b>Abir Ben Brahem</b></sub><br />
-      <sub>UI/UX & Frontend</sub>
-    </td>
-    <td align="center" width="150">
-      <img src="https://github.com/your-org/adaptive-learning-platform/raw/main/docs/team/kmar.jpg" width="120px" style="border-radius: 50%;" alt="Kmar Ben Mbarek"/><br />
-      <sub><b>Kmar Ben Mbarek</b></sub><br />
-      <sub>QA & Documentation</sub>
-    </td>
-  </tr>
-</table>
+<img src="/team.png" alt="Team Technova" width="700"/>
 
 **Supervised by:** Ms. Rommene Ameni  
 **Institution:** ESPRIT - Engineering School in Tunisia
