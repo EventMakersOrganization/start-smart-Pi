@@ -119,12 +119,6 @@ Frontend (Angular) ──► Backend (Node.js/NestJS) ──┬──► MongoDB
 
 ---
 
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
 <div align="center">
 
 **Built with ❤️ by Team Technova**  
