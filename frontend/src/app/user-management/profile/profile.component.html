@@ -1,0 +1,43 @@
+<div class="profile-container">
+  <h2>Profile</h2>
+  <div *ngIf="profileData">
+    <div class="user-info">
+      <h3>User Information</h3>
+      <p><strong>Name:</strong> {{ profileData.user.name }}</p>
+      <p><strong>Email:</strong> {{ profileData.user.email }}</p>
+      <p><strong>Role:</strong> {{ profileData.user.role }}</p>
+      <p><strong>Status:</strong> {{ profileData.user.status }}</p>
+    </div>
+    <div class="academic-info" *ngIf="profileData.profile">
+      <h3>Academic Information</h3>
+      <p><strong>Academic Level:</strong> {{ profileData.profile.academicLevel }}</p>
+      <p><strong>Enrolled Course:</strong> {{ profileData.profile.enrolledCourse }}</p>
+      <p><strong>Average Score:</strong> {{ profileData.profile.averageScore }}</p>
+      <p><strong>Preferences:</strong> {{ profileData.profile.preferences | json }}</p>
+    </div>
+  </div>
+
+  <button (click)="toggleEdit()" *ngIf="!isEditing">Edit Profile</button>
+
+  <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" *ngIf="isEditing">
+    <div class="form-group">
+      <label for="name">Name:</label>
+      <input type="text" id="name" formControlName="name">
+    </div>
+    <div class="form-group">
+      <label for="academicLevel">Academic Level:</label>
+      <input type="text" id="academicLevel" formControlName="academicLevel">
+    </div>
+    <div class="form-group">
+      <label for="enrolledCourse">Enrolled Course:</label>
+      <input type="text" id="enrolledCourse" formControlName="enrolledCourse">
+    </div>
+    <button type="submit">Save Changes</button>
+    <button type="button" (click)="toggleEdit()">Cancel</button>
+  </form>
+
+  <p *ngIf="successMessage" class="success">{{ successMessage }}</p>
+  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+
+  <button (click)="logout()">Logout</button>
+</div>

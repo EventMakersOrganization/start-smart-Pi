@@ -1,0 +1,117 @@
+<div class="min-h-screen bg-gray-100">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <h1 class="text-2xl font-bold text-gray-900">Student Dashboard</h1>
+        <div class="flex items-center space-x-4">
+          <span class="text-gray-700">Welcome, {{ user?.name }}</span>
+          <button (click)="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Welcome Section -->
+    <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-6 mb-8">
+      <h2 class="text-3xl font-bold mb-2">Welcome back, {{ user?.name }}!</h2>
+      <p class="text-lg">Continue your learning journey with personalized AI-powered education.</p>
+    </div>
+
+    <!-- Dashboard Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Learning Progress -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-xl font-semibold mb-4">Learning Progress</h3>
+        <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+          <div class="bg-blue-600 h-4 rounded-full" [style.width.%]="progress"></div>
+        </div>
+        <p class="text-gray-600">{{ progress }}% Complete</p>
+      </div>
+
+      <!-- Performance -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-xl font-semibold mb-4">Performance</h3>
+        <div class="text-3xl font-bold text-green-600 mb-2">{{ performance }}%</div>
+        <p class="text-gray-600">Average Score</p>
+      </div>
+
+      <!-- Completed Modules -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-xl font-semibold mb-4">Completed Modules</h3>
+        <div class="text-3xl font-bold text-blue-600 mb-2">{{ completedModules }}/{{ totalModules }}</div>
+        <p class="text-gray-600">Modules Finished</p>
+      </div>
+
+      <!-- Learning Streaks -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-xl font-semibold mb-4">Learning Streak</h3>
+        <div class="text-3xl font-bold text-orange-600 mb-2">{{ learningStreak }} days</div>
+        <p class="text-gray-600">Keep it up!</p>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold mb-4">Alerts</h3>
+      <div class="space-y-4">
+        <div *ngFor="let alert of alerts" class="p-4 rounded-lg" [ngClass]="{'bg-yellow-100 border-yellow-400': alert.type === 'warning', 'bg-blue-100 border-blue-400': alert.type === 'info'}">
+          <p class="text-gray-800">{{ alert.message }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Access -->
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold mb-4">Quick Access</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button (click)="openBrainRush()" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center">
+          <h4 class="text-lg font-semibold">BrainRush</h4>
+          <p>Fast-paced learning challenges</p>
+        </button>
+        <button (click)="openAIEvaluations()" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center">
+          <h4 class="text-lg font-semibold">AI Evaluations</h4>
+          <p>Instant feedback on your work</p>
+        </button>
+        <button (click)="viewRecommendations()" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-lg text-center">
+          <h4 class="text-lg font-semibold">Recommendations</h4>
+          <p>Personalized learning suggestions</p>
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Tutor -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+      <h3 class="text-xl font-semibold mb-4">AI Tutor</h3>
+      <p class="text-gray-600 mb-4">Get instant help with any subject. Our AI tutor is available 24/7.</p>
+      <button (click)="startAITutor()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md">Start AI Tutor Session</button>
+    </div>
+
+    <!-- Recent Activities and Course Suggestions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Recent Activities -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-xl font-semibold mb-4">Recent Activities</h3>
+        <ul class="space-y-2">
+          <li *ngFor="let activity of recentActivities" class="flex justify-between">
+            <span class="text-gray-800">{{ activity.description }}</span>
+            <span class="text-gray-500 text-sm">{{ activity.date }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Course Suggestions -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-xl font-semibold mb-4">Suggested Courses</h3>
+        <div class="space-y-4">
+          <div *ngFor="let course of suggestedCourses" class="border-b pb-2">
+            <h4 class="font-semibold text-gray-800">{{ course.title }}</h4>
+            <p class="text-gray-600 text-sm">{{ course.reason }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

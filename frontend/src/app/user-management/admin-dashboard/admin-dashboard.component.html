@@ -1,0 +1,21 @@
+<div class="admin-container">
+  <h2>Admin Dashboard</h2>
+  <h3>Activity Log</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Action</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let activity of activities">
+        <td>{{ activity.userId.name }} ({{ activity.userId.email }})</td>
+        <td>{{ activity.action }}</td>
+        <td>{{ activity.timestamp | date:'short' }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <button (click)="logout()">Logout</button>
+</div>
