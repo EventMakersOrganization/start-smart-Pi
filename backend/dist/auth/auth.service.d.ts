@@ -13,7 +13,7 @@ export declare class AuthService {
     }>;
     validateUser(email: string, password: string): Promise<any>;
     login(user: any): Promise<{
-        token: string;
+        token: any;
         user: {
             id: any;
             name: any;
