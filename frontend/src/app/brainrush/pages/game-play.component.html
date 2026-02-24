@@ -1,0 +1,60 @@
+<div class="game-container">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="stats">
+      <div class="score">Score: {{ score }}</div>
+      <div class="combo" [class.active]="combo > 1">🔥 {{ combo }}x Combo!</div>
+    </div>
+    <div class="timer">
+      <app-timer-bar [timeLeft]="timeLeft" [totalTime]="20"></app-timer-bar>
+    </div>
+    <div class="progress">Question {{ currentQuestionIndex }} / 5</div>
+  </div>
+
+  <!-- Difficulty Indicator -->
+  <div class="difficulty-indicator">
+    <span class="target-icon">🎯</span>
+    <span class="difficulty-badge" [class]="difficulty">{{ difficulty.toUpperCase() }}</span>
+  </div>
+
+  <!-- Power-Ups -->
+  <div class="power-ups">
+    <div class="power-up">2x Multiplier ({{ powerUps.multiplier }})</div>
+    <div class="power-up">Shield ({{ powerUps.shield }})</div>
+    <div class="power-up">Hint ({{ powerUps.hint }})</div>
+    <div class="power-up">Bonus ({{ powerUps.bonus }})</div>
+  </div>
+
+  <!-- Question Card -->
+  <div class="question-card">
+    <div class="difficulty-badge-small" [class]="currentQuestion?.difficulty">{{ currentQuestion?.difficulty.toUpperCase() }}</div>
+    <h2 class="question-text">{{ currentQuestion?.question }}</h2>
+    <div class="options-grid">
+      <button *ngFor="let option of currentQuestion?.options; let i = index"
+              class="option-btn"
+              [class.selected]="selectedAnswer === option"
+              [class.correct]="showFeedback && option === currentQuestion?.correctAnswer"
+              [class.incorrect]="showFeedback && selectedAnswer === option && selectedAnswer !== currentQuestion?.correctAnswer"
+              (click)="selectAnswer(option)">
+        <span class="option-label">{{ labels[i] }}</span>
+        <span class="option-text">{{ option }}</span>
+      </button>
+    </div>
+    <button class="submit-btn" (click)="submitAnswer()" [disabled]="!selectedAnswer || timeLeft <= 0">Submit Answer</button>
+  </div>
+
+  <!-- Feedback -->
+  <div class="feedback" *ngIf="showFeedback">
+    <div *ngIf="isCorrect" class="correct-feedback">
+      🎉 Correct! +{{ pointsEarned }} points
+    </div>
+    <div *ngIf="!isCorrect" class="incorrect-feedback">
+      😔 Incorrect. Correct answer: {{ currentQuestion?.correctAnswer }}
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-bar">
+    <div class="progress-fill" [style.width.%]="(currentQuestionIndex / 5) * 100"></div>
+  </div>
+</div>

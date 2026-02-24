@@ -1,0 +1,125 @@
+<div class="lobby-container">
+  <!-- Header Section -->
+  <header class="header">
+    <div class="branding">
+      <div class="icon">🎮</div>
+      <div class="title-section">
+        <h1 class="main-title">BrainRush</h1>
+        <p class="tagline">Adaptive AI Quiz Game - Learn While You Play!</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Game Mode Selection -->
+  <div class="mode-selection">
+    <div class="mode-grid">
+      <div class="mode-card" [class.active]="selectedMode === 'solo'" (click)="selectMode('solo')">
+        <div class="mode-icon">⚡</div>
+        <h2>Solo Practice</h2>
+        <p>Challenge yourself with AI-adaptive questions that match your skill level</p>
+      </div>
+      <div class="mode-card" [class.active]="selectedMode === 'team'" (click)="selectMode('team')">
+        <div class="mode-icon">👥</div>
+        <h2>Team Battle</h2>
+        <p>Compete with friends in real-time multiplayer quiz battles</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Solo Mode Configuration -->
+  <div *ngIf="selectedMode === 'solo'" class="config-panel">
+    <div class="config-grid">
+      <!-- Difficulty Selection -->
+      <div class="config-card">
+        <h3>Select Difficulty</h3>
+        <div class="difficulty-options">
+          <button class="difficulty-btn" [class.active]="selectedDifficulty === 'easy'" (click)="selectDifficulty('easy')">Easy</button>
+          <button class="difficulty-btn" [class.active]="selectedDifficulty === 'medium'" (click)="selectDifficulty('medium')">Medium</button>
+          <button class="difficulty-btn" [class.active]="selectedDifficulty === 'hard'" (click)="selectDifficulty('hard')">Hard</button>
+          <button class="difficulty-btn adaptive" [class.active]="selectedDifficulty === 'adaptive'" (click)="selectDifficulty('adaptive')">
+            Adaptive
+            <span class="badge">AI Recommended</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Topic Selection -->
+      <div class="config-card topic-card">
+        <h3>Choose Your Topic</h3>
+        <div class="topic-grid">
+          <div *ngFor="let topic of topics" class="topic-option" [class.active]="selectedTopic === topic.name" (click)="selectTopic(topic.name)">
+            <div class="topic-header">
+              <span class="topic-name">{{ topic.name }}</span>
+              <span *ngIf="topic.recommended" class="badge recommended">Recommended</span>
+            </div>
+            <p class="topic-description">{{ topic.description }}</p>
+          </div>
+        </div>
+        <button class="start-btn" (click)="startSolo()">🎮 Start Solo Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Mode Configuration -->
+  <div *ngIf="selectedMode === 'team'" class="config-panel">
+    <div class="config-grid team-grid">
+      <!-- Create Room -->
+      <div class="config-card">
+        <div class="card-header">
+          <div class="mode-icon">🏆</div>
+          <h3>Create Battle Room</h3>
+          <p>Start a new room and invite your friends to join</p>
+        </div>
+        <div class="form-fields">
+          <div class="form-group">
+            <label>Topic</label>
+            <select [(ngModel)]="selectedTopic" class="form-select">
+              <option *ngFor="let topic of topics" [value]="topic.name">{{ topic.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Difficulty</label>
+            <select [(ngModel)]="selectedDifficulty" class="form-select">
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+        </div>
+        <button class="start-btn" (click)="createRoom()">👥 Create Room</button>
+      </div>
+
+      <!-- Join Room -->
+      <div class="config-card">
+        <div class="card-header">
+          <div class="mode-icon">👥</div>
+          <h3>Join Battle Room</h3>
+          <p>Enter the room code shared by your friend</p>
+        </div>
+        <div class="form-fields">
+          <div class="form-group">
+            <label>Room Code</label>
+            <input type="text" [(ngModel)]="roomCode" placeholder="Enter 6-digit code" maxlength="6" class="form-input" (input)="roomCode = roomCode.toUpperCase()">
+          </div>
+        </div>
+        <button class="start-btn" [disabled]="roomCode.length !== 6" (click)="joinRoom()">👥 Join Room</button>
+
+        <!-- Recent Rooms -->
+        <div class="recent-rooms">
+          <p class="recent-label">Recent Rooms:</p>
+          <div class="recent-list">
+            <button *ngFor="let code of recentRooms" class="recent-room-btn" (click)="fillRoomCode(code)">
+              <span class="room-code">{{ code }}</span>
+              <span class="copy-icon">📋</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Back Navigation -->
+  <div class="back-navigation">
+    <button class="back-btn" (click)="goBack()">← Back to Dashboard</button>
+  </div>
+</div>

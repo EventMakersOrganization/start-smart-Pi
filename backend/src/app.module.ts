@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ActivityModule } from './activity/activity.module';
+import { BrainrushModule } from './brainrush/brainrush.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -22,6 +23,7 @@ import { AppController } from './app.controller';
     AuthModule,
     UsersModule,
     ActivityModule,
+    BrainrushModule,
   ],
   controllers: [AppController],
   providers: [],

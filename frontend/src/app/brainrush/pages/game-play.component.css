@@ -1,0 +1,255 @@
+.game-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Top Bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 20px;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.score {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 5px;
+}
+
+.combo {
+  font-size: 18px;
+  color: #ffd700;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.combo.active {
+  opacity: 1;
+  animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.progress {
+  font-size: 18px;
+  color: white;
+  font-weight: bold;
+}
+
+/* Difficulty Indicator */
+.difficulty-indicator {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.target-icon {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+.difficulty-badge {
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  color: white;
+}
+
+.difficulty-badge.easy { background-color: #28a745; }
+.difficulty-badge.medium { background-color: #ffc107; }
+.difficulty-badge.hard { background-color: #dc3545; }
+
+/* Power-Ups */
+.power-ups {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.power-up {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Question Card */
+.question-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.difficulty-badge-small {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  text-transform: uppercase;
+}
+
+.difficulty-badge-small.easy { background-color: #28a745; }
+.difficulty-badge-small.medium { background-color: #ffc107; }
+.difficulty-badge-small.hard { background-color: #dc3545; }
+
+.question-text {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.option-btn {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 16px;
+  text-align: left;
+}
+
+.option-btn:hover {
+  border-color: #007bff;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.2);
+}
+
+.option-btn.selected {
+  border-color: #007bff;
+  background: #e3f2fd;
+}
+
+.option-btn.correct {
+  border-color: #28a745;
+  background: #d4edda;
+}
+
+.option-btn.incorrect {
+  border-color: #dc3545;
+  background: #f8d7da;
+}
+
+.option-label {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  background: #007bff;
+  color: white;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 30px;
+  font-weight: bold;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.submit-btn {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Feedback */
+.feedback {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.correct-feedback {
+  color: #28a745;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.incorrect-feedback {
+  color: #dc3545;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  max-width: 600px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  transition: width 0.5s ease;
+}

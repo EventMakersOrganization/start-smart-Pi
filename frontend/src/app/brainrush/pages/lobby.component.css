@@ -1,0 +1,399 @@
+.lobby-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.branding {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon {
+  font-size: 64px;
+  line-height: 1;
+}
+
+.title-section h1 {
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+.tagline {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 8px 0 0 0;
+}
+
+/* Mode Selection */
+.mode-selection {
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 32px;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .mode-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mode-card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.mode-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.mode-card.active {
+  outline: 4px solid #4361ee;
+  transform: scale(1.05);
+}
+
+.mode-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.mode-card h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.mode-card p {
+  margin: 0;
+  color: #6c757d;
+}
+
+/* Configuration Panel */
+.config-panel {
+  width: 100%;
+  max-width: 1200px;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 1024px) {
+  .config-grid {
+    grid-template-columns: 1fr 2fr;
+  }
+}
+
+.team-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.config-card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.config-card h3 {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Difficulty Selection */
+.difficulty-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.difficulty-btn {
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  font-size: 16px;
+}
+
+.difficulty-btn:hover {
+  background: #e9ecef;
+}
+
+.difficulty-btn.active {
+  background: #4361ee;
+  color: white;
+  border-color: #4361ee;
+}
+
+.difficulty-btn.adaptive {
+  position: relative;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.difficulty-btn .badge {
+  background: #fef3c7;
+  color: #92400e;
+  margin-left: 8px;
+}
+
+.recommended {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* Topic Selection */
+.topic-card {
+  position: relative;
+}
+
+.topic-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .topic-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.topic-option {
+  padding: 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+}
+
+.topic-option:hover {
+  background: #e9ecef;
+}
+
+.topic-option.active {
+  background: #4361ee;
+  color: white;
+  border-color: #4361ee;
+}
+
+.topic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.topic-name {
+  font-weight: 500;
+}
+
+.topic-description {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.topic-option.active .topic-description {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Team Mode Cards */
+.card-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.card-header .mode-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.card-header h3 {
+  margin: 0 0 8px 0;
+}
+
+.card-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+/* Form Elements */
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+.form-select {
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+  cursor: pointer;
+}
+
+.form-input {
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+}
+
+/* Buttons */
+.start-btn {
+  width: 100%;
+  padding: 16px;
+  background: #4361ee;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.start-btn:hover:not(:disabled) {
+  background: #3651d4;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+}
+
+.start-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Recent Rooms */
+.recent-rooms {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 16px;
+  margin-top: 24px;
+}
+
+.recent-label {
+  font-size: 14px;
+  color: #6c757d;
+  margin: 0 0 12px 0;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-room-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.recent-room-btn:hover {
+  background: #f3f4f6;
+}
+
+.room-code {
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.copy-icon {
+  color: #9ca3af;
+}
+
+/* Back Navigation */
+.back-navigation {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.back-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

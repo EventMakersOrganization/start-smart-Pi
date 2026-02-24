@@ -6,6 +6,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { UserManagementModule } from './user-management/user-management.module';
+import { BrainrushModule } from './brainrush/brainrush.module';
 import { JwtInterceptor } from './user-management/jwt.interceptor';
 
 @NgModule({
@@ -17,7 +18,8 @@ import { JwtInterceptor } from './user-management/jwt.interceptor';
     AppRoutingModule,
     HttpClientModule,
     BrowserAnimationsModule,
-    UserManagementModule
+    UserManagementModule,
+    BrainrushModule
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }

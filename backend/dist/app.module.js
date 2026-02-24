@@ -13,6 +13,7 @@ const mongoose_1 = require("@nestjs/mongoose");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
 const activity_module_1 = require("./activity/activity.module");
+const brainrush_module_1 = require("./brainrush/brainrush.module");
 const app_controller_1 = require("./app.controller");
 let AppModule = class AppModule {
 };
@@ -34,6 +35,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             activity_module_1.ActivityModule,
+            brainrush_module_1.BrainrushModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],

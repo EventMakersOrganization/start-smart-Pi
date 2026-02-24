@@ -1,0 +1,12 @@
+<div class="podium-container">
+  <h1>Final Podium</h1>
+
+  <div class="top-players">
+    <div *ngFor="let player of topPlayers; let i = index" class="player-card" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
+      <h3>{{ i + 1 }}. {{ player.userId }}</h3>
+      <p>Score: {{ player.score }}</p>
+    </div>
+  </div>
+
+  <app-final-feedback [feedback]="aiFeedback"></app-final-feedback>
+</div>
