@@ -66,9 +66,15 @@ export class LoginComponent {
     if (!idToken) return;
 
     this.authService.loginWithGoogle(idToken).subscribe({
-      next: () => {
+      next: (res) => {
         const user = this.authService.getUser();
-        this.redirectByRole(user?.role);
+        if (user?.role === 'student') {
+          this.router.navigate(['/student-dashboard']);
+        } else if (user?.role === 'admin') {
+          this.router.navigate(['/admin']);
+        } else {
+          this.router.navigate(['/profile']);
+        }
       },
       error: () => {
         this.errorMessage = 'Google login failed.';
@@ -79,30 +85,20 @@ export class LoginComponent {
   onSubmit() {
     if (this.loginForm.valid) {
       this.authService.login(this.loginForm.value).subscribe({
-        next: () => {
+        next: (response) => {
           const user = this.authService.getUser();
-          this.redirectByRole(user?.role);
+          if (user.role === 'student') {
+            this.router.navigate(['/student-dashboard']);
+          } else if (user.role === 'admin') {
+            this.router.navigate(['/admin']);
+          } else {
+            this.router.navigate(['/profile']);
+          }
         },
         error: (error) => {
           this.errorMessage = 'Login failed. Please check your credentials.';
         }
       });
-    }
-  }
-
-  private redirectByRole(role?: string) {
-    switch (role) {
-      case 'student':
-        this.router.navigate(['/student/dashboard']);
-        break;
-      case 'instructor':
-        this.router.navigate(['/instructor/dashboard']);
-        break;
-      case 'admin':
-        this.router.navigate(['/admin/dashboard']);
-        break;
-      default:
-        this.router.navigate(['/profile']);
     }
   }
 }

@@ -1,29 +1,111 @@
-<div class="register-container">
-  <h2>Register</h2>
-  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-    <div class="form-group">
-      <label for="first_name">First Name:</label>
-      <input type="text" id="first_name" formControlName="first_name" required>
+<div class="flex w-full min-h-screen">
+  <!-- left side branding panel, hidden on small screens -->
+  <div class="hidden lg:flex lg:w-1/2 relative flex-col justify-center items-center p-12 bg-sidebar-dark overflow-hidden">
+    <div class="absolute inset-0 z-0 opacity-30">
+      <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary rounded-full blur-[120px]"></div>
+      <div class="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-600 rounded-full blur-[100px]"></div>
     </div>
-    <div class="form-group">
-      <label for="last_name">Last Name:</label>
-      <input type="text" id="last_name" formControlName="last_name" required>
+    <div class="relative z-10 max-w-lg text-center">
+      <div class="mb-12 inline-flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-5xl">auto_awesome</span>
+        <h1 class="text-3xl font-bold tracking-tight text-white">StartSmart</h1>
+      </div>
+      <div class="aspect-video w-full mb-12 bg-cover bg-center rounded-2xl shadow-2xl border border-white/10" data-alt="Students collaborating on laptops" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAUQ1Use5Jl6sBDEc4PdWHXZuahOgvUwYazmjv3HDsvQzwPAHJiVlViOUcihJbOV3YQ_A-Qv6Ur5q-xQf1Ap5tFZEibGIN2GbIpQXParBD_UNfw5j0RvSLFzL0_e_0-7c2DgtIoZMa_LnEpn8v6npqmWqaq5ycHpZ1p9HkX8-_30KVrecXXOgg0pMytqY6El4CaFE8Q0hcyOqTsJ7Gaj-7GYDc7iH1j91UC5-bNRG-scYIxTegIjrOmr94RlwJ394uIsX_VsZSC3K6o');"></div>
+      <div class="space-y-6">
+        <p class="text-2xl font-medium leading-relaxed italic text-slate-200">
+          "The beautiful thing about learning is that nobody can take it away from you."
+        </p>
+        <div class="flex items-center justify-center gap-2">
+          <span class="h-px w-8 bg-primary"></span>
+          <p class="text-primary font-bold tracking-wider uppercase text-sm">B.B. King</p>
+          <span class="h-px w-8 bg-primary"></span>
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="phone">Phone:</label>
-      <input type="text" id="phone" formControlName="phone">
+    <div class="absolute bottom-8 left-12 flex gap-6 text-sm text-slate-500">
+      <a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+      <a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
     </div>
-    <div class="form-group">
-      <label for="email">Email:</label>
-      <input type="email" id="email" formControlName="email" required>
+  </div>
+
+  <!-- right side register form -->
+  <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 md:p-20 bg-background-light dark:bg-background-dark overflow-y-auto">
+    <div class="w-full max-w-md space-y-8 py-8">
+      <div class="text-center lg:text-left">
+        <h2 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Create account</h2>
+        <p class="mt-2 text-slate-600 dark:text-slate-400 font-medium">Join StartSmart to start your personalized journey.</p>
+      </div>
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-5">
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="first_name">First Name</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="material-symbols-outlined text-slate-400 text-xl">person</span>
+            </div>
+            <input autocomplete="given-name" formControlName="first_name" id="first_name" required type="text" placeholder="" class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="last_name">Last Name</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="material-symbols-outlined text-slate-400 text-xl">person</span>
+            </div>
+            <input autocomplete="family-name" formControlName="last_name" id="last_name" required type="text" placeholder="" class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="phone">Phone</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="material-symbols-outlined text-slate-400 text-xl">phone</span>
+            </div>
+            <input autocomplete="tel" formControlName="phone" id="phone" type="text" placeholder="(+216)" class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="email">Email address</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="material-symbols-outlined text-slate-400 text-xl">mail</span>
+            </div>
+            <input autocomplete="email" formControlName="email" id="email" required type="email" placeholder="name@esprit.tn" class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="password">Create Password</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span class="material-symbols-outlined text-slate-400 text-xl">lock</span>
+            </div>
+            <input autocomplete="new-password" formControlName="password" id="password" required type="password" placeholder="••••••••" class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group">
+              <span class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors">visibility</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-start">
+          <div class="flex items-center h-5">
+            <input class="h-4 w-4 text-primary focus:ring-primary border-slate-300 dark:border-slate-800 rounded bg-white dark:bg-slate-900" id="terms" name="terms" required type="checkbox" />
+          </div>
+          <div class="ml-3 text-sm">
+            <label class="text-slate-600 dark:text-slate-400" for="terms">
+              I agree to the <a class="font-bold text-primary hover:underline" href="#">Terms and Conditions</a> and <a class="font-bold text-primary hover:underline" href="#">Privacy Policy</a>.
+            </label>
+          </div>
+        </div>
+        <button class="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all shadow-lg shadow-primary/20" type="submit" [disabled]="!registerForm.valid">
+          Create account
+        </button>
+      </form>
+
+      <p *ngIf="successMessage" class="text-green-600 text-center">{{ successMessage }}</p>
+      <p *ngIf="errorMessage" class="text-red-500 text-center">{{ errorMessage }}</p>
+
+      <p class="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
+        Already have an account? <a routerLink="/login" class="font-bold text-primary hover:underline">Sign in</a>
+      </p>
     </div>
-    <div class="form-group">
-      <label for="password">Password:</label>
-      <input type="password" id="password" formControlName="password" required>
-    </div>
-    <button type="submit" [disabled]="!registerForm.valid">Register</button>
-  </form>
-  <p *ngIf="successMessage" class="success">{{ successMessage }}</p>
-  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
-  <p>Already have an account? <a routerLink="/login">Login</a></p>
+  </div>
 </div>
