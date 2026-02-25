@@ -20,6 +20,9 @@ const user_schema_1 = require("./schemas/user.schema");
 const student_profile_schema_1 = require("./schemas/student-profile.schema");
 const activity_service_1 = require("../activity/activity.service");
 const activity_schema_1 = require("../activity/schemas/activity.schema");
+const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 let UsersService = class UsersService {
     constructor(userModel, profileModel, activityService) {
         this.userModel = userModel;
@@ -145,6 +148,9 @@ let UsersService = class UsersService {
             user.role = dto.role;
         if (dto.status)
             user.status = dto.status;
+        if (dto.password) {
+            user.password = await bcrypt.hash(dto.password, 10);
+        }
         await user.save();
         if (user.role === user_schema_1.UserRole.STUDENT && (dto.academic_level ||
             dto.risk_level ||
@@ -173,6 +179,73 @@ let UsersService = class UsersService {
         await this.userModel.deleteOne({ _id: id }).exec();
         await this.activityService.logActivity(id, activity_schema_1.ActivityAction.PROFILE_UPDATE);
         return { success: true };
+    }
+    async createUserByAdmin(dto) {
+        const existing = await this.userModel.findOne({ email: dto.email });
+        if (existing) {
+            throw new common_1.ConflictException('Email already exists');
+        }
+        const plainPassword = dto.password && dto.password.trim().length >= 6
+            ? dto.password
+            : crypto.randomBytes(6).toString('base64').slice(0, 10);
+        const hashedPassword = await bcrypt.hash(plainPassword, 10);
+        const lastName = dto.last_name && dto.last_name.trim().length > 0
+            ? dto.last_name
+            : dto.first_name;
+        const user = new this.userModel({
+            first_name: dto.first_name,
+            last_name: lastName,
+            email: dto.email,
+            phone: dto.phone,
+            password: hashedPassword,
+            role: dto.role || user_schema_1.UserRole.STUDENT,
+            status: dto.status || user_schema_1.UserStatus.ACTIVE,
+        });
+        await user.save();
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587', 10),
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: process.env.SMTP_USER
+                ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+                : undefined,
+        });
+        const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:4200'}/login`;
+        try {
+            if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+                await transporter.sendMail({
+                    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+                    to: dto.email,
+                    subject: 'Your StartSmart account',
+                    text: `Hello ${dto.first_name},\n\n` +
+                        `An account has been created for you.\n\n` +
+                        `Email: ${dto.email}\n` +
+                        `Password: ${plainPassword}\n\n` +
+                        `You can log in here: ${loginUrl}\n`,
+                });
+            }
+            else {
+                console.log('[Admin create user] Credentials (no SMTP configured):', {
+                    email: dto.email,
+                    password: plainPassword,
+                });
+            }
+        }
+        catch (err) {
+            console.error('Send create-user email failed:', err);
+        }
+        return {
+            message: 'User created successfully',
+            user: {
+                id: user._id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+                status: user.status,
+            },
+        };
     }
 };
 exports.UsersService = UsersService;

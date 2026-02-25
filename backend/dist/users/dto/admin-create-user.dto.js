@@ -9,62 +9,43 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AdminUpdateUserDto = void 0;
+exports.AdminCreateUserDto = void 0;
 const class_validator_1 = require("class-validator");
 const user_schema_1 = require("../schemas/user.schema");
-class AdminUpdateUserDto {
+class AdminCreateUserDto {
 }
-exports.AdminUpdateUserDto = AdminUpdateUserDto;
+exports.AdminCreateUserDto = AdminCreateUserDto;
 __decorate([
-    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "first_name", void 0);
+], AdminCreateUserDto.prototype, "first_name", void 0);
 __decorate([
-    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "last_name", void 0);
+], AdminCreateUserDto.prototype, "last_name", void 0);
 __decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "email", void 0);
+], AdminCreateUserDto.prototype, "email", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AdminCreateUserDto.prototype, "phone", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsIn)(Object.values(user_schema_1.UserRole)),
     __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "role", void 0);
+], AdminCreateUserDto.prototype, "role", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsIn)(Object.values(user_schema_1.UserStatus)),
     __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "status", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "academic_level", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "phone", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsIn)(['LOW', 'MEDIUM', 'HIGH']),
-    __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "risk_level", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsInt)(),
-    __metadata("design:type", Number)
-], AdminUpdateUserDto.prototype, "points_gamification", void 0);
+], AdminCreateUserDto.prototype, "status", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MinLength)(6),
     __metadata("design:type", String)
-], AdminUpdateUserDto.prototype, "password", void 0);
-//# sourceMappingURL=admin-update-user.dto.js.map
+], AdminCreateUserDto.prototype, "password", void 0);
+//# sourceMappingURL=admin-create-user.dto.js.map

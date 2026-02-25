@@ -14,6 +14,8 @@ interface UserRow {
   phone?: string;
   createdAt?: string;
   updatedAt?: string;
+  // password is only used for admin-set resets, never read from backend
+  password?: string;
 }
 
 @Component({
@@ -30,8 +32,17 @@ export class StudentManagementComponent implements OnInit {
 
   // filter inputs from template
   filterText = '';
-  filterRole = 'All Roles';
   filterStatus = 'Status: All';
+
+  // add-user modal state
+  showAddUserModal = false;
+  newUserFirstName = '';
+  newUserLastName = '';
+  newUserEmail = '';
+  newUserPhone = '';
+  newUserRole: 'student' | 'instructor' | 'admin' = 'student';
+  addUserLoading = false;
+  addUserError = '';
 
   get filteredStudents(): UserRow[] {
     return this.students.filter(s => {
@@ -44,11 +55,7 @@ export class StudentManagementComponent implements OnInit {
         if (!match) return false;
       }
       if (this.filterStatus !== 'Status: All') {
-        if (s.status !== this.filterStatus) return false;
-      }
-      // role filter not used since all are students, but included for completeness
-      if (this.filterRole !== 'All Roles') {
-        if (s.role !== this.filterRole.toLowerCase()) return false;
+        if (s.status.toLowerCase() !== this.filterStatus.toLowerCase()) return false;
       }
       return true;
     });
@@ -77,7 +84,8 @@ export class StudentManagementComponent implements OnInit {
       academic_level: s.academic_level || '',
       risk_level: s.risk_level || 'LOW',
       points_gamification: s.points_gamification || 0,
-      status: s.status
+      status: s.status,
+      role: s.role
     } as any;
   }
 
@@ -115,6 +123,59 @@ export class StudentManagementComponent implements OnInit {
     this.http.delete(`http://localhost:3000/api/admin/user/${id}`).subscribe({
       next: () => this.loadStudents(),
       error: () => this.error = 'Failed to delete user'
+    });
+  }
+
+  openAddUserModal() {
+    this.addUserError = '';
+    this.newUserFirstName = '';
+    this.newUserLastName = '';
+    this.newUserEmail = '';
+    this.newUserPhone = '';
+    this.newUserRole = 'student';
+    this.showAddUserModal = true;
+  }
+
+  closeAddUserModal() {
+    if (this.addUserLoading) return;
+    this.showAddUserModal = false;
+  }
+
+  createUser() {
+    if (this.addUserLoading) return;
+    const first = this.newUserFirstName.trim();
+    const last = this.newUserLastName.trim();
+    const email = this.newUserEmail.trim();
+    const phone = this.newUserPhone.trim();
+    if (!first || !last || !email) {
+      this.addUserError = 'First name, last name and email are required.';
+      return;
+    }
+
+    this.addUserLoading = true;
+    this.addUserError = '';
+
+    const body: any = {
+      first_name: first,
+      last_name: last,
+      email,
+      role: this.newUserRole,
+    };
+    if (phone) {
+      body.phone = phone;
+    }
+
+    this.http.post('http://localhost:3000/api/admin/user', body).subscribe({
+      next: () => {
+        this.addUserLoading = false;
+        this.showAddUserModal = false;
+        this.loadStudents();
+      },
+      error: (err) => {
+        console.error('create user error', err);
+        this.addUserError = err.error?.message || 'Failed to create user';
+        this.addUserLoading = false;
+      },
     });
   }
 }

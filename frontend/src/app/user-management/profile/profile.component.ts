@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { AuthService } from '../auth.service';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 
 interface ProfileData {
   user: {
@@ -20,6 +21,19 @@ interface ProfileData {
   } | null;
 }
 
+function passwordMatch(control: AbstractControl): ValidationErrors | null {
+  const newPwd = control.get('new_password');
+  const confirm = control.get('confirm_password');
+  if (newPwd && confirm && newPwd.value !== confirm.value) {
+    confirm.setErrors({ passwordMismatch: true });
+    return { passwordMismatch: true };
+  }
+  if (confirm?.hasError('passwordMismatch')) {
+    confirm.setErrors(null);
+  }
+  return null;
+}
+
 @Component({
   selector: 'app-profile',
   templateUrl: './profile.component.html',
@@ -27,24 +41,35 @@ interface ProfileData {
 })
 export class ProfileComponent implements OnInit {
   profileForm: FormGroup;
+  passwordForm: FormGroup;
   profileData: ProfileData | null = null;
   isEditing = false;
   errorMessage = '';
   successMessage = '';
+  pwdErrorMessage = '';
+  pwdSuccessMessage = '';
+
+  showCurrentPwd = false;
+  showNewPwd = false;
+  showConfirmPwd = false;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private http: HttpClient
+    private http: HttpClient,
+    private router: Router
   ) {
     this.profileForm = this.fb.group({
       first_name: [''],
       last_name: [''],
       phone: [''],
-      academic_level: [''],
-      risk_level: ['LOW'],
-      points_gamification: [0]
     });
+
+    this.passwordForm = this.fb.group({
+      current_password: ['', [Validators.required]],
+      new_password: ['', [Validators.required, Validators.minLength(6)]],
+      confirm_password: ['', [Validators.required]]
+    }, { validators: passwordMatch });
   }
 
   ngOnInit() {
@@ -59,12 +84,9 @@ export class ProfileComponent implements OnInit {
           first_name: data.user.first_name || '',
           last_name: data.user.last_name || '',
           phone: (data.user as any).phone || '',
-          academic_level: data.profile?.academic_level || '',
-          risk_level: data.profile?.risk_level || 'LOW',
-          points_gamification: data.profile?.points_gamification || 0
         });
       },
-      error: (error) => {
+      error: () => {
         this.errorMessage = 'Failed to load profile.';
       }
     });
@@ -72,6 +94,8 @@ export class ProfileComponent implements OnInit {
 
   toggleEdit() {
     this.isEditing = !this.isEditing;
+    this.errorMessage = '';
+    this.successMessage = '';
   }
 
   onSubmit() {
@@ -83,10 +107,38 @@ export class ProfileComponent implements OnInit {
           this.loadProfile();
           setTimeout(() => this.successMessage = '', 3000);
         },
-        error: (error) => {
+        error: () => {
           this.errorMessage = 'Failed to update profile.';
         }
       });
+    }
+  }
+
+  changePassword() {
+    if (this.passwordForm.valid) {
+      const { current_password, new_password } = this.passwordForm.value;
+      this.http.put('http://localhost:3000/api/user/change-password', { current_password, new_password }).subscribe({
+        next: () => {
+          this.pwdSuccessMessage = 'Password changed successfully!';
+          this.passwordForm.reset();
+          setTimeout(() => this.pwdSuccessMessage = '', 3000);
+        },
+        error: () => {
+          this.pwdErrorMessage = 'Failed to change password. Check your current password.';
+          setTimeout(() => this.pwdErrorMessage = '', 4000);
+        }
+      });
+    }
+  }
+
+  navigateBack() {
+    const user = this.authService.getUser();
+    if (user?.role === 'instructor') {
+      this.router.navigate(['/instructor/dashboard']);
+    } else if (user?.role === 'admin') {
+      this.router.navigate(['/admin']);
+    } else {
+      this.router.navigate(['/student-dashboard']);
     }
   }
 

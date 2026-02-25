@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsIn, IsInt, IsEmail } from 'class-validator';
+import { IsOptional, IsString, IsIn, IsInt, IsEmail, MinLength } from 'class-validator';
 import { UserRole, UserStatus } from '../schemas/user.schema';
 
 export class AdminUpdateUserDto {
@@ -40,4 +40,9 @@ export class AdminUpdateUserDto {
   @IsOptional()
   @IsInt()
   points_gamification?: number;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  password?: string;
 }

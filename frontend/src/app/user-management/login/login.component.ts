@@ -14,8 +14,9 @@ declare const google: any;
 export class LoginComponent {
   loginForm: FormGroup;
   errorMessage: string = '';
+  showPassword = false;
 
-  constructor( 
+  constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router
@@ -24,6 +25,10 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]]
     });
+  }
+
+  togglePassword() {
+    this.showPassword = !this.showPassword;
   }
 
   ngAfterViewInit(): void {
@@ -70,6 +75,8 @@ export class LoginComponent {
         const user = this.authService.getUser();
         if (user?.role === 'student') {
           this.router.navigate(['/student-dashboard']);
+        } else if (user?.role === 'instructor') {
+          this.router.navigate(['/instructor/dashboard']);
         } else if (user?.role === 'admin') {
           this.router.navigate(['/admin']);
         } else {
@@ -89,6 +96,8 @@ export class LoginComponent {
           const user = this.authService.getUser();
           if (user.role === 'student') {
             this.router.navigate(['/student-dashboard']);
+          } else if (user.role === 'instructor') {
+            this.router.navigate(['/instructor/dashboard']);
           } else if (user.role === 'admin') {
             this.router.navigate(['/admin']);
           } else {

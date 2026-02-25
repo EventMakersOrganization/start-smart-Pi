@@ -1,8 +1,9 @@
 import { Model } from 'mongoose';
-import { UserDocument, UserRole } from './schemas/user.schema';
+import { UserDocument, UserRole, UserStatus } from './schemas/user.schema';
 import { StudentProfileDocument } from './schemas/student-profile.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ActivityService } from '../activity/activity.service';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 export declare class UsersService {
     private userModel;
     private profileModel;
@@ -16,7 +17,7 @@ export declare class UsersService {
             email: string;
             phone: string;
             role: UserRole;
-            status: import("./schemas/user.schema").UserStatus;
+            status: UserStatus;
         };
         profile: {
             academic_level: string;
@@ -32,7 +33,7 @@ export declare class UsersService {
             email: string;
             phone: string;
             role: UserRole;
-            status: import("./schemas/user.schema").UserStatus;
+            status: UserStatus;
         };
         profile: {
             academic_level: string;
@@ -46,5 +47,17 @@ export declare class UsersService {
     }>;
     deleteUserById(id: string): Promise<{
         success: boolean;
+    }>;
+    createUserByAdmin(dto: AdminCreateUserDto): Promise<{
+        message: string;
+        user: {
+            id: any;
+            first_name: string;
+            last_name: string;
+            email: string;
+            phone: string;
+            role: UserRole;
+            status: UserStatus;
+        };
     }>;
 }

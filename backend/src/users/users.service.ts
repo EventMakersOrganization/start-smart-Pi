@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserDocument, UserRole } from './schemas/user.schema';
+import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema';
 import { StudentProfile, StudentProfileDocument } from './schemas/student-profile.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ActivityService } from '../activity/activity.service';
 import { ActivityAction } from '../activity/schemas/activity.schema';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -145,6 +149,9 @@ export class UsersService {
     if (dto.phone) user.phone = dto.phone;
     if (dto.role) user.role = dto.role;
     if (dto.status) user.status = dto.status;
+    if (dto.password) {
+      user.password = await bcrypt.hash(dto.password, 10);
+    }
 
     await user.save();
 
@@ -183,5 +190,81 @@ export class UsersService {
     await this.activityService.logActivity(id, ActivityAction.PROFILE_UPDATE);
 
     return { success: true };
+  }
+
+  async createUserByAdmin(dto: AdminCreateUserDto) {
+    const existing = await this.userModel.findOne({ email: dto.email });
+    if (existing) {
+      throw new ConflictException('Email already exists');
+    }
+
+    const plainPassword = dto.password && dto.password.trim().length >= 6
+      ? dto.password
+      : crypto.randomBytes(6).toString('base64').slice(0, 10);
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    const lastName = dto.last_name && dto.last_name.trim().length > 0
+      ? dto.last_name
+      : dto.first_name;
+
+    const user = new this.userModel({
+      first_name: dto.first_name,
+      last_name: lastName,
+      email: dto.email,
+      phone: dto.phone,
+      password: hashedPassword,
+      role: dto.role || UserRole.STUDENT,
+      status: dto.status || UserStatus.ACTIVE,
+    });
+
+    await user.save();
+
+    // Send credentials by email if SMTP is configured, otherwise log to console
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: process.env.SMTP_USER
+        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        : undefined,
+    });
+
+    const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:4200'}/login`;
+
+    try {
+      if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || process.env.SMTP_USER,
+          to: dto.email,
+          subject: 'Your StartSmart account',
+          text:
+            `Hello ${dto.first_name},\n\n` +
+            `An account has been created for you.\n\n` +
+            `Email: ${dto.email}\n` +
+            `Password: ${plainPassword}\n\n` +
+            `You can log in here: ${loginUrl}\n`,
+        });
+      } else {
+        console.log('[Admin create user] Credentials (no SMTP configured):', {
+          email: dto.email,
+          password: plainPassword,
+        });
+      }
+    } catch (err) {
+      console.error('Send create-user email failed:', err);
+    }
+
+    return {
+      message: 'User created successfully',
+      user: {
+        id: user._id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        status: user.status,
+      },
+    };
   }
 }

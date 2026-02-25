@@ -9,4 +9,5 @@ export declare class AdminUpdateUserDto {
     phone?: string;
     risk_level?: 'LOW' | 'MEDIUM' | 'HIGH';
     points_gamification?: number;
+    password?: string;
 }

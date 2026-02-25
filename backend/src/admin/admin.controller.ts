@@ -1,10 +1,11 @@
-import { Controller, Get, UseGuards, Param, Put, Body, Delete } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/schemas/user.schema';
 import { UsersService } from '../users/users.service';
 import { AdminUpdateUserDto } from '../users/dto/admin-update-user.dto';
+import { AdminCreateUserDto } from '../users/dto/admin-create-user.dto';
 
 @Controller('admin')
 export class AdminController {
@@ -36,5 +37,12 @@ export class AdminController {
   @Delete('user/:id')
   async deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUserById(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('user')
+  async createUser(@Body() dto: AdminCreateUserDto) {
+    return this.usersService.createUserByAdmin(dto);
   }
 }

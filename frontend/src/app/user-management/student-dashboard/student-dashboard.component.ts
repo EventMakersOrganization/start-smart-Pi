@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -9,6 +10,7 @@ import { Router } from '@angular/router';
 })
 export class StudentDashboardComponent implements OnInit {
   user: any;
+  profileData: any = null;
   progress = 75; // Mock progress percentage
   performance = 85; // Mock performance score
   completedModules = 12;
@@ -28,10 +30,26 @@ export class StudentDashboardComponent implements OnInit {
     { title: 'Machine Learning Basics', reason: 'Aligned with your AI focus' }
   ];
 
-  constructor(private authService: AuthService, private router: Router) {}
+  showProfileSidebar = false;
+
+  constructor(private authService: AuthService, private router: Router, private http: HttpClient) { }
 
   ngOnInit() {
     this.user = this.authService.getUser();
+    this.loadProfile();
+  }
+
+  loadProfile() {
+    this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
+      next: (data) => {
+        this.profileData = data;
+        // Merge phone into the user object for easy access
+        if (this.user && data?.user?.phone) {
+          this.user.phone = data.user.phone;
+        }
+      },
+      error: () => { /* silently fail */ }
+    });
   }
 
   logout() {
@@ -39,7 +57,6 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   openBrainRush() {
-    // Mock action
     alert('Opening BrainRush...');
   }
 
@@ -53,5 +70,18 @@ export class StudentDashboardComponent implements OnInit {
 
   startAITutor() {
     alert('Starting AI Tutor...');
+  }
+
+  openProfileSidebar() {
+    this.showProfileSidebar = true;
+  }
+
+  closeProfileSidebar() {
+    this.showProfileSidebar = false;
+  }
+
+  manageAccount() {
+    this.closeProfileSidebar();
+    this.router.navigate(['/profile']);
   }
 }

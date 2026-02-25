@@ -1,118 +1,385 @@
-<div class="min-h-screen bg-gray-100">
-  <!-- Header -->
-  <header class="bg-white shadow-sm border-b">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center py-4">
-        <h1 class="text-2xl font-bold text-gray-900">Student Dashboard</h1>
-        <div class="flex items-center space-x-4">
-          <span class="text-gray-700">Welcome, {{ user?.first_name }} {{ user?.last_name }}</span>
-          <a routerLink="/profile" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">Profile</a>
-          <button (click)="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md">Logout</button>
+<div class="flex min-h-screen">
+  <!-- Sidebar Navigation -->
+  <aside
+    class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col fixed h-full">
+    <div class="p-6 flex items-center gap-3">
+      <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
+        <span class="material-symbols-outlined text-2xl">auto_awesome</span>
+      </div>
+      <div>
+        <h1 class="font-bold text-xl tracking-tight text-primary">StartSmart</h1>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Adaptive Learning</p>
+      </div>
+    </div>
+    <nav class="flex-1 px-4 py-4 space-y-1">
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="#">
+        <span class="material-symbols-outlined">dashboard</span>
+        Dashboard
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        href="#">
+        <span class="material-symbols-outlined">book_4</span>
+        My Courses
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        href="#">
+        <span class="material-symbols-outlined">route</span>
+        Learning Path
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        href="#">
+        <span class="material-symbols-outlined">assignment</span>
+        Assignments
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        href="#">
+        <span class="material-symbols-outlined">analytics</span>
+        Performance
+      </a>
+    </nav>
+    <div class="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
+      <div class="bg-primary/5 rounded-xl p-4 mb-4">
+        <p class="text-sm font-bold text-slate-800 dark:text-slate-200">Pro Version</p>
+        <p class="text-xs text-slate-500 mb-3">Unlock AI personal tutor 24/7</p>
+        <button
+          class="w-full py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors">Upgrade
+          Now</button>
+      </div>
+      <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400" routerLink="/profile">
+        <span class="material-symbols-outlined">settings</span>
+        <span class="text-sm font-medium">Account</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 ml-64 min-h-screen bg-background-light dark:bg-background-dark">
+    <!-- Top Navbar -->
+    <header
+      class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between">
+      <div class="flex items-center flex-1 max-w-xl">
+        <div class="relative w-full">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+          <input
+            class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-slate-500"
+            placeholder="Search courses, skills, or mentors..." type="text" />
         </div>
       </div>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Welcome Section -->
-    <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-6 mb-8">
-      <h2 class="text-3xl font-bold mb-2">Welcome back, {{ user?.first_name }} {{ user?.last_name }}!</h2>
-      <p class="text-lg">Continue your learning journey with personalized AI-powered education.</p>
-    </div>
-
-    <!-- Dashboard Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-      <!-- Learning Progress -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-xl font-semibold mb-4">Learning Progress</h3>
-        <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
-          <div class="bg-blue-600 h-4 rounded-full" [style.width.%]="progress"></div>
-        </div>
-        <p class="text-gray-600">{{ progress }}% Complete</p>
-      </div>
-
-      <!-- Performance -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-xl font-semibold mb-4">Performance</h3>
-        <div class="text-3xl font-bold text-green-600 mb-2">{{ performance }}%</div>
-        <p class="text-gray-600">Average Score</p>
-      </div>
-
-      <!-- Completed Modules -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-xl font-semibold mb-4">Completed Modules</h3>
-        <div class="text-3xl font-bold text-blue-600 mb-2">{{ completedModules }}/{{ totalModules }}</div>
-        <p class="text-gray-600">Modules Finished</p>
-      </div>
-
-      <!-- Learning Streaks -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-xl font-semibold mb-4">Learning Streak</h3>
-        <div class="text-3xl font-bold text-orange-600 mb-2">{{ learningStreak }} days</div>
-        <p class="text-gray-600">Keep it up!</p>
-      </div>
-    </div>
-
-    <!-- Alerts -->
-    <div class="mb-8">
-      <h3 class="text-xl font-semibold mb-4">Alerts</h3>
-      <div class="space-y-4">
-        <div *ngFor="let alert of alerts" class="p-4 rounded-lg" [ngClass]="{'bg-yellow-100 border-yellow-400': alert.type === 'warning', 'bg-blue-100 border-blue-400': alert.type === 'info'}">
-          <p class="text-gray-800">{{ alert.message }}</p>
+      <div class="flex items-center gap-4">
+        <button
+          class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
+          <span class="material-symbols-outlined">notifications</span>
+          <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        </button>
+        <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <p class="text-sm font-bold leading-none">{{ user?.first_name }} {{ user?.last_name }}</p>
+            <p class="text-xs text-primary font-medium capitalize">{{ user?.role || 'student' }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div
+              class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold">
+              {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
+            </div>
+            <button (click)="openProfileSidebar()"
+              class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+              Account
+            </button>
+            <button (click)="logout()" class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600">
+              Logout
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </header>
 
-    <!-- Quick Access -->
-    <div class="mb-8">
-      <h3 class="text-xl font-semibold mb-4">Quick Access</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button (click)="openBrainRush()" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg text-center">
-          <h4 class="text-lg font-semibold">BrainRush</h4>
-          <p>Fast-paced learning challenges</p>
-        </button>
-        <button (click)="openAIEvaluations()" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg text-center">
-          <h4 class="text-lg font-semibold">AI Evaluations</h4>
-          <p>Instant feedback on your work</p>
-        </button>
-        <button (click)="viewRecommendations()" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-lg text-center">
-          <h4 class="text-lg font-semibold">Recommendations</h4>
-          <p>Personalized learning suggestions</p>
-        </button>
-      </div>
-    </div>
+    <div class="p-8 space-y-8 max-w-7xl mx-auto">
+      <!-- Welcome Header -->
+      <section class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+            Welcome back, {{ user?.first_name }}! 👋
+          </h2>
+          <p class="text-slate-500 mt-1">
+            You're making great progress. You've completed {{ progress }}% of your learning goals this week.
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <button
+            class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors">
+            <span class="material-symbols-outlined text-lg">calendar_today</span> Schedule
+          </button>
+          <button
+            class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-shadow shadow-lg shadow-primary/20">
+            <span class="material-symbols-outlined text-lg">bolt</span> Resume Learning
+          </button>
+        </div>
+      </section>
 
-    <!-- AI Tutor -->
-    <div class="bg-white rounded-lg shadow p-6 mb-8">
-      <h3 class="text-xl font-semibold mb-4">AI Tutor</h3>
-      <p class="text-gray-600 mb-4">Get instant help with any subject. Our AI tutor is available 24/7.</p>
-      <button (click)="startAITutor()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md">Start AI Tutor Session</button>
-    </div>
+      <!-- Grid Layout for Widgets -->
+      <div class="grid grid-cols-12 gap-6">
+        <!-- Learning Progress Rings -->
+        <div
+          class="col-span-12 lg:col-span-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold">Learning Progress</h3>
+            <select class="bg-slate-50 border-none text-sm font-medium rounded-lg py-1 px-3">
+              <option>Weekly</option>
+              <option>Monthly</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="flex flex-col items-center gap-3">
+              <div class="relative w-24 h-24">
+                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                    stroke="currentColor" stroke-width="8"></circle>
+                  <circle class="text-primary" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                    stroke-dasharray="251.2" stroke-dashoffset="62.8" stroke-linecap="round" stroke-width="8"></circle>
+                </svg>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">75%</span>
+              </div>
+              <span class="text-xs font-bold text-slate-500 uppercase">Data Science</span>
+            </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="relative w-24 h-24">
+                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                    stroke="currentColor" stroke-width="8"></circle>
+                  <circle class="text-emerald-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                    stroke-dasharray="251.2" stroke-dashoffset="25.1" stroke-linecap="round" stroke-width="8"></circle>
+                </svg>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">90%</span>
+              </div>
+              <span class="text-xs font-bold text-slate-500 uppercase">UI Design</span>
+            </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="relative w-24 h-24">
+                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                    stroke="currentColor" stroke-width="8"></circle>
+                  <circle class="text-orange-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                    stroke-dasharray="251.2" stroke-dashoffset="150.7" stroke-linecap="round" stroke-width="8"></circle>
+                </svg>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">40%</span>
+              </div>
+              <span class="text-xs font-bold text-slate-500 uppercase">React JS</span>
+            </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="relative w-24 h-24">
+                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                    stroke="currentColor" stroke-width="8"></circle>
+                  <circle class="text-purple-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                    stroke-dasharray="251.2" stroke-dashoffset="100.5" stroke-linecap="round" stroke-width="8"></circle>
+                </svg>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">60%</span>
+              </div>
+              <span class="text-xs font-bold text-slate-500 uppercase">AI Ethics</span>
+            </div>
+          </div>
+        </div>
 
-    <!-- Recent Activities and Course Suggestions -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Recent Activities -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-xl font-semibold mb-4">Recent Activities</h3>
-        <ul class="space-y-2">
-          <li *ngFor="let activity of recentActivities" class="flex justify-between">
-            <span class="text-gray-800">{{ activity.description }}</span>
-            <span class="text-gray-500 text-sm">{{ activity.date }}</span>
-          </li>
-        </ul>
-      </div>
+        <!-- Goal Tracking Widget -->
+        <div
+          class="col-span-12 lg:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+          <h3 class="text-lg font-bold mb-6">Goal Tracking</h3>
+          <div class="space-y-6">
+            <div>
+              <div class="flex justify-between text-sm mb-2">
+                <span class="font-medium text-slate-600 dark:text-slate-400">Study Hours</span>
+                <span class="font-bold">12/15h</span>
+              </div>
+              <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-primary h-full w-[80%]"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-2">
+                <span class="font-medium text-slate-600 dark:text-slate-400">Quiz Success</span>
+                <span class="font-bold">85% Avg</span>
+              </div>
+              <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-emerald-500 h-full w-[85%]"></div>
+              </div>
+            </div>
+            <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
+              <p class="text-sm font-medium italic text-slate-500 italic">"Consistency is the key to mastery. Keep it
+                up!"</p>
+            </div>
+          </div>
+        </div>
 
-      <!-- Course Suggestions -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-xl font-semibold mb-4">Suggested Courses</h3>
-        <div class="space-y-4">
-          <div *ngFor="let course of suggestedCourses" class="border-b pb-2">
-            <h4 class="font-semibold text-gray-800">{{ course.title }}</h4>
-            <p class="text-gray-600 text-sm">{{ course.reason }}</p>
+        <!-- Personalized Recommendations -->
+        <div class="col-span-12 lg:col-span-9">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold">Personalized Recommendations</h3>
+            <button class="text-primary text-sm font-bold hover:underline">View All</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- We reuse suggestedCourses from TS for dynamic content -->
+            <div *ngFor="let course of suggestedCourses"
+              class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-shadow group">
+              <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"></div>
+              </div>
+              <div class="p-4">
+                <h4 class="font-bold text-sm mb-1 line-clamp-1">{{ course.title }}</h4>
+                <p class="text-xs text-slate-500 mb-3">{{ course.reason }}</p>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">AI Recommended</span>
+                  <button
+                    class="text-primary material-symbols-outlined hover:scale-110 transition-transform">arrow_forward_ios</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skill Mastery (static mock) -->
+        <div
+          class="col-span-12 lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+          <h3 class="text-lg font-bold mb-4">Skill Mastery</h3>
+          <div class="relative flex items-center justify-center py-6">
+            <svg class="w-40 h-40 opacity-90" viewBox="0 0 100 100">
+              <polygon class="text-slate-300 dark:text-slate-700" fill="none" points="50,10 90,40 75,90 25,90 10,40"
+                stroke="currentColor" stroke-width="0.5"></polygon>
+              <polygon class="text-slate-300 dark:text-slate-700" fill="none" points="50,30 70,50 65,75 35,75 25,50"
+                stroke="currentColor" stroke-width="0.5"></polygon>
+              <polygon class="text-primary" fill="rgba(17, 82, 212, 0.2)" points="50,20 80,45 65,85 30,80 20,40"
+                stroke="currentColor" stroke-width="2"></polygon>
+            </svg>
+            <div
+              class="absolute inset-0 flex flex-col justify-between text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
+              <div class="text-center">Logic</div>
+              <div class="flex justify-between px-2"><span>Creative</span><span>Coding</span></div>
+              <div class="flex justify-around px-4"><span>Theory</span><span>Applied</span></div>
+            </div>
+          </div>
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-primary"></div>
+              <span class="text-xs font-medium">Coding Proficiency: Expert</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+              <span class="text-xs font-medium">Applied Skills: Advanced</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </main>
+  <!-- AI Quick-Access Floating Button -->
+  <div class="fixed bottom-8 right-8 z-40">
+    <button
+      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
+      <span class="material-symbols-outlined text-3xl">psychology</span>
+      <div
+        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">
+        ASK EDU AI
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- Profile Sidebar Overlay (Student) -->
+<div *ngIf="showProfileSidebar">
+  <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" (click)="closeProfileSidebar()"></div>
+  <aside
+    class="fixed top-0 right-0 h-full w-96 bg-white dark:bg-slate-900 z-50 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
+    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <h2 class="font-bold text-lg">My Profile</h2>
+      <button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full" (click)="closeProfileSidebar()">
+        <span class="material-symbols-outlined text-slate-500">close</span>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto">
+      <div class="p-8 flex flex-col items-center text-center">
+        <div class="relative mb-4">
+          <div
+            class="w-24 h-24 rounded-full border-4 border-primary/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
+            {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
+          </div>
+          <div
+            class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full">
+          </div>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight">
+          {{ user?.first_name }} {{ user?.last_name }}
+        </h3>
+        <p class="text-primary font-semibold text-sm capitalize">{{ user?.role || 'student' }}</p>
+      </div>
+      <div class="px-6 mb-8">
+        <div class="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+          <div class="text-center">
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Study Hours</p>
+            <p class="text-lg font-black text-slate-900 dark:text-white">128.5h</p>
+          </div>
+          <div class="border-l border-slate-200 dark:border-slate-700 text-center">
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Courses</p>
+            <p class="text-lg font-black text-slate-900 dark:text-white">14</p>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 mb-8">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">Personal Info</h4>
+        <div class="space-y-4">
+          <div class="flex items-center gap-4 px-2">
+            <span class="material-symbols-outlined text-slate-400">mail</span>
+            <div class="text-sm">
+              <p class="text-slate-500 text-[10px] font-bold uppercase">Email Address</p>
+              <p class="font-medium">{{ user?.email || '—' }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 px-2">
+            <span class="material-symbols-outlined text-slate-400">call</span>
+            <div class="text-sm">
+              <p class="text-slate-500 text-[10px] font-bold uppercase">Phone Number</p>
+              <p class="font-medium">{{ user?.phone || '—' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 mb-8">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">Preferences</h4>
+        <div class="space-y-1">
+          <button
+            class="flex items-center justify-between w-full p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800"
+            (click)="manageAccount()">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-slate-400">manage_accounts</span>
+              <span class="text-sm font-medium">Manage Account</span>
+            </div>
+            <span class="material-symbols-outlined text-slate-400 text-sm">chevron_right</span>
+          </button>
+          <div class="flex items-center justify-between p-2 rounded-xl">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-slate-400">dark_mode</span>
+              <span class="text-sm font-medium">Dark Mode</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input class="sr-only peer" type="checkbox">
+              <div
+                class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="p-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
+      <button (click)="manageAccount()"
+        class="w-full py-3 bg-primary/5 text-primary border border-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors">
+        <span class="material-symbols-outlined">manage_accounts</span>
+        Manage Account
+      </button>
+      <button (click)="logout()"
+        class="w-full py-3 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+        <span class="material-symbols-outlined">logout</span>
+        Sign Out
+      </button>
+    </div>
+  </aside>
 </div>

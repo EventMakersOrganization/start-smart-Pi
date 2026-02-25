@@ -11,6 +11,7 @@ interface UserRow {
   phone?: string;
   createdAt?: string;
   updatedAt?: string;
+  password?: string;
 }
 
 @Component({
@@ -27,6 +28,16 @@ export class TeacherManagementComponent implements OnInit {
   filterText = '';
   filterStatus = 'Status: All';
 
+  // add-user modal state
+  showAddUserModal = false;
+  newUserFirstName = '';
+  newUserLastName = '';
+  newUserEmail = '';
+  newUserPhone = '';
+  newUserRole: 'student' | 'instructor' | 'admin' = 'instructor';
+  addUserLoading = false;
+  addUserError = '';
+
   get filteredTeachers(): UserRow[] {
     return this.teachers.filter(t => {
       const text = this.filterText.toLowerCase();
@@ -38,7 +49,7 @@ export class TeacherManagementComponent implements OnInit {
         if (!match) return false;
       }
       if (this.filterStatus !== 'Status: All') {
-        if (t.status !== this.filterStatus) return false;
+        if (t.status.toLowerCase() !== this.filterStatus.toLowerCase()) return false;
       }
       return true;
     });
@@ -59,7 +70,14 @@ export class TeacherManagementComponent implements OnInit {
 
   startEdit(t: UserRow) {
     this.editing[t.id] = true;
-    this.editModels[t.id] = { first_name: t.first_name, last_name: t.last_name, email: t.email, phone: t.phone || '', status: t.status } as any;
+    this.editModels[t.id] = {
+      first_name: t.first_name,
+      last_name: t.last_name,
+      email: t.email,
+      phone: t.phone || '',
+      status: t.status,
+      role: t.role
+    } as any;
   }
 
   cancelEdit(id: string) {
@@ -93,6 +111,59 @@ export class TeacherManagementComponent implements OnInit {
     this.http.delete(`http://localhost:3000/api/admin/user/${id}`).subscribe({
       next: () => this.loadTeachers(),
       error: () => this.error = 'Failed to delete user'
+    });
+  }
+
+  openAddUserModal() {
+    this.addUserError = '';
+    this.newUserFirstName = '';
+    this.newUserLastName = '';
+    this.newUserEmail = '';
+    this.newUserPhone = '';
+    this.newUserRole = 'instructor';
+    this.showAddUserModal = true;
+  }
+
+  closeAddUserModal() {
+    if (this.addUserLoading) return;
+    this.showAddUserModal = false;
+  }
+
+  createUser() {
+    if (this.addUserLoading) return;
+    const first = this.newUserFirstName.trim();
+    const last = this.newUserLastName.trim();
+    const email = this.newUserEmail.trim();
+    const phone = this.newUserPhone.trim();
+    if (!first || !last || !email) {
+      this.addUserError = 'First name, last name and email are required.';
+      return;
+    }
+
+    this.addUserLoading = true;
+    this.addUserError = '';
+
+    const body: any = {
+      first_name: first,
+      last_name: last,
+      email,
+      role: this.newUserRole,
+    };
+    if (phone) {
+      body.phone = phone;
+    }
+
+    this.http.post('http://localhost:3000/api/admin/user', body).subscribe({
+      next: () => {
+        this.addUserLoading = false;
+        this.showAddUserModal = false;
+        this.loadTeachers();
+      },
+      error: (err) => {
+        console.error('create user error', err);
+        this.addUserError = err.error?.message || 'Failed to create user';
+        this.addUserLoading = false;
+      },
     });
   }
 }
