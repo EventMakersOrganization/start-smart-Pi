@@ -18,6 +18,9 @@ import { AuthGuard } from './auth.guard';
 import { RoleGuard } from './role.guard';
 import { JwtInterceptor } from './jwt.interceptor';
 import { StudentDashboardComponent } from './student-dashboard/student-dashboard.component';
+import { AdaptiveLearningService } from './adaptive-learning.service';
+import { LevelTestComponent } from './level-test/level-test.component';
+import { LevelTestResultComponent } from './level-test-result/level-test-result.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -32,15 +35,54 @@ const routes: Routes = [
     data: { roles: ['admin'] },
     children: [
       { path: '', redirectTo: 'students', pathMatch: 'full' },
-      { path: 'students', component: StudentManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
-      { path: 'instructors', component: TeacherManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
-    ]
+      {
+        path: 'students',
+        component: StudentManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+      {
+        path: 'instructors',
+        component: TeacherManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+    ],
   },
-  { path: 'student-dashboard', component: StudentDashboardComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['student'] } },
-  { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['student'] } },
+  {
+    path: 'student-dashboard',
+    component: StudentDashboardComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['student'] },
+  },
+  {
+    path: 'student/dashboard',
+    component: StudentDashboardComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['student'] },
+  },
+
+  // Level Test route
+  {
+    path: 'level-test',
+    component: LevelTestComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['student'] },
+  },
+  {
+    path: 'level-test/result',
+    component: LevelTestResultComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['student'] },
+  },
 
   // instructor dashboard
-  { path: 'instructor/dashboard', component: InstructorDashboardComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['instructor'] } },
+  {
+    path: 'instructor/dashboard',
+    component: InstructorDashboardComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['instructor'] },
+  },
 ];
 
 @NgModule({
@@ -54,20 +96,23 @@ const routes: Routes = [
     StudentDashboardComponent,
     StudentManagementComponent,
     TeacherManagementComponent,
-    InstructorDashboardComponent
+    InstructorDashboardComponent,
+    LevelTestComponent,
+    LevelTestResultComponent,
   ],
   imports: [
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
     HttpClientModule,
-    RouterModule.forChild(routes)
+    RouterModule.forChild(routes),
   ],
   providers: [
     AuthService,
     AuthGuard,
     RoleGuard,
-    JwtInterceptor
-  ]
+    JwtInterceptor,
+    AdaptiveLearningService,
+  ],
 })
-export class UserManagementModule { }
+export class UserManagementModule {}

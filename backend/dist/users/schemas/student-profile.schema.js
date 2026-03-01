@@ -35,6 +35,40 @@ __decorate([
     (0, mongoose_1.Prop)({ default: 0 }),
     __metadata("design:type", Number)
 ], StudentProfile.prototype, "points_gamification", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({
+        enum: ['beginner', 'intermediate', 'advanced'],
+        default: 'beginner'
+    }),
+    __metadata("design:type", String)
+], StudentProfile.prototype, "level", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({
+        type: {
+            preferredStyle: { type: String, default: 'visual' },
+            preferredDifficulty: { type: String, default: 'beginner' },
+            studyHoursPerDay: { type: Number, default: 1 }
+        },
+        default: {}
+    }),
+    __metadata("design:type", Object)
+], StudentProfile.prototype, "learningPreferences", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: 0, min: 0, max: 100 }),
+    __metadata("design:type", Number)
+], StudentProfile.prototype, "progress", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: [String], default: [] }),
+    __metadata("design:type", Array)
+], StudentProfile.prototype, "strengths", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: [String], default: [] }),
+    __metadata("design:type", Array)
+], StudentProfile.prototype, "weaknesses", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: false }),
+    __metadata("design:type", Boolean)
+], StudentProfile.prototype, "levelTestCompleted", void 0);
 exports.StudentProfile = StudentProfile = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], StudentProfile);

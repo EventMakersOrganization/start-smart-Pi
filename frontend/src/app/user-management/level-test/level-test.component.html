@@ -1,0 +1,318 @@
+<div
+  class="layout-container flex flex-col h-screen overflow-hidden bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-slate-100 font-display"
+>
+  <!-- Header -->
+  <header
+    class="flex items-center justify-between border-b border-primary/10 bg-white dark:bg-slate-900 px-8 py-4 z-10"
+  >
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3">
+        <div
+          class="size-8 bg-primary rounded-lg flex items-center justify-center text-white"
+        >
+          <span class="material-symbols-outlined">analytics</span>
+        </div>
+        <h2
+          class="text-slate-900 dark:text-white text-xl font-bold tracking-tight"
+        >
+          AdaptiveLearning
+        </h2>
+      </div>
+      <div class="h-6 w-[1px] bg-primary/20"></div>
+      <div class="flex flex-col">
+        <h1 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          Level Assessment
+        </h1>
+        <p class="text-xs text-slate-500">Discover your skill level</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-10">
+      <div class="flex flex-col items-center">
+        <div class="flex items-center gap-2 text-primary font-bold text-lg">
+          <span class="material-symbols-outlined text-primary">schedule</span>
+          <span>{{ formatTime(timeRemaining) }}</span>
+        </div>
+        <span
+          class="text-[10px] uppercase tracking-widest text-slate-400 font-bold"
+          >Remaining</span
+        >
+      </div>
+      <div class="flex items-center gap-4">
+        <button class="p-2 hover:bg-primary/10 rounded-full transition-colors">
+          <span
+            class="material-symbols-outlined text-slate-600 dark:text-slate-300"
+            >help_outline</span
+          >
+        </button>
+        <div
+          class="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary"
+        >
+          {{ userFullName[0] || "S" }}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <ng-container *ngIf="loading">
+    <div class="flex-1 flex flex-col items-center justify-center">
+      <span class="material-symbols-outlined text-primary text-6xl animate-spin"
+        >refresh</span
+      >
+      <p class="mt-4 text-slate-500 text-sm font-bold animate-pulse">
+        Generating your personalized test...
+      </p>
+    </div>
+  </ng-container>
+
+  <!-- Main Layout -->
+  <div class="flex flex-1 overflow-hidden" *ngIf="!loading && currentQuestion">
+    <!-- Left Content: Assessment -->
+    <main class="flex-1 overflow-y-auto p-8 lg:p-12">
+      <div class="max-w-3xl mx-auto space-y-8">
+        <!-- Progress Stats -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span
+              class="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider"
+              >{{ currentQuestion.difficulty }}</span
+            >
+            <span
+              class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-full uppercase tracking-wider"
+              >{{ currentQuestion.topic }}</span
+            >
+          </div>
+          <span class="text-sm font-medium text-slate-500"
+            >Question {{ currentQuestionIndex + 1 }} of
+            {{ testData.questions.length }}</span
+          >
+        </div>
+
+        <!-- Question Card -->
+        <div
+          class="bg-white dark:bg-slate-900 rounded-xl p-8 border border-primary/10 custom-shadow"
+        >
+          <h2
+            class="text-2xl font-semibold leading-relaxed text-slate-800 dark:text-slate-100"
+          >
+            {{ currentQuestion.questionText }}
+          </h2>
+        </div>
+
+        <!-- Options Grid -->
+        <div class="grid grid-cols-1 gap-4">
+          <div
+            *ngFor="let option of currentQuestion.options; let i = index"
+            (click)="selectAnswer(option)"
+            [class.border-primary]="
+              answers[currentQuestionIndex].selectedAnswer === option
+            "
+            [class.bg-primary]="
+              answers[currentQuestionIndex].selectedAnswer === option
+            "
+            [class.bg-opacity-5]="
+              answers[currentQuestionIndex].selectedAnswer === option
+            "
+            [class.dark:bg-opacity-10]="
+              answers[currentQuestionIndex].selectedAnswer === option
+            "
+            class="group relative flex items-center p-5 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all"
+          >
+            <div
+              [class.bg-primary]="
+                answers[currentQuestionIndex].selectedAnswer === option
+              "
+              [class.text-white]="
+                answers[currentQuestionIndex].selectedAnswer === option
+              "
+              [class.border-2]="
+                answers[currentQuestionIndex].selectedAnswer !== option
+              "
+              [class.text-slate-500]="
+                answers[currentQuestionIndex].selectedAnswer !== option
+              "
+              class="flex items-center justify-center size-8 rounded-lg border-slate-200 dark:border-slate-700 group-hover:border-primary group-hover:text-primary text-sm font-bold mr-4"
+            >
+              {{ ["A", "B", "C", "D", "E"][i] || i + 1 }}
+            </div>
+
+            <p
+              [class.font-semibold]="
+                answers[currentQuestionIndex].selectedAnswer === option
+              "
+              [class.text-slate-900]="
+                answers[currentQuestionIndex].selectedAnswer === option
+              "
+              [class.dark:text-white]="
+                answers[currentQuestionIndex].selectedAnswer === option
+              "
+              [class.font-medium]="
+                answers[currentQuestionIndex].selectedAnswer !== option
+              "
+              [class.text-slate-700]="
+                answers[currentQuestionIndex].selectedAnswer !== option
+              "
+              [class.dark:text-slate-300]="
+                answers[currentQuestionIndex].selectedAnswer !== option
+              "
+            >
+              {{ option }}
+            </p>
+
+            <span
+              *ngIf="answers[currentQuestionIndex].selectedAnswer === option"
+              class="material-symbols-outlined ml-auto text-primary"
+              >check_circle</span
+            >
+            <span
+              *ngIf="answers[currentQuestionIndex].selectedAnswer !== option"
+              class="material-symbols-outlined ml-auto opacity-0 group-hover:opacity-100 text-primary transition-opacity"
+              >radio_button_unchecked</span
+            >
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Sidebar: Navigation List -->
+    <aside
+      class="w-80 bg-white dark:bg-slate-900 border-l border-primary/10 flex flex-col"
+    >
+      <div class="p-6 border-b border-primary/5">
+        <h3
+          class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2"
+        >
+          <span class="material-symbols-outlined text-primary">list_alt</span>
+          Assessment Progress
+        </h3>
+        <div
+          class="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"
+        >
+          <div
+            class="bg-primary h-full transition-all duration-300"
+            [style.width.%]="getProgressPercentage()"
+          ></div>
+        </div>
+        <div
+          class="mt-2 flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+        >
+          <span
+            >{{ getProgressPercentage() | number: "1.0-0" }}% Completed</span
+          >
+          <span
+            >{{
+              testData?.questions?.length - countCompleted()
+            }}
+            Remaining</span
+          >
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-2">
+        <div
+          *ngFor="let q of testData?.questions; let i = index"
+          (click)="goToQuestion(i)"
+          [ngClass]="getNavigationItemClass(i)"
+          class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+        >
+          <!-- Circle Icon -->
+          <div
+            [ngClass]="getNavigationIconClass(i)"
+            class="size-8 rounded-full flex items-center justify-center text-xs font-bold border-2"
+          >
+            <span
+              *ngIf="answers[i].selectedAnswer && currentQuestionIndex !== i"
+              class="material-symbols-outlined text-sm"
+              >check</span
+            >
+            <span
+              *ngIf="!answers[i].selectedAnswer || currentQuestionIndex === i"
+              >{{ i + 1 }}</span
+            >
+          </div>
+
+          <span [ngClass]="getNavigationTextClass(i)" class="text-sm"
+            >Question {{ i + 1 }}</span
+          >
+          <div
+            *ngIf="currentQuestionIndex === i"
+            class="ml-auto size-2 rounded-full bg-primary"
+          ></div>
+        </div>
+      </div>
+
+      <div class="p-6 bg-slate-50 dark:bg-slate-800/30">
+        <button
+          [disabled]="!isAssessmentComplete()"
+          (click)="submitTest()"
+          [class.cursor-not-allowed]="!isAssessmentComplete()"
+          [class.opacity-60]="!isAssessmentComplete()"
+          [class.bg-slate-200]="!isAssessmentComplete()"
+          [class.dark:bg-slate-700]="!isAssessmentComplete()"
+          [class.text-slate-500]="!isAssessmentComplete()"
+          [class.bg-green-600]="isAssessmentComplete()"
+          [class.text-white]="isAssessmentComplete()"
+          [class.hover:bg-green-700]="isAssessmentComplete()"
+          class="w-full py-3 px-4 font-bold rounded-lg transition-colors shadow-lg"
+        >
+          {{ submitting ? "Submitting..." : "Submit Test" }}
+        </button>
+        <p
+          *ngIf="!isAssessmentComplete()"
+          class="mt-3 text-[10px] text-center text-slate-400"
+        >
+          Complete all questions to enable final submission.
+        </p>
+        <p
+          *ngIf="isAssessmentComplete()"
+          class="mt-3 text-[10px] text-center text-green-600 font-bold"
+        >
+          You are ready to submit!
+        </p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Footer Navigation -->
+  <footer
+    class="bg-white dark:bg-slate-900 border-t border-primary/10 px-12 py-6 flex items-center justify-between z-10"
+    *ngIf="!loading"
+  >
+    <button
+      (click)="previousQuestion()"
+      [disabled]="currentQuestionIndex === 0"
+      [class.opacity-50]="currentQuestionIndex === 0"
+      [class.cursor-not-allowed]="currentQuestionIndex === 0"
+      class="flex items-center gap-2 px-6 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+    >
+      <span class="material-symbols-outlined">arrow_back</span>
+      Previous
+    </button>
+
+    <div class="flex items-center gap-2 flex-wrap max-w-xs justify-center">
+      <div
+        *ngFor="let q of testData?.questions; let i = index"
+        [class.bg-primary]="currentQuestionIndex === i"
+        [class.bg-slate-200]="currentQuestionIndex !== i && !answers[i]"
+        [class.dark:bg-slate-700]="currentQuestionIndex !== i && !answers[i]"
+        [class.bg-green-400]="currentQuestionIndex !== i && answers[i]"
+        class="h-1.5 w-6 rounded-full transition-colors cursor-pointer"
+        (click)="goToQuestion(i)"
+      ></div>
+    </div>
+
+    <button
+      (click)="nextQuestion()"
+      [disabled]="currentQuestionIndex === testData?.questions?.length - 1"
+      [class.opacity-50]="
+        currentQuestionIndex === testData?.questions?.length - 1
+      "
+      [class.cursor-not-allowed]="
+        currentQuestionIndex === testData?.questions?.length - 1
+      "
+      class="flex items-center gap-2 px-8 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+    >
+      Next
+      <span class="material-symbols-outlined">arrow_forward</span>
+    </button>
+  </footer>
+</div>

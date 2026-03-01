@@ -5,6 +5,8 @@ export type StudentProfileDocument = StudentProfile & Document;
 
 @Schema({ timestamps: true })
 export class StudentProfile {
+
+  // ── Champs existants ──────────────────
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true })
   userId: Types.ObjectId;
 
@@ -20,6 +22,40 @@ export class StudentProfile {
 
   @Prop({ default: 0 })
   points_gamification: number;
+
+  // ── Nouveaux champs Adaptive Learning ──
+  @Prop({
+    enum: ['beginner', 'intermediate', 'advanced'],
+    default: 'beginner'
+  })
+  level: string;
+
+  @Prop({
+    type: {
+      preferredStyle: { type: String, default: 'visual' },
+      preferredDifficulty: { type: String, default: 'beginner' },
+      studyHoursPerDay: { type: Number, default: 1 }
+    },
+    default: {}
+  })
+  learningPreferences: {
+    preferredStyle: string;
+    preferredDifficulty: string;
+    studyHoursPerDay: number;
+  };
+
+  @Prop({ default: 0, min: 0, max: 100 })
+  progress: number;
+
+  @Prop({ type: [String], default: [] })
+  strengths: string[];
+
+  @Prop({ type: [String], default: [] })
+  weaknesses: string[];
+
+  @Prop({ default: false })
+  levelTestCompleted: boolean;
 }
 
-export const StudentProfileSchema = SchemaFactory.createForClass(StudentProfile);
+export const StudentProfileSchema =
+  SchemaFactory.createForClass(StudentProfile);

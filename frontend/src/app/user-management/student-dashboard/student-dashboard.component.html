@@ -136,11 +136,15 @@
                   <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
                     stroke="currentColor" stroke-width="8"></circle>
                   <circle class="text-primary" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
-                    stroke-dasharray="251.2" stroke-dashoffset="62.8" stroke-linecap="round" stroke-width="8"></circle>
+                    [attr.stroke-dasharray]="251.2"
+                    [attr.stroke-dashoffset]="251.2 - (251.2 * (progressRings[0]?.score || 75) / 100)"
+                    stroke-linecap="round" stroke-width="8"></circle>
                 </svg>
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">75%</span>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">{{
+                  progressRings[0]?.score || 75 }}%</span>
               </div>
-              <span class="text-xs font-bold text-slate-500 uppercase">Data Science</span>
+              <span class="text-xs font-bold text-slate-500 uppercase">{{ progressRings[0]?.name || 'Data Science'
+                }}</span>
             </div>
             <div class="flex flex-col items-center gap-3">
               <div class="relative w-24 h-24">
@@ -148,11 +152,15 @@
                   <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
                     stroke="currentColor" stroke-width="8"></circle>
                   <circle class="text-emerald-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
-                    stroke-dasharray="251.2" stroke-dashoffset="25.1" stroke-linecap="round" stroke-width="8"></circle>
+                    [attr.stroke-dasharray]="251.2"
+                    [attr.stroke-dashoffset]="251.2 - (251.2 * (progressRings[1]?.score || 90) / 100)"
+                    stroke-linecap="round" stroke-width="8"></circle>
                 </svg>
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">90%</span>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">{{
+                  progressRings[1]?.score || 90 }}%</span>
               </div>
-              <span class="text-xs font-bold text-slate-500 uppercase">UI Design</span>
+              <span class="text-xs font-bold text-slate-500 uppercase">{{ progressRings[1]?.name || 'UI Design'
+                }}</span>
             </div>
             <div class="flex flex-col items-center gap-3">
               <div class="relative w-24 h-24">
@@ -160,11 +168,14 @@
                   <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
                     stroke="currentColor" stroke-width="8"></circle>
                   <circle class="text-orange-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
-                    stroke-dasharray="251.2" stroke-dashoffset="150.7" stroke-linecap="round" stroke-width="8"></circle>
+                    [attr.stroke-dasharray]="251.2"
+                    [attr.stroke-dashoffset]="251.2 - (251.2 * (progressRings[2]?.score || 40) / 100)"
+                    stroke-linecap="round" stroke-width="8"></circle>
                 </svg>
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">40%</span>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">{{
+                  progressRings[2]?.score || 40 }}%</span>
               </div>
-              <span class="text-xs font-bold text-slate-500 uppercase">React JS</span>
+              <span class="text-xs font-bold text-slate-500 uppercase">{{ progressRings[2]?.name || 'React JS' }}</span>
             </div>
             <div class="flex flex-col items-center gap-3">
               <div class="relative w-24 h-24">
@@ -172,11 +183,15 @@
                   <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
                     stroke="currentColor" stroke-width="8"></circle>
                   <circle class="text-purple-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
-                    stroke-dasharray="251.2" stroke-dashoffset="100.5" stroke-linecap="round" stroke-width="8"></circle>
+                    [attr.stroke-dasharray]="251.2"
+                    [attr.stroke-dashoffset]="251.2 - (251.2 * (progressRings[3]?.score || 60) / 100)"
+                    stroke-linecap="round" stroke-width="8"></circle>
                 </svg>
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">60%</span>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">{{
+                  progressRings[3]?.score || 60 }}%</span>
               </div>
-              <span class="text-xs font-bold text-slate-500 uppercase">AI Ethics</span>
+              <span class="text-xs font-bold text-slate-500 uppercase">{{ progressRings[3]?.name || 'AI Ethics'
+                }}</span>
             </div>
           </div>
         </div>
@@ -189,19 +204,22 @@
             <div>
               <div class="flex justify-between text-sm mb-2">
                 <span class="font-medium text-slate-600 dark:text-slate-400">Study Hours</span>
-                <span class="font-bold">12/15h</span>
+                <span class="font-bold">{{ goalTracking?.studyHoursCompleted || 12 }}/{{ goalTracking?.studyHoursGoal ||
+                  15 }}h</span>
               </div>
               <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div class="bg-primary h-full w-[80%]"></div>
+                <div class="bg-primary h-full"
+                  [style.width.%]="(goalTracking?.studyHoursCompleted || 12) / (goalTracking?.studyHoursGoal || 15) * 100">
+                </div>
               </div>
             </div>
             <div>
               <div class="flex justify-between text-sm mb-2">
                 <span class="font-medium text-slate-600 dark:text-slate-400">Quiz Success</span>
-                <span class="font-bold">85% Avg</span>
+                <span class="font-bold">{{ goalTracking?.quizSuccess || 85 }}% Avg</span>
               </div>
               <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div class="bg-emerald-500 h-full w-[85%]"></div>
+                <div class="bg-emerald-500 h-full" [style.width.%]="goalTracking?.quizSuccess || 85"></div>
               </div>
             </div>
             <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
@@ -218,19 +236,58 @@
             <button class="text-primary text-sm font-bold hover:underline">View All</button>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- We reuse suggestedCourses from TS for dynamic content -->
-            <div *ngFor="let course of suggestedCourses"
+            <!-- Reuse suggestedCourses or recommendations based on availability -->
+            <!-- Card 1 -->
+            <div
               class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-shadow group">
               <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
                 <div class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"></div>
               </div>
               <div class="p-4">
-                <h4 class="font-bold text-sm mb-1 line-clamp-1">{{ course.title }}</h4>
-                <p class="text-xs text-slate-500 mb-3">{{ course.reason }}</p>
+                <h4 class="font-bold text-sm mb-1 line-clamp-1">{{ recommendations[0]?.recommendedContent || 'Advanced
+                  Statistics' }}</h4>
+                <p class="text-xs text-slate-500 mb-3">{{ recommendations[0]?.reason || 'To support your ML goals' }}
+                </p>
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-bold text-slate-900 dark:text-slate-100">AI Recommended</span>
                   <button
                     class="text-primary material-symbols-outlined hover:scale-110 transition-transform">arrow_forward_ios</button>
+                </div>
+              </div>
+            </div>
+            <!-- Card 2 -->
+            <div
+              class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-shadow group">
+              <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-tl from-emerald-500/40 to-teal-500/40 opacity-50"></div>
+              </div>
+              <div class="p-4">
+                <h4 class="font-bold text-sm mb-1 line-clamp-1">{{ recommendations[1]?.recommendedContent || 'Python
+                  Refactoring' }}</h4>
+                <p class="text-xs text-slate-500 mb-3">{{ recommendations[1]?.reason || 'Weakness detected in recent
+                  quiz' }}</p>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Review</span>
+                  <button
+                    class="text-emerald-500 material-symbols-outlined hover:scale-110 transition-transform">arrow_forward_ios</button>
+                </div>
+              </div>
+            </div>
+            <!-- Card 3 -->
+            <div
+              class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-shadow group">
+              <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-orange-500/40 to-pink-500/40 opacity-50"></div>
+              </div>
+              <div class="p-4">
+                <h4 class="font-bold text-sm mb-1 line-clamp-1">{{ recommendations[2]?.recommendedContent || 'UI/UX
+                  Principles' }}</h4>
+                <p class="text-xs text-slate-500 mb-3">{{ recommendations[2]?.reason || 'Next module in Learning Path'
+                  }}</p>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Up Next</span>
+                  <button
+                    class="text-orange-500 material-symbols-outlined hover:scale-110 transition-transform">arrow_forward_ios</button>
                 </div>
               </div>
             </div>

@@ -1,0 +1,37 @@
+import { Model } from 'mongoose';
+import { StudentProfile, StudentProfileDocument } from '../users/schemas/student-profile.schema';
+import { StudentPerformance, StudentPerformanceDocument } from './schemas/student-performance.schema';
+import { Recommendation, RecommendationDocument } from './schemas/recommendation.schema';
+import { LevelTest, LevelTestDocument } from './schemas/level-test.schema';
+import { Question, QuestionDocument } from './schemas/question.schema';
+import { CreateStudentProfileDto } from './dto/create-student-profile.dto';
+import { CreateStudentPerformanceDto } from './dto/create-student-performance.dto';
+import { CreateRecommendationDto } from './dto/create-recommendation.dto';
+import { CreateQuestionDto } from './dto/create-question.dto';
+export declare class AdaptiveLearningService {
+    private profileModel;
+    private performanceModel;
+    private recommendationModel;
+    private levelTestModel;
+    private questionModel;
+    constructor(profileModel: Model<StudentProfileDocument>, performanceModel: Model<StudentPerformanceDocument>, recommendationModel: Model<RecommendationDocument>, levelTestModel: Model<LevelTestDocument>, questionModel: Model<QuestionDocument>);
+    createProfile(dto: CreateStudentProfileDto): Promise<StudentProfile>;
+    findAllProfiles(): Promise<StudentProfile[]>;
+    findProfileByUserId(userId: string): Promise<StudentProfile>;
+    updateProfile(userId: string, updateData: Partial<StudentProfile>): Promise<StudentProfile>;
+    deleteProfile(userId: string): Promise<void>;
+    createPerformance(dto: CreateStudentPerformanceDto): Promise<StudentPerformance>;
+    findAllPerformances(): Promise<StudentPerformance[]>;
+    findPerformanceByStudent(studentId: string): Promise<StudentPerformance[]>;
+    deletePerformance(id: string): Promise<void>;
+    getAverageScore(studentId: string): Promise<number>;
+    createRecommendation(dto: CreateRecommendationDto): Promise<Recommendation>;
+    findRecommendationsByStudent(studentId: string): Promise<Recommendation[]>;
+    markRecommendationViewed(id: string): Promise<Recommendation>;
+    deleteRecommendation(id: string): Promise<void>;
+    createQuestion(dto: CreateQuestionDto): Promise<Question>;
+    findAllQuestions(): Promise<Question[]>;
+    createLevelTest(studentId: string): Promise<any>;
+    submitLevelTest(id: string, answers: any[]): Promise<LevelTest>;
+    findLevelTestByStudent(studentId: string): Promise<any>;
+}

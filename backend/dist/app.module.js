@@ -14,6 +14,7 @@ const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
 const activity_module_1 = require("./activity/activity.module");
 const app_controller_1 = require("./app.controller");
+const adaptive_learning_module_1 = require("./adaptive-learning/adaptive-learning.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,6 +35,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             activity_module_1.ActivityModule,
+            adaptive_learning_module_1.AdaptiveLearningModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],
