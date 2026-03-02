@@ -19,8 +19,4 @@ export declare class Exercise {
     createdAt?: Date;
     updatedAt?: Date;
 }
-export declare const ExerciseSchema: import("mongoose").Schema<Exercise, import("mongoose").Model<Exercise, any, any, any, Document<unknown, any, Exercise> & Exercise & {
-    _id: Types.ObjectId;
-}, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Exercise, Document<unknown, {}, import("mongoose").FlatRecord<Exercise>> & import("mongoose").FlatRecord<Exercise> & {
-    _id: Types.ObjectId;
-}>;
+export declare const ExerciseSchema: import("mongoose").Schema<Exercise, import("mongoose").Model<Exercise, any, any, any, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Exercise>;

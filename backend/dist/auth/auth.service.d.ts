@@ -11,17 +11,6 @@ export declare class AuthService {
     register(createUserDto: CreateUserDto): Promise<{
         message: string;
     }>;
-<<<<<<< HEAD
-    validateUser(email: string, password: string): Promise<any>;
-    login(user: any): Promise<{
-        token: any;
-        user: {
-            id: any;
-            name: any;
-            role: any;
-        };
-    }>;
-=======
     loginWithGoogle(idToken: string): Promise<{
         token: string;
         user: {
@@ -51,5 +40,4 @@ export declare class AuthService {
     resetPassword(token: string, newPassword: string): Promise<{
         message: string;
     }>;
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 }

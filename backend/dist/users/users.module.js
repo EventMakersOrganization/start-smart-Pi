@@ -12,10 +12,7 @@ const mongoose_1 = require("@nestjs/mongoose");
 const user_schema_1 = require("./schemas/user.schema");
 const student_profile_schema_1 = require("./schemas/student-profile.schema");
 const users_controller_1 = require("./users.controller");
-<<<<<<< HEAD
-=======
 const admin_controller_1 = require("../admin/admin.controller");
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 const users_service_1 = require("./users.service");
 const activity_module_1 = require("../activity/activity.module");
 let UsersModule = class UsersModule {
@@ -30,11 +27,7 @@ exports.UsersModule = UsersModule = __decorate([
             ]),
             activity_module_1.ActivityModule,
         ],
-<<<<<<< HEAD
-        controllers: [users_controller_1.UsersController],
-=======
         controllers: [users_controller_1.UsersController, admin_controller_1.AdminController],
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
         providers: [users_service_1.UsersService],
         exports: [users_service_1.UsersService],
     })

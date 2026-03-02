@@ -20,12 +20,9 @@ const user_schema_1 = require("./schemas/user.schema");
 const student_profile_schema_1 = require("./schemas/student-profile.schema");
 const activity_service_1 = require("../activity/activity.service");
 const activity_schema_1 = require("../activity/schemas/activity.schema");
-<<<<<<< HEAD
-=======
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 let UsersService = class UsersService {
     constructor(userModel, profileModel, activityService) {
         this.userModel = userModel;
@@ -41,19 +38,6 @@ let UsersService = class UsersService {
         return {
             user: {
                 id: user._id,
-<<<<<<< HEAD
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                status: user.status,
-            },
-            profile: profile ? {
-                academicLevel: profile.academicLevel,
-                enrolledCourse: profile.enrolledCourse,
-                preferences: profile.preferences,
-                averageScore: profile.averageScore,
-            } : null,
-=======
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,
@@ -68,7 +52,6 @@ let UsersService = class UsersService {
                     points_gamification: profile.points_gamification,
                 }
                 : null,
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
         };
     }
     async updateProfile(userId, updateProfileDto) {
@@ -76,12 +59,6 @@ let UsersService = class UsersService {
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
-<<<<<<< HEAD
-        if (updateProfileDto.name) {
-            user.name = updateProfileDto.name;
-        }
-        if (updateProfileDto.academicLevel || updateProfileDto.enrolledCourse || updateProfileDto.preferences) {
-=======
         if (updateProfileDto.first_name) {
             user.first_name = updateProfileDto.first_name;
         }
@@ -94,34 +71,22 @@ let UsersService = class UsersService {
         if (user.role === user_schema_1.UserRole.STUDENT && (updateProfileDto.academic_level ||
             updateProfileDto.risk_level ||
             updateProfileDto.points_gamification !== undefined)) {
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
             let profile = await this.profileModel.findOne({ userId }).exec();
             if (!profile) {
                 profile = new this.profileModel({ userId });
             }
-<<<<<<< HEAD
-            if (updateProfileDto.academicLevel)
-                profile.academicLevel = updateProfileDto.academicLevel;
-            if (updateProfileDto.enrolledCourse)
-                profile.enrolledCourse = updateProfileDto.enrolledCourse;
-            if (updateProfileDto.preferences)
-                profile.preferences = { ...profile.preferences, ...updateProfileDto.preferences };
-=======
             if (updateProfileDto.academic_level)
                 profile.academic_level = updateProfileDto.academic_level;
             if (updateProfileDto.risk_level)
                 profile.risk_level = updateProfileDto.risk_level;
             if (updateProfileDto.points_gamification !== undefined)
                 profile.points_gamification = updateProfileDto.points_gamification;
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
             await profile.save();
         }
         await user.save();
         await this.activityService.logActivity(userId, activity_schema_1.ActivityAction.PROFILE_UPDATE);
         return this.getProfile(userId);
     }
-<<<<<<< HEAD
-=======
     async getUsersByRole(role) {
         let query;
         if (role === user_schema_1.UserRole.INSTRUCTOR) {
@@ -282,7 +247,6 @@ let UsersService = class UsersService {
             },
         };
     }
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([

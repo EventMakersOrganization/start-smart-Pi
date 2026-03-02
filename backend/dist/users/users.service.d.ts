@@ -1,16 +1,9 @@
 import { Model } from 'mongoose';
-<<<<<<< HEAD
-import { UserDocument } from './schemas/user.schema';
-import { StudentProfileDocument } from './schemas/student-profile.schema';
-import { UpdateProfileDto } from './dto/update-profile.dto';
-import { ActivityService } from '../activity/activity.service';
-=======
 import { UserDocument, UserRole, UserStatus } from './schemas/user.schema';
 import { StudentProfileDocument } from './schemas/student-profile.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ActivityService } from '../activity/activity.service';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 export declare class UsersService {
     private userModel;
     private profileModel;
@@ -19,18 +12,6 @@ export declare class UsersService {
     getProfile(userId: string): Promise<{
         user: {
             id: any;
-<<<<<<< HEAD
-            name: string;
-            email: string;
-            role: import("./schemas/user.schema").UserRole;
-            status: import("./schemas/user.schema").UserStatus;
-        };
-        profile: {
-            academicLevel: string;
-            enrolledCourse: string;
-            preferences: Record<string, any>;
-            averageScore: number;
-=======
             first_name: string;
             last_name: string;
             email: string;
@@ -42,24 +23,11 @@ export declare class UsersService {
             academic_level: string;
             risk_level: "LOW" | "MEDIUM" | "HIGH";
             points_gamification: number;
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
         };
     }>;
     updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<{
         user: {
             id: any;
-<<<<<<< HEAD
-            name: string;
-            email: string;
-            role: import("./schemas/user.schema").UserRole;
-            status: import("./schemas/user.schema").UserStatus;
-        };
-        profile: {
-            academicLevel: string;
-            enrolledCourse: string;
-            preferences: Record<string, any>;
-            averageScore: number;
-=======
             first_name: string;
             last_name: string;
             email: string;
@@ -90,7 +58,6 @@ export declare class UsersService {
             phone: string;
             role: UserRole;
             status: UserStatus;
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
         };
     }>;
 }

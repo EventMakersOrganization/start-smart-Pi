@@ -20,23 +20,6 @@ __decorate([
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], StudentProfile.prototype, "userId", void 0);
 __decorate([
-<<<<<<< HEAD
-    (0, mongoose_1.Prop)({ required: true }),
-    __metadata("design:type", String)
-], StudentProfile.prototype, "academicLevel", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: true }),
-    __metadata("design:type", String)
-], StudentProfile.prototype, "enrolledCourse", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ type: Object, default: {} }),
-    __metadata("design:type", Object)
-], StudentProfile.prototype, "preferences", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ default: 0 }),
-    __metadata("design:type", Number)
-], StudentProfile.prototype, "averageScore", void 0);
-=======
     (0, mongoose_1.Prop)(),
     __metadata("design:type", String)
 ], StudentProfile.prototype, "academic_level", void 0);
@@ -52,7 +35,6 @@ __decorate([
     (0, mongoose_1.Prop)({ default: 0 }),
     __metadata("design:type", Number)
 ], StudentProfile.prototype, "points_gamification", void 0);
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 exports.StudentProfile = StudentProfile = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], StudentProfile);

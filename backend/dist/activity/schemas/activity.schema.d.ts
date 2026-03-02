@@ -10,8 +10,4 @@ export declare class Activity {
     action: ActivityAction;
     timestamp: Date;
 }
-export declare const ActivitySchema: import("mongoose").Schema<Activity, import("mongoose").Model<Activity, any, any, any, Document<unknown, any, Activity> & Activity & {
-    _id: Types.ObjectId;
-}, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Activity, Document<unknown, {}, import("mongoose").FlatRecord<Activity>> & import("mongoose").FlatRecord<Activity> & {
-    _id: Types.ObjectId;
-}>;
+export declare const ActivitySchema: import("mongoose").Schema<Activity, import("mongoose").Model<Activity, any, any, any, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Activity>;

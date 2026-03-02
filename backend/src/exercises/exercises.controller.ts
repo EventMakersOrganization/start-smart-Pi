@@ -34,7 +34,7 @@ export class ExercisesController {
 
     @Post()
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.TEACHER, UserRole.ADMIN)
+    @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Create a new exercise (instructor/admin only)' })
     @ApiResponse({ status: 201, description: 'Exercise created successfully.' })
@@ -69,7 +69,7 @@ export class ExercisesController {
 
     @Put(':id')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.TEACHER, UserRole.ADMIN)
+    @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Update an exercise (instructor/admin only)' })
     @ApiResponse({ status: 200, description: 'Exercise updated successfully.' })
@@ -80,7 +80,7 @@ export class ExercisesController {
 
     @Delete(':id')
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.TEACHER, UserRole.ADMIN)
+    @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Delete an exercise (instructor/admin only)' })
     @ApiResponse({ status: 200, description: 'Exercise deleted successfully.' })

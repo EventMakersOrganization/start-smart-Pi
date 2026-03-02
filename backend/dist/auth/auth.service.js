@@ -14,19 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
-<<<<<<< HEAD
-=======
 const google_auth_library_1 = require("google-auth-library");
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const jwt_1 = require("@nestjs/jwt");
 const bcrypt = require("bcrypt");
-<<<<<<< HEAD
-=======
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 const user_schema_1 = require("../users/schemas/user.schema");
 const activity_service_1 = require("../activity/activity.service");
 const activity_schema_1 = require("../activity/schemas/activity.schema");
@@ -37,24 +31,16 @@ let AuthService = class AuthService {
         this.activityService = activityService;
     }
     async register(createUserDto) {
-<<<<<<< HEAD
-        const { email, password, name } = createUserDto;
-=======
         const { email, password, first_name, last_name, phone } = createUserDto;
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
         const existingUser = await this.userModel.findOne({ email });
         if (existingUser) {
             throw new common_1.ConflictException('Email already exists');
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new this.userModel({
-<<<<<<< HEAD
-            name,
-=======
             first_name,
             last_name,
             phone,
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
             email,
             password: hashedPassword,
             role: user_schema_1.UserRole.STUDENT,
@@ -62,8 +48,6 @@ let AuthService = class AuthService {
         await user.save();
         return { message: 'User registered successfully' };
     }
-<<<<<<< HEAD
-=======
     async loginWithGoogle(idToken) {
         const clientId = process.env.GOOGLE_CLIENT_ID;
         if (!clientId) {
@@ -96,7 +80,6 @@ let AuthService = class AuthService {
         }
         return this.login(user.toObject ? user.toObject() : user);
     }
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
     async validateUser(email, password) {
         const user = await this.userModel.findOne({ email }).select('+password');
         if (user && await bcrypt.compare(password, user.password)) {
@@ -113,20 +96,14 @@ let AuthService = class AuthService {
             token,
             user: {
                 id: user._id,
-<<<<<<< HEAD
-                name: user.name,
-=======
                 first_name: user.first_name,
                 last_name: user.last_name,
                 name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim(),
                 email: user.email,
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
                 role: user.role,
             },
         };
     }
-<<<<<<< HEAD
-=======
     async forgotPassword(email) {
         const user = await this.userModel.findOne({ email }).select('+passwordResetToken +passwordResetExpires');
         if (!user) {
@@ -184,7 +161,6 @@ let AuthService = class AuthService {
         await user.save({ validateBeforeSave: false });
         return { message: 'Password has been reset. You can log in with your new password.' };
     }
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([

@@ -18,16 +18,12 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-<<<<<<< HEAD
-], CreateUserDto.prototype, "name", void 0);
-=======
 ], CreateUserDto.prototype, "first_name", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "last_name", void 0);
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 __decorate([
     (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)
@@ -37,12 +33,9 @@ __decorate([
     (0, class_validator_1.MinLength)(6),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "password", void 0);
-<<<<<<< HEAD
-=======
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "phone", void 0);
->>>>>>> d0fa0b29b430d886d34dfff22e9ab6d23544a73a
 //# sourceMappingURL=create-user.dto.js.map
