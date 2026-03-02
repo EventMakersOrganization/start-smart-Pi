@@ -94,7 +94,7 @@
       <section class="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 class="text-3xl font-black tracking-tight text-slate-900">
-            Welcome back, {{ user?.first_name }}! 👋
+            Welcome back, {{ user?.last_name }}! 👋
           </h2>
           <p class="text-slate-500 mt-1">
             <span *ngIf="adaptiveProfile?.levelTestCompleted">
@@ -380,6 +380,21 @@
           <p *ngIf="!adaptiveProfile?.weaknesses?.length"
             class="text-sm text-slate-400 italic">No weak areas detected yet.</p>
         </div>
+
+
+        <!-- ── Progress Charts ── -->
+<div class="col-span-12">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h3 class="text-xl font-bold">Performance Analytics</h3>
+      <p class="text-sm text-slate-500">Visual overview of your learning progress</p>
+    </div>
+  </div>
+  <app-progress-charts
+    [performances]="performances"
+    [adaptiveProfile]="adaptiveProfile">
+  </app-progress-charts>
+</div>
 
       </div>
     </div>

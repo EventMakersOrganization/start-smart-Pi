@@ -21,6 +21,7 @@ import { StudentDashboardComponent } from './student-dashboard/student-dashboard
 import { AdaptiveLearningService } from './adaptive-learning.service';
 import { LevelTestComponent } from './level-test/level-test.component';
 import { LevelTestResultComponent } from './level-test-result/level-test-result.component';
+import { ProgressChartsComponent } from './progress-charts/progress-charts.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -99,6 +100,7 @@ const routes: Routes = [
     InstructorDashboardComponent,
     LevelTestComponent,
     LevelTestResultComponent,
+    ProgressChartsComponent,
   ],
   imports: [
     CommonModule,
