@@ -273,7 +273,7 @@
         </div>
 
         <!-- ── Recommendations ── -->
-        <div class="col-span-12">
+        <!--<div class="col-span-12">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h3 class="text-xl font-bold">AI Recommendations</h3>
@@ -285,7 +285,9 @@
             </button>
           </div>
 
-          <!-- Loading -->
+          
+
+       
           <div *ngIf="adaptiveLoading" class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div *ngFor="let i of [1,2,3]" class="bg-white rounded-xl border border-slate-200 p-4 animate-pulse">
               <div class="h-32 bg-slate-100 rounded-lg mb-4"></div>
@@ -294,7 +296,7 @@
             </div>
           </div>
 
-          <!-- Recommendations list -->
+       
           <div *ngIf="!adaptiveLoading && recommendations.length > 0"
             class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div *ngFor="let rec of recommendations.slice(0, 6); let i = index"
@@ -306,13 +308,13 @@
                     {{ rec.contentType === 'course' ? 'school' : 'assignment' }}
                   </span>
                 </div>
-                <!-- Badge contentType -->
+       
                 <div class="absolute top-3 left-3">
                   <span class="text-[10px] font-bold px-2 py-1 bg-white/80 rounded-full text-slate-700 uppercase">
                     {{ getContentTypeLabel(rec.contentType) }}
                   </span>
                 </div>
-                <!-- Confidence -->
+              
                 <div class="absolute top-3 right-3">
                   <span class="text-[10px] font-bold px-2 py-1 bg-white/80 rounded-full text-slate-700">
                     {{ rec.confidenceScore }}% match
@@ -332,7 +334,7 @@
             </div>
           </div>
 
-          <!-- Empty state -->
+     
           <div *ngIf="!adaptiveLoading && recommendations.length === 0"
             class="bg-white rounded-xl border border-slate-200 p-12 text-center">
             <span class="material-symbols-outlined text-5xl text-slate-300 mb-4 block">auto_awesome</span>
@@ -343,7 +345,25 @@
               Take Level Test
             </button>
           </div>
-        </div>
+        </div>-->
+
+
+        <!-- ── Recommendations ── -->
+<div class="col-span-12">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h3 class="text-xl font-bold">AI Recommendations</h3>
+      <p class="text-sm text-slate-500">
+        Personalized based on your strengths and weaknesses
+      </p>
+    </div>
+  </div>
+  <app-recommendation-display
+    [recommendations]="recommendations"
+    [studentId]="user?._id || user?.id"
+    (recommendationViewed)="onRecommendationViewed($event)">
+  </app-recommendation-display>
+</div>
 
         <!-- ── Strengths & Weaknesses ── -->
         <div class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"

@@ -23,6 +23,7 @@ import { LevelTestComponent } from './level-test/level-test.component';
 import { LevelTestResultComponent } from './level-test-result/level-test-result.component';
 import { ProgressChartsComponent } from './progress-charts/progress-charts.component';
 import { PerformanceHistoryComponent } from './performance-history/performance-history.component';
+import { RecommendationDisplayComponent } from './recommendation-display/recommendation-display.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -103,6 +104,7 @@ const routes: Routes = [
     LevelTestResultComponent,
     ProgressChartsComponent,
     PerformanceHistoryComponent,
+    RecommendationDisplayComponent,
   ],
   imports: [
     CommonModule,

@@ -56,4 +56,16 @@ export class AdaptiveLearningService {
       `${this.apiUrl}/level-test/student/${studentId}`
     );
   }
+
+  markRecommendationViewed(id: string): Observable<any> {
+  return this.http.patch(
+    `${this.apiUrl}/recommendations/${id}/viewed`, {}
+  );
+}
+
+generateRecommendations(studentId: string): Observable<any> {
+  return this.http.post(
+    `${this.apiUrl}/recommendations/generate/${studentId}`, {}
+  );
+}
 }

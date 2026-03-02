@@ -324,4 +324,9 @@ export class StudentDashboardComponent implements OnInit {
     this.closeProfileSidebar();
     this.router.navigate(['/profile']);
   }
+
+  onRecommendationViewed(id: string): void {
+  const rec = this.recommendations.find(r => r._id === id);
+  if (rec) rec.isViewed = true;
+}
 }
