@@ -11,6 +11,8 @@ interface LoginResponse {
     last_name?: string;
     name?: string;
     email?: string;
+    phone?: string;
+    avatar?: string;
     role: string;
   };
 }
@@ -21,13 +23,22 @@ interface LoginResponse {
 export class AuthService {
   private apiUrl = 'http://localhost:3000/api';
   private tokenKey = 'authToken';
+  private userKey = 'authUser';
   private userSubject = new BehaviorSubject<any>(null);
   public user$ = this.userSubject.asObservable();
 
   constructor(private http: HttpClient, private router: Router) {
-    const token = localStorage.getItem(this.tokenKey);
-    if (token) {
-      this.userSubject.next(this.decodeToken(token));
+    const storedUser = localStorage.getItem(this.userKey);
+    if (this.isAuthenticated()) {
+      if (storedUser) {
+        try {
+          this.userSubject.next(JSON.parse(storedUser));
+        } catch {
+          this.userSubject.next(this.decodeToken(this.getToken() as string));
+        }
+      } else {
+        this.userSubject.next(this.decodeToken(this.getToken() as string));
+      }
     }
   }
 
@@ -40,6 +51,7 @@ export class AuthService {
       tap(response => {
         localStorage.setItem(this.tokenKey, response.token);
         localStorage.setItem('userRole', response.user.role);
+        localStorage.setItem(this.userKey, JSON.stringify(response.user));
         this.userSubject.next(response.user);
       })
     );
@@ -50,6 +62,7 @@ export class AuthService {
       tap(response => {
         localStorage.setItem(this.tokenKey, response.token);
         localStorage.setItem('userRole', response.user.role);
+        localStorage.setItem(this.userKey, JSON.stringify(response.user));
         this.userSubject.next(response.user);
       })
     );
@@ -65,8 +78,14 @@ export class AuthService {
 
   logout() {
     localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.userKey);
     this.userSubject.next(null);
     this.router.navigate(['/login']);
+  }
+
+  setUser(user: any) {
+    localStorage.setItem(this.userKey, JSON.stringify(user));
+    this.userSubject.next(user);
   }
 
   getToken(): string | null {
@@ -74,7 +93,25 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) {
+      return false;
+    }
+
+    const payload = this.decodeToken(token);
+    if (!payload || !payload.exp) {
+      this.clearAuthState();
+      return false;
+    }
+
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const valid = payload.exp > nowInSeconds;
+
+    if (!valid) {
+      this.clearAuthState();
+    }
+
+    return valid;
   }
 
   getUser(): any {
@@ -84,9 +121,15 @@ export class AuthService {
   private decodeToken(token: string): any {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return { id: payload.sub, email: payload.email, role: payload.role };
+      return { ...payload, id: payload.sub, email: payload.email, role: payload.role };
     } catch {
       return null;
     }
+  }
+
+  private clearAuthState() {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.userKey);
+    this.userSubject.next(null);
   }
 }

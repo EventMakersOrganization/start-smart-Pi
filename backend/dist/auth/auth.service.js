@@ -100,6 +100,7 @@ let AuthService = class AuthService {
                 last_name: user.last_name,
                 name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim(),
                 email: user.email,
+                avatar: user.avatar,
                 role: user.role,
             },
         };

@@ -11,12 +11,12 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from '../users/users.module';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { ActivityModule } from '../activity/activity.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
     UsersModule,
-    ActivityModule,
+    SharedModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

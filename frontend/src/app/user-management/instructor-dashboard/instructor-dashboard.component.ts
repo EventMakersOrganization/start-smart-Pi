@@ -24,8 +24,12 @@ export class InstructorDashboardComponent implements OnInit {
     this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
       next: (data) => {
         this.profileData = data;
-        if (this.user && data?.user?.phone) {
-          this.user.phone = data.user.phone;
+        if (data?.user) {
+          this.user = {
+            ...(this.user || {}),
+            ...data.user,
+          };
+          this.authService.setUser(this.user);
         }
       },
       error: () => { /* silently fail */ }

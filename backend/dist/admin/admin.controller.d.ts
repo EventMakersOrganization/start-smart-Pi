@@ -6,6 +6,7 @@ export declare class AdminController {
     private readonly usersService;
     constructor(usersService: UsersService);
     getStudents(): Promise<any[]>;
+    getAllUsers(): Promise<any[]>;
     getInstructors(): Promise<any[]>;
     updateUser(id: string, dto: AdminUpdateUserDto): Promise<{
         success: boolean;

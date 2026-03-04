@@ -107,6 +107,7 @@ export class AuthService {
         // convenient combined name and email for frontend
         name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim(),
         email: user.email,
+        avatar: user.avatar,
         role: user.role,
       },
     };

@@ -28,6 +28,9 @@ let AdminController = class AdminController {
     async getStudents() {
         return this.usersService.getUsersByRole(user_schema_1.UserRole.STUDENT);
     }
+    async getAllUsers() {
+        return this.usersService.getAllUsers();
+    }
     async getInstructors() {
         return this.usersService.getUsersByRole(user_schema_1.UserRole.INSTRUCTOR);
     }
@@ -50,6 +53,14 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getStudents", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(user_schema_1.UserRole.ADMIN),
+    (0, common_1.Get)('users'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getAllUsers", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(user_schema_1.UserRole.ADMIN),

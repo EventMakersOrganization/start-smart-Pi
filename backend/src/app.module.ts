@@ -3,7 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { ActivityModule } from './activity/activity.module';
+import { RiskScoreModule } from './analytics/riskscore.module';
+import { AlertModule } from './analytics/alert.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -21,7 +22,8 @@ import { AppController } from './app.controller';
     }),
     AuthModule,
     UsersModule,
-    ActivityModule,
+    RiskScoreModule,
+    AlertModule,
   ],
   controllers: [AppController],
   providers: [],

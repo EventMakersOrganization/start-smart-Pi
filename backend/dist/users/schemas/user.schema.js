@@ -63,6 +63,10 @@ __decorate([
 ], User.prototype, "status", void 0);
 __decorate([
     (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], User.prototype, "avatar", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
     __metadata("design:type", Date)
 ], User.prototype, "createdAt", void 0);
 __decorate([

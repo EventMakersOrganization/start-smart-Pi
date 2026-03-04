@@ -17,6 +17,7 @@ export declare class User {
     password: string;
     role: UserRole;
     status: UserStatus;
+    avatar?: string;
     createdAt: Date;
     updatedAt: Date;
     passwordResetToken?: string;

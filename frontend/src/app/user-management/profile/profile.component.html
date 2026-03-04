@@ -19,17 +19,48 @@
       <!-- Card Header -->
       <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <div
-            class="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-xl">
-            {{ profileData?.user?.first_name?.[0] }}{{ profileData?.user?.last_name?.[0] }}
-          </div>
+          <ng-container *ngIf="isEditing; else readOnlyAvatar">
+            <label for="avatarUpload"
+              class="relative cursor-pointer group rounded-full border-2 border-primary/20 p-1 transition-all hover:border-primary/40">
+              <ng-container *ngIf="profileData?.user?.avatar; else editableInitialsAvatar">
+                <img [src]="profileData?.user?.avatar" alt="Profile avatar" class="w-16 h-16 rounded-full object-cover" />
+              </ng-container>
+              <ng-template #editableInitialsAvatar>
+                <div
+                  class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
+                  {{ profileData?.user?.first_name?.[0] }}{{ profileData?.user?.last_name?.[0] }}
+                </div>
+              </ng-template>
+              <div
+                class="absolute inset-1 rounded-full bg-slate-900/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <span class="material-symbols-outlined text-white text-lg">photo_camera</span>
+              </div>
+            </label>
+          </ng-container>
+          <ng-template #readOnlyAvatar>
+            <ng-container *ngIf="profileData?.user?.avatar; else profileInitialsAvatar">
+              <img [src]="profileData?.user?.avatar" alt="Profile avatar"
+                class="w-16 h-16 rounded-full border-2 border-primary/20 object-cover" />
+            </ng-container>
+          </ng-template>
+          <ng-template #profileInitialsAvatar>
+            <div
+              class="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-xl">
+              {{ profileData?.user?.first_name?.[0] }}{{ profileData?.user?.last_name?.[0] }}
+            </div>
+          </ng-template>
           <div>
             <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">
               {{ profileData?.user?.first_name }} {{ profileData?.user?.last_name }}
             </h2>
             <p class="text-sm text-primary font-semibold capitalize">{{ profileData?.user?.role }}</p>
+            <p *ngIf="isEditing" class="text-xs text-slate-500 mt-1">Click avatar to change photo (max 5MB)</p>
+            <p *ngIf="isEditing && selectedAvatarName" class="text-xs text-primary font-medium mt-1">Selected: {{ selectedAvatarName }}</p>
+            <p *ngIf="isEditing && isUploadingAvatar" class="text-xs text-amber-600 font-medium mt-1">Uploading image...</p>
           </div>
         </div>
+        <input id="avatarUpload" #avatarInput type="file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+          class="hidden" (change)="onAvatarSelected($event)" />
         <button *ngIf="!isEditing" (click)="toggleEdit()"
           class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20">
           <span class="material-symbols-outlined text-lg">edit</span>

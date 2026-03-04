@@ -20,7 +20,7 @@ const local_strategy_1 = require("./strategies/local.strategy");
 const users_module_1 = require("../users/users.module");
 const roles_guard_1 = require("./guards/roles.guard");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
-const activity_module_1 = require("../activity/activity.module");
+const shared_module_1 = require("../shared/shared.module");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -28,7 +28,7 @@ exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
             users_module_1.UsersModule,
-            activity_module_1.ActivityModule,
+            shared_module_1.SharedModule,
             passport_1.PassportModule,
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],

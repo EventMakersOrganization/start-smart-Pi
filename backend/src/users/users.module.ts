@@ -5,7 +5,8 @@ import { StudentProfile, StudentProfileSchema } from './schemas/student-profile.
 import { UsersController } from './users.controller';
 import { AdminController } from '../admin/admin.controller';
 import { UsersService } from './users.service';
-import { ActivityModule } from '../activity/activity.module';
+import { SharedModule } from '../shared/shared.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -13,7 +14,8 @@ import { ActivityModule } from '../activity/activity.module';
       { name: User.name, schema: UserSchema },
       { name: StudentProfile.name, schema: StudentProfileSchema },
     ]),
-    ActivityModule,
+    SharedModule,
+    CloudinaryModule,
   ],
   controllers: [UsersController, AdminController],
   providers: [UsersService],

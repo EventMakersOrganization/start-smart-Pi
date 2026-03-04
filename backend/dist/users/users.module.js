@@ -14,7 +14,8 @@ const student_profile_schema_1 = require("./schemas/student-profile.schema");
 const users_controller_1 = require("./users.controller");
 const admin_controller_1 = require("../admin/admin.controller");
 const users_service_1 = require("./users.service");
-const activity_module_1 = require("../activity/activity.module");
+const shared_module_1 = require("../shared/shared.module");
+const cloudinary_module_1 = require("../cloudinary/cloudinary.module");
 let UsersModule = class UsersModule {
 };
 exports.UsersModule = UsersModule;
@@ -25,7 +26,8 @@ exports.UsersModule = UsersModule = __decorate([
                 { name: user_schema_1.User.name, schema: user_schema_1.UserSchema },
                 { name: student_profile_schema_1.StudentProfile.name, schema: student_profile_schema_1.StudentProfileSchema },
             ]),
-            activity_module_1.ActivityModule,
+            shared_module_1.SharedModule,
+            cloudinary_module_1.CloudinaryModule,
         ],
         controllers: [users_controller_1.UsersController, admin_controller_1.AdminController],
         providers: [users_service_1.UsersService],

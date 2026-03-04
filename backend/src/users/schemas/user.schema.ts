@@ -55,6 +55,9 @@ export class User {
   status: UserStatus;
 
   @Prop()
+  avatar?: string;
+
+  @Prop()
   createdAt: Date;
 
   @Prop()

@@ -6,6 +6,7 @@ import { StudentProfile, StudentProfileDocument } from './schemas/student-profil
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ActivityService } from '../activity/activity.service';
 import { ActivityAction } from '../activity/schemas/activity.schema';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
@@ -17,7 +18,12 @@ export class UsersService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(StudentProfile.name) private profileModel: Model<StudentProfileDocument>,
     private activityService: ActivityService,
+    private cloudinaryService: CloudinaryService,
   ) {}
+
+  async count(): Promise<number> {
+    return this.userModel.countDocuments().exec();
+  }
 
   async getProfile(userId: string) {
     const user = await this.userModel.findById(userId).select('-password');
@@ -35,6 +41,7 @@ export class UsersService {
         phone: user.phone,
         role: user.role,
         status: user.status,
+        avatar: user.avatar,
       },
       profile: profile
         ? {
@@ -136,6 +143,34 @@ export class UsersService {
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     }));
+  }
+
+  async getAllUsers() {
+    const users = await this.userModel.find().select('-password').exec();
+
+    // Get all student profiles
+    const studentIds = users.filter(u => u.role === UserRole.STUDENT).map(u => u._id);
+    const profiles = await this.profileModel.find({ userId: { $in: studentIds } }).exec();
+    const profileMap = new Map<string, StudentProfileDocument>();
+    profiles.forEach(p => profileMap.set(String(p.userId), p));
+
+    return users.map(u => {
+      const p = profileMap.get(String(u._id));
+      return {
+        id: u._id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        status: u.status,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+        academic_level: p ? p.academic_level : undefined,
+        risk_level: p ? p.risk_level : undefined,
+        points_gamification: p ? p.points_gamification : undefined,
+      } as any;
+    });
   }
 
   async updateUserById(id: string, dto: any) {
@@ -265,6 +300,36 @@ export class UsersService {
         role: user.role,
         status: user.status,
       },
+    };
+  }
+
+  async uploadAvatar(userId: string, file: Express.Multer.File) {
+    // Find the user
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Upload image to Cloudinary
+    const secureUrl = await this.cloudinaryService.uploadImage(file);
+
+    // Update user avatar field
+    user.avatar = secureUrl;
+    await user.save();
+
+    // Log activity
+    await this.activityService.logActivity(userId, ActivityAction.PROFILE_UPDATE);
+
+    // Return updated user without password
+    return {
+      id: user._id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+      avatar: user.avatar,
     };
   }
 }

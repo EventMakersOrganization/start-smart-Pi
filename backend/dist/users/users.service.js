@@ -20,14 +20,19 @@ const user_schema_1 = require("./schemas/user.schema");
 const student_profile_schema_1 = require("./schemas/student-profile.schema");
 const activity_service_1 = require("../activity/activity.service");
 const activity_schema_1 = require("../activity/schemas/activity.schema");
+const cloudinary_service_1 = require("../cloudinary/cloudinary.service");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 let UsersService = class UsersService {
-    constructor(userModel, profileModel, activityService) {
+    constructor(userModel, profileModel, activityService, cloudinaryService) {
         this.userModel = userModel;
         this.profileModel = profileModel;
         this.activityService = activityService;
+        this.cloudinaryService = cloudinaryService;
+    }
+    async count() {
+        return this.userModel.countDocuments().exec();
     }
     async getProfile(userId) {
         const user = await this.userModel.findById(userId).select('-password');
@@ -44,6 +49,7 @@ let UsersService = class UsersService {
                 phone: user.phone,
                 role: user.role,
                 status: user.status,
+                avatar: user.avatar,
             },
             profile: profile
                 ? {
@@ -130,6 +136,30 @@ let UsersService = class UsersService {
             createdAt: u.createdAt,
             updatedAt: u.updatedAt,
         }));
+    }
+    async getAllUsers() {
+        const users = await this.userModel.find().select('-password').exec();
+        const studentIds = users.filter(u => u.role === user_schema_1.UserRole.STUDENT).map(u => u._id);
+        const profiles = await this.profileModel.find({ userId: { $in: studentIds } }).exec();
+        const profileMap = new Map();
+        profiles.forEach(p => profileMap.set(String(p.userId), p));
+        return users.map(u => {
+            const p = profileMap.get(String(u._id));
+            return {
+                id: u._id,
+                first_name: u.first_name,
+                last_name: u.last_name,
+                email: u.email,
+                phone: u.phone,
+                role: u.role,
+                status: u.status,
+                createdAt: u.createdAt,
+                updatedAt: u.updatedAt,
+                academic_level: p ? p.academic_level : undefined,
+                risk_level: p ? p.risk_level : undefined,
+                points_gamification: p ? p.points_gamification : undefined,
+            };
+        });
     }
     async updateUserById(id, dto) {
         const user = await this.userModel.findById(id);
@@ -247,6 +277,26 @@ let UsersService = class UsersService {
             },
         };
     }
+    async uploadAvatar(userId, file) {
+        const user = await this.userModel.findById(userId);
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const secureUrl = await this.cloudinaryService.uploadImage(file);
+        user.avatar = secureUrl;
+        await user.save();
+        await this.activityService.logActivity(userId, activity_schema_1.ActivityAction.PROFILE_UPDATE);
+        return {
+            id: user._id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            status: user.status,
+            avatar: user.avatar,
+        };
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
@@ -255,6 +305,7 @@ exports.UsersService = UsersService = __decorate([
     __param(1, (0, mongoose_1.InjectModel)(student_profile_schema_1.StudentProfile.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
         mongoose_2.Model,
-        activity_service_1.ActivityService])
+        activity_service_1.ActivityService,
+        cloudinary_service_1.CloudinaryService])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

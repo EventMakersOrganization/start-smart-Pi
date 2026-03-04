@@ -16,6 +16,7 @@ export declare class AuthController {
             last_name: any;
             name: string;
             email: any;
+            avatar: any;
             role: any;
         };
     }>;
@@ -27,6 +28,7 @@ export declare class AuthController {
             last_name: any;
             name: string;
             email: any;
+            avatar: any;
             role: any;
         };
     }>;
