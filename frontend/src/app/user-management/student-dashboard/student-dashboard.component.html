@@ -94,6 +94,41 @@
       </div>
     </header>
 
+    <div class="ai-search-section">
+      <h2>🔍 AI-Powered Course Search</h2>
+      <div class="search-container">
+        <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="searchCoursesWithAI()"
+          placeholder="Ask AI to find courses... (e.g., 'courses about loops and functions')" class="ai-search-input" />
+        <button (click)="searchCoursesWithAI()" [disabled]="loadingSearch" class="ai-search-btn">
+          {{ loadingSearch ? 'Searching...' : 'Search with AI' }}
+        </button>
+        <button *ngIf="showSearchResults" (click)="clearSearch()" class="clear-btn">
+          Clear
+        </button>
+      </div>
+
+      <!-- Search Results -->
+      <div *ngIf="showSearchResults" class="search-results">
+        <h3>Search Results ({{ searchResults.length }})</h3>
+        <div *ngIf="loadingSearch" class="loading">
+          <p>AI is searching through courses...</p>
+        </div>
+        <div *ngIf="!loadingSearch && searchResults.length === 0" class="no-results">
+          <p>No courses found. Try a different search.</p>
+        </div>
+        <div *ngFor="let result of searchResults" class="result-card">
+          <h4>{{ result.title }}</h4>
+          <p>{{ result.content }}</p>
+          <div class="result-meta">
+            <span class="similarity-badge">
+              AI Match: {{ (result.similarity * 100).toFixed(0) }}%
+            </span>
+            <span class="course-id">Course ID: {{ result.course_id }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="p-8 space-y-8 max-w-7xl mx-auto">
       <!-- Welcome Header -->
       <section class="flex flex-wrap items-end justify-between gap-4">
@@ -211,31 +246,25 @@
           </div>
         </div>
 
-        <!-- Personalized Recommendations -->
-        <div class="col-span-12 lg:col-span-9">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-bold">Personalized Recommendations</h3>
-            <button class="text-primary text-sm font-bold hover:underline">View All</button>
+        <section class="suggested-courses col-span-12 lg:col-span-9">
+          <div class="section-header">
+            <h2>🎯 AI-Powered Recommendations</h2>
+            <button (click)="loadAIRecommendations()" [disabled]="loadingRecommendations">
+              {{ loadingRecommendations ? 'Loading...' : 'Refresh' }}
+            </button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- We reuse suggestedCourses from TS for dynamic content -->
-            <div *ngFor="let course of suggestedCourses"
-              class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-shadow group">
-              <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
-                <div class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"></div>
-              </div>
-              <div class="p-4">
-                <h4 class="font-bold text-sm mb-1 line-clamp-1">{{ course.title }}</h4>
-                <p class="text-xs text-slate-500 mb-3">{{ course.reason }}</p>
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">AI Recommended</span>
-                  <button
-                    class="text-primary material-symbols-outlined hover:scale-110 transition-transform">arrow_forward_ios</button>
-                </div>
-              </div>
+          <div *ngIf="loadingRecommendations" class="loading">
+            AI is analyzing your profile...
+          </div>
+          <div *ngIf="!loadingRecommendations" class="course-recommendations">
+            <div *ngFor="let course of suggestedCourses" class="recommendation-card">
+              <h3>{{ course.title }}</h3>
+              <p class="reason">{{ course.reason }}</p>
+              <p *ngIf="course.content" class="course-preview">{{ course.content }}</p>
+              <button class="enroll-btn">Enroll Now</button>
             </div>
           </div>
-        </div>
+        </section>
 
         <!-- Skill Mastery (static mock) -->
         <div
@@ -274,6 +303,7 @@
   <!-- AI Quick-Access Floating Button -->
   <div class="fixed bottom-8 right-8 z-40">
     <button
+      (click)="startAITutor()"
       class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
       <span class="material-symbols-outlined text-3xl">psychology</span>
       <div
@@ -281,6 +311,42 @@
         ASK EDU AI
       </div>
     </button>
+  </div>
+</div>
+
+<!-- AI Question Modal -->
+<div *ngIf="showQuestionModal" class="modal-overlay" (click)="closeQuestionModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>🤖 AI Generated Practice Question</h2>
+      <button class="close-btn" (click)="closeQuestionModal()">×</button>
+    </div>
+    <div class="modal-body" *ngIf="generatedQuestion">
+      <div class="question-section">
+        <h3>Question:</h3>
+        <p class="question-text">{{ generatedQuestion.question }}</p>
+      </div>
+      <div class="options-section" *ngIf="generatedQuestion.options">
+        <h3>Options:</h3>
+        <div *ngFor="let option of generatedQuestion.options; let i = index" class="option-item">
+          <span class="option-label">{{ getOptionLabel(i) }}.</span>
+          <span>{{ option }}</span>
+        </div>
+      </div>
+      <div class="answer-section">
+        <button class="reveal-btn" (click)="showAnswer = !showAnswer">
+          {{ showAnswer ? 'Hide Answer' : 'Show Answer' }}
+        </button>
+        <div *ngIf="showAnswer" class="answer-content">
+          <p><strong>Correct Answer:</strong> {{ generatedQuestion.correct_answer }}</p>
+          <p *ngIf="generatedQuestion.explanation"><strong>Explanation:</strong> {{ generatedQuestion.explanation }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button (click)="startAITutor()" class="generate-new-btn">Generate New Question</button>
+      <button (click)="closeQuestionModal()" class="close-modal-btn">Close</button>
+    </div>
   </div>
 </div>
 

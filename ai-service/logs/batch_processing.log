@@ -1,0 +1,7 @@
+2026-03-23 19:33:19,768 - INFO - batch 1/1 courses 1-5
+2026-03-23 19:33:24,601 - INFO - batch stored 0 chunks (total so far 0)
+2026-03-23 19:33:24,601 - INFO - process_courses_batch complete: {'total_courses': 5, 'total_chunks': 0, 'total_time': 4.839, 'avg_time_per_course': 0.968, 'chunks_per_second': 0.0, 'batches': 1}
+2026-03-23 19:33:24,774 - INFO - get_courses_needing_embedding: 0 pending (limit=None)
+2026-03-23 19:45:00,705 - INFO - batch 1/1 courses 1-10
+2026-03-23 19:45:13,973 - INFO - batch stored 0 chunks (total so far 0)
+2026-03-23 19:45:13,973 - INFO - process_courses_batch complete: {'total_courses': 10, 'total_chunks': 0, 'total_time': 13.273, 'avg_time_per_course': 1.327, 'chunks_per_second': 0.0, 'batches': 1}

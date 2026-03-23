@@ -1,0 +1,329 @@
+2026-03-04 01:46:34,062 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:26,793 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:27,090 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:27,364 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:27,704 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:27,970 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:28,244 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:28,550 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:28,847 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:29,174 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:29,497 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:29,773 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:30,069 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:30,407 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:30,729 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:31,019 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:31,317 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:31,675 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:31,940 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:32,226 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:32,510 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:32,794 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:33,127 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:33,472 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:33,813 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:34,180 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:34,471 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:34,781 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:35,132 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:35,436 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 01:52:35,696 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:00:25,367 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:00:25,689 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:01:06,644 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:31:25,026 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:31:25,122 - INFO - store_chunks_in_chromadb: stored 15 chunks
+2026-03-04 02:35:59,447 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:38:27,072 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:40:29,355 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:04,145 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:04,178 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:04,179 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bdd9 stored=2
+2026-03-04 02:42:05,217 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:05,243 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:05,243 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bdda stored=2
+2026-03-04 02:42:06,279 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:06,307 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:06,307 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bddb stored=2
+2026-03-04 02:42:07,347 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:07,372 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:07,372 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bddc stored=2
+2026-03-04 02:42:08,395 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:08,422 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:08,422 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bddd stored=2
+2026-03-04 02:42:09,549 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:09,581 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:09,581 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bdde stored=2
+2026-03-04 02:42:10,944 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:10,969 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:10,969 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bddf stored=2
+2026-03-04 02:42:11,954 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:11,982 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:11,982 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bde0 stored=2
+2026-03-04 02:42:12,991 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:13,023 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:13,023 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bde1 stored=2
+2026-03-04 02:42:13,974 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:42:14,002 - INFO - store_chunks_in_chromadb: stored 2 chunks
+2026-03-04 02:42:14,003 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bde2 stored=2
+2026-03-04 02:42:14,003 - INFO - migrate_from_v1_to_v2: total_chunks=20
+2026-03-04 02:43:20,412 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:44:27,064 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:44:41,248 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:45:05,653 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:45:19,041 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-04 02:45:47,233 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:03:32,674 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:03:33,107 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:03:33,506 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:03:34,063 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:22:30,588 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:23:05,876 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:23:06,882 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:23:07,713 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:25:15,254 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:25:15,920 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:25:16,285 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:25:17,529 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:30:40,136 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:30:40,410 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:30:40,635 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:30:40,901 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:30:41,150 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:30:41,508 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:30:41,789 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:31:00,276 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:31:00,545 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:31:12,233 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:31:12,533 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:03,364 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:03,657 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:03,865 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:04,099 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:04,308 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:04,618 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:04,855 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:18,661 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:18,980 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:32,662 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:32:32,962 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:35:53,702 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:35:53,991 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:35:54,193 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:35:54,452 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:35:54,657 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:35:54,984 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:35:55,239 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:36:07,633 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:36:07,897 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:36:21,197 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:36:21,538 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:38:49,247 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:38:49,516 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:38:49,732 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:38:49,988 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:38:50,215 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:38:50,524 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:38:50,766 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:39:06,706 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:39:06,993 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:39:20,268 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:39:20,588 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:39:46,924 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:41,215 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:41,505 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:41,715 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:41,978 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:42,190 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:42,496 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:42,728 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:57,586 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:41:57,895 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:42:11,482 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-05 01:42:11,825 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:19,734 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,548 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,601 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:33:24,617 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,648 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,664 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,677 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,692 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,707 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,723 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,740 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,758 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:33:24,773 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:35:25,718 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:35:54,877 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:36:00,311 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:00,338 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:00,792 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:00,836 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:00,874 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:01,206 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:01,559 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:36:06,390 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:06,408 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:06,711 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:06,732 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:06,750 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:07,060 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:07,375 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:36:12,075 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:12,097 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:12,438 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:12,465 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:12,492 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:12,874 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:18,099 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:18,119 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:18,514 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:36:23,685 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:23,707 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:24,037 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:24,061 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:24,092 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:24,439 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:24,705 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:36:46,829 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:36:51,916 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:51,937 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:52,243 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:52,284 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:52,304 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:52,641 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:52,996 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:36:58,035 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:58,059 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:58,388 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:58,408 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:36:58,429 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:58,782 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:36:59,122 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:37:04,299 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:37:04,318 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:37:04,624 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:37:04,645 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:37:04,665 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:37:05,002 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:37:10,580 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:37:10,599 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:37:10,957 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:37:16,176 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:37:16,195 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:37:16,525 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:37:16,550 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:37:16,569 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:37:16,859 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:37:17,125 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:14,064 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:14,604 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:14,604 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'easy'} in query.
+2026-03-23 19:38:14,875 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:14,875 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'loops'} in query.
+2026-03-23 19:38:15,304 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:15,304 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'easy'} in query.
+2026-03-23 19:38:15,577 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:15,577 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$in': ['medium', 'hard']} in query.
+2026-03-23 19:38:15,920 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:15,921 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$gte': '2026-02-21'} in query.
+2026-03-23 19:38:16,290 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:16,290 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'overview'} in query.
+2026-03-23 19:38:59,358 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:59,796 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:38:59,797 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'easy'} in query.
+2026-03-23 19:39:00,026 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:39:00,026 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'loops'} in query.
+2026-03-23 19:39:00,407 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:39:00,407 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'easy'} in query.
+2026-03-23 19:39:00,655 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:39:00,656 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$in': ['medium', 'hard']} in query.
+2026-03-23 19:39:00,964 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:39:00,964 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$gte': '2026-02-21'} in query.
+2026-03-23 19:39:01,269 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:39:01,270 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'overview'} in query.
+2026-03-23 19:41:21,294 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:41:21,311 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:45,316 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:46,667 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:46,729 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:46,730 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bdd9 stored=0
+2026-03-23 19:44:48,234 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:48,261 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:48,261 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bdda stored=0
+2026-03-23 19:44:49,728 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:49,743 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:49,743 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bddb stored=0
+2026-03-23 19:44:51,181 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:51,202 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:51,203 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bddc stored=0
+2026-03-23 19:44:52,598 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:52,623 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:52,624 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bddd stored=0
+2026-03-23 19:44:54,077 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:54,093 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:54,093 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bdde stored=0
+2026-03-23 19:44:56,481 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:56,502 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:56,502 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bddf stored=0
+2026-03-23 19:44:58,004 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:58,032 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:58,032 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bde0 stored=0
+2026-03-23 19:44:59,390 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:44:59,407 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:44:59,408 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bde1 stored=0
+2026-03-23 19:45:00,685 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:00,699 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:45:00,699 - INFO - process_and_embed_course_chunks: course_id=69a775e69a0216305f89bde2 stored=0
+2026-03-23 19:45:13,959 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:13,972 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-03-23 19:45:14,536 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:20,819 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:25,405 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:45:25,424 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:45:25,687 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:45:26,019 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:28,936 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:45:28,954 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:45:29,260 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:45:29,281 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:45:29,303 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:45:29,628 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:45:29,658 - INFO - get_or_create_chunked_collection: 'exercise_chunks' ready
+2026-03-23 19:45:29,674 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:45:29,989 - INFO - get_or_create_chunked_collection: 'uploaded_document_chunks' ready
+2026-03-23 19:45:30,010 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:30,341 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:30,341 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': '69a775e69a0216305f89bdd9'} in query.
+2026-03-23 19:45:30,646 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:30,646 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'easy'} in query.
+2026-03-23 19:45:30,969 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:30,970 - ERROR - search_chunks query error: Expected where operand value to be a str, int, float, bool, or list of those type, got {'$eq': 'module'} in query.
+2026-03-23 19:45:47,115 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:47,133 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:45:47,399 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:47:00,308 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 19:47:00,329 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 20:39:26,889 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 20:39:26,904 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 20:43:14,418 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 20:46:01,173 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 20:46:23,355 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:08:48,116 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:08:48,406 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:08:48,729 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:08:48,990 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:08:49,263 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:08:49,589 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:08:49,907 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:09:06,334 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:09:06,640 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:09:06,937 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:09:07,192 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:09:07,451 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:09:07,785 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:09:08,126 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:17:20,993 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-23 21:17:21,007 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
