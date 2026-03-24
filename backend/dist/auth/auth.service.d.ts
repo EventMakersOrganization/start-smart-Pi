@@ -11,6 +11,7 @@ export declare class AuthService {
     register(createUserDto: CreateUserDto): Promise<{
         message: string;
     }>;
+    private sendWelcomeEmail;
     loginWithGoogle(idToken: string): Promise<{
         token: string;
         user: {
