@@ -17,6 +17,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentSessionTitle = '';
   newMessage = '';
   userId = '';
+  userRole = '';
   showNewGroupModal = false;
   newGroupName = '';
   selectedStudents: string[] = [];
@@ -28,8 +29,18 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   ) { }
 
   ngOnInit() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    this.userId = user._id || user.id || 'mock-user-id';
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        this.userId = payload.sub || payload.id || 'mock-user-id';
+        this.userRole = payload.role || '';
+      } catch (e) {
+        this.userId = 'mock-user-id';
+      }
+    } else {
+      this.userId = 'mock-user-id';
+    }
 
     this.chatSocketService.connect();
     this.loadSessions();
@@ -129,5 +140,11 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatSocketService.sendMessage('ChatRoom', this.currentSessionId, this.newMessage);
     this.newMessage = '';
+  }
+
+  getDashboardRoute(): string {
+    if (this.userRole === 'admin') return '/admin';
+    if (this.userRole === 'instructor') return '/instructor/dashboard';
+    return '/student-dashboard';
   }
 }

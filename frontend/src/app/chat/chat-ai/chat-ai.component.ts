@@ -16,7 +16,8 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentSessionTitle = '';
   newMessage = '';
   isAiTyping = false;
-  userId = ''; // Will mock getting active user ID
+  userId = '';
+  userRole = '';
   private subs: any[] = [];
 
   constructor(
@@ -25,8 +26,18 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
   ) { }
 
   ngOnInit() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    this.userId = user._id || user.id || 'mock-student-id';
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        this.userId = payload.sub || payload.id || 'mock-user-id';
+        this.userRole = payload.role || '';
+      } catch (e) {
+        this.userId = 'mock-user-id';
+      }
+    } else {
+      this.userId = 'mock-user-id';
+    }
 
     this.chatSocketService.connect();
     this.loadSessions();
@@ -105,5 +116,11 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatSocketService.sendMessage('ChatAi', this.currentSessionId, this.newMessage);
     this.isAiTyping = true; // Show AI thinking since we know it's AI chat
     this.newMessage = '';
+  }
+
+  getDashboardRoute(): string {
+    if (this.userRole === 'admin') return '/admin';
+    if (this.userRole === 'instructor') return '/instructor/dashboard';
+    return '/student-dashboard';
   }
 }

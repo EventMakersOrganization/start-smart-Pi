@@ -1,6 +1,6 @@
 <div class="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
   <div class="relative group absolute top-4 left-4 z-50">
-     <button routerLink="/student-dashboard" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
+     <button [routerLink]="getDashboardRoute()" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
          <span class="material-symbols-outlined">arrow_back</span> Back to Dashboard
      </button>
   </div>
@@ -76,7 +76,7 @@
         <div class="p-8 bg-gradient-to-t from-white dark:from-slate-900 via-white/95 dark:via-slate-900/95 to-transparent mt-auto">
           <div class="relative flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary/20">
             <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" class="flex-1 border-none bg-transparent py-4 px-6 text-sm focus:ring-0 outline-none" placeholder="Type to group..." type="text">
-            <button (click)="sendMessage()" class="bg-primary text-white h-full px-6 flex items-center justify-center hover:bg-blue-700 transition">
+            <button (click)="sendMessage()" class="bg-primary text-white rounded-full px-6 py-2 m-2 flex items-center justify-center hover:bg-blue-700 transition shadow-md">
               Send
             </button>
           </div>
