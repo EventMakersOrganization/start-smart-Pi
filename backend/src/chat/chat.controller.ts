@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -34,6 +34,10 @@ export class ChatController {
 
   @Post('send')
   async sendMessage(@Request() req, @Body() body: { sessionType: string, sessionId: string, content: string }) {
+    const isAllowed = await this.chatService.isParticipant(body.sessionType, body.sessionId, req.user.id);
+    if (!isAllowed) {
+      throw new UnauthorizedException('You are not a participant in this chat.');
+    }
     return this.chatService.saveMessage({
       sessionType: body.sessionType,
       sessionId: body.sessionId,

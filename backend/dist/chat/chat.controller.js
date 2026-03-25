@@ -36,6 +36,10 @@ let ChatController = class ChatController {
         return this.chatService.getChatHistory(sessionType, sessionId, req.user.id);
     }
     async sendMessage(req, body) {
+        const isAllowed = await this.chatService.isParticipant(body.sessionType, body.sessionId, req.user.id);
+        if (!isAllowed) {
+            throw new common_1.UnauthorizedException('You are not a participant in this chat.');
+        }
         return this.chatService.saveMessage({
             sessionType: body.sessionType,
             sessionId: body.sessionId,

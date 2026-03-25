@@ -8,6 +8,7 @@ import { ChatInstructor, ChatInstructorSchema } from './schemas/chat-instructor.
 import { ChatRoom, ChatRoomSchema } from './schemas/chat-room.schema';
 import { ChatMessage, ChatMessageSchema } from './schemas/chat-message.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { User, UserSchema } from '../users/schemas/user.schema';
       { name: ChatMessage.name, schema: ChatMessageSchema },
       { name: User.name, schema: UserSchema },
     ]),
+    AuthModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, ChatGateway],

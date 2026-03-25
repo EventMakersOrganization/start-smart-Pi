@@ -39,7 +39,7 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
       this.userId = 'mock-user-id';
     }
 
-    this.chatSocketService.connect(this.userId);
+    this.chatSocketService.connect();
     this.loadSessions();
     this.loadInstructors();
 
@@ -123,7 +123,7 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
 
     this.currentSessionId = sessionId;
     this.currentSessionTitle = title;
-    this.chatSocketService.joinRoom(sessionId);
+    this.chatSocketService.joinRoom('ChatInstructor', sessionId);
 
     this.chatApiService.getHistory('ChatInstructor', sessionId).subscribe({
       next: (msgs: any) => {
@@ -137,7 +137,7 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
   sendMessage() {
     if (!this.newMessage.trim() || !this.currentSessionId) return;
 
-    this.chatSocketService.sendMessage('ChatInstructor', this.currentSessionId, this.userId, this.newMessage);
+    this.chatSocketService.sendMessage('ChatInstructor', this.currentSessionId, this.newMessage);
     this.newMessage = '';
   }
 }

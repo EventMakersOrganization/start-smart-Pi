@@ -37,4 +37,5 @@ export declare class ChatService {
     }): Promise<import("mongoose").Document<unknown, {}, ChatMessageDocument> & ChatMessage & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
+    isParticipant(sessionType: string, sessionId: string, userId: string): Promise<boolean>;
 }

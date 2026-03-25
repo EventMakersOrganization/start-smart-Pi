@@ -17,6 +17,7 @@ const chat_instructor_schema_1 = require("./schemas/chat-instructor.schema");
 const chat_room_schema_1 = require("./schemas/chat-room.schema");
 const chat_message_schema_1 = require("./schemas/chat-message.schema");
 const user_schema_1 = require("../users/schemas/user.schema");
+const auth_module_1 = require("../auth/auth.module");
 let ChatModule = class ChatModule {
 };
 exports.ChatModule = ChatModule;
@@ -30,6 +31,7 @@ exports.ChatModule = ChatModule = __decorate([
                 { name: chat_message_schema_1.ChatMessage.name, schema: chat_message_schema_1.ChatMessageSchema },
                 { name: user_schema_1.User.name, schema: user_schema_1.UserSchema },
             ]),
+            auth_module_1.AuthModule,
         ],
         controllers: [chat_controller_1.ChatController],
         providers: [chat_service_1.ChatService, chat_gateway_1.ChatGateway],

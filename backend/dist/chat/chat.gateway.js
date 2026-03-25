@@ -16,24 +16,42 @@ exports.ChatGateway = void 0;
 const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
 const chat_service_1 = require("./chat.service");
+const common_1 = require("@nestjs/common");
+const ws_jwt_guard_1 = require("../auth/guards/ws-jwt.guard");
+const jwt_1 = require("@nestjs/jwt");
 let ChatGateway = class ChatGateway {
-    constructor(chatService) {
+    constructor(chatService, jwtService) {
         this.chatService = chatService;
+        this.jwtService = jwtService;
+        this.logger = new common_1.Logger('ChatGateway');
         this.connectedUsers = new Map();
     }
     async handleConnection(client) {
-        const userId = client.handshake.query.userId;
-        if (userId) {
-            if (!this.connectedUsers.has(userId)) {
-                this.connectedUsers.set(userId, []);
+        try {
+            const token = client.handshake?.auth?.token || client.handshake?.query?.token;
+            if (!token) {
+                client.disconnect();
+                return;
             }
-            this.connectedUsers.get(userId).push(client.id);
-            this.server.emit('userStatus', { userId, status: 'online' });
+            const payload = await this.jwtService.verifyAsync(token);
+            const userId = payload.sub || payload.id;
+            if (userId) {
+                client.data.user = { id: userId, email: payload.email, role: payload.role };
+                if (!this.connectedUsers.has(userId)) {
+                    this.connectedUsers.set(userId, []);
+                }
+                this.connectedUsers.get(userId).push(client.id);
+                this.server.emit('userStatus', { userId, status: 'online' });
+                this.logger.log(`Client authenticated: ${userId} (${client.id})`);
+            }
         }
-        console.log(`Client connected: ${client.id}`);
+        catch (e) {
+            this.logger.error('Connection authentication failed');
+            client.disconnect();
+        }
     }
     async handleDisconnect(client) {
-        const userId = client.handshake.query.userId;
+        const userId = client.data.user?.id;
         if (userId && this.connectedUsers.has(userId)) {
             const sockets = this.connectedUsers.get(userId);
             const index = sockets.indexOf(client.id);
@@ -47,14 +65,33 @@ let ChatGateway = class ChatGateway {
         }
         console.log(`Client disconnected: ${client.id}`);
     }
-    handleJoinRoom(client, room) {
-        client.join(room);
+    async handleJoinRoom(client, payload) {
+        const userId = client.data.user.id;
+        const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
+        if (isAllowed) {
+            client.join(payload.sessionId);
+            this.logger.log(`User ${userId} joined room ${payload.sessionId}`);
+        }
+        else {
+            this.logger.warn(`User ${userId} attempted to join unauthorized room ${payload.sessionId}`);
+        }
     }
     handleLeaveRoom(client, room) {
         client.leave(room);
     }
     async handleMessage(client, payload) {
-        const message = await this.chatService.saveMessage(payload);
+        const userId = client.data.user.id;
+        const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
+        if (!isAllowed) {
+            this.logger.warn(`User ${userId} attempted to send message to unauthorized room ${payload.sessionId}`);
+            return;
+        }
+        const message = await this.chatService.saveMessage({
+            sessionType: payload.sessionType,
+            sessionId: payload.sessionId,
+            sender: userId,
+            content: payload.content,
+        });
         this.server.to(payload.sessionId).emit('newMessage', message);
         if (payload.sessionType === 'ChatAi') {
             setTimeout(async () => {
@@ -69,8 +106,16 @@ let ChatGateway = class ChatGateway {
         }
         return message;
     }
-    handleTyping(client, payload) {
-        client.broadcast.to(payload.sessionId).emit('userTyping', payload);
+    async handleTyping(client, payload) {
+        const userId = client.data.user.id;
+        const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
+        if (isAllowed) {
+            client.broadcast.to(payload.sessionId).emit('userTyping', {
+                sessionId: payload.sessionId,
+                sender: userId,
+                isTyping: payload.isTyping
+            });
+        }
     }
 };
 exports.ChatGateway = ChatGateway;
@@ -79,14 +124,16 @@ __decorate([
     __metadata("design:type", socket_io_1.Server)
 ], ChatGateway.prototype, "server", void 0);
 __decorate([
+    (0, common_1.UseGuards)(ws_jwt_guard_1.WsJwtGuard),
     (0, websockets_1.SubscribeMessage)('joinRoom'),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [socket_io_1.Socket, String]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", Promise)
 ], ChatGateway.prototype, "handleJoinRoom", null);
 __decorate([
+    (0, common_1.UseGuards)(ws_jwt_guard_1.WsJwtGuard),
     (0, websockets_1.SubscribeMessage)('leaveRoom'),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
@@ -95,6 +142,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ChatGateway.prototype, "handleLeaveRoom", null);
 __decorate([
+    (0, common_1.UseGuards)(ws_jwt_guard_1.WsJwtGuard),
     (0, websockets_1.SubscribeMessage)('sendMessage'),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
@@ -103,15 +151,17 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ChatGateway.prototype, "handleMessage", null);
 __decorate([
+    (0, common_1.UseGuards)(ws_jwt_guard_1.WsJwtGuard),
     (0, websockets_1.SubscribeMessage)('typing'),
     __param(0, (0, websockets_1.ConnectedSocket)()),
     __param(1, (0, websockets_1.MessageBody)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], ChatGateway.prototype, "handleTyping", null);
 exports.ChatGateway = ChatGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({ cors: { origin: '*' } }),
-    __metadata("design:paramtypes", [chat_service_1.ChatService])
+    __metadata("design:paramtypes", [chat_service_1.ChatService,
+        jwt_1.JwtService])
 ], ChatGateway);
 //# sourceMappingURL=chat.gateway.js.map

@@ -114,4 +114,22 @@ export class ChatService {
 
     return message;
   }
+
+  async isParticipant(sessionType: string, sessionId: string, userId: string): Promise<boolean> {
+    try {
+      if (sessionType === 'ChatAi') {
+        const session = await this.chatAiModel.findById(sessionId).lean();
+        return session?.student?.toString() === userId;
+      } else if (sessionType === 'ChatInstructor') {
+        const session = await this.chatInstructorModel.findById(sessionId).lean();
+        return session?.participants?.map(p => p.toString()).includes(userId);
+      } else if (sessionType === 'ChatRoom') {
+        const session = await this.chatRoomModel.findById(sessionId).lean();
+        return session?.participants?.map(p => p.toString()).includes(userId);
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
 }

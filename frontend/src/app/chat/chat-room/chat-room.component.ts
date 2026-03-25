@@ -31,7 +31,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     this.userId = user._id || user.id || 'mock-user-id';
 
-    this.chatSocketService.connect(this.userId);
+    this.chatSocketService.connect();
     this.loadSessions();
     this.loadStudents();
 
@@ -113,7 +113,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.currentSessionId = sessionId;
     this.currentSessionTitle = title;
-    this.chatSocketService.joinRoom(sessionId);
+    this.chatSocketService.joinRoom('ChatRoom', sessionId);
 
     this.chatApiService.getHistory('ChatRoom', sessionId).subscribe({
       next: (msgs: any) => {
@@ -127,7 +127,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   sendMessage() {
     if (!this.newMessage.trim() || !this.currentSessionId) return;
 
-    this.chatSocketService.sendMessage('ChatRoom', this.currentSessionId, this.userId, this.newMessage);
+    this.chatSocketService.sendMessage('ChatRoom', this.currentSessionId, this.newMessage);
     this.newMessage = '';
   }
 }

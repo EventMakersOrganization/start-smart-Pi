@@ -28,7 +28,7 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     this.userId = user._id || user.id || 'mock-student-id';
 
-    this.chatSocketService.connect(this.userId);
+    this.chatSocketService.connect();
     this.loadSessions();
 
     this.subs.push(
@@ -81,7 +81,7 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.currentSessionId = sessionId;
     this.currentSessionTitle = title || 'AI Session';
-    this.chatSocketService.joinRoom(sessionId);
+    this.chatSocketService.joinRoom('ChatAi', sessionId);
 
     this.chatApiService.getHistory('ChatAi', sessionId).subscribe({
       next: (msgs: any) => this.messages = msgs,
@@ -102,7 +102,7 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
   sendMessage() {
     if (!this.newMessage.trim() || !this.currentSessionId) return;
 
-    this.chatSocketService.sendMessage('ChatAi', this.currentSessionId, this.userId, this.newMessage);
+    this.chatSocketService.sendMessage('ChatAi', this.currentSessionId, this.newMessage);
     this.isAiTyping = true; // Show AI thinking since we know it's AI chat
     this.newMessage = '';
   }
