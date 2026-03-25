@@ -1,0 +1,44 @@
+import { Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { ChatService } from './chat.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@Controller('chat')
+@UseGuards(JwtAuthGuard)
+export class ChatController {
+  constructor(private readonly chatService: ChatService) {}
+
+  @Post('ai/session')
+  async createAiSession(@Request() req, @Body() body: { title?: string }) {
+    return this.chatService.createAiSession(req.user.id, body.title);
+  }
+
+  @Post('instructor/session')
+  async createInstructorSession(@Request() req, @Body() body: { instructorId: string }) {
+    return this.chatService.createInstructorSession(req.user.id, body.instructorId);
+  }
+
+  @Post('room')
+  async createRoom(@Request() req, @Body() body: { name: string; participants: string[] }) {
+    return this.chatService.createRoom(body.name, [req.user.id, ...body.participants]);
+  }
+
+  @Get('sessions')
+  async getUserSessions(@Request() req) {
+    return this.chatService.getUserSessions(req.user.id);
+  }
+
+  @Get('history/:sessionType/:sessionId')
+  async getChatHistory(@Request() req, @Param('sessionType') sessionType: string, @Param('sessionId') sessionId: string) {
+    return this.chatService.getChatHistory(sessionType, sessionId, req.user.id);
+  }
+
+  @Post('send')
+  async sendMessage(@Request() req, @Body() body: { sessionType: string, sessionId: string, content: string }) {
+    return this.chatService.saveMessage({
+      sessionType: body.sessionType,
+      sessionId: body.sessionId,
+      sender: req.user.id,
+      content: body.content,
+    });
+  }
+}

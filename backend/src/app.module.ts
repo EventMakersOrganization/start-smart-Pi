@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ActivityModule } from './activity/activity.module';
 import { AppController } from './app.controller';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AppController } from './app.controller';
     AuthModule,
     UsersModule,
     ActivityModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [],

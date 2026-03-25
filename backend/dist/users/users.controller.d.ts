@@ -19,6 +19,7 @@ export declare class UsersController {
             points_gamification: number;
         };
     }>;
+    getUsers(role: string): Promise<any[]>;
     updateProfile(req: any, updateProfileDto: UpdateProfileDto): Promise<{
         user: {
             id: any;

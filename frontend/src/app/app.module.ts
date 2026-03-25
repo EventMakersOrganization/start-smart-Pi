@@ -2,18 +2,26 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { FormsModule } from '@angular/forms';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { UserManagementModule } from './user-management/user-management.module';
 import { JwtInterceptor } from './user-management/jwt.interceptor';
 
-
 import { SocialLoginModule, SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from '../environments/environment';
+
+import { ChatAiComponent } from './chat/chat-ai/chat-ai.component';
+import { ChatInstructorComponent } from './chat/chat-instructor/chat-instructor.component';
+import { ChatRoomComponent } from './chat/chat-room/chat-room.component';
+
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    ChatAiComponent,
+    ChatInstructorComponent,
+    ChatRoomComponent
   ],
   imports: [
     BrowserModule,
@@ -21,7 +29,8 @@ import { environment } from '../environments/environment';
     HttpClientModule,
     BrowserAnimationsModule,
     UserManagementModule,
-    SocialLoginModule
+    SocialLoginModule,
+    FormsModule
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
@@ -33,8 +42,8 @@ import { environment } from '../environments/environment';
           {
             id: GoogleLoginProvider.PROVIDER_ID,
             provider: new GoogleLoginProvider(
-  environment.googleClientId
-)
+              environment.googleClientId
+            )
           }
         ]
       } as SocialAuthServiceConfig,

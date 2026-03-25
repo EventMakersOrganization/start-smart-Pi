@@ -38,8 +38,9 @@ if not MONGODB_DB_NAME:
 CHROMA_PERSIST_DIRECTORY = os.getenv("CHROMA_PERSIST_DIRECTORY", "./chroma_db")
 
 # Ollama
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama2")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
 # Config as dictionary for easy access
 config = {
@@ -48,6 +49,7 @@ config = {
     "CHROMA_PERSIST_DIRECTORY": CHROMA_PERSIST_DIRECTORY,
     "OLLAMA_MODEL": OLLAMA_MODEL,
     "OLLAMA_BASE_URL": OLLAMA_BASE_URL,
+    "OLLAMA_EMBED_MODEL": OLLAMA_EMBED_MODEL,
 }
 
 
@@ -72,4 +74,5 @@ if __name__ != "__main__":
     print(f"  MONGODB_DB_NAME: {MONGODB_DB_NAME}")
     print(f"  CHROMA_PERSIST_DIRECTORY: {CHROMA_PERSIST_DIRECTORY}")
     print(f"  OLLAMA_MODEL: {OLLAMA_MODEL}")
+    print(f"  OLLAMA_EMBED_MODEL: {OLLAMA_EMBED_MODEL}")
     print(f"  OLLAMA_BASE_URL: {OLLAMA_BASE_URL}")

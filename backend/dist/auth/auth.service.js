@@ -46,7 +46,39 @@ let AuthService = class AuthService {
             role: user_schema_1.UserRole.STUDENT,
         });
         await user.save();
+        await this.sendWelcomeEmail(email, first_name);
         return { message: 'User registered successfully' };
+    }
+    async sendWelcomeEmail(email, firstName) {
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587', 10),
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false,
+            },
+        });
+        try {
+            if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+                await transporter.sendMail({
+                    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+                    to: email,
+                    subject: 'Welcome to TechNova!',
+                    text: `Hello ${firstName},\n\nWelcome to TechNova! Your account has been successfully created.\n\nBest regards,\nThe TechNova Team`,
+                    html: `<p>Hello ${firstName},</p><p>Welcome to TechNova! Your account has been successfully created.</p><p>Best regards,<br>The TechNova Team</p>`,
+                });
+            }
+            else {
+                console.log('[Register] Welcome email log (no SMTP configured):', email);
+            }
+        }
+        catch (err) {
+            console.error('Send welcome email failed:', err);
+        }
     }
     async loginWithGoogle(idToken) {
         const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -119,10 +151,14 @@ let AuthService = class AuthService {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: parseInt(process.env.SMTP_PORT || '587', 10),
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: process.env.SMTP_USER
-                ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-                : undefined,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+            tls: {
+                rejectUnauthorized: false,
+            },
         });
         try {
             if (process.env.SMTP_HOST && process.env.SMTP_USER) {

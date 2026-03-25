@@ -168,29 +168,36 @@ class RAGService:
             logger.error("RAGService.search error: %s", e)
             return []
 
-    def get_context_for_query(self, query: str, max_chunks: int = 5) -> str:
+    def get_context_for_query(self, query: str, max_chunks: int = 8) -> str:
         """
         Retrieves context for a query by searching top chunks and concatenating them.
         Returns formatted context string suitable for LLM prompts.
+        Fetches extra candidates, filters by a similarity floor, and keeps
+        up to *max_chunks* of the best results.
         """
         query = (query or "").strip()
         if not query:
             return ""
         try:
-            chunks = embeddings_pipeline_v2.search_chunks(
+            candidates = embeddings_pipeline_v2.search_chunks(
                 query,
-                n_results=max_chunks,
+                n_results=max_chunks + 5,
                 collection_name=self.chunk_collection_name,
             )
+            # Keep only chunks above a minimum similarity floor
+            _SIM_FLOOR = 0.35
+            chunks = [c for c in candidates if (c.get("similarity") or 0) >= _SIM_FLOOR]
+            chunks = chunks[:max_chunks]
+
             parts = []
             for c in chunks:
                 meta = c.get("metadata") or {}
+                course_title = meta.get("course_title") or meta.get("module_name") or ""
                 label = meta.get("chunk_type", "chunk")
-                module_name = meta.get("module_name")
-                if module_name:
-                    label += f" ({module_name})"
+                if course_title:
+                    label = f"{course_title} - {label}"
                 text = c.get("chunk_text") or ""
-                parts.append(f"[{label}] {text}")
+                parts.append(f"[{label}]\n{text}")
             return "\n\n---\n\n".join(parts)
         except Exception as e:  # noqa: BLE001
             logger.error("RAGService.get_context_for_query error: %s", e)

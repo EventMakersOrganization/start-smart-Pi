@@ -23,7 +23,7 @@ logger.setLevel(logging.INFO)
 class RAGPromptBuilder:
     """Builds context-aware prompts using RAG-retrieved content."""
 
-    def __init__(self, rag_service: RAGService, max_context_length: int = 2000) -> None:
+    def __init__(self, rag_service: RAGService, max_context_length: int = 6000) -> None:
         self.rag_service = rag_service
         self.max_context_length = max_context_length
 
@@ -60,18 +60,21 @@ class RAGPromptBuilder:
             conv_block = "CONVERSATION SO FAR:\n" + "\n".join(lines) + "\n\n"
 
         return (
-            "You are an AI tutor helping first-year students learn.\n\n"
-            "RELEVANT COURSE CONTENT:\n"
-            f"{context}\n\n"
+            "You are a helpful AI tutor for first-year university students. "
+            "You understand both French and English. "
+            "Answer in the same language as the student's question.\n\n"
+            "COURSE CONTENT (use this to answer):\n"
+            "---\n"
+            f"{context}\n"
+            "---\n\n"
             f"{conv_block}"
-            f"CURRENT QUESTION: {user_question}\n\n"
+            f"STUDENT QUESTION: {user_question}\n\n"
             "INSTRUCTIONS:\n"
-            "1. Answer based ONLY on the course content provided above\n"
-            "2. If the answer is not in the course content, say "
-            '"I don\'t have information about that in our courses"\n'
-            "3. Be clear, helpful, and encouraging\n"
-            "4. Use simple language appropriate for first-year students\n"
-            "5. Provide examples when helpful\n\n"
+            "1. Answer using the course content above. Summarize and explain clearly.\n"
+            "2. If the content is relevant, USE IT to give a complete answer with examples.\n"
+            "3. Explain step by step so a beginner student can understand.\n"
+            "4. If code examples are in the content, include them in your answer.\n"
+            "5. Only say you cannot answer if the topic is truly absent from the content above.\n\n"
             "YOUR ANSWER:"
         )
 

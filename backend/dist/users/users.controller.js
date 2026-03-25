@@ -24,6 +24,12 @@ let UsersController = class UsersController {
     async getProfile(req) {
         return this.usersService.getProfile(req.user.id);
     }
+    async getUsers(role) {
+        if (role) {
+            return this.usersService.getUsersByRole(role);
+        }
+        return [];
+    }
     async updateProfile(req, updateProfileDto) {
         return this.usersService.updateProfile(req.user.id, updateProfileDto);
     }
@@ -37,6 +43,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getProfile", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('role')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getUsers", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Put)('profile'),

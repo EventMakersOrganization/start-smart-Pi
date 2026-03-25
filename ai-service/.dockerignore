@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.env
+chroma_db/
+logs/
+docs/reports/
+coverage.xml
+.pytest_cache
+*.egg-info
+.git

@@ -28,7 +28,8 @@ def get_ollama_llm():
         _llm_instance = Ollama(
             model=config.OLLAMA_MODEL,
             base_url=config.OLLAMA_BASE_URL,
-            temperature=0.7,
+            temperature=0.3,
+            num_ctx=4096,
         )
         print(f"[langchain_ollama] LLM initialized: model={config.OLLAMA_MODEL}, base_url={config.OLLAMA_BASE_URL}")
     return _llm_instance

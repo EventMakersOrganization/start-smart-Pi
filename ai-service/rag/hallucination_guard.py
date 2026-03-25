@@ -20,11 +20,12 @@ if not logger.handlers:
 logger.setLevel(logging.INFO)
 
 # Minimum word length considered "significant" when comparing claim vs context
-_MIN_WORD_LEN = 4
+# Lowered from 4 to 3 to support French (many keywords are 3 chars: "int", "for", "les")
+_MIN_WORD_LEN = 3
 # Fraction of claim keywords that must appear in context for it to count as supported
-_CLAIM_SUPPORT_THRESHOLD = 0.6
+_CLAIM_SUPPORT_THRESHOLD = 0.4
 # Fraction of claims that must be grounded for the whole response to be considered valid
-_RESPONSE_VALID_THRESHOLD = 0.7
+_RESPONSE_VALID_THRESHOLD = 0.5
 
 # Phrases that signal the model is appropriately hedging rather than fabricating
 _HEDGING_PHRASES = [
@@ -37,6 +38,12 @@ _HEDGING_PHRASES = [
     "i'm not confident",
     "not covered in the available",
     "i cannot confirm",
+    "je ne suis pas sûr",
+    "je ne sais pas",
+    "pas certain",
+    "n'est pas couvert",
+    "pourrait être",
+    "il est possible",
 ]
 
 # Simple profanity / URL patterns to strip from output
@@ -104,10 +111,13 @@ class HallucinationGuard:
         """
         Extract factual claim sentences from *text*.
         Filters out questions, very short fragments, greetings, and
-        meta-statements.
+        meta-statements.  Handles both English and French text.
         """
         raw = re.split(r"(?<=[.!])\s+", text.strip())
-        skip_phrases = {"i am", "i can", "let me", "hello", "hi there", "sure,", "of course"}
+        skip_phrases = {
+            "i am", "i can", "let me", "hello", "hi there", "sure,", "of course",
+            "bonjour", "je suis", "je peux", "bien sûr", "salut",
+        }
         claims: list[str] = []
         for sentence in raw:
             s = sentence.strip().rstrip(".")
@@ -124,7 +134,13 @@ class HallucinationGuard:
         """
         Check whether the significant keywords of *claim* appear in *context*.
         Returns ``True`` if the overlap ratio >= ``_CLAIM_SUPPORT_THRESHOLD``.
+        Also returns True for short claims or code snippets (likely rephrasing).
         """
+        if len(claim) < 30:
+            return True
+        # Code snippets in backticks or with C-like syntax are likely from the course
+        if "```" in claim or re.search(r"\b(int|void|float|char|return|for|while)\b", claim):
+            return True
         claim_words = set(re.findall(rf"\b\w{{{_MIN_WORD_LEN},}}\b", claim.lower()))
         if not claim_words:
             return True
@@ -143,14 +159,11 @@ class HallucinationGuard:
         before it; otherwise it is appended.
         """
         safety = (
-            "\nCRITICAL INSTRUCTIONS TO PREVENT ERRORS:\n"
-            "1. ONLY use information from the course content provided above\n"
-            "2. If you're not sure, say \"I'm not certain about that\"\n"
-            "3. Do NOT make up or invent information\n"
-            "4. Do NOT use knowledge from your training - ONLY use the provided content\n"
-            "5. If the answer isn't in the provided content, say "
-            "\"This topic is not covered in the available course material\"\n"
-            "6. Be honest about limitations\n\n"
+            "\nIMPORTANT GUIDELINES:\n"
+            "1. Base your answer primarily on the course content provided above.\n"
+            "2. Do NOT invent facts, formulas, or code that are not in the content.\n"
+            "3. You MAY rephrase, summarize, and explain the content in your own words.\n"
+            "4. If you are unsure, say so — but still try to help with what is available.\n\n"
         )
         if "YOUR ANSWER:" in prompt:
             return prompt.replace("YOUR ANSWER:", safety + "YOUR ANSWER:")

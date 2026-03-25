@@ -41,7 +41,8 @@ if not logger.handlers:
 def generate_embedding(text):
     """
     Generates embedding for the given text using Ollama.
-    Model from config.OLLAMA_MODEL.
+    Uses config.OLLAMA_EMBED_MODEL (dedicated embedding model) when available,
+    falling back to config.OLLAMA_MODEL.
     Returns the embedding vector (list of floats).
     """
     if ollama is None:
@@ -55,7 +56,7 @@ def generate_embedding(text):
         logger.warning(msg)
         return None
     try:
-        model = config.OLLAMA_MODEL
+        model = getattr(config, "OLLAMA_EMBED_MODEL", None) or config.OLLAMA_MODEL
         msg = f"[embeddings_pipeline] Generating embedding (model={model})..."
         print(msg)
         logger.info(msg)

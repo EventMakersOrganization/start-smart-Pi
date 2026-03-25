@@ -1006,13 +1006,20 @@ async def chatbot_ask(body: ChatbotRequest):
     try:
         prompt = prompt_builder.build_chatbot_prompt(body.question, body.conversation_history)
         prompt = hallucination_guard_instance.add_hallucination_prevention_instructions(prompt)
-        logger.info("chatbot ask: question=%s", body.question[:50])
+        logger.info("chatbot ask: question=%s  prompt_len=%d", body.question[:80], len(prompt))
         response = langchain_ollama.generate_response(prompt)
-        context = rag_service.get_context_for_query(body.question, max_chunks=5)
-        pp = hallucination_guard_instance.post_process_response(response, context)
+        logger.info("chatbot ask: response_len=%d", len(response))
+
         chunks = embeddings_pipeline_v2.search_chunks(
-            body.question, n_results=5, collection_name=embeddings_pipeline_v2.DEFAULT_CHUNK_COLLECTION
+            body.question, n_results=8, collection_name=embeddings_pipeline_v2.DEFAULT_CHUNK_COLLECTION
         )
+        logger.info("chatbot ask: search returned %d chunks", len(chunks))
+
+        context_for_validation = "\n".join(
+            (c.get("chunk_text") or "") for c in chunks
+        )
+        pp = hallucination_guard_instance.post_process_response(response, context_for_validation)
+
         sources = [
             {
                 "course_id": c.get("course_id", ""),

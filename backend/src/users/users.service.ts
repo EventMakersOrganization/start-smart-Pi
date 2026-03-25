@@ -89,18 +89,18 @@ export class UsersService {
   }
 
   async getUsersByRole(role: string) {
-    // for backward compatibility treat 'instructor' as including legacy 'teacher' role
     let query: any;
-    if (role === UserRole.INSTRUCTOR) {
-      query = { role: { $in: [UserRole.INSTRUCTOR, 'teacher'] } };
+    if (role.toLowerCase() === 'instructor') {
+      query = { role: { $regex: new RegExp(`^(instructor|teacher)$`, 'i') } };
     } else {
-      query = { role };
+      query = { role: { $regex: new RegExp(`^${role}$`, 'i') } };
     }
 
     const users = await this.userModel.find(query).select('-password').exec();
-
+    console.log(`[DEBUG] getUsersByRole('${role}') found ${users.length} users with query:`, query);
+    
     // If requesting students, include their student profiles
-    if (role === UserRole.STUDENT) {
+    if (role.toLowerCase() === 'student') {
       const userIds = users.map(u => u._id);
       const profiles = await this.profileModel.find({ userId: { $in: userIds } }).exec();
       const profileMap = new Map<string, StudentProfileDocument>();

@@ -9,4 +9,9 @@ python-multipart
 uvicorn
 PyPDF2
 python-docx
-python-multipart
+python-pptx
+
+# Test & CI
+pytest>=7.4
+pytest-cov>=4.1
+httpx>=0.24
