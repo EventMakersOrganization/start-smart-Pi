@@ -77,6 +77,14 @@
         </a>
       </div>
       <div class="flex flex-col gap-2">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Messages</p>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          routerLink="/chat/instructor">
+          <span class="material-symbols-outlined text-indigo-500">chat_bubble</span>
+          <span class="text-sm font-medium">Conversations</span>
+        </a>
+      </div>
+      <div class="flex flex-col gap-2">
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">My Courses</p>
         <div class="space-y-1">
           <div class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400">
@@ -316,7 +324,7 @@
 
   <!-- AI Quick-Access Floating Button -->
   <div class="fixed bottom-8 right-8 z-40">
-    <button
+    <button routerLink="/chat/ai"
       class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
       <span class="material-symbols-outlined text-3xl">psychology</span>
       <div

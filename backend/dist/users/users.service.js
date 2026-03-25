@@ -89,14 +89,15 @@ let UsersService = class UsersService {
     }
     async getUsersByRole(role) {
         let query;
-        if (role === user_schema_1.UserRole.INSTRUCTOR) {
-            query = { role: { $in: [user_schema_1.UserRole.INSTRUCTOR, 'teacher'] } };
+        if (role.toLowerCase() === 'instructor') {
+            query = { role: { $regex: new RegExp(`^(instructor|teacher)$`, 'i') } };
         }
         else {
-            query = { role };
+            query = { role: { $regex: new RegExp(`^${role}$`, 'i') } };
         }
         const users = await this.userModel.find(query).select('-password').exec();
-        if (role === user_schema_1.UserRole.STUDENT) {
+        console.log(`[DEBUG] getUsersByRole('${role}') found ${users.length} users with query:`, query);
+        if (role.toLowerCase() === 'student') {
             const userIds = users.map(u => u._id);
             const profiles = await this.profileModel.find({ userId: { $in: userIds } }).exec();
             const profileMap = new Map();
