@@ -33,15 +33,20 @@ logger.addHandler(_fh)
 
 DEFAULT_CHUNK_COLLECTION = "course_chunks"
 
+_collection_cache: dict = {}
+
 
 def get_or_create_chunked_collection(collection_name: str = "course_chunks"):
     """
     Creates or gets a ChromaDB collection for chunk embeddings.
-    Separate from the original full-document collection.
+    Caches the collection object to avoid repeated Chroma round-trips.
     """
+    if collection_name in _collection_cache:
+        return _collection_cache[collection_name]
     try:
         coll = chroma_setup.get_or_create_collection(collection_name=collection_name)
-        logger.info("get_or_create_chunked_collection: '%s' ready", collection_name)
+        _collection_cache[collection_name] = coll
+        logger.info("get_or_create_chunked_collection: '%s' ready (cached)", collection_name)
         return coll
     except Exception as e:
         logger.error("get_or_create_chunked_collection error: %s", e)

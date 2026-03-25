@@ -9,8 +9,4 @@ export declare class ChatMessage {
     content: string;
     readBy: (User | Types.ObjectId)[];
 }
-export declare const ChatMessageSchema: mongoose.Schema<ChatMessage, mongoose.Model<ChatMessage, any, any, any, Document<unknown, any, ChatMessage> & ChatMessage & {
-    _id: Types.ObjectId;
-}, any>, {}, {}, {}, {}, mongoose.DefaultSchemaOptions, ChatMessage, Document<unknown, {}, mongoose.FlatRecord<ChatMessage>> & mongoose.FlatRecord<ChatMessage> & {
-    _id: Types.ObjectId;
-}>;
+export declare const ChatMessageSchema: mongoose.Schema<ChatMessage, mongoose.Model<ChatMessage, any, any, any, any>, {}, {}, {}, {}, mongoose.DefaultSchemaOptions, ChatMessage>;

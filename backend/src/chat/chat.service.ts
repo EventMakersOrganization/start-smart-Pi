@@ -95,6 +95,15 @@ export class ChatService {
     return this.chatMessageModel.find({ sessionType, sessionId }).sort({ createdAt: 1 }).lean();
   }
 
+  async getRecentHistory(sessionId: string, limit = 6) {
+    return this.chatMessageModel
+      .find({ sessionId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean()
+      .then((msgs) => msgs.reverse());
+  }
+
   async saveMessage(data: { sessionType: string; sessionId: string; sender: string | 'AI'; content: string }) {
     const message = new this.chatMessageModel(data);
     await message.save();

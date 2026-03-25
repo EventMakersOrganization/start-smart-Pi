@@ -11,30 +11,33 @@ export declare class ChatService {
     private chatMessageModel;
     private userModel;
     constructor(chatAiModel: Model<ChatAiDocument>, chatInstructorModel: Model<ChatInstructorDocument>, chatRoomModel: Model<ChatRoomDocument>, chatMessageModel: Model<ChatMessageDocument>, userModel: Model<UserDocument>);
-    createAiSession(studentId: string, title?: string): Promise<import("mongoose").Document<unknown, {}, ChatAiDocument> & ChatAi & import("mongoose").Document<any, any, any> & {
+    createAiSession(studentId: string, title?: string): Promise<ChatAi & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
     resolveParticipants(session: any): Promise<any>;
     createInstructorSession(studentId: string, instructorId: string): Promise<any>;
-    createRoom(name: string, participants: string[]): Promise<import("mongoose").Document<unknown, {}, ChatRoomDocument> & ChatRoom & import("mongoose").Document<any, any, any> & {
+    createRoom(name: string, participants: string[]): Promise<ChatRoom & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
     getUserSessions(userId: string): Promise<{
-        ai: (import("mongoose").FlattenMaps<ChatAiDocument> & {
+        ai: import("mongoose").LeanDocument<ChatAi & import("mongoose").Document<any, any, any> & {
             _id: import("mongoose").Types.ObjectId;
-        })[];
+        }>[];
         instructor: any[];
         rooms: any[];
     }>;
-    getChatHistory(sessionType: string, sessionId: string, reqUserId: string): Promise<(import("mongoose").FlattenMaps<ChatMessageDocument> & {
+    getChatHistory(sessionType: string, sessionId: string, reqUserId: string): Promise<import("mongoose").LeanDocument<ChatMessage & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
-    })[]>;
+    }>[]>;
+    getRecentHistory(sessionId: string, limit?: number): Promise<import("mongoose").LeanDocument<ChatMessage & import("mongoose").Document<any, any, any> & {
+        _id: import("mongoose").Types.ObjectId;
+    }>[]>;
     saveMessage(data: {
         sessionType: string;
         sessionId: string;
         sender: string | 'AI';
         content: string;
-    }): Promise<import("mongoose").Document<unknown, {}, ChatMessageDocument> & ChatMessage & import("mongoose").Document<any, any, any> & {
+    }): Promise<ChatMessage & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
 }

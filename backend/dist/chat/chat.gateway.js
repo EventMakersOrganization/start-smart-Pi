@@ -11,14 +11,19 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var ChatGateway_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatGateway = void 0;
 const websockets_1 = require("@nestjs/websockets");
+const common_1 = require("@nestjs/common");
 const socket_io_1 = require("socket.io");
 const chat_service_1 = require("./chat.service");
-let ChatGateway = class ChatGateway {
-    constructor(chatService) {
+const ai_service_1 = require("./ai.service");
+let ChatGateway = ChatGateway_1 = class ChatGateway {
+    constructor(chatService, aiService) {
         this.chatService = chatService;
+        this.aiService = aiService;
+        this.logger = new common_1.Logger(ChatGateway_1.name);
         this.connectedUsers = new Map();
     }
     async handleConnection(client) {
@@ -57,15 +62,50 @@ let ChatGateway = class ChatGateway {
         const message = await this.chatService.saveMessage(payload);
         this.server.to(payload.sessionId).emit('newMessage', message);
         if (payload.sessionType === 'ChatAi') {
-            setTimeout(async () => {
+            this.server
+                .to(payload.sessionId)
+                .emit('userTyping', { sender: 'AI', isTyping: true });
+            try {
+                const history = await this.chatService.getRecentHistory(payload.sessionId, 6);
+                const conversationHistory = history.map((m) => ({
+                    role: m.sender === 'AI' ? 'assistant' : 'user',
+                    content: m.content,
+                }));
+                const aiResponse = await this.aiService.askChatbot(payload.content, conversationHistory);
+                let content = aiResponse.answer;
+                if (aiResponse.sources?.length > 0) {
+                    const srcList = aiResponse.sources
+                        .slice(0, 3)
+                        .map((s) => `📖 ${s.course_title} (${Math.round(s.similarity * 100)}%)`)
+                        .join('\n');
+                    content += `\n\n---\n**Sources:**\n${srcList}`;
+                }
+                if (aiResponse.confidence > 0) {
+                    content += `\n\n🎯 Confidence: ${Math.round(aiResponse.confidence * 100)}%`;
+                }
                 const aiMessage = await this.chatService.saveMessage({
                     sessionType: 'ChatAi',
                     sessionId: payload.sessionId,
                     sender: 'AI',
-                    content: `Mocked AI response to: "${payload.content}"`
+                    content,
                 });
                 this.server.to(payload.sessionId).emit('newMessage', aiMessage);
-            }, 1500);
+            }
+            catch (error) {
+                this.logger.error(`AI response failed: ${error.message}`);
+                const fallback = await this.chatService.saveMessage({
+                    sessionType: 'ChatAi',
+                    sessionId: payload.sessionId,
+                    sender: 'AI',
+                    content: 'I am temporarily unavailable. Please try again in a moment.',
+                });
+                this.server.to(payload.sessionId).emit('newMessage', fallback);
+            }
+            finally {
+                this.server
+                    .to(payload.sessionId)
+                    .emit('userTyping', { sender: 'AI', isTyping: false });
+            }
         }
         return message;
     }
@@ -110,8 +150,9 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
     __metadata("design:returntype", void 0)
 ], ChatGateway.prototype, "handleTyping", null);
-exports.ChatGateway = ChatGateway = __decorate([
+exports.ChatGateway = ChatGateway = ChatGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({ cors: { origin: '*' } }),
-    __metadata("design:paramtypes", [chat_service_1.ChatService])
+    __metadata("design:paramtypes", [chat_service_1.ChatService,
+        ai_service_1.AiService])
 ], ChatGateway);
 //# sourceMappingURL=chat.gateway.js.map

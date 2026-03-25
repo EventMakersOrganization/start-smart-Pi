@@ -278,6 +278,44 @@ class RAGService:
             logger.error("RAGService.get_course_recommendations error: %s", e)
             return []
 
+    def get_personalized_recommendations(
+        self,
+        student_profile: dict,
+        n_recommendations: int = 5,
+    ) -> list[dict]:
+        """
+        Generate a learning-path from a level-test profile.
+
+        Uses the ``weaknesses`` and ``recommendations`` fields from
+        :func:`level_test.scoring.generate_student_profile` to retrieve
+        relevant course material and rank by priority + success probability.
+        """
+        try:
+            recs_input = student_profile.get("recommendations", [])
+            weaknesses = student_profile.get("weaknesses", [])
+
+            enriched: list[dict] = []
+            for rec in recs_input[:n_recommendations]:
+                subject_title = rec.get("subject", "")
+                focus_topics = rec.get("focus_topics", [])
+
+                query = (
+                    f"{subject_title}: {', '.join(focus_topics[:3])}"
+                    if focus_topics
+                    else subject_title
+                ) or "general course review"
+
+                context = self.get_context_for_query(query, max_chunks=3)
+                enriched.append({
+                    **rec,
+                    "relevant_material_preview": context[:500] if context else "",
+                })
+
+            return enriched
+        except Exception as e:
+            logger.error("get_personalized_recommendations error: %s", e)
+            return []
+
     def bulk_index_courses(self, course_ids: list[str] | None = None) -> dict:
         """
         Indexes multiple courses into the chunk-based collection.

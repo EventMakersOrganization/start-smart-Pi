@@ -16,13 +16,14 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentSessionTitle = '';
   newMessage = '';
   isAiTyping = false;
-  userId = ''; // Will mock getting active user ID
+  aiOnline = true;
+  userId = '';
   private subs: any[] = [];
 
   constructor(
     private chatApiService: ChatApiService,
     private chatSocketService: ChatSocketService
-  ) { }
+  ) {}
 
   ngOnInit() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -30,16 +31,23 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatSocketService.connect(this.userId);
     this.loadSessions();
+    this.checkAiHealth();
 
     this.subs.push(
       this.chatSocketService.onNewMessage().subscribe((msg: any) => {
         if (msg.sessionId === this.currentSessionId) {
-          this.messages.push(msg);
           if (msg.sender === 'AI') {
-            this.isAiTyping = false; // Turn off typing indicator when AI replies
+            msg._parsed = this.parseAiContent(msg.content);
+            this.isAiTyping = false;
           }
+          this.messages.push(msg);
         }
-      })
+      }),
+      this.chatSocketService.onUserTyping().subscribe((payload: any) => {
+        if (payload.sender === 'AI') {
+          this.isAiTyping = payload.isTyping;
+        }
+      }),
     );
   }
 
@@ -84,7 +92,14 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatSocketService.joinRoom(sessionId);
 
     this.chatApiService.getHistory('ChatAi', sessionId).subscribe({
-      next: (msgs: any) => this.messages = msgs,
+      next: (msgs: any) => {
+        this.messages = msgs.map((m: any) => {
+          if (m.sender === 'AI') {
+            m._parsed = this.parseAiContent(m.content);
+          }
+          return m;
+        });
+      },
       error: (err) => console.error('Error history', err)
     });
   }
@@ -101,9 +116,38 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   sendMessage() {
     if (!this.newMessage.trim() || !this.currentSessionId) return;
-
     this.chatSocketService.sendMessage('ChatAi', this.currentSessionId, this.userId, this.newMessage);
-    this.isAiTyping = true; // Show AI thinking since we know it's AI chat
+    this.isAiTyping = true;
     this.newMessage = '';
+  }
+
+  parseAiContent(content: string): { answer: string; sources: string[]; confidence: string } {
+    const parts = content.split('\n\n---\n');
+    const answer = parts[0] || content;
+    let sources: string[] = [];
+    let confidence = '';
+
+    for (let i = 1; i < parts.length; i++) {
+      const part = parts[i];
+      if (part.includes('**Sources:**')) {
+        sources = part
+          .replace('**Sources:**', '')
+          .trim()
+          .split('\n')
+          .filter((s: string) => s.trim());
+      }
+      const confMatch = part.match(/Confidence:\s*(\d+%)/);
+      if (confMatch) {
+        confidence = confMatch[1];
+      }
+    }
+    return { answer, sources, confidence };
+  }
+
+  checkAiHealth() {
+    this.chatApiService.aiHealthCheck().subscribe({
+      next: (res: any) => { this.aiOnline = res?.status === 'ok'; },
+      error: () => { this.aiOnline = false; },
+    });
   }
 }

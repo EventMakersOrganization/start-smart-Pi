@@ -9,9 +9,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatModule = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
+const axios_1 = require("@nestjs/axios");
 const chat_controller_1 = require("./chat.controller");
 const chat_service_1 = require("./chat.service");
 const chat_gateway_1 = require("./chat.gateway");
+const ai_service_1 = require("./ai.service");
 const chat_ai_schema_1 = require("./schemas/chat-ai.schema");
 const chat_instructor_schema_1 = require("./schemas/chat-instructor.schema");
 const chat_room_schema_1 = require("./schemas/chat-room.schema");
@@ -23,6 +25,7 @@ exports.ChatModule = ChatModule;
 exports.ChatModule = ChatModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            axios_1.HttpModule.register({ timeout: 120_000 }),
             mongoose_1.MongooseModule.forFeature([
                 { name: chat_ai_schema_1.ChatAi.name, schema: chat_ai_schema_1.ChatAiSchema },
                 { name: chat_instructor_schema_1.ChatInstructor.name, schema: chat_instructor_schema_1.ChatInstructorSchema },
@@ -32,8 +35,8 @@ exports.ChatModule = ChatModule = __decorate([
             ]),
         ],
         controllers: [chat_controller_1.ChatController],
-        providers: [chat_service_1.ChatService, chat_gateway_1.ChatGateway],
-        exports: [chat_service_1.ChatService],
+        providers: [chat_service_1.ChatService, chat_gateway_1.ChatGateway, ai_service_1.AiService],
+        exports: [chat_service_1.ChatService, ai_service_1.AiService],
     })
 ], ChatModule);
 //# sourceMappingURL=chat.module.js.map

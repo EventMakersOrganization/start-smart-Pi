@@ -103,6 +103,14 @@ let ChatService = class ChatService {
         }
         return this.chatMessageModel.find({ sessionType, sessionId }).sort({ createdAt: 1 }).lean();
     }
+    async getRecentHistory(sessionId, limit = 6) {
+        return this.chatMessageModel
+            .find({ sessionId })
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean()
+            .then((msgs) => msgs.reverse());
+    }
     async saveMessage(data) {
         const message = new this.chatMessageModel(data);
         await message.save();

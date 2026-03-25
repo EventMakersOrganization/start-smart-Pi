@@ -428,3 +428,15 @@
 2026-03-24 22:34:40,982 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
 2026-03-24 22:34:50,599 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
 2026-03-24 22:35:47,215 - INFO - get_or_create_chunked_collection: 'course_chunks' ready
+2026-03-25 18:30:28,857 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 21:01:58,203 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 21:03:44,006 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 21:36:33,920 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 21:36:43,244 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 21:44:45,263 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 21:54:51,571 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 22:50:07,078 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 22:56:34,725 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 22:59:13,299 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 23:10:28,393 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-25 23:18:25,341 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)

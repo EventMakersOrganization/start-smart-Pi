@@ -7,20 +7,23 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
-import { UseGuards } from '@nestjs/common';
-// For a real app, you'd use a WsGuard here. Assuming basic payload for now.
+import { AiService } from './ai.service';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  // Track connected users: object key is userId, value is socketId(s)
+  private readonly logger = new Logger(ChatGateway.name);
   private connectedUsers = new Map<string, string[]>();
 
-  constructor(private readonly chatService: ChatService) { }
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly aiService: AiService,
+  ) {}
 
   async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId as string;
@@ -64,24 +67,75 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('sendMessage')
-  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionType: string, sessionId: string, sender: string, content: string }) {
-    // Save to DB
+  async handleMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: {
+      sessionType: string;
+      sessionId: string;
+      sender: string;
+      content: string;
+    },
+  ) {
     const message = await this.chatService.saveMessage(payload);
-
-    // Broadcast to room
     this.server.to(payload.sessionId).emit('newMessage', message);
 
-    // Mock AI response if ChatAi
     if (payload.sessionType === 'ChatAi') {
-      setTimeout(async () => {
+      this.server
+        .to(payload.sessionId)
+        .emit('userTyping', { sender: 'AI', isTyping: true });
+
+      try {
+        const history = await this.chatService.getRecentHistory(
+          payload.sessionId,
+          6,
+        );
+        const conversationHistory = history.map((m) => ({
+          role: m.sender === 'AI' ? 'assistant' : 'user',
+          content: m.content,
+        }));
+
+        const aiResponse = await this.aiService.askChatbot(
+          payload.content,
+          conversationHistory,
+        );
+
+        let content = aiResponse.answer;
+        if (aiResponse.sources?.length > 0) {
+          const srcList = aiResponse.sources
+            .slice(0, 3)
+            .map(
+              (s) =>
+                `📖 ${s.course_title} (${Math.round(s.similarity * 100)}%)`,
+            )
+            .join('\n');
+          content += `\n\n---\n**Sources:**\n${srcList}`;
+        }
+        if (aiResponse.confidence > 0) {
+          content += `\n\n🎯 Confidence: ${Math.round(aiResponse.confidence * 100)}%`;
+        }
+
         const aiMessage = await this.chatService.saveMessage({
           sessionType: 'ChatAi',
           sessionId: payload.sessionId,
           sender: 'AI',
-          content: `Mocked AI response to: "${payload.content}"`
+          content,
         });
         this.server.to(payload.sessionId).emit('newMessage', aiMessage);
-      }, 1500); // simulate delay
+      } catch (error) {
+        this.logger.error(`AI response failed: ${error.message}`);
+        const fallback = await this.chatService.saveMessage({
+          sessionType: 'ChatAi',
+          sessionId: payload.sessionId,
+          sender: 'AI',
+          content:
+            'I am temporarily unavailable. Please try again in a moment.',
+        });
+        this.server.to(payload.sessionId).emit('newMessage', fallback);
+      } finally {
+        this.server
+          .to(payload.sessionId)
+          .emit('userTyping', { sender: 'AI', isTyping: false });
+      }
     }
     return message;
   }

@@ -38,6 +38,8 @@ from generation.answer_evaluator import AnswerEvaluator
 from generation.difficulty_classifier import DifficultyClassifier
 from optimization.ai_feedback_loop import AIFeedbackLoop
 from optimization.ai_monitor import AIPerformanceMonitor
+from level_test.adaptive_engine import AdaptiveLevelTest
+from level_test.scoring import compute_subject_mastery, generate_student_profile
 from utils import langchain_ollama
 
 try:
@@ -80,6 +82,9 @@ answer_evaluator = AnswerEvaluator()
 difficulty_classifier = DifficultyClassifier()
 ai_feedback_loop = AIFeedbackLoop()
 ai_monitor = AIPerformanceMonitor()
+
+# Sprint 7 singletons
+adaptive_level_test = AdaptiveLevelTest()
 
 # CORS: allow all origins for development (NestJS backend can call this API)
 app.add_middleware(
@@ -261,6 +266,28 @@ class UserRatingRequest(BaseModel):
     rating: int = Field(..., ge=1, le=5, description="1-5 star rating")
     context: str = Field(default="", description="What the rating is about")
     metadata: dict[str, Any] | None = Field(default=None)
+
+
+# --- Sprint 7 Pydantic models ---
+
+
+class LevelTestStartRequest(BaseModel):
+    student_id: str = Field(..., description="Unique student identifier")
+    subjects: list[str] | None = Field(default=None, description="Course IDs to test (None = all)")
+
+
+class LevelTestSubmitRequest(BaseModel):
+    session_id: str = Field(..., description="Active session ID")
+    answer: str = Field(..., description="Student answer text")
+
+
+class LevelTestCompleteRequest(BaseModel):
+    session_id: str = Field(..., description="Session ID to finalise")
+
+
+class PersonalizedRecommendationsRequest(BaseModel):
+    student_profile: dict = Field(..., description="Profile from a completed level test")
+    n_results: int = Field(default=5, ge=1, le=20, description="Number of recommendations")
 
 
 # --- Helpers: file content extraction ---
@@ -445,6 +472,11 @@ async def root():
             "GET /monitor/stats": "Sprint 6: API performance stats (latency, throughput)",
             "GET /monitor/errors": "Sprint 6: recent failed API requests",
             "GET /monitor/throughput": "Sprint 6: requests per minute",
+            "POST /level-test/start": "Sprint 7: start an adaptive level test session",
+            "POST /level-test/submit-answer": "Sprint 7: submit answer for current question",
+            "POST /level-test/complete": "Sprint 7: finalise level test and get profile",
+            "GET /level-test/session/{session_id}": "Sprint 7: get session state",
+            "POST /recommendations/personalized": "Sprint 7: personalised learning-path from profile",
         },
     }
 
@@ -1444,6 +1476,111 @@ async def monitor_throughput(minutes: int = Query(default=60, ge=1, le=1440)):
     except Exception as e:  # noqa: BLE001
         logger.exception("monitor/throughput error")
         raise HTTPException(status_code=500, detail=f"Throughput check failed: {e}")
+
+
+# ==========================================================================
+# Sprint 7: Adaptive level test & personalised recommendations
+# ==========================================================================
+
+
+@app.post("/level-test/start")
+async def level_test_start(body: LevelTestStartRequest):
+    """Start an adaptive level-test session for a student."""
+    t0 = time.time()
+    try:
+        result = adaptive_level_test.start_test(body.student_id, body.subjects)
+        ai_monitor.record_request("/level-test/start", time.time() - t0, True)
+        return {"status": "success", **result}
+    except Exception as e:
+        ai_monitor.record_request("/level-test/start", time.time() - t0, False, {"error": str(e)})
+        logger.exception("level-test/start error")
+        raise HTTPException(status_code=500, detail=f"Failed to start level test: {e}")
+
+
+@app.post("/level-test/submit-answer")
+async def level_test_submit_answer(body: LevelTestSubmitRequest):
+    """Submit answer for the current question and get feedback + next question."""
+    t0 = time.time()
+    try:
+        result = adaptive_level_test.submit_answer(body.session_id, body.answer)
+        ai_monitor.record_request("/level-test/submit-answer", time.time() - t0, True)
+        return {"status": "success", **result}
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        ai_monitor.record_request("/level-test/submit-answer", time.time() - t0, False, {"error": str(e)})
+        logger.exception("level-test/submit-answer error")
+        raise HTTPException(status_code=500, detail=f"Submit answer failed: {e}")
+
+
+@app.post("/level-test/complete")
+async def level_test_complete(body: LevelTestCompleteRequest):
+    """Finalise the level test and compute the student profile."""
+    t0 = time.time()
+    try:
+        profile = adaptive_level_test.complete_test(body.session_id)
+        ai_monitor.record_request("/level-test/complete", time.time() - t0, True)
+        return {"status": "success", "profile": profile}
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        ai_monitor.record_request("/level-test/complete", time.time() - t0, False, {"error": str(e)})
+        logger.exception("level-test/complete error")
+        raise HTTPException(status_code=500, detail=f"Complete test failed: {e}")
+
+
+@app.get("/level-test/session/{session_id}")
+async def level_test_session(session_id: str):
+    """Retrieve a level-test session by ID (read-only)."""
+    try:
+        session = adaptive_level_test.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return {"status": "success", "session": session}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("level-test/session error")
+        raise HTTPException(status_code=500, detail=f"Failed to get session: {e}")
+
+
+@app.post("/recommendations/personalized")
+async def recommendations_personalized(body: PersonalizedRecommendationsRequest):
+    """Generate personalised learning-path recommendations from a student profile."""
+    t0 = time.time()
+    try:
+        profile = body.student_profile
+        weaknesses = profile.get("weaknesses", [])
+        recommendations = profile.get("recommendations", [])
+
+        enriched: list[dict[str, Any]] = []
+        for rec in recommendations[:body.n_results]:
+            subject_title = rec.get("subject", "")
+            focus_topics = rec.get("focus_topics", [])
+
+            rag_context = ""
+            if focus_topics:
+                query = f"{subject_title}: {', '.join(focus_topics[:3])}"
+                rag_context = rag_service.get_context_for_query(query, max_chunks=3)
+            elif subject_title:
+                rag_context = rag_service.get_context_for_query(subject_title, max_chunks=2)
+
+            enriched.append({
+                **rec,
+                "relevant_material_preview": rag_context[:500] if rag_context else "",
+            })
+
+        ai_monitor.record_request("/recommendations/personalized", time.time() - t0, True)
+        return {
+            "status": "success",
+            "overall_level": profile.get("overall_level", ""),
+            "overall_mastery": profile.get("overall_mastery", 0),
+            "recommendations": enriched,
+        }
+    except Exception as e:
+        ai_monitor.record_request("/recommendations/personalized", time.time() - t0, False, {"error": str(e)})
+        logger.exception("recommendations/personalized error")
+        raise HTTPException(status_code=500, detail=f"Personalized recommendations failed: {e}")
 
 
 if __name__ == "__main__":

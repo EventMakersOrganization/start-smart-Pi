@@ -15,10 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatController = void 0;
 const common_1 = require("@nestjs/common");
 const chat_service_1 = require("./chat.service");
+const ai_service_1 = require("./ai.service");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 let ChatController = class ChatController {
-    constructor(chatService) {
+    constructor(chatService, aiService) {
         this.chatService = chatService;
+        this.aiService = aiService;
     }
     async createAiSession(req, body) {
         return this.chatService.createAiSession(req.user.id, body.title);
@@ -27,7 +29,10 @@ let ChatController = class ChatController {
         return this.chatService.createInstructorSession(req.user.id, body.instructorId);
     }
     async createRoom(req, body) {
-        return this.chatService.createRoom(body.name, [req.user.id, ...body.participants]);
+        return this.chatService.createRoom(body.name, [
+            req.user.id,
+            ...body.participants,
+        ]);
     }
     async getUserSessions(req) {
         return this.chatService.getUserSessions(req.user.id);
@@ -42,6 +47,13 @@ let ChatController = class ChatController {
             sender: req.user.id,
             content: body.content,
         });
+    }
+    async semanticSearch(query, nResults) {
+        const results = await this.aiService.semanticSearch(query, nResults ? parseInt(nResults, 10) : 10);
+        return { results };
+    }
+    async aiHealth() {
+        return this.aiService.healthCheck();
     }
 };
 exports.ChatController = ChatController;
@@ -93,9 +105,24 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "sendMessage", null);
+__decorate([
+    (0, common_1.Get)('ai/search'),
+    __param(0, (0, common_1.Query)('q')),
+    __param(1, (0, common_1.Query)('n')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "semanticSearch", null);
+__decorate([
+    (0, common_1.Get)('ai/health'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "aiHealth", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('chat'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __metadata("design:paramtypes", [chat_service_1.ChatService])
+    __metadata("design:paramtypes", [chat_service_1.ChatService,
+        ai_service_1.AiService])
 ], ChatController);
 //# sourceMappingURL=chat.controller.js.map

@@ -34,4 +34,14 @@ export class ChatApiService {
     const t = new Date().getTime();
     return this.http.get(`http://localhost:3000/api/user?role=${role}&t=${t}`);
   }
+
+  semanticSearch(query: string, nResults = 10): Observable<any> {
+    return this.http.get(`${this.apiUrl}/ai/search`, {
+      params: { q: query, n: nResults.toString() },
+    });
+  }
+
+  aiHealthCheck(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/ai/health`);
+  }
 }

@@ -1,11 +1,14 @@
 import { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
+import { AiService } from './ai.service';
 export declare class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly chatService;
+    private readonly aiService;
     server: Server;
+    private readonly logger;
     private connectedUsers;
-    constructor(chatService: ChatService);
+    constructor(chatService: ChatService, aiService: AiService);
     handleConnection(client: Socket): Promise<void>;
     handleDisconnect(client: Socket): Promise<void>;
     handleJoinRoom(client: Socket, room: string): void;
@@ -15,7 +18,7 @@ export declare class ChatGateway implements OnGatewayConnection, OnGatewayDiscon
         sessionId: string;
         sender: string;
         content: string;
-    }): Promise<import("mongoose").Document<unknown, {}, import("./schemas/chat-message.schema").ChatMessageDocument> & import("./schemas/chat-message.schema").ChatMessage & import("mongoose").Document<any, any, any> & {
+    }): Promise<import("./schemas/chat-message.schema").ChatMessage & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
     handleTyping(client: Socket, payload: {

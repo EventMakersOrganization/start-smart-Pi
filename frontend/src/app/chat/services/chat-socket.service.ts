@@ -39,7 +39,7 @@ export class ChatSocketService {
 
   onNewMessage(): Observable<any> {
     return new Observable(observer => {
-      this.socket?.on('newMessage', (msg) => observer.next(msg));
+      this.socket?.on('newMessage', (msg: any) => observer.next(msg));
     });
   }
 
@@ -49,13 +49,13 @@ export class ChatSocketService {
 
   onUserTyping(): Observable<any> {
     return new Observable(observer => {
-      this.socket?.on('userTyping', (data) => observer.next(data));
+      this.socket?.on('userTyping', (data: any) => observer.next(data));
     });
   }
 
   onUserStatus(): Observable<any> {
     return new Observable(observer => {
-      this.socket?.on('userStatus', (data) => observer.next(data));
+      this.socket?.on('userStatus', (data: any) => observer.next(data));
     });
   }
 }

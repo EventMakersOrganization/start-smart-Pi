@@ -15,6 +15,10 @@ try:
 except ImportError:
     ollama = None
 
+from embeddings.embedding_cache import EmbeddingCache
+
+_query_cache = EmbeddingCache(cache_dir="./embedding_query_cache", max_size_mb=100)
+
 
 # --- Logging setup (under ai-service/logs/) ---
 
@@ -38,11 +42,12 @@ if not logger.handlers:
     logger.addHandler(error_handler)
 
 
-def generate_embedding(text):
+def generate_embedding(text, use_cache=True):
     """
     Generates embedding for the given text using Ollama.
     Uses config.OLLAMA_EMBED_MODEL (dedicated embedding model) when available,
     falling back to config.OLLAMA_MODEL.
+    Results are cached in-memory + on-disk for fast repeat queries.
     Returns the embedding vector (list of floats).
     """
     if ollama is None:
@@ -55,11 +60,17 @@ def generate_embedding(text):
         print(msg)
         logger.warning(msg)
         return None
+
+    cache_key = text.strip()[:500]
+    if use_cache:
+        cached = _query_cache.get(cache_key)
+        if cached is not None:
+            logger.debug("Embedding cache hit (len=%d)", len(cached))
+            return cached
+
     try:
         model = getattr(config, "OLLAMA_EMBED_MODEL", None) or config.OLLAMA_MODEL
-        msg = f"[embeddings_pipeline] Generating embedding (model={model})..."
-        print(msg)
-        logger.info(msg)
+        logger.info("Generating embedding (model=%s)...", model)
         response = ollama.embed(model=model, input=text)
         embeddings = response.get("embeddings")
         if not embeddings:
@@ -68,9 +79,11 @@ def generate_embedding(text):
             logger.error(msg)
             return None
         vector = embeddings[0] if isinstance(embeddings[0], list) else embeddings
-        msg = f"[embeddings_pipeline] Embedding generated, dimension: {len(vector)}"
-        print(msg)
-        logger.info(msg)
+        logger.info("Embedding generated, dimension: %d", len(vector))
+
+        if use_cache:
+            _query_cache.set(cache_key, vector)
+
         return vector
     except Exception as e:
         msg = f"[embeddings_pipeline] generate_embedding error: {e}"
