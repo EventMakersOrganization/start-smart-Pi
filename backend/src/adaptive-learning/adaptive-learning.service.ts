@@ -312,6 +312,158 @@ export class AdaptiveLearningService {
   }
 
   // ══════════════════════════════════════
+  async getSpacedRepetitionSchedule(studentId: string): Promise<{
+    schedule: Array<{
+      topic: string;
+      lastScore: number;
+      lastAttemptDate: Date;
+      nextReviewDate: Date;
+      intervalDays: number;
+      urgency: "overdue" | "due_today" | "upcoming" | "scheduled";
+      daysUntilReview: number;
+      recommendedDifficulty: string;
+    }>;
+    overdueCount: number;
+    dueTodayCount: number;
+    nextSession: {
+      topic: string;
+      urgency: string;
+      date: Date;
+    } | null;
+  }> {
+    try {
+      // Fetch all performances for the student
+      const performances = await this.performanceModel
+        .find({ studentId })
+        .sort({ attemptDate: -1 })
+        .exec();
+
+      if (!performances || performances.length === 0) {
+        return {
+          schedule: [],
+          overdueCount: 0,
+          dueTodayCount: 0,
+          nextSession: null,
+        };
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Group performances by topic, keeping the most recent
+      const topicMap = new Map<string, any>();
+
+      performances.forEach((perf: any) => {
+        const topic = (perf.topic || "general").trim() || "general";
+
+        if (!topicMap.has(topic)) {
+          topicMap.set(topic, perf);
+        }
+      });
+
+      const schedule = Array.from(topicMap.values()).map((perf: any) => {
+        const lastScore = Number(perf.score) || 0;
+        const lastAttemptDate = new Date(perf.attemptDate);
+
+        // 🧠 SM-2 Inspired Interval Calculation based on score
+        let intervalDays: number;
+        if (lastScore >= 90) {
+          intervalDays = 7; // Excellent - review in 1 week
+        } else if (lastScore >= 75) {
+          intervalDays = 4; // Good - review in 4 days
+        } else if (lastScore >= 60) {
+          intervalDays = 2; // Fair - review in 2 days
+        } else if (lastScore >= 40) {
+          intervalDays = 1; // Poor - review tomorrow
+        } else {
+          intervalDays = 0; // Very poor - review today
+        }
+
+        // Calculate next review date
+        const nextReviewDate = new Date(lastAttemptDate);
+        nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
+        nextReviewDate.setHours(0, 0, 0, 0);
+
+        // Calculate days until review (negative means overdue)
+        const timeDiffMs = nextReviewDate.getTime() - today.getTime();
+        const daysUntilReview = Math.ceil(timeDiffMs / (1000 * 60 * 60 * 24));
+
+        // Determine urgency level
+        let urgency: "overdue" | "due_today" | "upcoming" | "scheduled";
+        if (daysUntilReview < 0) {
+          urgency = "overdue";
+        } else if (daysUntilReview === 0) {
+          urgency = "due_today";
+        } else if (daysUntilReview <= 3) {
+          urgency = "upcoming";
+        } else {
+          urgency = "scheduled";
+        }
+
+        // Recommend difficulty based on score trend
+        let recommendedDifficulty = "intermediate";
+        if (lastScore >= 85) {
+          recommendedDifficulty = "advanced";
+        } else if (lastScore < 50) {
+          recommendedDifficulty = "beginner";
+        }
+
+        return {
+          topic: perf.topic || "general",
+          lastScore,
+          lastAttemptDate,
+          nextReviewDate,
+          intervalDays,
+          urgency,
+          daysUntilReview,
+          recommendedDifficulty,
+        };
+      });
+
+      // Sort by urgency (overdue first, then due_today, then upcoming, then scheduled)
+      const urgencyOrder = {
+        overdue: 0,
+        due_today: 1,
+        upcoming: 2,
+        scheduled: 3,
+      };
+
+      schedule.sort(
+        (a, b) =>
+          urgencyOrder[a.urgency as keyof typeof urgencyOrder] -
+          urgencyOrder[b.urgency as keyof typeof urgencyOrder],
+      );
+
+      // Count overdue and due today
+      const overdueCount = schedule.filter(
+        (s) => s.urgency === "overdue",
+      ).length;
+      const dueTodayCount = schedule.filter(
+        (s) => s.urgency === "due_today",
+      ).length;
+
+      // Get the next session (first item that needs attention)
+      let nextSession = null;
+      if (schedule.length > 0) {
+        const nextItem = schedule[0];
+        nextSession = {
+          topic: nextItem.topic,
+          urgency: nextItem.urgency,
+          date: nextItem.nextReviewDate,
+        };
+      }
+
+      return {
+        schedule,
+        overdueCount,
+        dueTodayCount,
+        nextSession,
+      };
+    } catch (error) {
+      console.error("Error in getSpacedRepetitionSchedule:", error);
+      throw new Error("Failed to generate spaced repetition schedule");
+    }
+  }
   // PERSONALIZED RECOMMENDATION v1 API
   // ══════════════════════════════════════
 
@@ -708,6 +860,946 @@ export class AdaptiveLearningService {
         topicDiagnostics,
       },
       totalGenerated: recommendations.length,
+    };
+  }
+
+  async getCollaborativeRecommendations(studentId: string): Promise<{
+    recommendations: Array<{
+      topic: string;
+      reason: string;
+      similarStudentsCount: number;
+      averageSuccessRate: number;
+      suggestedDifficulty: string;
+    }>;
+    similarStudentsFound: number;
+    basedOn: string;
+  }> {
+    const targetProfile = await this.profileModel
+      .findOne({ userId: studentId })
+      .exec();
+
+    if (!targetProfile) {
+      throw new NotFoundException(`Profile not found for student ${studentId}`);
+    }
+
+    const [allProfiles, allPerformances] = await Promise.all([
+      this.profileModel.find().exec(),
+      this.performanceModel.find().exec(),
+    ]);
+
+    const performancesByStudent = new Map<string, StudentPerformance[]>();
+
+    allPerformances.forEach((p) => {
+      const sid = String((p as any).studentId || "");
+      if (!sid) return;
+      if (!performancesByStudent.has(sid)) {
+        performancesByStudent.set(sid, []);
+      }
+      performancesByStudent.get(sid)!.push(p as any);
+    });
+
+    const targetPerformances = performancesByStudent.get(studentId) || [];
+    const targetTopics = new Set(
+      targetPerformances
+        .map((p: any) => String(p.topic || "general").trim())
+        .filter(Boolean),
+    );
+
+    const targetAverageScore =
+      targetPerformances.length > 0
+        ? targetPerformances.reduce((sum: number, p: any) => sum + p.score, 0) /
+          targetPerformances.length
+        : 0;
+
+    const targetWeaknesses = new Set(
+      (targetProfile.weaknesses || []).map((w: string) =>
+        String(w || "")
+          .trim()
+          .toLowerCase(),
+      ),
+    );
+
+    const candidateSimilarStudents: Array<{
+      studentId: string;
+      similarity: number;
+      performances: StudentPerformance[];
+    }> = [];
+
+    for (const profile of allProfiles) {
+      const otherStudentId = String((profile as any).userId || "");
+      if (!otherStudentId || otherStudentId === studentId) continue;
+
+      const otherPerformances = performancesByStudent.get(otherStudentId) || [];
+
+      let similarity = 0;
+
+      if ((profile.level || "") === (targetProfile.level || "")) {
+        similarity += 3;
+      }
+
+      const otherTopics = new Set(
+        otherPerformances
+          .map((p: any) => String(p.topic || "general").trim())
+          .filter(Boolean),
+      );
+
+      let commonTopicsCount = 0;
+      for (const topic of targetTopics) {
+        if (otherTopics.has(topic)) {
+          commonTopicsCount++;
+        }
+      }
+      similarity += commonTopicsCount * 2;
+
+      if (targetAverageScore > 0 && otherPerformances.length > 0) {
+        const otherAverageScore =
+          otherPerformances.reduce((sum: number, p: any) => sum + p.score, 0) /
+          otherPerformances.length;
+
+        if (Math.abs(otherAverageScore - targetAverageScore) <= 15) {
+          similarity += 2;
+        }
+      }
+
+      const otherWeaknesses = new Set(
+        (profile.weaknesses || []).map((w: string) =>
+          String(w || "")
+            .trim()
+            .toLowerCase(),
+        ),
+      );
+
+      let commonWeaknessesCount = 0;
+      for (const weakness of targetWeaknesses) {
+        if (otherWeaknesses.has(weakness)) {
+          commonWeaknessesCount++;
+        }
+      }
+      similarity += commonWeaknessesCount;
+
+      if (similarity > 0) {
+        candidateSimilarStudents.push({
+          studentId: otherStudentId,
+          similarity,
+          performances: otherPerformances,
+        });
+      }
+    }
+
+    const topSimilarStudents = candidateSimilarStudents
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 3);
+
+    const topicSuccessMap = new Map<
+      string,
+      {
+        totalScore: number;
+        count: number;
+        students: Set<string>;
+      }
+    >();
+
+    topSimilarStudents.forEach((similarStudent) => {
+      similarStudent.performances.forEach((p: any) => {
+        const topic = String(p.topic || "general").trim();
+        if (!topic) return;
+        if (targetTopics.has(topic)) return;
+        if (Number(p.score) < 70) return;
+
+        if (!topicSuccessMap.has(topic)) {
+          topicSuccessMap.set(topic, {
+            totalScore: 0,
+            count: 0,
+            students: new Set<string>(),
+          });
+        }
+
+        const item = topicSuccessMap.get(topic)!;
+        item.totalScore += Number(p.score) || 0;
+        item.count += 1;
+        item.students.add(similarStudent.studentId);
+      });
+    });
+
+    const recommendations = Array.from(topicSuccessMap.entries())
+      .map(([topic, data]) => {
+        const averageSuccessRate =
+          data.count > 0
+            ? Math.round((data.totalScore / data.count) * 100) / 100
+            : 0;
+
+        const suggestedDifficulty =
+          averageSuccessRate >= 85
+            ? "advanced"
+            : averageSuccessRate >= 75
+              ? "intermediate"
+              : "beginner";
+
+        return {
+          topic,
+          reason:
+            `Students with a profile similar to yours also succeeded on ${topic}. ` +
+            `Their average success rate is ${averageSuccessRate}%.`,
+          similarStudentsCount: data.students.size,
+          averageSuccessRate,
+          suggestedDifficulty,
+        };
+      })
+      .sort((a, b) => {
+        if (b.similarStudentsCount !== a.similarStudentsCount) {
+          return b.similarStudentsCount - a.similarStudentsCount;
+        }
+        return b.averageSuccessRate - a.averageSuccessRate;
+      })
+      .slice(0, 5);
+
+    return {
+      recommendations,
+      similarStudentsFound: topSimilarStudents.length,
+      basedOn:
+        topSimilarStudents.length > 0
+          ? `Top ${topSimilarStudents.length} most similar students (level, common topics, average score proximity, shared weaknesses).`
+          : "No sufficiently similar students found from current profiles and performances.",
+    };
+  }
+
+  // ══════════════════════════════════════
+  // STUDY GROUP SUGGESTIONS
+  // ══════════════════════════════════════
+
+  async getStudyGroupSuggestions(studentId: string): Promise<{
+    suggestedGroups: Array<{
+      groupName: string;
+      groupType: "remediation" | "mixed" | "advanced";
+      commonTopics: string[];
+      suggestedActivities: string[];
+      compatibilityScore: number;
+      members: Array<{
+        userId: string;
+        level: string;
+        commonWeaknesses: string[];
+      }>;
+    }>;
+    totalStudentsAnalyzed: number;
+    bestMatch: { userId: string; compatibilityScore: number } | null;
+  }> {
+    const targetProfile = await this.profileModel
+      .findOne({ userId: studentId })
+      .exec();
+
+    if (!targetProfile) {
+      throw new NotFoundException(`Profile not found for student ${studentId}`);
+    }
+
+    const [allProfiles, allPerformances] = await Promise.all([
+      this.profileModel.find().exec(),
+      this.performanceModel.find().exec(),
+    ]);
+
+    // ── Map performances by student ──
+    const performancesByStudent = new Map<string, StudentPerformance[]>();
+    allPerformances.forEach((p) => {
+      const sid = String((p as any).studentId || "");
+      if (!sid) return;
+      if (!performancesByStudent.has(sid)) {
+        performancesByStudent.set(sid, []);
+      }
+      performancesByStudent.get(sid)!.push(p as any);
+    });
+
+    // ── Get target student metrics ──
+    const targetPerformances = performancesByStudent.get(studentId) || [];
+    const targetTopics = new Set(
+      targetPerformances
+        .map((p: any) =>
+          String(p.topic || "general")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean),
+    );
+
+    const targetAverageScore =
+      targetPerformances.length > 0
+        ? targetPerformances.reduce((sum: number, p: any) => sum + p.score, 0) /
+          targetPerformances.length
+        : 0;
+
+    const targetWeaknesses = new Set(
+      (targetProfile.weaknesses || []).map((w: string) =>
+        String(w || "")
+          .trim()
+          .toLowerCase(),
+      ),
+    );
+
+    const targetStrengths = new Set(
+      (targetProfile.strengths || []).map((s: string) =>
+        String(s || "")
+          .trim()
+          .toLowerCase(),
+      ),
+    );
+
+    // ── Calculate compatibility for each student ──
+    interface CandidateStudent {
+      studentId: string;
+      profile: StudentProfile;
+      performances: StudentPerformance[];
+      compatibilityScore: number;
+      commonWeaknesses: string[];
+      complementaryStrengths: string[];
+      progressionSimilarity: boolean;
+      weakTopics: Set<string>;
+      strongTopics: Set<string>;
+      averageScore: number;
+    }
+
+    const candidates: CandidateStudent[] = [];
+
+    for (const profile of allProfiles) {
+      const otherStudentId = String((profile as any).userId || "");
+      if (!otherStudentId || otherStudentId === studentId) continue;
+
+      const otherPerformances = performancesByStudent.get(otherStudentId) || [];
+      let compatibilityScore = 0;
+
+      // Criterion 1: Same level → +4
+      if ((profile.level || "") === (targetProfile.level || "")) {
+        compatibilityScore += 4;
+      }
+
+      // Get weak topics for the other student
+      const otherWeaknesses = new Set(
+        (profile.weaknesses || []).map((w: string) =>
+          String(w || "")
+            .trim()
+            .toLowerCase(),
+        ),
+      );
+
+      const otherStrengths = new Set(
+        (profile.strengths || []).map((s: string) =>
+          String(s || "")
+            .trim()
+            .toLowerCase(),
+        ),
+      );
+
+      // Criterion 2: Common weak topics → +3 per topic
+      let commonWeaknesses: string[] = [];
+      for (const weakness of targetWeaknesses) {
+        if (otherWeaknesses.has(weakness)) {
+          commonWeaknesses.push(weakness);
+          compatibilityScore += 3;
+        }
+      }
+
+      // Criterion 3: Complementary strong topics → +2 per topic
+      // (one student strong where other is weak)
+      let complementaryStrengths: string[] = [];
+      for (const strength of targetStrengths) {
+        if (otherWeaknesses.has(strength)) {
+          complementaryStrengths.push(strength);
+          compatibilityScore += 2;
+        }
+      }
+
+      // Also check reverse
+      for (const strength of otherStrengths) {
+        if (
+          targetWeaknesses.has(strength) &&
+          !complementaryStrengths.includes(strength)
+        ) {
+          complementaryStrengths.push(strength);
+          compatibilityScore += 2;
+        }
+      }
+
+      // Criterion 4: Similar progression (±20%) → +2
+      const otherAverageScore =
+        otherPerformances.length > 0
+          ? otherPerformances.reduce(
+              (sum: number, p: any) => sum + p.score,
+              0,
+            ) / otherPerformances.length
+          : 0;
+
+      const progressionDiff = Math.abs(targetAverageScore - otherAverageScore);
+      const targetRange = Math.max(1, targetAverageScore * 0.2);
+
+      if (progressionDiff <= targetRange) {
+        compatibilityScore += 2;
+      }
+
+      // Criterion 5: Same risk level → +1
+      if ((targetProfile.risk_level || "") === (profile.risk_level || "")) {
+        compatibilityScore += 1;
+      }
+
+      // Get weak and strong topics from performances
+      const perfByTopic: Record<string, { sum: number; count: number }> = {};
+      otherPerformances.forEach((p: any) => {
+        const topic = String(p.topic || "general")
+          .trim()
+          .toLowerCase();
+        if (!perfByTopic[topic]) {
+          perfByTopic[topic] = { sum: 0, count: 0 };
+        }
+        perfByTopic[topic].sum += p.score;
+        perfByTopic[topic].count++;
+      });
+
+      const weakTopics = new Set<string>();
+      const strongTopics = new Set<string>();
+
+      Object.entries(perfByTopic).forEach(([topic, stat]) => {
+        const avg = stat.sum / stat.count;
+        if (avg < 60) weakTopics.add(topic);
+        if (avg >= 75) strongTopics.add(topic);
+      });
+
+      candidates.push({
+        studentId: otherStudentId,
+        profile,
+        performances: otherPerformances,
+        compatibilityScore,
+        commonWeaknesses,
+        complementaryStrengths,
+        progressionSimilarity: progressionDiff <= targetRange,
+        weakTopics,
+        strongTopics,
+        averageScore: otherAverageScore,
+      });
+    }
+
+    // ── Sort by compatibility score (descending) ──
+    candidates.sort((a, b) => b.compatibilityScore - a.compatibilityScore);
+
+    const bestMatch =
+      candidates.length > 0
+        ? {
+            userId: candidates[0].studentId,
+            compatibilityScore: candidates[0].compatibilityScore,
+          }
+        : null;
+
+    // ── Create study groups ──
+    const suggestedGroups = [];
+
+    // Group 1: Remediation Group
+    // Students with same weaknesses working together
+    const remediationCandidates = candidates.filter(
+      (c) => c.commonWeaknesses.length > 0,
+    );
+
+    if (remediationCandidates.length > 0) {
+      const remediationMembers = remediationCandidates.slice(0, 3).map((c) => ({
+        userId: c.studentId,
+        level: c.profile.level || "beginner",
+        commonWeaknesses: c.commonWeaknesses,
+      }));
+
+      const commonWeakTopics = Array.from(
+        new Set(remediationMembers.flatMap((m) => m.commonWeaknesses)),
+      );
+
+      suggestedGroups.push({
+        groupName: "Remediation Group",
+        groupType: "remediation" as const,
+        commonTopics: commonWeakTopics,
+        suggestedActivities: [
+          `Practice exercises on ${commonWeakTopics.join(", ")}`,
+          "Share solutions and discuss difficult concepts",
+          "Create study notes together",
+          "Quiz each other on weak topics",
+        ],
+        compatibilityScore:
+          Math.round(
+            (remediationMembers.reduce((sum, m, _, arr) => {
+              const candidate = remediationCandidates.find(
+                (c) => c.studentId === m.userId,
+              );
+              return sum + (candidate?.compatibilityScore || 0);
+            }, 0) /
+              remediationMembers.length) *
+              100,
+          ) / 100,
+        members: remediationMembers,
+      });
+    }
+
+    // Group 2: Mixed Group
+    // Different levels - strong students help weaker ones
+    const mixedCandidates = candidates.filter(
+      (c) =>
+        c.complementaryStrengths.length > 0 &&
+        c.profile.level !== targetProfile.level,
+    );
+
+    if (mixedCandidates.length > 0) {
+      const sortedByLevel = [...mixedCandidates].sort((a, b) => {
+        const levelOrder: Record<string, number> = {
+          beginner: 0,
+          intermediate: 1,
+          advanced: 2,
+        };
+        return (
+          (levelOrder[b.profile.level || "beginner"] || 0) -
+          (levelOrder[a.profile.level || "beginner"] || 0)
+        );
+      });
+
+      const mixedMembers = sortedByLevel.slice(0, 3).map((c) => ({
+        userId: c.studentId,
+        level: c.profile.level || "beginner",
+        commonWeaknesses: c.complementaryStrengths,
+      }));
+
+      const mixedTopics = Array.from(
+        new Set(mixedMembers.flatMap((m) => m.commonWeaknesses)),
+      );
+
+      suggestedGroups.push({
+        groupName: "Mixed Group",
+        groupType: "mixed" as const,
+        commonTopics: mixedTopics,
+        suggestedActivities: [
+          "Peer teaching sessions",
+          "Advanced students mentor beginners on weak topics",
+          "Progressive exercise difficulty",
+          "Collaborative problem solving",
+        ],
+        compatibilityScore:
+          Math.round(
+            (mixedMembers.reduce((sum, m, _, arr) => {
+              const candidate = mixedCandidates.find(
+                (c) => c.studentId === m.userId,
+              );
+              return sum + (candidate?.compatibilityScore || 0);
+            }, 0) /
+              mixedMembers.length) *
+              100,
+          ) / 100,
+        members: mixedMembers,
+      });
+    }
+
+    // Group 3: Advanced Group
+    // Advanced/Intermediate students tackling challenges together
+    const advancedCandidates = candidates.filter(
+      (c) =>
+        (c.profile.level === "advanced" ||
+          c.profile.level === "intermediate") &&
+        (targetProfile.level === "advanced" ||
+          targetProfile.level === "intermediate"),
+    );
+
+    if (advancedCandidates.length > 0) {
+      const advancedMembers = advancedCandidates.slice(0, 3).map((c) => ({
+        userId: c.studentId,
+        level: c.profile.level || "intermediate",
+        commonWeaknesses: c.complementaryStrengths,
+      }));
+
+      const advancedTopics = Array.from(
+        new Set(advancedMembers.flatMap((m) => m.commonWeaknesses)),
+      );
+
+      suggestedGroups.push({
+        groupName: "Advanced Group",
+        groupType: "advanced" as const,
+        commonTopics: advancedTopics,
+        suggestedActivities: [
+          "Advanced problem-solving challenges",
+          "Research and project collaboration",
+          "Advanced topic exploration",
+          "Competition and benchmarking",
+        ],
+        compatibilityScore:
+          Math.round(
+            (advancedMembers.reduce((sum, m, _, arr) => {
+              const candidate = advancedCandidates.find(
+                (c) => c.studentId === m.userId,
+              );
+              return sum + (candidate?.compatibilityScore || 0);
+            }, 0) /
+              advancedMembers.length) *
+              100,
+          ) / 100,
+        members: advancedMembers,
+      });
+    }
+
+    return {
+      suggestedGroups,
+      totalStudentsAnalyzed: candidates.length,
+      bestMatch,
+    };
+  }
+
+  // ══════════════════════════════════════
+  // LEARNING STYLE DETECTION
+  // ══════════════════════════════════════
+
+  async detectLearningStyle(studentId: string): Promise<{
+    primaryStyle: string;
+    secondaryStyle: string | null;
+    confidence: number;
+    styleDescription: string;
+    learningTips: string[];
+    indicators: {
+      averageTimePerExercise: number;
+      scoreConsistency: number;
+      preferredDifficulty: string;
+      preferredTopics: string[];
+      sessionsPerWeek: number;
+    };
+  }> {
+    // ── Get all performances for student ──
+    const performances = await this.performanceModel
+      .find({ studentId })
+      .sort({ attemptDate: -1 })
+      .exec();
+
+    if (!performances || performances.length < 5) {
+      throw new NotFoundException(
+        `Insufficient performance data for student ${studentId}. Need at least 5 exercises.`,
+      );
+    }
+
+    // ── Analyze performances ──
+    const perfData = performances.map((p: any) => ({
+      topic: String(p.topic || "general")
+        .trim()
+        .toLowerCase(),
+      difficulty: String(p.difficulty || "beginner")
+        .trim()
+        .toLowerCase(),
+      timeSpent: Number(p.timeSpent) || 0,
+      score: Number(p.score) || 0,
+      source: String(p.source || "").trim(),
+      attemptDate: p.attemptDate ? new Date(p.attemptDate) : new Date(),
+    }));
+
+    // ── Calculate basic metrics ──
+    const totalTime = perfData.reduce((sum, p) => sum + p.timeSpent, 0);
+    const averageTimePerExercise =
+      Math.round((totalTime / perfData.length) * 100) / 100;
+
+    const scores = perfData.map((p) => p.score);
+    const averageScore =
+      Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) /
+      100;
+
+    // ── Calculate score consistency (std deviation) ──
+    const variance =
+      scores.reduce(
+        (sum, score) => sum + Math.pow(score - averageScore, 2),
+        0,
+      ) / scores.length;
+    const scoreConsistency =
+      Math.round((100 - Math.sqrt(variance)) * 100) / 100;
+
+    // ── Preferred difficulty analysis ──
+    const difficultyStats: Record<string, number> = {};
+    perfData.forEach((p) => {
+      if (!difficultyStats[p.difficulty]) {
+        difficultyStats[p.difficulty] = 0;
+      }
+      difficultyStats[p.difficulty]++;
+    });
+
+    const preferredDifficulty =
+      Object.entries(difficultyStats).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+      "beginner";
+
+    // ── Topic analysis ──
+    const topicStats: Record<
+      string,
+      { count: number; totalScore: number; avgScore: number }
+    > = {};
+
+    perfData.forEach((p) => {
+      if (!topicStats[p.topic]) {
+        topicStats[p.topic] = { count: 0, totalScore: 0, avgScore: 0 };
+      }
+      topicStats[p.topic].count++;
+      topicStats[p.topic].totalScore += p.score;
+    });
+
+    Object.keys(topicStats).forEach((topic) => {
+      topicStats[topic].avgScore =
+        Math.round(
+          (topicStats[topic].totalScore / topicStats[topic].count) * 100,
+        ) / 100;
+    });
+
+    const topicsByScore = Object.entries(topicStats)
+      .sort((a, b) => b[1].avgScore - a[1].avgScore)
+      .slice(0, 3)
+      .map(([topic]) => topic);
+
+    // ── Session regularity (attempt dates) ──
+    const uniqueDates = new Set(
+      perfData.map((p) => p.attemptDate.toISOString().split("T")[0]),
+    );
+
+    const firstAttempt = perfData[perfData.length - 1].attemptDate;
+    const lastAttempt = perfData[0].attemptDate;
+    const daysBetween = Math.ceil(
+      (lastAttempt.getTime() - firstAttempt.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    const sessionsPerWeek =
+      daysBetween > 0
+        ? Math.round((uniqueDates.size / daysBetween) * 7 * 100) / 100
+        : uniqueDates.size;
+
+    // ── Learning Style Detection ──
+    interface StyleScore {
+      name: string;
+      score: number;
+      reason: string;
+    }
+
+    const styleScores: StyleScore[] = [];
+
+    // 1. Visual Learner: Good scores on visual topics
+    const visualTopics = ["algorithms", "databases", "data-structures"];
+    const visualTopicPerformances = perfData.filter((p) =>
+      visualTopics.some((vt) => p.topic.includes(vt)),
+    );
+
+    if (visualTopicPerformances.length > 0) {
+      const visualAvgScore =
+        visualTopicPerformances.reduce((sum, p) => sum + p.score, 0) /
+        visualTopicPerformances.length;
+
+      if (
+        visualAvgScore >= 70 &&
+        averageTimePerExercise > 600 &&
+        visualAvgScore > averageScore
+      ) {
+        styleScores.push({
+          name: "visual_learner",
+          score: Math.min(
+            100,
+            Math.round(
+              ((visualAvgScore / 100) * 50 +
+                (averageTimePerExercise / 1000) * 50) *
+                100,
+            ) / 100,
+          ),
+          reason: `Strong performance (${visualAvgScore}%) on visual topics with substantial time investment`,
+        });
+      }
+    }
+
+    // 2. Fast Learner: High score / low time ratio > 3
+    const fastRatio = averageScore / Math.max(1, averageTimePerExercise / 100);
+    if (fastRatio > 3 && averageScore >= 75) {
+      styleScores.push({
+        name: "fast_learner",
+        score: Math.min(100, Math.round((fastRatio / 5) * 100) * 100) / 100,
+        reason: `Excellent efficiency ratio: ${Math.round(fastRatio * 100) / 100} points per 100ms`,
+      });
+    }
+
+    // 3. Methodical Learner: Long time, progressive improvement
+    const sortedByDate = [...perfData].reverse();
+    let progressiveImprovement = 0;
+    let improvementCount = 0;
+
+    for (let i = 1; i < sortedByDate.length; i++) {
+      if (sortedByDate[i].score > sortedByDate[i - 1].score) {
+        progressiveImprovement++;
+      }
+      improvementCount++;
+    }
+
+    const improvementRatio =
+      improvementCount > 0 ? progressiveImprovement / improvementCount : 0;
+
+    if (
+      averageTimePerExercise > 600 &&
+      improvementRatio > 0.5 &&
+      scoreConsistency < 70
+    ) {
+      styleScores.push({
+        name: "methodical_learner",
+        score: Math.min(
+          100,
+          Math.round(
+            (improvementRatio * 50 + (1 - scoreConsistency / 100) * 50) * 100,
+          ) / 100,
+        ),
+        reason: `Shows consistent improvement over sessions (${Math.round(improvementRatio * 100)}% improvement rate)`,
+      });
+    }
+
+    // 4. Challenge Seeker: Prefers intermediate/advanced, score >= 70%
+    const advancedPerformances = perfData.filter(
+      (p) =>
+        (p.difficulty === "intermediate" || p.difficulty === "advanced") &&
+        p.score >= 70,
+    );
+
+    if (
+      advancedPerformances.length > perfData.length * 0.3 &&
+      advancedPerformances.length > 0
+    ) {
+      const advancedAvgScore =
+        advancedPerformances.reduce((sum, p) => sum + p.score, 0) /
+        advancedPerformances.length;
+
+      styleScores.push({
+        name: "challenge_seeker",
+        score:
+          Math.min(
+            100,
+            Math.round(
+              (advancedPerformances.length / perfData.length) * 50 +
+                (advancedAvgScore / 100) * 50,
+            ) * 100,
+          ) / 100,
+        reason: `${Math.round((advancedPerformances.length / perfData.length) * 100)}% of exercises at advanced difficulty with ${advancedAvgScore}% avg score`,
+      });
+    }
+
+    // 5. Consistent Learner: Regular sessions, low variance
+    if (scoreConsistency > 80 && sessionsPerWeek >= 2) {
+      styleScores.push({
+        name: "consistent_learner",
+        score:
+          Math.min(
+            100,
+            Math.round(
+              (scoreConsistency / 100) * 50 + (sessionsPerWeek / 5) * 50,
+            ) * 100,
+          ) / 100,
+        reason: `High score consistency (${scoreConsistency}) and ${sessionsPerWeek} sessions/week`,
+      });
+    }
+
+    // 6. Topic Specialist: Very high score on 1-2 topics
+    const topicSpecialization = Object.values(topicStats);
+    const bestTopicScore = Math.max(
+      ...topicSpecialization.map((t) => t.avgScore),
+    );
+    const worstTopicScore = Math.min(
+      ...topicSpecialization.map((t) => t.avgScore),
+    );
+
+    if (
+      bestTopicScore >= 85 &&
+      worstTopicScore <= 60 &&
+      bestTopicScore - worstTopicScore > 30
+    ) {
+      styleScores.push({
+        name: "topic_specialist",
+        score:
+          Math.min(
+            100,
+            Math.round(((bestTopicScore - worstTopicScore) / 100) * 100) * 100,
+          ) / 100,
+        reason: `Significant specialization: ${bestTopicScore}% peak vs ${worstTopicScore}% lowest`,
+      });
+    }
+
+    // ── Select primary and secondary styles ──
+    styleScores.sort((a, b) => b.score - a.score);
+
+    const primaryStyle = styleScores[0] || {
+      name: "balanced_learner",
+      score: 50,
+      reason: "No strong learning style detected",
+    };
+
+    const secondaryStyle = styleScores[1] || null;
+
+    // ── Create descriptions and tips ──
+    const styleDescriptions: Record<string, string> = {
+      visual_learner:
+        "You learn best through visual representations. You excel with diagrams, flowcharts, and structured examples.",
+      fast_learner:
+        "You're a quick learner who grasps concepts rapidly. You prefer efficient, straightforward explanations.",
+      methodical_learner:
+        "You prefer a structured, step-by-step approach. You improve consistently through practice and reflection.",
+      challenge_seeker:
+        "You thrive on challenges and complex problems. You prefer pushing your limits over repetitive basics.",
+      consistent_learner:
+        "You learn best through regular practice. You maintain high quality through disciplined, steady effort.",
+      topic_specialist:
+        "You have deep expertise in specific areas but should broaden your foundation in other topics.",
+      balanced_learner:
+        "You have a balanced approach to learning with flexibility across different styles.",
+    };
+
+    const styleTips: Record<string, string[]> = {
+      visual_learner: [
+        "Study with diagrams, flowcharts, and mind maps",
+        "Use visualization tools when solving problems",
+        "Draw connections between concepts visually",
+        "Watch instructional videos with visual explanations",
+      ],
+      fast_learner: [
+        "Challenge yourself with progressively harder problems",
+        "Study advanced topics beyond the basics",
+        "Focus on breadth alongside depth",
+        "Teaching others reinforces your knowledge",
+      ],
+      methodical_learner: [
+        "Create detailed study notes and outlines",
+        "Practice regularly with increasing complexity",
+        "Review and reflect on each session",
+        "Track your progress to see improvements",
+      ],
+      challenge_seeker: [
+        "Seek out competitive coding or advanced exercises",
+        "Work on real-world projects and case studies",
+        "Join study groups with advanced peers",
+        "Don't neglect fundamentals in weaker areas",
+      ],
+      consistent_learner: [
+        "Maintain your study schedule",
+        "Set achievable daily/weekly goals",
+        "Use habit tracking to stay motivated",
+        "Gradually increase difficulty to avoid plateauing",
+      ],
+      topic_specialist: [
+        "Dedicate time to weaker topics each session",
+        "Balance depth expertise with breadth skills",
+        "Apply your expertise to help others learn",
+        "Explore how your specialization connects to other areas",
+      ],
+      balanced_learner: [
+        "Experiment with different learning approaches",
+        "Combine visual, methodical, and practical elements",
+        "Adapt your style based on the topic",
+        "Stay flexible and open to new methods",
+      ],
+    };
+
+    const styleDescription =
+      styleDescriptions[primaryStyle.name] ||
+      styleDescriptions["balanced_learner"];
+    const learningTips =
+      styleTips[primaryStyle.name] || styleTips["balanced_learner"];
+
+    return {
+      primaryStyle: primaryStyle.name,
+      secondaryStyle: secondaryStyle?.name || null,
+      confidence: primaryStyle.score,
+      styleDescription,
+      learningTips,
+      indicators: {
+        averageTimePerExercise,
+        scoreConsistency,
+        preferredDifficulty,
+        preferredTopics: topicsByScore,
+        sessionsPerWeek,
+      },
     };
   }
 

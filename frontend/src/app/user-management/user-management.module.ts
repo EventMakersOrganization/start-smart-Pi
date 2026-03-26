@@ -28,6 +28,8 @@ import { LearningPathComponent } from './learning-path/learning-path.component';
 import { SkillMasteryComponent } from './skill-mastery/skill-mastery.component';
 import { GoalSettingComponent } from './goal-setting/goal-setting.component';
 import { BadgeDisplayComponent } from './badge-display/badge-display.component';
+import { PeerComparisonComponent } from './peer-comparison/peer-comparison.component';
+import { StudyPlannerComponent } from './study-planner/study-planner.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -146,6 +148,8 @@ const routes: Routes = [
     SkillMasteryComponent,
     GoalSettingComponent,
     BadgeDisplayComponent,
+    PeerComparisonComponent,
+    StudyPlannerComponent,
   ],
   imports: [
     CommonModule,

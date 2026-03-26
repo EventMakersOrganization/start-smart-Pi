@@ -42,6 +42,25 @@ export declare class AdaptiveLearningService {
         averageScore: number;
         recommendation: string;
     }>;
+    getSpacedRepetitionSchedule(studentId: string): Promise<{
+        schedule: Array<{
+            topic: string;
+            lastScore: number;
+            lastAttemptDate: Date;
+            nextReviewDate: Date;
+            intervalDays: number;
+            urgency: "overdue" | "due_today" | "upcoming" | "scheduled";
+            daysUntilReview: number;
+            recommendedDifficulty: string;
+        }>;
+        overdueCount: number;
+        dueTodayCount: number;
+        nextSession: {
+            topic: string;
+            urgency: string;
+            date: Date;
+        } | null;
+    }>;
     generateRecommendations(studentId: string): Promise<{
         recommendations: any[];
         profile: any;
@@ -58,6 +77,50 @@ export declare class AdaptiveLearningService {
             topicDiagnostics: any[];
         };
         totalGenerated: number;
+    }>;
+    getCollaborativeRecommendations(studentId: string): Promise<{
+        recommendations: Array<{
+            topic: string;
+            reason: string;
+            similarStudentsCount: number;
+            averageSuccessRate: number;
+            suggestedDifficulty: string;
+        }>;
+        similarStudentsFound: number;
+        basedOn: string;
+    }>;
+    getStudyGroupSuggestions(studentId: string): Promise<{
+        suggestedGroups: Array<{
+            groupName: string;
+            groupType: "remediation" | "mixed" | "advanced";
+            commonTopics: string[];
+            suggestedActivities: string[];
+            compatibilityScore: number;
+            members: Array<{
+                userId: string;
+                level: string;
+                commonWeaknesses: string[];
+            }>;
+        }>;
+        totalStudentsAnalyzed: number;
+        bestMatch: {
+            userId: string;
+            compatibilityScore: number;
+        } | null;
+    }>;
+    detectLearningStyle(studentId: string): Promise<{
+        primaryStyle: string;
+        secondaryStyle: string | null;
+        confidence: number;
+        styleDescription: string;
+        learningTips: string[];
+        indicators: {
+            averageTimePerExercise: number;
+            scoreConsistency: number;
+            preferredDifficulty: string;
+            preferredTopics: string[];
+            sessionsPerWeek: number;
+        };
     }>;
     getLearningPath(studentId: string): Promise<{
         currentLevel: string;

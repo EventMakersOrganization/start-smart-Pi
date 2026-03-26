@@ -627,6 +627,21 @@
           </app-progress-charts>
         </div>
 
+        <!-- ── Peer Comparison ── -->
+        <div class="col-span-12">
+          <app-peer-comparison
+            [studentId]="user?._id || user?.id"
+            [adaptiveProfile]="adaptiveProfile"
+          >
+          </app-peer-comparison>
+        </div>
+
+        <!-- ── Study Planner ── -->
+        <div class="col-span-12">
+          <app-study-planner [studentId]="user?._id || user?.id">
+          </app-study-planner>
+        </div>
+
         <!-- ── Skill Mastery ── -->
         <div class="col-span-12">
           <div class="flex items-center justify-between mb-4">

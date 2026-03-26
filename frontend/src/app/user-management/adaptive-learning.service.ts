@@ -34,6 +34,30 @@ export interface AchievementBadgesResponse {
   badges: AchievementBadge[];
 }
 
+export type ReviewUrgency = 'overdue' | 'due_today' | 'upcoming' | 'scheduled';
+
+export interface SpacedRepetitionSession {
+  topic: string;
+  lastScore: number;
+  lastAttemptDate: string;
+  nextReviewDate: string;
+  intervalDays: number;
+  urgency: ReviewUrgency;
+  daysUntilReview: number;
+  recommendedDifficulty: string;
+}
+
+export interface SpacedRepetitionResponse {
+  schedule: SpacedRepetitionSession[];
+  overdueCount: number;
+  dueTodayCount: number;
+  nextSession: {
+    topic: string;
+    urgency: string;
+    date: string;
+  } | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
@@ -43,6 +67,10 @@ export class AdaptiveLearningService {
 
   getProfile(userId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/profiles/${userId}`);
+  }
+
+  getAllProfiles(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/profiles`);
   }
 
   createProfile(data: any): Observable<any> {
@@ -96,6 +124,20 @@ export class AdaptiveLearningService {
 
   getLearningPath(studentId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/learning-path/${studentId}`);
+  }
+
+  getSpacedRepetitionSchedule(
+    studentId: string,
+  ): Observable<SpacedRepetitionResponse> {
+    return this.http.get<SpacedRepetitionResponse>(
+      `${this.apiUrl}/spaced-repetition/${studentId}`,
+    );
+  }
+
+  getWeakAreaRecommendations(studentId: string): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/recommendations/weak-areas/${studentId}`,
+    );
   }
 
   getAchievementBadges(

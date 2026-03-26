@@ -129,7 +129,26 @@ export class AdaptiveLearningController {
     return this.adaptiveService.getLearningPath(studentId);
   }
 
+  @Get("recommendations/collaborative/:studentId")
+  getCollaborativeRecommendations(@Param("studentId") studentId: string) {
+    return this.adaptiveService.getCollaborativeRecommendations(studentId);
+  }
+
+  @Get("study-groups/:studentId")
+  getStudyGroupSuggestions(@Param("studentId") studentId: string) {
+    return this.adaptiveService.getStudyGroupSuggestions(studentId);
+  }
+
+  @Get("learning-style/:studentId")
+  detectLearningStyle(@Param("studentId") studentId: string) {
+    return this.adaptiveService.detectLearningStyle(studentId);
+  }
+
   // ── Recommendation ──────────────────
+  @Get("spaced-repetition/:studentId")
+  getSpacedRepetitionSchedule(@Param("studentId") studentId: string) {
+    return this.adaptiveService.getSpacedRepetitionSchedule(studentId);
+  }
   @Post("recommendations")
   createRecommendation(@Body() dto: CreateRecommendationDto) {
     return this.adaptiveService.createRecommendation(dto);

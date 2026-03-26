@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learning Style Detection - Test</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        color: white;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .search-box {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #764ba2;
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: white;
+      }
+
+      .error {
+        background: #fee;
+        color: #c33;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        border-left: 4px solid #c33;
+      }
+
+      .main-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+      }
+
+      .style-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 15px;
+      }
+
+      .primary-style {
+        font-size: 32px;
+        font-weight: bold;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .confidence-badge {
+        background: #667eea;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 18px;
+      }
+
+      .secondary-style {
+        background: #f3f4f6;
+        padding: 10px 15px;
+        border-radius: 25px;
+        font-size: 14px;
+        color: #666;
+        margin-top: 10px;
+      }
+
+      .description {
+        font-size: 16px;
+        color: #555;
+        line-height: 1.8;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f9fafb;
+        border-left: 4px solid #667eea;
+        border-radius: 5px;
+      }
+
+      .indicators-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .indicator-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .indicator-value {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .indicator-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        opacity: 0.9;
+      }
+
+      .tips-section {
+        margin-top: 30px;
+      }
+
+      .tips-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .tips-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+      }
+
+      .tip-item {
+        background: #f0f9ff;
+        border: 2px solid #0369a1;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #334155;
+      }
+
+      .tip-item:before {
+        content: "💡 ";
+        font-size: 16px;
+        margin-right: 5px;
+      }
+
+      .topics-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #e5e7eb;
+      }
+
+      .topics-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #999;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .topics-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .topic-badge {
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .style-emoji {
+        font-size: 28px;
+      }
+
+      @media (max-width: 768px) {
+        .indicators-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tips-list {
+          grid-template-columns: 1fr;
+        }
+
+        .primary-style {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🧠 Learning Style Detection</h1>
+
+      <div class="search-box">
+        <input
+          type="text"
+          id="studentIdInput"
+          placeholder="Enter Student ID (e.g., 507f1f77bcf86cd799439011)"
+          value="507f1f77bcf86cd799439011"
+        />
+        <button onclick="detectStyle()">🔍 Detect My Learning Style</button>
+      </div>
+
+      <div id="loading" class="loading" style="display: none">
+        <div style="font-size: 20px">⏳ Analyzing learning patterns...</div>
+      </div>
+
+      <div id="error" class="error" style="display: none"></div>
+
+      <div id="content"></div>
+    </div>
+
+    <script>
+      const styleEmojis = {
+        visual_learner: "👁️",
+        fast_learner: "⚡",
+        methodical_learner: "📚",
+        challenge_seeker: "🎯",
+        consistent_learner: "🔄",
+        topic_specialist: "🎓",
+        balanced_learner: "⚖️",
+      };
+
+      const styleColors = {
+        visual_learner: "#8b5cf6",
+        fast_learner: "#f59e0b",
+        methodical_learner: "#3b82f6",
+        challenge_seeker: "#ef4444",
+        consistent_learner: "#10b981",
+        topic_specialist: "#6366f1",
+        balanced_learner: "#6b7280",
+      };
+
+      async function detectStyle() {
+        const studentId = document
+          .getElementById("studentIdInput")
+          .value.trim();
+        const loading = document.getElementById("loading");
+        const error = document.getElementById("error");
+        const content = document.getElementById("content");
+
+        if (!studentId) {
+          error.textContent = "❌ Please enter a Student ID";
+          error.style.display = "block";
+          return;
+        }
+
+        loading.style.display = "block";
+        error.style.display = "none";
+        content.innerHTML = "";
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/adaptive/learning-style/${studentId}`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          renderStyle(data);
+        } catch (err) {
+          error.textContent = `❌ Error: ${err.message}. Make sure the backend is running at http://localhost:3000`;
+          error.style.display = "block";
+          console.error("Error:", err);
+        } finally {
+          loading.style.display = "none";
+        }
+      }
+
+      function formatStyle(style) {
+        return style
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+      }
+
+      function renderStyle(data) {
+        const content = document.getElementById("content");
+        const emoji = styleEmojis[data.primaryStyle] || "🎯";
+        const color = styleColors[data.primaryStyle] || "#667eea";
+
+        const indicatorsHTML = `
+        <div class="indicator-card" style="background: linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -20)} 100%);">
+          <div class="indicator-value">${Math.round((data.indicators.averageTimePerExercise / 1000) * 100) / 100}s</div>
+          <div class="indicator-label">Avg Time per Exercise</div>
+        </div>
+        <div class="indicator-card" style="background: linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -20)} 100%);">
+          <div class="indicator-value">${Math.round(data.indicators.scoreConsistency)}%</div>
+          <div class="indicator-label">Score Consistency</div>
+        </div>
+        <div class="indicator-card" style="background: linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -20)} 100%);">
+          <div class="indicator-value">${data.indicators.sessionsPerWeek}</div>
+          <div class="indicator-label">Sessions / Week</div>
+        </div>
+        <div class="indicator-card" style="background: linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -20)} 100%);">
+          <div class="indicator-value">${data.indicators.preferredDifficulty}</div>
+          <div class="indicator-label">Preferred Difficulty</div>
+        </div>
+      `;
+
+        const tipsHTML = data.learningTips
+          .map((tip) => `<div class="tip-item">${tip}</div>`)
+          .join("");
+
+        const topicsHTML = data.indicators.preferredTopics
+          .map((topic) => `<span class="topic-badge">${topic}</span>`)
+          .join("");
+
+        const secondaryHTML = data.secondaryStyle
+          ? `<div class="secondary-style">Secondary Style: ${formatStyle(data.secondaryStyle)}</div>`
+          : "";
+
+        content.innerHTML = `
+        <div class="main-card">
+          <div class="style-header">
+            <div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="style-emoji">${emoji}</span>
+                <span class="primary-style">${formatStyle(data.primaryStyle)}</span>
+              </div>
+              ${secondaryHTML}
+            </div>
+            <div class="confidence-badge">${Math.round(data.confidence)}%</div>
+          </div>
+
+          <div class="description">
+            ${data.styleDescription}
+          </div>
+
+          <div class="indicators-grid">
+            ${indicatorsHTML}
+          </div>
+
+          <div class="tips-section">
+            <div class="tips-title">💡 Learning Tips for You</div>
+            <div class="tips-list">
+              ${tipsHTML}
+            </div>
+          </div>
+
+          <div class="topics-section">
+            <div class="topics-title">📌 Your Preferred Topics</div>
+            <div class="topics-badges">
+              ${topicsHTML}
+            </div>
+          </div>
+        </div>
+      `;
+      }
+
+      function adjustColor(color, percent) {
+        const num = parseInt(color.replace("#", ""), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const G = ((num >> 8) & 0x00ff) + amt;
+        const B = (num & 0x0000ff) + amt;
+        return (
+          "#" +
+          (
+            0x1000000 +
+            (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+            (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+            (B < 255 ? (B < 1 ? 0 : B) : 255)
+          )
+            .toString(16)
+            .slice(1)
+        );
+      }
+
+      // Load on page load
+      window.addEventListener("load", () => {
+        const studentIdInput = document.getElementById("studentIdInput");
+        if (studentIdInput.value) {
+          detectStyle();
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -83,6 +83,18 @@ let AdaptiveLearningController = class AdaptiveLearningController {
     getLearningPath(studentId) {
         return this.adaptiveService.getLearningPath(studentId);
     }
+    getCollaborativeRecommendations(studentId) {
+        return this.adaptiveService.getCollaborativeRecommendations(studentId);
+    }
+    getStudyGroupSuggestions(studentId) {
+        return this.adaptiveService.getStudyGroupSuggestions(studentId);
+    }
+    detectLearningStyle(studentId) {
+        return this.adaptiveService.detectLearningStyle(studentId);
+    }
+    getSpacedRepetitionSchedule(studentId) {
+        return this.adaptiveService.getSpacedRepetitionSchedule(studentId);
+    }
     createRecommendation(dto) {
         return this.adaptiveService.createRecommendation(dto);
     }
@@ -252,6 +264,34 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "getLearningPath", null);
+__decorate([
+    (0, common_1.Get)("recommendations/collaborative/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getCollaborativeRecommendations", null);
+__decorate([
+    (0, common_1.Get)("study-groups/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getStudyGroupSuggestions", null);
+__decorate([
+    (0, common_1.Get)("learning-style/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "detectLearningStyle", null);
+__decorate([
+    (0, common_1.Get)("spaced-repetition/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getSpacedRepetitionSchedule", null);
 __decorate([
     (0, common_1.Post)("recommendations"),
     __param(0, (0, common_1.Body)()),
