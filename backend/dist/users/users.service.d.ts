@@ -1,9 +1,9 @@
-import { Model } from 'mongoose';
-import { UserDocument, UserRole, UserStatus } from './schemas/user.schema';
-import { StudentProfileDocument } from './schemas/student-profile.schema';
-import { UpdateProfileDto } from './dto/update-profile.dto';
-import { ActivityService } from '../activity/activity.service';
-import { AdminCreateUserDto } from './dto/admin-create-user.dto';
+import { Model } from "mongoose";
+import { UserDocument, UserRole, UserStatus } from "./schemas/user.schema";
+import { StudentProfileDocument } from "./schemas/student-profile.schema";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { ActivityService } from "../activity/activity.service";
+import { AdminCreateUserDto } from "./dto/admin-create-user.dto";
 export declare class UsersService {
     private userModel;
     private profileModel;

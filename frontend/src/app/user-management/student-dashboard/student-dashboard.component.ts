@@ -7,7 +7,7 @@ import { AdaptiveLearningService } from '../adaptive-learning.service';
 @Component({
   selector: 'app-student-dashboard',
   templateUrl: './student-dashboard.component.html',
-  styleUrls: ['./student-dashboard.component.css']
+  styleUrls: ['./student-dashboard.component.css'],
 })
 export class StudentDashboardComponent implements OnInit {
   user: any;
@@ -30,7 +30,7 @@ export class StudentDashboardComponent implements OnInit {
   goalTracking: any = {
     studyHoursCompleted: 0,
     studyHoursGoal: 15,
-    quizSuccess: 0
+    quizSuccess: 0,
   };
 
   alerts: any[] = [];
@@ -44,7 +44,7 @@ export class StudentDashboardComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private http: HttpClient,
-    private adaptiveService: AdaptiveLearningService
+    private adaptiveService: AdaptiveLearningService,
   ) {}
 
   ngOnInit() {
@@ -57,8 +57,7 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   loadUserInfo(): void {
-  this.http.get<any>('http://localhost:3000/api/user/profile')
-    .subscribe({
+    this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
       next: (data) => {
         // Merge les infos du backend avec le user actuel
         if (data?.user) {
@@ -70,21 +69,20 @@ export class StudentDashboardComponent implements OnInit {
       },
       error: (err) => {
         console.log('❌ User info error:', err);
-      }
+      },
     });
-}
+  }
 
   loadProfile() {
-    this.http.get<any>('http://localhost:3000/api/user/profile')
-      .subscribe({
-        next: (data) => {
-          this.profileData = data;
-          if (this.user && data?.user?.phone) {
-            this.user.phone = data.user.phone;
-          }
-        },
-        error: () => {}
-      });
+    this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
+      next: (data) => {
+        this.profileData = data;
+        if (this.user && data?.user?.phone) {
+          this.user.phone = data.user.phone;
+        }
+      },
+      error: () => {},
+    });
   }
 
   loadAdaptiveData(): void {
@@ -100,21 +98,25 @@ export class StudentDashboardComponent implements OnInit {
         this.updateAlerts();
       },
       error: () => {
-        this.adaptiveService.createProfile({
-          userId,
-          level: 'beginner',
-          progress: 0,
-          strengths: [],
-          weaknesses: []
-        }).subscribe({
-          next: (data) => {
-            this.adaptiveProfile = data;
-            this.adaptiveLoading = false;
-            this.updateAlerts();
-          },
-          error: () => { this.adaptiveLoading = false; }
-        });
-      }
+        this.adaptiveService
+          .createProfile({
+            userId,
+            level: 'beginner',
+            progress: 0,
+            strengths: [],
+            weaknesses: [],
+          })
+          .subscribe({
+            next: (data) => {
+              this.adaptiveProfile = data;
+              this.adaptiveLoading = false;
+              this.updateAlerts();
+            },
+            error: () => {
+              this.adaptiveLoading = false;
+            },
+          });
+      },
     });
 
     // ── Charger performances ──
@@ -122,29 +124,27 @@ export class StudentDashboardComponent implements OnInit {
       next: (data) => {
         this.performances = data;
         if (data.length > 0) {
-          const total = data.reduce(
-            (sum: number, p: any) => sum + p.score, 0
-          );
+          const total = data.reduce((sum: number, p: any) => sum + p.score, 0);
           this.performance = Math.round(total / data.length);
 
           const totalMinutes = data.reduce(
-            (sum: number, p: any) => sum + (p.timeSpent || 0), 0
+            (sum: number, p: any) => sum + (p.timeSpent || 0),
+            0,
           );
           this.studyHours = Math.round((totalMinutes / 60) * 10) / 10;
 
           this.goalTracking = {
             studyHoursCompleted: this.studyHours,
             studyHoursGoal: 15,
-            quizSuccess: this.performance
+            quizSuccess: this.performance,
           };
 
-          this.completedModules =
-            data.filter((p: any) => p.score >= 70).length;
+          this.completedModules = data.filter((p: any) => p.score >= 70).length;
           this.learningStreak = this.calculateStreak(data);
           this.buildTopicRings();
         }
       },
-      error: () => {}
+      error: () => {},
     });
 
     // ── Charger recommandations ──
@@ -153,15 +153,19 @@ export class StudentDashboardComponent implements OnInit {
         this.recommendations = data;
         this.updateAlerts();
       },
-      error: () => { this.recommendations = []; }
+      error: () => {
+        this.recommendations = [];
+      },
     });
   }
 
   // ── Construit les anneaux par topic ──
   buildTopicRings(): void {
     const colors = [
-      'text-primary', 'text-emerald-500',
-      'text-orange-500', 'text-purple-500'
+      'text-primary',
+      'text-emerald-500',
+      'text-orange-500',
+      'text-purple-500',
     ];
 
     if (this.performances.length > 0) {
@@ -179,22 +183,24 @@ export class StudentDashboardComponent implements OnInit {
         .map(([topic, stat], i) => ({
           name: topic,
           score: Math.round(stat.total / stat.count),
-          color: colors[i % colors.length]
+          color: colors[i % colors.length],
         }));
     } else if (this.adaptiveProfile) {
       // Fallback : strengths/weaknesses du profil
       const allTopics = [
-        ...(this.adaptiveProfile.strengths || []).map(
-          (t: string) => ({ name: t, score: 80 })
-        ),
-        ...(this.adaptiveProfile.weaknesses || []).map(
-          (t: string) => ({ name: t, score: 35 })
-        )
+        ...(this.adaptiveProfile.strengths || []).map((t: string) => ({
+          name: t,
+          score: 80,
+        })),
+        ...(this.adaptiveProfile.weaknesses || []).map((t: string) => ({
+          name: t,
+          score: 35,
+        })),
       ].slice(0, 4);
 
       this.topicRings = allTopics.map((t, i) => ({
         ...t,
-        color: colors[i % colors.length]
+        color: colors[i % colors.length],
       }));
     }
 
@@ -216,9 +222,10 @@ export class StudentDashboardComponent implements OnInit {
       this.alerts.push({
         type: 'warning',
         icon: 'quiz',
-        message: 'Complete your Level Test to get personalized recommendations!',
+        message:
+          'Complete your Level Test to get personalized recommendations!',
         action: 'Take Test',
-        actionFn: () => this.goToLevelTest()
+        actionFn: () => this.goToLevelTest(),
       });
     }
 
@@ -226,7 +233,7 @@ export class StudentDashboardComponent implements OnInit {
       this.alerts.push({
         type: 'info',
         icon: 'tips_and_updates',
-        message: `Focus areas detected: ${this.adaptiveProfile.weaknesses.slice(0, 3).join(', ')}.`
+        message: `Focus areas detected: ${this.adaptiveProfile.weaknesses.slice(0, 3).join(', ')}.`,
       });
     }
 
@@ -234,25 +241,25 @@ export class StudentDashboardComponent implements OnInit {
       this.alerts.push({
         type: 'success',
         icon: 'auto_awesome',
-        message: `${this.recommendations.length} personalized recommendations ready for you!`
+        message: `${this.recommendations.length} personalized recommendations ready for you!`,
       });
     }
   }
 
   calculateStreak(performances: any[]): number {
     if (performances.length === 0) return 0;
-    const dates = performances.map(
-      (p: any) => new Date(p.attemptDate).toDateString()
+    const dates = performances.map((p: any) =>
+      new Date(p.attemptDate).toDateString(),
     );
     const uniqueDates = [...new Set(dates)].sort(
-      (a, b) => new Date(b).getTime() - new Date(a).getTime()
+      (a, b) => new Date(b).getTime() - new Date(a).getTime(),
     );
     let streak = 1;
     for (let i = 0; i < uniqueDates.length - 1; i++) {
-      const diff = (
-        new Date(uniqueDates[i]).getTime() -
-        new Date(uniqueDates[i + 1]).getTime()
-      ) / (1000 * 60 * 60 * 24);
+      const diff =
+        (new Date(uniqueDates[i]).getTime() -
+          new Date(uniqueDates[i + 1]).getTime()) /
+        (1000 * 60 * 60 * 24);
       if (diff === 1) streak++;
       else break;
     }
@@ -264,11 +271,35 @@ export class StudentDashboardComponent implements OnInit {
     const userId = this.user._id || this.user.id;
     this.adaptiveService.startLevelTest(userId).subscribe({
       next: (test) => {
-        this.router.navigate(['/level-test'], {
-          state: { testId: test._id, test }
+        this.router.navigate(['/student-dashboard/level-test'], {
+          state: { testId: test._id, test },
         });
       },
-      error: () => alert('Error starting level test')
+      error: () => alert('Error starting level test'),
+    });
+  }
+
+  openLevelTestFromSidebar(): void {
+    const userId = this.user?._id || this.user?.id;
+    if (!userId) {
+      this.router.navigate(['/student-dashboard/level-test']);
+      return;
+    }
+
+    this.adaptiveService.getLevelTest(userId).subscribe({
+      next: (test) => {
+        if (test && test.status === 'completed') {
+          this.router.navigate(['/student-dashboard/level-test-result'], {
+            state: { result: test },
+          });
+          return;
+        }
+
+        this.router.navigate(['/student-dashboard/level-test']);
+      },
+      error: () => {
+        this.router.navigate(['/student-dashboard/level-test']);
+      },
     });
   }
 
@@ -287,8 +318,10 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   getAlertClass(type: string): string {
-    if (type === 'warning') return 'bg-orange-50 border-orange-200 text-orange-800';
-    if (type === 'success') return 'bg-green-50 border-green-200 text-green-800';
+    if (type === 'warning')
+      return 'bg-orange-50 border-orange-200 text-orange-800';
+    if (type === 'success')
+      return 'bg-green-50 border-green-200 text-green-800';
     return 'bg-blue-50 border-blue-200 text-blue-800';
   }
 
@@ -298,15 +331,18 @@ export class StudentDashboardComponent implements OnInit {
       'from-emerald-500/40 to-teal-500/40',
       'from-orange-500/40 to-pink-500/40',
       'from-blue-500/40 to-cyan-500/40',
-      'from-violet-500/40 to-purple-500/40'
+      'from-violet-500/40 to-purple-500/40',
     ];
     return gradients[index % gradients.length];
   }
 
   getRecommendationColor(index: number): string {
     const colors = [
-      'text-primary', 'text-emerald-500',
-      'text-orange-500', 'text-blue-500', 'text-violet-500'
+      'text-primary',
+      'text-emerald-500',
+      'text-orange-500',
+      'text-blue-500',
+      'text-violet-500',
     ];
     return colors[index % colors.length];
   }
@@ -317,16 +353,31 @@ export class StudentDashboardComponent implements OnInit {
     return 'Exercise';
   }
 
-  logout() { this.authService.logout(); }
-  openProfileSidebar() { this.showProfileSidebar = true; }
-  closeProfileSidebar() { this.showProfileSidebar = false; }
+  isSubPageView(): boolean {
+    return (
+      this.router.url.includes('/student-dashboard/level-test') ||
+      this.router.url.includes('/student-dashboard/level-test-result') ||
+      this.router.url.includes('/student-dashboard/goal-setting') ||
+      this.router.url.includes('/student-dashboard/badges')
+    );
+  }
+
+  logout() {
+    this.authService.logout();
+  }
+  openProfileSidebar() {
+    this.showProfileSidebar = true;
+  }
+  closeProfileSidebar() {
+    this.showProfileSidebar = false;
+  }
   manageAccount() {
     this.closeProfileSidebar();
     this.router.navigate(['/profile']);
   }
 
   onRecommendationViewed(id: string): void {
-  const rec = this.recommendations.find(r => r._id === id);
-  if (rec) rec.isViewed = true;
-}
+    const rec = this.recommendations.find((r) => r._id === id);
+    if (rec) rec.isViewed = true;
+  }
 }

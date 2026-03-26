@@ -1,50 +1,97 @@
 <div class="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-
   <!-- ── Sidebar ── -->
-  <aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col fixed h-full z-20">
+  <aside
+    class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col fixed h-full z-20"
+  >
     <div class="p-6 flex items-center gap-3">
-      <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
+      <div
+        class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white"
+      >
         <span class="material-symbols-outlined text-2xl">auto_awesome</span>
       </div>
       <div>
-        <h1 class="font-bold text-xl tracking-tight text-primary">StartSmart</h1>
-        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Adaptive Learning</p>
+        <h1 class="font-bold text-xl tracking-tight text-primary">
+          StartSmart
+        </h1>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          Adaptive Learning
+        </p>
       </div>
     </div>
 
     <nav class="flex-1 px-4 py-4 space-y-1">
-      <a (click)="activeNav='dashboard'"
-        [class]="activeNav==='dashboard' ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold' : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'">
+      <a
+        (click)="activeNav = 'dashboard'"
+        routerLink="/student-dashboard"
+        [class]="
+          activeNav === 'dashboard'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
+      >
         <span class="material-symbols-outlined">dashboard</span> Dashboard
       </a>
-      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer">
+      <a
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+      >
         <span class="material-symbols-outlined">book_4</span> My Courses
       </a>
-      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-        routerLink="/level-test">
+      <a
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        (click)="openLevelTestFromSidebar()"
+      >
         <span class="material-symbols-outlined">quiz</span> Level Test
       </a>
-      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer">
+      <a
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+      >
         <span class="material-symbols-outlined">analytics</span> Performance
       </a>
-      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer">
+      <a
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+      >
         <span class="material-symbols-outlined">route</span> Learning Path
+      </a>
+      <a
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        routerLink="/student-dashboard/goal-setting"
+      >
+        <span class="material-symbols-outlined">flag</span> Goal Setting
+      </a>
+      <a
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        routerLink="/student-dashboard/badges"
+      >
+        <span class="material-symbols-outlined">military_tech</span> Badges
       </a>
     </nav>
 
     <!-- Level Badge -->
     <div class="px-4 mb-4" *ngIf="adaptiveProfile">
-      <div [class]="'flex items-center gap-3 p-3 rounded-xl border ' + getLevelColor()">
-        <span class="material-symbols-outlined text-xl">{{ getLevelIcon() }}</span>
+      <div
+        [class]="
+          'flex items-center gap-3 p-3 rounded-xl border ' + getLevelColor()
+        "
+      >
+        <span class="material-symbols-outlined text-xl">{{
+          getLevelIcon()
+        }}</span>
         <div>
-          <p class="text-xs font-bold uppercase tracking-wider">Current Level</p>
-          <p class="font-black capitalize text-sm">{{ adaptiveProfile?.level || 'beginner' }}</p>
+          <p class="text-xs font-bold uppercase tracking-wider">
+            Current Level
+          </p>
+          <p class="font-black capitalize text-sm">
+            {{ adaptiveProfile?.level || "beginner" }}
+          </p>
         </div>
       </div>
     </div>
 
     <div class="p-4 border-t border-slate-100 dark:border-slate-800">
-      <a class="flex items-center gap-3 px-3 py-2 text-slate-600" routerLink="/profile">
+      <a
+        class="flex items-center gap-3 px-3 py-2 text-slate-600"
+        routerLink="/profile"
+      >
         <span class="material-symbols-outlined">settings</span>
         <span class="text-sm font-medium">Account Settings</span>
       </a>
@@ -53,43 +100,65 @@
 
   <!-- ── Main Content ── -->
   <main class="flex-1 ml-64 min-h-screen">
-
     <!-- Top Navbar -->
-    <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between">
+    <header
+      class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between"
+    >
       <div class="flex items-center flex-1 max-w-xl">
         <div class="relative w-full">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-          <input class="w-full bg-slate-100 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50"
-            placeholder="Search courses, topics..." type="text" />
+          <span
+            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            >search</span
+          >
+          <input
+            class="w-full bg-slate-100 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50"
+            placeholder="Search courses, topics..."
+            type="text"
+          />
         </div>
       </div>
       <div class="flex items-center gap-4">
-        <button class="p-2 text-slate-600 hover:bg-slate-100 rounded-full relative">
+        <button
+          class="p-2 text-slate-600 hover:bg-slate-100 rounded-full relative"
+        >
           <span class="material-symbols-outlined">notifications</span>
-          <span *ngIf="alerts.length > 0" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          <span
+            *ngIf="alerts.length > 0"
+            class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"
+          ></span>
         </button>
         <div class="h-8 w-[1px] bg-slate-200 mx-2"></div>
         <div class="flex items-center gap-3">
           <div class="text-right">
-            <p class="text-sm font-bold leading-none">{{ user?.first_name }} {{ user?.last_name }}</p>
-            <p class="text-xs text-primary font-medium capitalize">{{ user?.role || 'student' }}</p>
+            <p class="text-sm font-bold leading-none">
+              {{ user?.first_name }} {{ user?.last_name }}
+            </p>
+            <p class="text-xs text-primary font-medium capitalize">
+              {{ user?.role || "student" }}
+            </p>
           </div>
-          <div class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold">
+          <div
+            class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold"
+          >
             {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
           </div>
-          <button (click)="openProfileSidebar()"
-            class="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">
+          <button
+            (click)="openProfileSidebar()"
+            class="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+          >
             Account
           </button>
-          <button (click)="logout()" class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600">
+          <button
+            (click)="logout()"
+            class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600"
+          >
             Logout
           </button>
         </div>
       </div>
     </header>
 
-    <div class="p-8 space-y-6 max-w-7xl mx-auto">
-
+    <div class="p-8 space-y-6 max-w-7xl mx-auto" *ngIf="!isSubPageView()">
       <!-- ── Welcome Header ── -->
       <section class="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -98,7 +167,8 @@
           </h2>
           <p class="text-slate-500 mt-1">
             <span *ngIf="adaptiveProfile?.levelTestCompleted">
-              You're at <strong>{{ adaptiveProfile?.level }}</strong> level · {{ progress }}% progress
+              You're at <strong>{{ adaptiveProfile?.level }}</strong> level ·
+              {{ progress }}% progress
             </span>
             <span *ngIf="!adaptiveProfile?.levelTestCompleted">
               Take your Level Test to get your personalized learning path!
@@ -106,19 +176,25 @@
           </p>
         </div>
         <div class="flex gap-3">
-          <button *ngIf="!adaptiveProfile?.levelTestCompleted"
+          <button
+            *ngIf="!adaptiveProfile?.levelTestCompleted"
             (click)="goToLevelTest()"
-            class="px-5 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-orange-600 shadow-lg shadow-orange-200">
+            class="px-5 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-orange-600 shadow-lg shadow-orange-200"
+          >
             <span class="material-symbols-outlined text-lg">quiz</span>
             Take Level Test
           </button>
-          <button *ngIf="adaptiveProfile?.levelTestCompleted"
+          <button
+            *ngIf="adaptiveProfile?.levelTestCompleted"
             (click)="goToLevelTest()"
-            class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50">
+            class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50"
+          >
             <span class="material-symbols-outlined text-lg">refresh</span>
             Retake Test
           </button>
-          <button class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-primary/20">
+          <button
+            class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-primary/20"
+          >
             <span class="material-symbols-outlined text-lg">bolt</span>
             Resume Learning
           </button>
@@ -127,15 +203,22 @@
 
       <!-- ── Alerts ── -->
       <div class="space-y-2" *ngIf="alerts.length > 0">
-        <div *ngFor="let alert of alerts"
-          [class]="'flex items-center justify-between p-4 rounded-xl border ' + getAlertClass(alert.type)">
+        <div
+          *ngFor="let alert of alerts"
+          [class]="
+            'flex items-center justify-between p-4 rounded-xl border ' +
+            getAlertClass(alert.type)
+          "
+        >
           <div class="flex items-center gap-3">
             <span class="material-symbols-outlined">{{ alert.icon }}</span>
             <p class="text-sm font-medium">{{ alert.message }}</p>
           </div>
-          <button *ngIf="alert.action"
+          <button
+            *ngIf="alert.action"
             (click)="alert.actionFn()"
-            class="text-xs font-bold px-3 py-1 rounded-lg bg-white/60 hover:bg-white transition-colors">
+            class="text-xs font-bold px-3 py-1 rounded-lg bg-white/60 hover:bg-white transition-colors"
+          >
             {{ alert.action }}
           </button>
         </div>
@@ -146,35 +229,63 @@
         <!-- Progress -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Progress</span>
-            <div class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-              <span class="material-symbols-outlined text-primary text-sm">trending_up</span>
+            <span
+              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >Progress</span
+            >
+            <div
+              class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-primary text-sm"
+                >trending_up</span
+              >
             </div>
           </div>
           <p class="text-3xl font-black text-slate-900">{{ progress }}%</p>
           <div class="mt-2 w-full bg-slate-100 h-1.5 rounded-full">
-            <div class="bg-primary h-full rounded-full" [style.width.%]="progress"></div>
+            <div
+              class="bg-primary h-full rounded-full"
+              [style.width.%]="progress"
+            ></div>
           </div>
         </div>
 
         <!-- Performance -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Avg Score</span>
-            <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <span class="material-symbols-outlined text-emerald-600 text-sm">grade</span>
+            <span
+              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >Avg Score</span
+            >
+            <div
+              class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-emerald-600 text-sm"
+                >grade</span
+              >
             </div>
           </div>
-          <p class="text-3xl font-black text-slate-900">{{ performance || 0 }}%</p>
-          <p class="text-xs text-slate-500 mt-1">{{ performances.length }} exercises done</p>
+          <p class="text-3xl font-black text-slate-900">
+            {{ performance || 0 }}%
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            {{ performances.length }} exercises done
+          </p>
         </div>
 
         <!-- Streak -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Streak</span>
-            <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-              <span class="material-symbols-outlined text-orange-500 text-sm">local_fire_department</span>
+            <span
+              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >Streak</span
+            >
+            <div
+              class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-orange-500 text-sm"
+                >local_fire_department</span
+              >
             </div>
           </div>
           <p class="text-3xl font-black text-slate-900">{{ learningStreak }}</p>
@@ -184,90 +295,154 @@
         <!-- Completed -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Completed</span>
-            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span class="material-symbols-outlined text-purple-600 text-sm">task_alt</span>
+            <span
+              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >Completed</span
+            >
+            <div
+              class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-purple-600 text-sm"
+                >task_alt</span
+              >
             </div>
           </div>
-          <p class="text-3xl font-black text-slate-900">{{ completedModules }}</p>
+          <p class="text-3xl font-black text-slate-900">
+            {{ completedModules }}
+          </p>
           <p class="text-xs text-slate-500 mt-1">exercises ≥ 70%</p>
         </div>
       </div>
 
       <!-- ── Main Grid ── -->
       <div class="grid grid-cols-12 gap-6">
-
         <!-- Topic Progress Rings -->
-        <div class="col-span-12 lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6">
+        <div
+          class="col-span-12 lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6"
+        >
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-bold">Topic Performance</h3>
-            <span class="text-xs text-slate-500 font-medium">Based on your recent performances</span>
+            <span class="text-xs text-slate-500 font-medium"
+              >Based on your recent performances</span
+            >
           </div>
-          <div *ngIf="adaptiveLoading" class="flex items-center justify-center h-32">
-            <div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <div
+            *ngIf="adaptiveLoading"
+            class="flex items-center justify-center h-32"
+          >
+            <div
+              class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"
+            ></div>
           </div>
-          <div *ngIf="!adaptiveLoading" class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div *ngFor="let ring of topicRings" class="flex flex-col items-center gap-3">
+          <div
+            *ngIf="!adaptiveLoading"
+            class="grid grid-cols-2 md:grid-cols-4 gap-6"
+          >
+            <div
+              *ngFor="let ring of topicRings"
+              class="flex flex-col items-center gap-3"
+            >
               <div class="relative w-24 h-24">
                 <svg class="w-full h-full" viewBox="0 0 100 100">
-                  <circle class="text-slate-100" cx="50" cy="50" r="40"
-                    fill="transparent" stroke="currentColor" stroke-width="8"></circle>
-                  <circle [class]="ring.color" cx="50" cy="50" r="40"
-                    fill="transparent" stroke="currentColor"
+                  <circle
+                    class="text-slate-100"
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="transparent"
+                    stroke="currentColor"
+                    stroke-width="8"
+                  ></circle>
+                  <circle
+                    [class]="ring.color"
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="transparent"
+                    stroke="currentColor"
                     [attr.stroke-dasharray]="251.2"
-                    [attr.stroke-dashoffset]="251.2 - (251.2 * ring.score / 100)"
-                    stroke-linecap="round" stroke-width="8"
-                    style="transform: rotate(-90deg); transform-origin: 50% 50%">
-                  </circle>
+                    [attr.stroke-dashoffset]="
+                      251.2 - (251.2 * ring.score) / 100
+                    "
+                    stroke-linecap="round"
+                    stroke-width="8"
+                    style="transform: rotate(-90deg); transform-origin: 50% 50%"
+                  ></circle>
                 </svg>
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">
+                <span
+                  class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg"
+                >
                   {{ ring.score }}%
                 </span>
               </div>
-              <span class="text-xs font-bold text-slate-500 uppercase text-center">{{ ring.name }}</span>
+              <span
+                class="text-xs font-bold text-slate-500 uppercase text-center"
+                >{{ ring.name }}</span
+              >
             </div>
           </div>
         </div>
 
         <!-- Goal Tracking -->
-        <div class="col-span-12 lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6">
+        <div
+          class="col-span-12 lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6"
+        >
           <h3 class="text-lg font-bold mb-6">Goal Tracking</h3>
           <div class="space-y-5">
             <div>
               <div class="flex justify-between text-sm mb-2">
                 <span class="font-medium text-slate-600">Study Hours</span>
-                <span class="font-bold">{{ goalTracking.studyHoursCompleted }}/{{ goalTracking.studyHoursGoal }}h</span>
+                <span class="font-bold"
+                  >{{ goalTracking.studyHoursCompleted }}/{{
+                    goalTracking.studyHoursGoal
+                  }}h</span
+                >
               </div>
               <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div class="bg-primary h-full rounded-full transition-all duration-500"
-                  [style.width.%]="(goalTracking.studyHoursCompleted / goalTracking.studyHoursGoal) * 100">
-                </div>
+                <div
+                  class="bg-primary h-full rounded-full transition-all duration-500"
+                  [style.width.%]="
+                    (goalTracking.studyHoursCompleted /
+                      goalTracking.studyHoursGoal) *
+                    100
+                  "
+                ></div>
               </div>
             </div>
             <div>
               <div class="flex justify-between text-sm mb-2">
-                <span class="font-medium text-slate-600">Quiz Success Rate</span>
+                <span class="font-medium text-slate-600"
+                  >Quiz Success Rate</span
+                >
                 <span class="font-bold">{{ goalTracking.quizSuccess }}%</span>
               </div>
               <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div class="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                  [style.width.%]="goalTracking.quizSuccess">
-                </div>
+                <div
+                  class="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                  [style.width.%]="goalTracking.quizSuccess"
+                ></div>
               </div>
             </div>
             <div>
               <div class="flex justify-between text-sm mb-2">
-                <span class="font-medium text-slate-600">Exercises Completed</span>
-                <span class="font-bold">{{ completedModules }}/{{ totalModules }}</span>
+                <span class="font-medium text-slate-600"
+                  >Exercises Completed</span
+                >
+                <span class="font-bold"
+                  >{{ completedModules }}/{{ totalModules }}</span
+                >
               </div>
               <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div class="bg-purple-500 h-full rounded-full transition-all duration-500"
-                  [style.width.%]="(completedModules / totalModules) * 100">
-                </div>
+                <div
+                  class="bg-purple-500 h-full rounded-full transition-all duration-500"
+                  [style.width.%]="(completedModules / totalModules) * 100"
+                ></div>
               </div>
             </div>
             <div class="pt-3 mt-3 border-t border-slate-100">
-              <p class="text-sm italic text-slate-400">"Consistency is the key to mastery. Keep it up!"</p>
+              <p class="text-sm italic text-slate-400">
+                "Consistency is the key to mastery. Keep it up!"
+              </p>
             </div>
           </div>
         </div>
@@ -347,97 +522,169 @@
           </div>
         </div>-->
 
-
         <!-- ── Recommendations ── -->
-<div class="col-span-12">
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h3 class="text-xl font-bold">AI Recommendations</h3>
-      <p class="text-sm text-slate-500">
-        Personalized based on your strengths and weaknesses
-      </p>
-    </div>
-  </div>
-  <app-recommendation-display
-    [recommendations]="recommendations"
-    [studentId]="user?._id || user?.id"
-    (recommendationViewed)="onRecommendationViewed($event)">
-  </app-recommendation-display>
-</div>
+        <div class="col-span-12">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-xl font-bold">AI Recommendations</h3>
+              <p class="text-sm text-slate-500">
+                Personalized based on your strengths and weaknesses
+              </p>
+            </div>
+          </div>
+          <app-recommendation-display
+            [recommendations]="recommendations"
+            [studentId]="user?._id || user?.id"
+            (recommendationViewed)="onRecommendationViewed($event)"
+          >
+          </app-recommendation-display>
+        </div>
 
         <!-- ── Strengths & Weaknesses ── -->
-        <div class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"
-          *ngIf="adaptiveProfile">
+        <div
+          class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"
+          *ngIf="adaptiveProfile"
+        >
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-            <span class="material-symbols-outlined text-emerald-500">thumb_up</span>
+            <span class="material-symbols-outlined text-emerald-500"
+              >thumb_up</span
+            >
             Strengths
           </h3>
           <div class="space-y-2" *ngIf="adaptiveProfile?.strengths?.length > 0">
-            <div *ngFor="let s of adaptiveProfile.strengths"
-              class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-              <span class="material-symbols-outlined text-emerald-500 text-sm">check_circle</span>
-              <span class="text-sm font-semibold text-emerald-800 capitalize">{{ s }}</span>
+            <div
+              *ngFor="let s of adaptiveProfile.strengths"
+              class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100"
+            >
+              <span class="material-symbols-outlined text-emerald-500 text-sm"
+                >check_circle</span
+              >
+              <span class="text-sm font-semibold text-emerald-800 capitalize">{{
+                s
+              }}</span>
             </div>
           </div>
-          <p *ngIf="!adaptiveProfile?.strengths?.length"
-            class="text-sm text-slate-400 italic">Complete your level test to discover your strengths.</p>
+          <p
+            *ngIf="!adaptiveProfile?.strengths?.length"
+            class="text-sm text-slate-400 italic"
+          >
+            Complete your level test to discover your strengths.
+          </p>
         </div>
 
-        <div class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"
-          *ngIf="adaptiveProfile">
+        <div
+          class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"
+          *ngIf="adaptiveProfile"
+        >
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-            <span class="material-symbols-outlined text-orange-500">priority_high</span>
+            <span class="material-symbols-outlined text-orange-500"
+              >priority_high</span
+            >
             Areas to Improve
           </h3>
-          <div class="space-y-2" *ngIf="adaptiveProfile?.weaknesses?.length > 0">
-            <div *ngFor="let w of adaptiveProfile.weaknesses"
-              class="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100">
-              <span class="material-symbols-outlined text-orange-500 text-sm">priority_high</span>
-              <span class="text-sm font-semibold text-orange-800 capitalize">{{ w }}</span>
-              <span class="ml-auto text-xs text-orange-600 font-bold">Needs work</span>
+          <div
+            class="space-y-2"
+            *ngIf="adaptiveProfile?.weaknesses?.length > 0"
+          >
+            <div
+              *ngFor="let w of adaptiveProfile.weaknesses"
+              class="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100"
+            >
+              <span class="material-symbols-outlined text-orange-500 text-sm"
+                >priority_high</span
+              >
+              <span class="text-sm font-semibold text-orange-800 capitalize">{{
+                w
+              }}</span>
+              <span class="ml-auto text-xs text-orange-600 font-bold"
+                >Needs work</span
+              >
             </div>
           </div>
-          <p *ngIf="!adaptiveProfile?.weaknesses?.length"
-            class="text-sm text-slate-400 italic">No weak areas detected yet.</p>
+          <p
+            *ngIf="!adaptiveProfile?.weaknesses?.length"
+            class="text-sm text-slate-400 italic"
+          >
+            No weak areas detected yet.
+          </p>
         </div>
 
-
         <!-- ── Progress Charts ── -->
-<div class="col-span-12">
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h3 class="text-xl font-bold">Performance Analytics</h3>
-      <p class="text-sm text-slate-500">Visual overview of your learning progress</p>
-    </div>
-  </div>
-  <app-progress-charts
-    [performances]="performances"
-    [adaptiveProfile]="adaptiveProfile">
-  </app-progress-charts>
-</div>
+        <div class="col-span-12">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-xl font-bold">Performance Analytics</h3>
+              <p class="text-sm text-slate-500">
+                Visual overview of your learning progress
+              </p>
+            </div>
+          </div>
+          <app-progress-charts
+            [performances]="performances"
+            [adaptiveProfile]="adaptiveProfile"
+            [studentId]="user?._id || user?.id"
+          >
+          </app-progress-charts>
+        </div>
 
-<!-- ── Performance History ── -->
-<div class="col-span-12">
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h3 class="text-xl font-bold">Performance History</h3>
-      <p class="text-sm text-slate-500">All your completed exercises</p>
-    </div>
-  </div>
-  <app-performance-history
-    [performances]="performances">
-  </app-performance-history>
-</div>
+        <!-- ── Skill Mastery ── -->
+        <div class="col-span-12">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-xl font-bold">Skill Mastery</h3>
+              <p class="text-sm text-slate-500">
+                Track your mastery level across learning topics
+              </p>
+            </div>
+          </div>
+          <app-skill-mastery
+            [studentId]="user?._id || user?.id"
+            [adaptiveProfile]="adaptiveProfile"
+          >
+          </app-skill-mastery>
+        </div>
 
+        <!-- ── Learning Path Visualization ── -->
+        <div class="col-span-12">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-xl font-bold">Your Learning Path</h3>
+              <p class="text-sm text-slate-500">
+                Follow your personalized journey to your learning goal
+              </p>
+            </div>
+          </div>
+          <app-learning-path [studentId]="user?._id || user?.id">
+          </app-learning-path>
+        </div>
+        <!-- ── Performance History ── -->
+        <div class="col-span-12">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-xl font-bold">Performance History</h3>
+              <p class="text-sm text-slate-500">All your completed exercises</p>
+            </div>
+          </div>
+          <app-performance-history [performances]="performances">
+          </app-performance-history>
+        </div>
       </div>
+    </div>
+
+    <div class="p-8 max-w-7xl mx-auto" *ngIf="isSubPageView()">
+      <router-outlet></router-outlet>
     </div>
   </main>
 
   <!-- ── AI Floating Button ── -->
   <div class="fixed bottom-8 right-8 z-40">
-    <button class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
+    <button
+      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"
+    >
       <span class="material-symbols-outlined text-3xl">psychology</span>
-      <div class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">
+      <div
+        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity"
+      >
         ASK EDU AI
       </div>
     </button>
@@ -446,26 +693,49 @@
 
 <!-- ── Profile Sidebar ── -->
 <div *ngIf="showProfileSidebar">
-  <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" (click)="closeProfileSidebar()"></div>
-  <aside class="fixed top-0 right-0 h-full w-96 bg-white z-50 shadow-2xl flex flex-col border-l border-slate-200">
-    <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+  <div
+    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+    (click)="closeProfileSidebar()"
+  ></div>
+  <aside
+    class="fixed top-0 right-0 h-full w-96 bg-white z-50 shadow-2xl flex flex-col border-l border-slate-200"
+  >
+    <div
+      class="p-6 border-b border-slate-100 flex items-center justify-between"
+    >
       <h2 class="font-bold text-lg">My Profile</h2>
-      <button class="p-2 hover:bg-slate-100 rounded-full" (click)="closeProfileSidebar()">
+      <button
+        class="p-2 hover:bg-slate-100 rounded-full"
+        (click)="closeProfileSidebar()"
+      >
         <span class="material-symbols-outlined text-slate-500">close</span>
       </button>
     </div>
     <div class="flex-1 overflow-y-auto">
       <div class="p-8 flex flex-col items-center text-center">
         <div class="relative mb-4">
-          <div class="w-24 h-24 rounded-full border-4 border-primary/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
+          <div
+            class="w-24 h-24 rounded-full border-4 border-primary/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl"
+          >
             {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
           </div>
-          <div class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
+          <div
+            class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"
+          ></div>
         </div>
-        <h3 class="text-xl font-bold">{{ user?.first_name }} {{ user?.last_name }}</h3>
-        <p class="text-primary font-semibold text-sm capitalize">{{ user?.role || 'student' }}</p>
+        <h3 class="text-xl font-bold">
+          {{ user?.first_name }} {{ user?.last_name }}
+        </h3>
+        <p class="text-primary font-semibold text-sm capitalize">
+          {{ user?.role || "student" }}
+        </p>
         <!-- Level badge in sidebar -->
-        <div *ngIf="adaptiveProfile" [class]="'mt-3 px-4 py-1.5 rounded-full text-xs font-bold ' + getLevelColor()">
+        <div
+          *ngIf="adaptiveProfile"
+          [class]="
+            'mt-3 px-4 py-1.5 rounded-full text-xs font-bold ' + getLevelColor()
+          "
+        >
           {{ adaptiveProfile?.level | titlecase }} Level
         </div>
       </div>
@@ -477,7 +747,9 @@
             <p class="text-lg font-black">{{ performance }}%</p>
           </div>
           <div class="border-x border-slate-200 text-center">
-            <p class="text-xs text-slate-500 font-bold uppercase mb-1">Streak</p>
+            <p class="text-xs text-slate-500 font-bold uppercase mb-1">
+              Streak
+            </p>
             <p class="text-lg font-black">{{ learningStreak }}🔥</p>
           </div>
           <div class="text-center">
@@ -488,33 +760,45 @@
       </div>
 
       <div class="px-6 mb-6">
-        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Personal Info</h4>
+        <h4
+          class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"
+        >
+          Personal Info
+        </h4>
         <div class="space-y-4">
           <div class="flex items-center gap-4">
             <span class="material-symbols-outlined text-slate-400">mail</span>
             <div class="text-sm">
-              <p class="text-slate-500 text-[10px] font-bold uppercase">Email</p>
-              <p class="font-medium">{{ user?.email || '—' }}</p>
+              <p class="text-slate-500 text-[10px] font-bold uppercase">
+                Email
+              </p>
+              <p class="font-medium">{{ user?.email || "—" }}</p>
             </div>
           </div>
           <div class="flex items-center gap-4">
             <span class="material-symbols-outlined text-slate-400">call</span>
             <div class="text-sm">
-              <p class="text-slate-500 text-[10px] font-bold uppercase">Phone</p>
-              <p class="font-medium">{{ user?.phone || '—' }}</p>
+              <p class="text-slate-500 text-[10px] font-bold uppercase">
+                Phone
+              </p>
+              <p class="font-medium">{{ user?.phone || "—" }}</p>
             </div>
           </div>
         </div>
       </div>
     </div>
     <div class="p-6 border-t border-slate-100 space-y-3">
-      <button (click)="manageAccount()"
-        class="w-full py-3 bg-primary/5 text-primary border border-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/10">
+      <button
+        (click)="manageAccount()"
+        class="w-full py-3 bg-primary/5 text-primary border border-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/10"
+      >
         <span class="material-symbols-outlined">manage_accounts</span>
         Manage Account
       </button>
-      <button (click)="logout()"
-        class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100">
+      <button
+        (click)="logout()"
+        class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100"
+      >
         <span class="material-symbols-outlined">logout</span>
         Sign Out
       </button>

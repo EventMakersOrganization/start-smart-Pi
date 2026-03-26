@@ -64,7 +64,9 @@ export class LevelTestComponent implements OnInit, OnDestroy {
           this.setupTest(existingTest);
         } else if (existingTest && existingTest.status === 'completed') {
           // Redirect if test is already complete
-          this.router.navigate(['/student-dashboard']);
+          this.router.navigate(['/student-dashboard/level-test-result'], {
+            state: { result: existingTest },
+          });
         } else {
           // Test does not exist or empty, generate new
           this.adaptiveService.startLevelTest(userId).subscribe({
@@ -192,7 +194,9 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (result) => {
           // Redirect to result page and pass the result object via navigation state
-          this.router.navigate(['/level-test/result'], { state: { result } });
+          this.router.navigate(['/student-dashboard/level-test-result'], {
+            state: { result },
+          });
         },
         error: (err) => {
           console.error('Error submitting test', err);

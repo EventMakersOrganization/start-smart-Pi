@@ -45,8 +45,7 @@ let AdaptiveLearningController = class AdaptiveLearningController {
         return this.adaptiveService.findAllPerformances();
     }
     findPerformanceByStudent(studentId) {
-        return this.adaptiveService
-            .findPerformanceByStudent(studentId);
+        return this.adaptiveService.findPerformanceByStudent(studentId);
     }
     getAverageScore(studentId) {
         return this.adaptiveService.getAverageScore(studentId);
@@ -58,19 +57,37 @@ let AdaptiveLearningController = class AdaptiveLearningController {
         return this.adaptiveService.adaptDifficulty(studentId);
     }
     adaptDifficultyByTopic(studentId, topic) {
-        return this.adaptiveService
-            .adaptDifficultyByTopic(studentId, topic);
+        return this.adaptiveService.adaptDifficultyByTopic(studentId, topic);
     }
     generateRecommendations(studentId) {
-        return this.adaptiveService
-            .generateRecommendations(studentId);
+        return this.adaptiveService.generateRecommendations(studentId);
+    }
+    generateRecommendationsV2(studentId) {
+        return this.adaptiveService.generateRecommendationsV2(studentId);
+    }
+    generateInitialRecommendationsFromLevelTest(studentId) {
+        return this.adaptiveService.generateInitialRecommendationsFromLevelTest(studentId);
+    }
+    getWeakAreaRecommendations(studentId) {
+        return this.adaptiveService.getWeakAreaRecommendations(studentId);
+    }
+    getExerciseCompletionTracking(studentId) {
+        return this.adaptiveService.getExerciseCompletionTracking(studentId);
+    }
+    getLearningVelocity(studentId) {
+        return this.adaptiveService.getLearningVelocity(studentId);
+    }
+    getAchievementBadges(studentId) {
+        return this.adaptiveService.getAchievementBadges(studentId);
+    }
+    getLearningPath(studentId) {
+        return this.adaptiveService.getLearningPath(studentId);
     }
     createRecommendation(dto) {
         return this.adaptiveService.createRecommendation(dto);
     }
     findRecommendationsByStudent(studentId) {
-        return this.adaptiveService
-            .findRecommendationsByStudent(studentId);
+        return this.adaptiveService.findRecommendationsByStudent(studentId);
     }
     markViewed(id) {
         return this.adaptiveService.markRecommendationViewed(id);
@@ -88,171 +105,218 @@ let AdaptiveLearningController = class AdaptiveLearningController {
         return this.adaptiveService.createLevelTest(studentId);
     }
     submitLevelTest(id, body) {
-        return this.adaptiveService
-            .submitLevelTest(id, body.answers);
+        return this.adaptiveService.submitLevelTest(id, body.answers);
     }
     findLevelTest(studentId) {
-        return this.adaptiveService
-            .findLevelTestByStudent(studentId);
+        return this.adaptiveService.findLevelTestByStudent(studentId);
     }
 };
 exports.AdaptiveLearningController = AdaptiveLearningController;
 __decorate([
-    (0, common_1.Post)('profiles'),
+    (0, common_1.Post)("profiles"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_student_profile_dto_1.CreateStudentProfileDto]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "createProfile", null);
 __decorate([
-    (0, common_1.Get)('profiles'),
+    (0, common_1.Get)("profiles"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findAllProfiles", null);
 __decorate([
-    (0, common_1.Get)('profiles/:userId'),
-    __param(0, (0, common_1.Param)('userId')),
+    (0, common_1.Get)("profiles/:userId"),
+    __param(0, (0, common_1.Param)("userId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findProfile", null);
 __decorate([
-    (0, common_1.Put)('profiles/:userId'),
-    __param(0, (0, common_1.Param)('userId')),
+    (0, common_1.Put)("profiles/:userId"),
+    __param(0, (0, common_1.Param)("userId")),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "updateProfile", null);
 __decorate([
-    (0, common_1.Delete)('profiles/:userId'),
-    __param(0, (0, common_1.Param)('userId')),
+    (0, common_1.Delete)("profiles/:userId"),
+    __param(0, (0, common_1.Param)("userId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "deleteProfile", null);
 __decorate([
-    (0, common_1.Post)('performances'),
+    (0, common_1.Post)("performances"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_student_performance_dto_1.CreateStudentPerformanceDto]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "createPerformance", null);
 __decorate([
-    (0, common_1.Get)('performances'),
+    (0, common_1.Get)("performances"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findAllPerformances", null);
 __decorate([
-    (0, common_1.Get)('performances/student/:studentId'),
-    __param(0, (0, common_1.Param)('studentId')),
+    (0, common_1.Get)("performances/student/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findPerformanceByStudent", null);
 __decorate([
-    (0, common_1.Get)('performances/student/:studentId/average'),
-    __param(0, (0, common_1.Param)('studentId')),
+    (0, common_1.Get)("performances/student/:studentId/average"),
+    __param(0, (0, common_1.Param)("studentId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "getAverageScore", null);
 __decorate([
-    (0, common_1.Delete)('performances/:id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Delete)("performances/:id"),
+    __param(0, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "deletePerformance", null);
 __decorate([
-    (0, common_1.Post)('adapt/:studentId'),
-    __param(0, (0, common_1.Param)('studentId')),
+    (0, common_1.Post)("adapt/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "adaptDifficulty", null);
 __decorate([
-    (0, common_1.Get)('adapt/:studentId/topic/:topic'),
-    __param(0, (0, common_1.Param)('studentId')),
-    __param(1, (0, common_1.Param)('topic')),
+    (0, common_1.Get)("adapt/:studentId/topic/:topic"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __param(1, (0, common_1.Param)("topic")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "adaptDifficultyByTopic", null);
 __decorate([
-    (0, common_1.Post)('recommendations/generate/:studentId'),
-    __param(0, (0, common_1.Param)('studentId')),
+    (0, common_1.Post)("recommendations/generate/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "generateRecommendations", null);
 __decorate([
-    (0, common_1.Post)('recommendations'),
+    (0, common_1.Post)("recommendations/generate/v2/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "generateRecommendationsV2", null);
+__decorate([
+    (0, common_1.Post)("recommendations/from-level-test/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "generateInitialRecommendationsFromLevelTest", null);
+__decorate([
+    (0, common_1.Get)("recommendations/weak-areas/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getWeakAreaRecommendations", null);
+__decorate([
+    (0, common_1.Get)("tracking/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getExerciseCompletionTracking", null);
+__decorate([
+    (0, common_1.Get)("velocity/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getLearningVelocity", null);
+__decorate([
+    (0, common_1.Get)("badges/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getAchievementBadges", null);
+__decorate([
+    (0, common_1.Get)("learning-path/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getLearningPath", null);
+__decorate([
+    (0, common_1.Post)("recommendations"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_recommendation_dto_1.CreateRecommendationDto]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "createRecommendation", null);
 __decorate([
-    (0, common_1.Get)('recommendations/student/:studentId'),
-    __param(0, (0, common_1.Param)('studentId')),
+    (0, common_1.Get)("recommendations/student/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findRecommendationsByStudent", null);
 __decorate([
-    (0, common_1.Patch)('recommendations/:id/viewed'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Patch)("recommendations/:id/viewed"),
+    __param(0, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "markViewed", null);
 __decorate([
-    (0, common_1.Delete)('recommendations/:id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Delete)("recommendations/:id"),
+    __param(0, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "deleteRecommendation", null);
 __decorate([
-    (0, common_1.Post)('questions'),
+    (0, common_1.Post)("questions"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_question_dto_1.CreateQuestionDto]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "createQuestion", null);
 __decorate([
-    (0, common_1.Get)('questions'),
+    (0, common_1.Get)("questions"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findAllQuestions", null);
 __decorate([
-    (0, common_1.Post)('level-test/:studentId'),
-    __param(0, (0, common_1.Param)('studentId')),
+    (0, common_1.Post)("level-test/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "createLevelTest", null);
 __decorate([
-    (0, common_1.Post)('level-test/:id/submit'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Post)("level-test/:id/submit"),
+    __param(0, (0, common_1.Param)("id")),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "submitLevelTest", null);
 __decorate([
-    (0, common_1.Get)('level-test/student/:studentId'),
-    __param(0, (0, common_1.Param)('studentId')),
+    (0, common_1.Get)("level-test/student/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findLevelTest", null);
 exports.AdaptiveLearningController = AdaptiveLearningController = __decorate([
-    (0, common_1.Controller)('adaptive'),
+    (0, common_1.Controller)("adaptive"),
     __metadata("design:paramtypes", [adaptive_learning_service_1.AdaptiveLearningService])
 ], AdaptiveLearningController);
 //# sourceMappingURL=adaptive-learning.controller.js.map

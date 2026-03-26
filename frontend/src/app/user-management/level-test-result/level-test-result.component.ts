@@ -14,22 +14,25 @@ export class LevelTestResultComponent implements OnInit {
   loadingRecs = true;
 
   // Stats par topic calculées depuis les réponses
-  topicStats: { topic: string; correct: number; total: number; percent: number }[] = [];
+  topicStats: {
+    topic: string;
+    correct: number;
+    total: number;
+    percent: number;
+  }[] = [];
 
   // Explication AI
   aiExplanation = '';
 
   constructor(
     private router: Router,
-    private adaptiveService: AdaptiveLearningService
+    private adaptiveService: AdaptiveLearningService,
   ) {}
 
   ngOnInit(): void {
     const nav = this.router.getCurrentNavigation?.()?.extras?.state as any;
     this.result =
-      nav?.['result'] ||
-      (history.state && history.state['result']) ||
-      null;
+      nav?.['result'] || (history.state && history.state['result']) || null;
 
     if (!this.result) {
       this.router.navigate(['/student-dashboard']);
@@ -39,7 +42,7 @@ export class LevelTestResultComponent implements OnInit {
     // Calcul temps total
     this.totalTimeSeconds = (this.result.answers || []).reduce(
       (s: number, a: any) => s + (a.timeSpent || 0),
-      0
+      0,
     );
 
     // Calcul stats par topic
@@ -74,7 +77,7 @@ export class LevelTestResultComponent implements OnInit {
       topic,
       correct: stat.correct,
       total: stat.total,
-      percent: Math.round((stat.correct / stat.total) * 100)
+      percent: Math.round((stat.correct / stat.total) * 100),
     }));
   }
 
@@ -85,12 +88,12 @@ export class LevelTestResultComponent implements OnInit {
     const correct = Math.round((score / 100) * total);
 
     const weakTopics = this.topicStats
-      .filter(t => t.percent < 50)
-      .map(t => t.topic);
+      .filter((t) => t.percent < 50)
+      .map((t) => t.topic);
 
     const strongTopics = this.topicStats
-      .filter(t => t.percent >= 70)
-      .map(t => t.topic);
+      .filter((t) => t.percent >= 70)
+      .map((t) => t.topic);
 
     let explanation = `You answered ${correct} out of ${total} questions correctly (${score}%). `;
 
@@ -122,7 +125,7 @@ export class LevelTestResultComponent implements OnInit {
       error: () => {
         this.recommendations = [];
         this.loadingRecs = false;
-      }
+      },
     });
   }
 
@@ -158,7 +161,7 @@ export class LevelTestResultComponent implements OnInit {
   }
 
   retakeTest(): void {
-    this.router.navigate(['/student-dashboard']);
+    this.router.navigate(['/student-dashboard/level-test']);
   }
 
   startLearning(): void {

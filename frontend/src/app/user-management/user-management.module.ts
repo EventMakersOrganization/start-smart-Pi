@@ -24,6 +24,10 @@ import { LevelTestResultComponent } from './level-test-result/level-test-result.
 import { ProgressChartsComponent } from './progress-charts/progress-charts.component';
 import { PerformanceHistoryComponent } from './performance-history/performance-history.component';
 import { RecommendationDisplayComponent } from './recommendation-display/recommendation-display.component';
+import { LearningPathComponent } from './learning-path/learning-path.component';
+import { SkillMasteryComponent } from './skill-mastery/skill-mastery.component';
+import { GoalSettingComponent } from './goal-setting/goal-setting.component';
+import { BadgeDisplayComponent } from './badge-display/badge-display.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -57,26 +61,49 @@ const routes: Routes = [
     component: StudentDashboardComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['student'] },
+    children: [
+      {
+        path: 'level-test',
+        component: LevelTestComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'level-test-result',
+        component: LevelTestResultComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'goal-setting',
+        component: GoalSettingComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'badges',
+        component: BadgeDisplayComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+    ],
   },
   {
     path: 'student/dashboard',
-    component: StudentDashboardComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['student'] },
+    redirectTo: 'student-dashboard',
+    pathMatch: 'full',
   },
 
   // Level Test route
   {
     path: 'level-test',
-    component: LevelTestComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['student'] },
+    redirectTo: 'student-dashboard/level-test',
+    pathMatch: 'full',
   },
   {
     path: 'level-test/result',
-    component: LevelTestResultComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['student'] },
+    redirectTo: 'student-dashboard/level-test-result',
+    pathMatch: 'full',
   },
 
   // instructor dashboard
@@ -85,6 +112,16 @@ const routes: Routes = [
     component: InstructorDashboardComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['instructor'] },
+  },
+  {
+    path: 'goal-setting',
+    redirectTo: 'student-dashboard/goal-setting',
+    pathMatch: 'full',
+  },
+  {
+    path: 'badges',
+    redirectTo: 'student-dashboard/badges',
+    pathMatch: 'full',
   },
 ];
 
@@ -105,6 +142,10 @@ const routes: Routes = [
     ProgressChartsComponent,
     PerformanceHistoryComponent,
     RecommendationDisplayComponent,
+    LearningPathComponent,
+    SkillMasteryComponent,
+    GoalSettingComponent,
+    BadgeDisplayComponent,
   ],
   imports: [
     CommonModule,
