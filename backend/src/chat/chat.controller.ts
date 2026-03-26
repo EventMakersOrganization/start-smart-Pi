@@ -91,6 +91,11 @@ export class ChatController {
     return this.aiService.healthCheck();
   }
 
+  @Get('ai/latency')
+  async aiLatencyStats() {
+    return { status: 'success', stats: this.aiService.getAiLatencyStats() };
+  }
+
   // ----- Sprint 7: Level-test routes -----
 
   @Post('ai/level-test/start')

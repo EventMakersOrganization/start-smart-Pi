@@ -19,6 +19,8 @@ _SERVICE_ROOT = Path(__file__).resolve().parent.parent
 if str(_SERVICE_ROOT) not in sys.path:
     sys.path.insert(0, str(_SERVICE_ROOT))
 
+from learning_state.concept_mastery_graph import get_unlock_status
+
 
 # Difficulty weights for mastery computation
 _DIFF_WEIGHT = {"easy": 1.0, "medium": 1.5, "hard": 2.0}
@@ -28,6 +30,10 @@ _LEVEL_THRESHOLDS = {
     "intermediate": (40, 69),
     "advanced": (70, 100),
 }
+
+
+def _norm_topic(topic: str) -> str:
+    return str(topic or "").strip().lower().replace(" ", "_")
 
 
 def compute_subject_mastery(subject_data: dict) -> dict[str, Any]:
@@ -88,6 +94,34 @@ def compute_subject_mastery(subject_data: dict) -> dict[str, Any]:
     }
 
 
+def compute_topic_mastery(session: dict[str, Any]) -> dict[str, float]:
+    """
+    Compute per-topic mastery from answered level-test questions.
+    """
+    subjects_state: dict[str, dict] = session.get("subjects", {}) or {}
+    per_topic: dict[str, dict[str, float]] = {}
+
+    for subj in subjects_state.values():
+        answers = [a for a in (subj.get("answers", []) or []) if a.get("answered")]
+        for a in answers:
+            topic_key = _norm_topic(a.get("topic", ""))
+            if not topic_key:
+                continue
+            diff = str(a.get("difficulty", "medium")).lower()
+            w = float(_DIFF_WEIGHT.get(diff, 1.0))
+            row = per_topic.setdefault(topic_key, {"earned": 0.0, "total": 0.0})
+            row["total"] += w
+            if a.get("is_correct"):
+                row["earned"] += w
+
+    concept_mastery: dict[str, float] = {}
+    for key, row in per_topic.items():
+        total = float(row.get("total", 0.0))
+        earned = float(row.get("earned", 0.0))
+        concept_mastery[key] = round((earned / total) * 100.0, 2) if total else 0.0
+    return concept_mastery
+
+
 def _classify_level(score: float) -> str:
     for level, (lo, hi) in _LEVEL_THRESHOLDS.items():
         if lo <= score <= hi:
@@ -133,7 +167,8 @@ def generate_student_profile(session: dict) -> dict[str, Any]:
         key=lambda x: x["mastery_score"],
     )
 
-    recommendations = _build_recommendations(subject_results, level)
+    concept_mastery = compute_topic_mastery(session)
+    recommendations = _build_recommendations(subject_results, level, concept_mastery)
 
     return {
         "student_id": student_id,
@@ -148,6 +183,7 @@ def generate_student_profile(session: dict) -> dict[str, Any]:
             {"title": s["title"], "mastery": s["mastery_score"]}
             for s in weaknesses
         ],
+        "concept_mastery": concept_mastery,
         "recommendations": recommendations,
     }
 
@@ -155,6 +191,7 @@ def generate_student_profile(session: dict) -> dict[str, Any]:
 def _build_recommendations(
     subject_results: list[dict],
     overall_level: str,
+    concept_mastery: dict[str, float] | None = None,
 ) -> list[dict[str, Any]]:
     """
     Produce an ordered list of study recommendations.
@@ -165,52 +202,79 @@ def _build_recommendations(
       3. Strong subjects (60-79)                 → "Challenge yourself"
       4. Very strong (80+)                       → "Maintain / explore advanced"
     """
-    recs: list[dict[str, Any]] = []
+    mastery = concept_mastery or {}
+    unlock = get_unlock_status(mastery)
+    blocked_by = unlock.get("blocked_by", {}) or {}
 
-    for s in sorted(subject_results, key=lambda x: x["mastery_score"]):
-        m = s["mastery_score"]
-        title = s["title"]
-        weak_topics = s.get("topics_incorrect", [])
+    level_bias = {"beginner": -0.05, "intermediate": 0.0, "advanced": 0.05}.get(overall_level, 0.0)
+    effort_by_type = {
+        "targeted_exercise": 2.0,
+        "retry_easier_variant": 1.5,
+        "promotion_ready": 3.0,
+        "prerequisite_repair": 2.0,
+    }
+    gain_by_type = {
+        "targeted_exercise": 14.0,
+        "retry_easier_variant": 12.0,
+        "promotion_ready": 16.0,
+        "prerequisite_repair": 13.0,
+    }
+    action_by_type = {
+        "targeted_exercise": "Targeted practice on weak concepts",
+        "retry_easier_variant": "Retry with easier guided exercises",
+        "promotion_ready": "Advance to the next challenge level",
+        "prerequisite_repair": "Repair missing prerequisites first",
+    }
+    difficulty_by_type = {
+        "targeted_exercise": "medium",
+        "retry_easier_variant": "easy",
+        "promotion_ready": "hard",
+        "prerequisite_repair": "easy",
+    }
+    priority_by_type = {
+        "prerequisite_repair": "high",
+        "targeted_exercise": "high",
+        "retry_easier_variant": "medium",
+        "promotion_ready": "low",
+    }
 
-        if m < 40:
-            recs.append({
-                "subject": title,
-                "priority": "high",
-                "action": "Review urgently",
-                "mastery": m,
-                "focus_topics": weak_topics,
-                "suggested_difficulty": "easy",
-                "success_probability": round(0.3 + m / 200, 2),
-            })
-        elif m < 60:
-            recs.append({
-                "subject": title,
-                "priority": "medium",
-                "action": "Practice more exercises",
-                "mastery": m,
-                "focus_topics": weak_topics,
-                "suggested_difficulty": "medium",
-                "success_probability": round(0.5 + m / 250, 2),
-            })
-        elif m < 80:
-            recs.append({
-                "subject": title,
-                "priority": "low",
-                "action": "Challenge yourself with harder problems",
-                "mastery": m,
-                "focus_topics": [],
-                "suggested_difficulty": "hard",
-                "success_probability": round(0.6 + m / 300, 2),
-            })
+    ranked: list[dict[str, Any]] = []
+    for s in subject_results:
+        m = float(s.get("mastery_score", 0.0))
+        title = s.get("title", "")
+        weak_topics = list(s.get("topics_incorrect", []) or [])
+        weak_norm = [_norm_topic(t) for t in weak_topics if _norm_topic(t)]
+
+        weak_vals = [float(mastery.get(k, m)) for k in weak_norm] if weak_norm else [m]
+        weak_mastery_avg = sum(weak_vals) / max(len(weak_vals), 1)
+
+        if any(t in blocked_by for t in weak_norm):
+            rec_type = "prerequisite_repair"
+        elif weak_mastery_avg < 40.0:
+            rec_type = "targeted_exercise"
+        elif weak_mastery_avg < 60.0:
+            rec_type = "retry_easier_variant"
         else:
-            recs.append({
-                "subject": title,
-                "priority": "optional",
-                "action": "Explore advanced topics or mentor others",
-                "mastery": m,
-                "focus_topics": [],
-                "suggested_difficulty": "hard",
-                "success_probability": round(0.8 + m / 500, 2),
-            })
+            rec_type = "promotion_ready"
 
-    return recs
+        effort = float(effort_by_type[rec_type])
+        gain = float(gain_by_type[rec_type])
+        base_prob = max(0.3, min(0.95, 0.35 + (weak_mastery_avg / 100.0) * 0.5 + level_bias))
+        success_probability = round(base_prob, 2)
+        utility = (gain * success_probability) / max(effort, 0.5)
+
+        ranked.append({
+            "subject": title,
+            "priority": priority_by_type[rec_type],
+            "action": action_by_type[rec_type],
+            "mastery": round(m, 2),
+            "focus_topics": weak_topics,
+            "suggested_difficulty": difficulty_by_type[rec_type],
+            "success_probability": success_probability,
+            "_utility": round(utility, 5),
+        })
+
+    ranked.sort(key=lambda x: (-float(x.get("_utility", 0.0)), float(x.get("mastery", 0.0))))
+    for row in ranked:
+        row.pop("_utility", None)
+    return ranked

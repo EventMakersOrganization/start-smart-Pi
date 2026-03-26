@@ -31,6 +31,8 @@ if str(_SERVICE_ROOT) not in sys.path:
 
 from core.db_connection import get_database, get_all_courses
 from core.rag_service import RAGService
+from adaptive.policy_engine import AdaptivePolicyEngine
+from adaptive.intervention_engine import InterventionEngine
 
 logger = logging.getLogger("adaptive_engine")
 logger.setLevel(logging.INFO)
@@ -81,6 +83,8 @@ class AdaptiveLevelTest:
 
     def __init__(self) -> None:
         self.rag_service = RAGService.get_instance()
+        self.policy_engine = AdaptivePolicyEngine()
+        self.intervention_engine = InterventionEngine()
 
     # ------------------------------------------------------------------
     # 1. START  (pre-generates ALL questions in parallel)
@@ -197,10 +201,23 @@ class AdaptiveLevelTest:
         current_q["is_correct"] = is_correct
         current_q["answered"] = True
         current_q["answered_at"] = _now_iso()
+        rt = self._response_time_sec(current_q.get("generated_at"), current_q.get("answered_at"))
+        if rt is not None:
+            current_q["response_time_sec"] = rt
 
         old_diff = subj["current_difficulty"]
-        new_diff = self._adapt_difficulty(old_diff, is_correct)
+        policy = self.policy_engine.decide_next_difficulty(
+            current_difficulty=old_diff,
+            recent_answers=subj.get("answers", []),
+            confidence_score=self._estimate_confidence(subj.get("answers", [])),
+            hint_used=False,
+        )
+        new_diff = policy["target_difficulty"]
         subj["current_difficulty"] = new_diff
+        intervention = self.intervention_engine.evaluate(
+            recent_answers=subj.get("answers", []),
+            confidence_score=self._estimate_confidence(subj.get("answers", [])),
+        )
 
         total_asked = sum(s["questions_asked"] for s in session["subjects"].values())
         total_total = len(session["subject_order"]) * QUESTIONS_PER_SUBJECT
@@ -231,6 +248,8 @@ class AdaptiveLevelTest:
                     "correct_answer": correct_answer,
                     "explanation": explanation,
                     "next_difficulty": new_diff,
+                    "difficulty_policy": policy,
+                    "intervention": intervention,
                     "progress": {"answered": total_asked, "total": total_total},
                     "subject_completed": subj_key,
                     "finished": False,
@@ -243,6 +262,8 @@ class AdaptiveLevelTest:
                     "correct_answer": correct_answer,
                     "explanation": explanation,
                     "next_difficulty": None,
+                    "difficulty_policy": policy,
+                    "intervention": intervention,
                     "progress": {"answered": total_asked, "total": total_total},
                     "subject_completed": subj_key,
                     "finished": True,
@@ -250,12 +271,14 @@ class AdaptiveLevelTest:
                 }
 
         session = _col().find_one({"session_id": session_id})
-        next_q = self._serve_next_question(session)
+        next_q = self._serve_next_question(session, target_difficulty=new_diff)
         return {
             "correct": is_correct,
             "correct_answer": correct_answer,
             "explanation": explanation,
             "next_difficulty": new_diff,
+            "difficulty_policy": policy,
+            "intervention": intervention,
             "progress": {"answered": total_asked, "total": total_total},
             "finished": False,
             "next_question": next_q,
@@ -296,17 +319,26 @@ class AdaptiveLevelTest:
     # INTERNALS — no LLM calls after start_test
     # ------------------------------------------------------------------
 
-    def _serve_next_question(self, session: dict) -> dict[str, Any]:
+    def _serve_next_question(self, session: dict, target_difficulty: str | None = None) -> dict[str, Any]:
         """Pick the next pre-generated question from the pool (instant)."""
         subj_key = session["subject_order"][session["current_subject_idx"]]
         subj = session["subjects"][subj_key]
         q_num = subj["questions_asked"]
         pool = subj.get("question_pool", [])
-
+        question = None
         if q_num < len(pool):
-            question = pool[q_num]
-        else:
-            question = self._fallback_question(subj["title"], "general", subj["current_difficulty"])
+            if target_difficulty:
+                used_indices = {a.get("question_index") for a in subj.get("answers", [])}
+                for i, cand in enumerate(pool):
+                    if i in used_indices:
+                        continue
+                    if str(cand.get("difficulty", "")).lower() == target_difficulty.lower():
+                        question = cand
+                        break
+            if question is None:
+                question = pool[q_num]
+        if question is None:
+            question = self._fallback_question(subj["title"], "general", target_difficulty or subj["current_difficulty"])
 
         difficulty = question.get("difficulty", subj["current_difficulty"])
         topic = question.get("topic", "general")
@@ -375,3 +407,22 @@ class AdaptiveLevelTest:
             "topic": topic,
             "type": "MCQ",
         }
+
+    @staticmethod
+    def _response_time_sec(started_iso: str | None, ended_iso: str | None) -> float | None:
+        if not started_iso or not ended_iso:
+            return None
+        try:
+            s = datetime.fromisoformat(started_iso)
+            e = datetime.fromisoformat(ended_iso)
+            return max(0.0, (e - s).total_seconds())
+        except Exception:
+            return None
+
+    @staticmethod
+    def _estimate_confidence(answers: list[dict[str, Any]]) -> float:
+        answered = [a for a in answers if a.get("answered")]
+        if not answered:
+            return 0.5
+        correct = sum(1 for a in answered if a.get("is_correct"))
+        return correct / max(len(answered), 1)

@@ -43,6 +43,10 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 OLLAMA_FAST_MODEL = os.getenv("OLLAMA_FAST_MODEL", "")
 
+# Redis (optional, used for API response caching in production)
+REDIS_URL = os.getenv("REDIS_URL", "")
+REDIS_CACHE_PREFIX = os.getenv("REDIS_CACHE_PREFIX", "startsmart:resp")
+
 # Config as dictionary for easy access
 config = {
     "MONGODB_URI": MONGODB_URI,
@@ -52,6 +56,8 @@ config = {
     "OLLAMA_BASE_URL": OLLAMA_BASE_URL,
     "OLLAMA_EMBED_MODEL": OLLAMA_EMBED_MODEL,
     "OLLAMA_FAST_MODEL": OLLAMA_FAST_MODEL,
+    "REDIS_URL": REDIS_URL,
+    "REDIS_CACHE_PREFIX": REDIS_CACHE_PREFIX,
 }
 
 
@@ -79,3 +85,5 @@ if __name__ != "__main__":
     print(f"  OLLAMA_FAST_MODEL: {OLLAMA_FAST_MODEL or '(not set, using OLLAMA_MODEL)'}")
     print(f"  OLLAMA_EMBED_MODEL: {OLLAMA_EMBED_MODEL}")
     print(f"  OLLAMA_BASE_URL: {OLLAMA_BASE_URL}")
+    print(f"  REDIS_URL: {'(set)' if REDIS_URL else '(not set)'}")
+    print(f"  REDIS_CACHE_PREFIX: {REDIS_CACHE_PREFIX}")

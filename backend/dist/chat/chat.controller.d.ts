@@ -42,4 +42,23 @@ export declare class ChatController {
         status: string;
         model?: string;
     }>;
+    aiLatencyStats(): Promise<{
+        status: string;
+        stats: Record<string, any>;
+    }>;
+    levelTestStart(req: any, body: {
+        subjects?: string[];
+    }): Promise<any>;
+    levelTestSubmitAnswer(body: {
+        session_id: string;
+        answer: string;
+    }): Promise<any>;
+    levelTestComplete(body: {
+        session_id: string;
+    }): Promise<any>;
+    levelTestSession(sessionId: string): Promise<any>;
+    personalizedRecommendations(body: {
+        student_profile: Record<string, any>;
+        n_results?: number;
+    }): Promise<any>;
 }

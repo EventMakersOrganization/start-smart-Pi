@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import Redis from 'ioredis';
+import { createHash } from 'crypto';
 
 export interface AiChatResponse {
   answer: string;
@@ -27,8 +29,11 @@ export interface SemanticSearchResult {
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly aiBaseUrl: string;
-  private readonly cache = new Map<string, { data: AiChatResponse; ts: number }>();
+  private readonly cache = new Map<string, { data: any; ts: number }>();
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly redisPrefix: string;
+  private redisClient: Redis | null = null;
+  private readonly latencyByEndpoint = new Map<string, number[]>();
 
   constructor(
     private readonly httpService: HttpService,
@@ -38,6 +43,11 @@ export class AiService {
       'AI_SERVICE_URL',
       'http://localhost:8000',
     );
+    this.redisPrefix = this.configService.get<string>(
+      'REDIS_CACHE_PREFIX',
+      'startsmart:backend:ai',
+    );
+    this.tryInitRedis();
     this.logger.log(`AI Service URL: ${this.aiBaseUrl}`);
   }
 
@@ -45,20 +55,25 @@ export class AiService {
     question: string,
     conversationHistory?: Array<{ role: string; content: string }>,
   ): Promise<AiChatResponse> {
-    const cacheKey = question.trim().toLowerCase();
-    const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < this.CACHE_TTL_MS) {
-      this.logger.debug(`Cache hit for: "${question.substring(0, 40)}..."`);
-      return cached.data;
+    const cacheKey = this.makeCacheKey('chatbot', {
+      question: question.trim().toLowerCase(),
+      historyTail: (conversationHistory || []).slice(-4),
+    });
+    const cached = await this.getFromCache<AiChatResponse>(cacheKey);
+    if (cached) {
+      this.logger.debug(`Cache hit for chatbot: "${question.substring(0, 40)}..."`);
+      return cached;
     }
 
     try {
-      const { data } = await firstValueFrom(
-        this.httpService.post(`${this.aiBaseUrl}/chatbot/ask`, {
-          question,
-          conversation_history: conversationHistory || [],
-        }, { timeout: 120_000 }),
-      );
+      const { data } = await this.timedAiCall('/chatbot/ask', async () => {
+        return await firstValueFrom(
+          this.httpService.post(`${this.aiBaseUrl}/chatbot/ask`, {
+            question,
+            conversation_history: conversationHistory || [],
+          }, { timeout: 120_000 }),
+        );
+      });
 
       const result: AiChatResponse = {
         answer: data.answer || 'Sorry, I could not generate an answer.',
@@ -67,8 +82,7 @@ export class AiService {
         is_valid: data.validation?.is_valid ?? false,
       };
 
-      this.cache.set(cacheKey, { data: result, ts: Date.now() });
-      this.pruneCache();
+      await this.setInCache(cacheKey, result);
       return result;
     } catch (error) {
       this.logger.error(`AI chatbot request failed: ${error.message}`);
@@ -86,20 +100,32 @@ export class AiService {
     query: string,
     nResults = 10,
   ): Promise<SemanticSearchResult[]> {
+    const cacheKey = this.makeCacheKey('semantic-search', {
+      query: query.trim().toLowerCase(),
+      nResults,
+    });
+    const cached = await this.getFromCache<SemanticSearchResult[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
     try {
-      const { data } = await firstValueFrom(
-        this.httpService.post(`${this.aiBaseUrl}/search-chunks`, {
-          query,
-          n_results: nResults,
-        }, { timeout: 30_000 }),
-      );
-      return (data.results || []).map((r: any) => ({
+      const { data } = await this.timedAiCall('/search-chunks', async () => {
+        return await firstValueFrom(
+          this.httpService.post(`${this.aiBaseUrl}/search-chunks`, {
+            query,
+            n_results: nResults,
+          }, { timeout: 30_000 }),
+        );
+      });
+      const results = (data.results || []).map((r: any) => ({
         chunk_id: r.chunk_id || '',
         chunk_text: r.chunk_text || '',
         course_id: r.course_id || '',
         course_title: (r.metadata || {}).course_title || '',
         similarity: r.similarity || 0,
       }));
+      await this.setInCache(cacheKey, results);
+      return results;
     } catch (error) {
       this.logger.error(`Semantic search failed: ${error.message}`);
       return [];
@@ -113,13 +139,15 @@ export class AiService {
     subjects?: string[],
   ): Promise<any> {
     try {
-      const { data } = await firstValueFrom(
-        this.httpService.post(
-          `${this.aiBaseUrl}/level-test/start`,
-          { student_id: studentId, subjects: subjects || null },
-          { timeout: 120_000 },
-        ),
-      );
+      const { data } = await this.timedAiCall('/level-test/start', async () => {
+        return await firstValueFrom(
+          this.httpService.post(
+            `${this.aiBaseUrl}/level-test/start`,
+            { student_id: studentId, subjects: subjects || null },
+            { timeout: 120_000 },
+          ),
+        );
+      });
       return data;
     } catch (error) {
       this.logger.error(`startLevelTest failed: ${error.message}`);
@@ -129,13 +157,15 @@ export class AiService {
 
   async submitAnswer(sessionId: string, answer: string): Promise<any> {
     try {
-      const { data } = await firstValueFrom(
-        this.httpService.post(
-          `${this.aiBaseUrl}/level-test/submit-answer`,
-          { session_id: sessionId, answer },
-          { timeout: 120_000 },
-        ),
-      );
+      const { data } = await this.timedAiCall('/level-test/submit-answer', async () => {
+        return await firstValueFrom(
+          this.httpService.post(
+            `${this.aiBaseUrl}/level-test/submit-answer`,
+            { session_id: sessionId, answer },
+            { timeout: 120_000 },
+          ),
+        );
+      });
       return data;
     } catch (error) {
       this.logger.error(`submitAnswer failed: ${error.message}`);
@@ -145,13 +175,15 @@ export class AiService {
 
   async completeLevelTest(sessionId: string): Promise<any> {
     try {
-      const { data } = await firstValueFrom(
-        this.httpService.post(
-          `${this.aiBaseUrl}/level-test/complete`,
-          { session_id: sessionId },
-          { timeout: 60_000 },
-        ),
-      );
+      const { data } = await this.timedAiCall('/level-test/complete', async () => {
+        return await firstValueFrom(
+          this.httpService.post(
+            `${this.aiBaseUrl}/level-test/complete`,
+            { session_id: sessionId },
+            { timeout: 60_000 },
+          ),
+        );
+      });
       return data;
     } catch (error) {
       this.logger.error(`completeLevelTest failed: ${error.message}`);
@@ -161,12 +193,14 @@ export class AiService {
 
   async getLevelTestSession(sessionId: string): Promise<any> {
     try {
-      const { data } = await firstValueFrom(
-        this.httpService.get(
-          `${this.aiBaseUrl}/level-test/session/${sessionId}`,
-          { timeout: 10_000 },
-        ),
-      );
+      const { data } = await this.timedAiCall('/level-test/session', async () => {
+        return await firstValueFrom(
+          this.httpService.get(
+            `${this.aiBaseUrl}/level-test/session/${sessionId}`,
+            { timeout: 10_000 },
+          ),
+        );
+      });
       return data;
     } catch (error) {
       this.logger.error(`getLevelTestSession failed: ${error.message}`);
@@ -179,13 +213,15 @@ export class AiService {
     nResults = 5,
   ): Promise<any> {
     try {
-      const { data } = await firstValueFrom(
-        this.httpService.post(
-          `${this.aiBaseUrl}/recommendations/personalized`,
-          { student_profile: studentProfile, n_results: nResults },
-          { timeout: 30_000 },
-        ),
-      );
+      const { data } = await this.timedAiCall('/recommendations/personalized', async () => {
+        return await firstValueFrom(
+          this.httpService.post(
+            `${this.aiBaseUrl}/recommendations/personalized`,
+            { student_profile: studentProfile, n_results: nResults },
+            { timeout: 30_000 },
+          ),
+        );
+      });
       return data;
     } catch (error) {
       this.logger.error(
@@ -197,13 +233,33 @@ export class AiService {
 
   async healthCheck(): Promise<{ status: string; model?: string }> {
     try {
-      const { data } = await firstValueFrom(
-        this.httpService.get(`${this.aiBaseUrl}/health`, { timeout: 5_000 }),
-      );
+      const { data } = await this.timedAiCall('/health', async () => {
+        return await firstValueFrom(
+          this.httpService.get(`${this.aiBaseUrl}/health`, { timeout: 5_000 }),
+        );
+      });
       return { status: 'ok', model: data.ollama_model };
     } catch {
       return { status: 'unavailable' };
     }
+  }
+
+  getAiLatencyStats() {
+    const out: Record<string, any> = {};
+    for (const [endpoint, values] of this.latencyByEndpoint.entries()) {
+      const sorted = [...values].sort((a, b) => a - b);
+      const count = sorted.length;
+      if (!count) continue;
+      const mean = sorted.reduce((a, b) => a + b, 0) / count;
+      const p95Idx = Math.min(count - 1, Math.floor(count * 0.95));
+      out[endpoint] = {
+        count,
+        mean_ms: Math.round(mean),
+        p95_ms: Math.round(sorted[p95Idx]),
+        max_ms: Math.round(sorted[count - 1]),
+      };
+    }
+    return out;
   }
 
   private pruneCache() {
@@ -221,5 +277,91 @@ export class AiService {
         this.cache.delete(oldest[i][0]);
       }
     }
+  }
+
+  private tryInitRedis() {
+    const redisUrl = this.configService.get<string>('REDIS_URL', '');
+    if (!redisUrl) return;
+    try {
+      const client = new Redis(redisUrl, {
+        maxRetriesPerRequest: 1,
+        lazyConnect: true,
+      });
+      client.on('error', (err) => {
+        this.logger.warn(`Redis cache error: ${err?.message || err}`);
+      });
+      this.redisClient = client;
+      this.logger.log('Redis cache configured for AiService');
+    } catch (error) {
+      this.redisClient = null;
+      this.logger.warn(`Redis init failed, using memory cache only: ${error.message}`);
+    }
+  }
+
+  private makeCacheKey(scope: string, payload: Record<string, any>): string {
+    const raw = JSON.stringify(payload);
+    const digest = createHash('sha256').update(raw).digest('hex');
+    return `${this.redisPrefix}:${scope}:${digest}`;
+  }
+
+  private async getFromCache<T>(key: string): Promise<T | null> {
+    // First try Redis
+    if (this.redisClient) {
+      try {
+        const raw = await this.redisClient.get(key);
+        if (raw) {
+          return JSON.parse(raw) as T;
+        }
+      } catch {
+        // fall through to memory
+      }
+    }
+    // Memory fallback
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.ts < this.CACHE_TTL_MS) {
+      return cached.data as T;
+    }
+    return null;
+  }
+
+  private async setInCache<T>(key: string, value: T): Promise<void> {
+    this.cache.set(key, { data: value, ts: Date.now() });
+    this.pruneCache();
+    if (this.redisClient) {
+      try {
+        await this.redisClient.set(
+          key,
+          JSON.stringify(value),
+          'PX',
+          this.CACHE_TTL_MS,
+        );
+      } catch {
+        // keep memory cache as fallback
+      }
+    }
+  }
+
+  private async timedAiCall<T>(endpoint: string, fn: () => Promise<T>): Promise<T> {
+    const t0 = Date.now();
+    try {
+      const result = await fn();
+      const elapsed = Date.now() - t0;
+      this.recordLatency(endpoint, elapsed);
+      return result;
+    } catch (error) {
+      const elapsed = Date.now() - t0;
+      this.recordLatency(endpoint, elapsed);
+      throw error;
+    }
+  }
+
+  private recordLatency(endpoint: string, elapsedMs: number): void {
+    const vals = this.latencyByEndpoint.get(endpoint) || [];
+    vals.push(elapsedMs);
+    // keep sliding window bounded in memory
+    if (vals.length > 500) {
+      vals.splice(0, vals.length - 500);
+    }
+    this.latencyByEndpoint.set(endpoint, vals);
   }
 }
