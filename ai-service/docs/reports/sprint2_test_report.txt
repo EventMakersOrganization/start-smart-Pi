@@ -1,0 +1,69 @@
+Sprint 2 Integration Test Report
+================================
+
+LangChain_Ollama: PASS (duration=11.605s)
+  Details: LangChain+Ollama connection and simple prompt executed.
+  Metrics: {
+  "connection_ok": true,
+  "connection_time_sec": 3.225,
+  "prompt_time_sec": 8.38,
+  "response_preview": "During Sprint 2, the team further developed the product's core features and functionalities, including the addition of a"
+}
+
+Prompt_Templates: PASS (duration=98.018s)
+  Details: At least one prompt template produced valid JSON questions.
+  Metrics: {
+  "level": {
+    "raw_response_preview": "{\n\"question\": \"Solve for x in the equation 2x + 5 = 13.\",\n\"options\": [\"x = 4\", \"x = 6\", \"x = 8\", \"x = 10\"],\n\"correct_answer\": \"x = 6\",\n\"explanation\": \"To solve ",
+    "json_valid": true,
+    "question_valid": true
+  },
+  "multiple": {
+    "raw_response_preview": "Sure! Here are three educational multiple-choice questions for first-year programming students, covering the topics of loops and functions at a medium difficult",
+    "json_valid": false,
+    "question_valid": false
+  },
+  "adaptive": {
+    "raw_response_preview": "{\n\"question\": \"A ball is rolled from rest on a frictionless surface. If the ball rolls for 2 seconds and covers a distance of 6 meters, how far will it travel i",
+    "json_valid": true,
+    "question_valid": true
+  }
+}
+
+Question_Generation: PASS (duration=69.215s)
+  Details: Generated 1 questions; saved 0 to DB.
+  Metrics: {
+  "single_valid": true,
+  "multiple_count": 0,
+  "multiple_all_valid": true,
+  "saved_question_ids": [],
+  "inserted_ids": []
+}
+
+Course_Upload_Embedding: FAIL (duration=5.193s)
+  Details: Test course created, embedded, and retrievable via search.
+  Metrics: {
+  "via_api": false,
+  "via_db_direct": true,
+  "embedded_ok": true,
+  "context_has_embedding": false,
+  "search_result_count": 2,
+  "search_top_id": "69a766e73dbb270806ec4e00",
+  "course_id": "69a768326180458d0c82e336"
+}
+
+Semantic_Search: PASS (duration=0.754s)
+  Details: Semantic search returned results for all test queries.
+  Metrics: {
+  "query_counts": {
+    "introduction to programming": 2,
+    "mathematics basics": 2,
+    "web development": 2
+  },
+  "avg_search_time_sec": 0.251
+}
+
+Cleanup: FAIL (duration=0.001s)
+  Details: Error during cleanup: name 'chroma_setup' is not defined
+
+Overall result: FAIL

@@ -1,0 +1,17 @@
+langchain
+langchain-community
+chromadb
+ollama
+pymongo
+fastapi
+python-dotenv
+python-multipart
+uvicorn
+PyPDF2
+python-docx
+python-pptx
+
+# Test & CI
+pytest>=7.4
+pytest-cov>=4.1
+httpx>=0.24

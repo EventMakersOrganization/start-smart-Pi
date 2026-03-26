@@ -1,0 +1,41 @@
+{
+  "test_queries_count": 15,
+  "comparison": {
+    "v1_avg_precision": 0.6,
+    "v1_avg_recall": 1.0,
+    "v2_chunks_avg_precision": 0.0,
+    "v2_chunks_avg_recall": 1.0,
+    "v2_aggregated_avg_precision": 0.0,
+    "v2_aggregated_avg_recall": 1.0,
+    "best_method": "v1_full_document"
+  },
+  "per_query_sample": [
+    {
+      "query": "learn programming loops",
+      "precision_at_k": 0.0,
+      "recall_at_k": 1.0,
+      "ndcg": 1.0,
+      "retrieved_courses": [],
+      "relevant": [],
+      "search_method": "aggregated"
+    },
+    {
+      "query": "introduction to python variables",
+      "precision_at_k": 0.0,
+      "recall_at_k": 1.0,
+      "ndcg": 1.0,
+      "retrieved_courses": [],
+      "relevant": [],
+      "search_method": "aggregated"
+    },
+    {
+      "query": "functions and methods",
+      "precision_at_k": 0.0,
+      "recall_at_k": 1.0,
+      "ndcg": 1.0,
+      "retrieved_courses": [],
+      "relevant": [],
+      "search_method": "aggregated"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, Request, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -11,6 +11,15 @@ export class UsersController {
   @Get('profile')
   async getProfile(@Request() req) {
     return this.usersService.getProfile(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async getUsers(@Query('role') role: string) {
+    if (role) {
+      return this.usersService.getUsersByRole(role);
+    }
+    return [];
   }
 
   @UseGuards(JwtAuthGuard)

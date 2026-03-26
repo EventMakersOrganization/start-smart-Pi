@@ -1,0 +1,67 @@
+Sprint 4 Integration Test Report
+========================================
+
+Prompt_Builder: PASS (duration=2.401s)
+  Details: Chatbot, question generation, and adaptive prompts contain context.
+  Metrics: {
+  "chatbot_prompt_len": 1252,
+  "qgen_prompt_len": 1162,
+  "adaptive_prompt_len": 1511
+}
+
+Hallucination_Guard: PASS (duration=0.001s)
+  Details: Valid confidence=1.0, hallucinated=0.0
+  Metrics: {
+  "valid_confidence": 1.0,
+  "hallucinated_confidence": 0.0,
+  "question_valid": false
+}
+
+Question_Validation: PASS (duration=0.004s)
+  Details: valid_mcq=True, invalid_fails=True, batch total=3
+  Metrics: {
+  "valid_mcq": true,
+  "invalid_mcq_fails": true,
+  "batch_valid": 1,
+  "batch_invalid": 2,
+  "overall_quality": 85.0
+}
+
+Context_Retrieval: PASS (duration=0.777s)
+  Details: Context retrieval and prompt building use RAG; content may be empty if no courses indexed.
+  Metrics: {
+  "context_loops_len": 686,
+  "context_vars_len": 1036,
+  "prompt_has_context_section": true
+}
+
+Hallucination_Prevention: PASS (duration=0.000s)
+  Details: Prevention instructions present; grounded=0.0, ungrounded=0.0
+  Metrics: {
+  "has_instructions": true,
+  "ok_confidence": 0.0,
+  "bad_confidence": 0.0
+}
+
+BrainRush_Question_Generation: PASS (duration=52.324s)
+  Details: MCQ valid=False, TF=True, DD=True (need 2/3)
+  Metrics: {
+  "mcq_valid": false,
+  "tf_valid": true,
+  "dragdrop_valid": true
+}
+
+BrainRush_API: PASS (duration=4.086s)
+  Details: Skipped (API not running at http://localhost:8000)
+  Metrics: {
+  "skipped": true
+}
+
+Chatbot_API: PASS (duration=4.105s)
+  Details: Skipped (API not running at http://localhost:8000)
+  Metrics: {
+  "skipped": true
+}
+
+Pass rate: 8/8
+Overall result: PASS

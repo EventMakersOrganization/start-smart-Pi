@@ -1,0 +1,129 @@
+<div class="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
+  <div class="relative group absolute top-4 left-4 z-50">
+     <button routerLink="/student-dashboard" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
+         <span class="material-symbols-outlined">arrow_back</span> Back to Dashboard
+     </button>
+  </div>
+  <main class="flex flex-1 overflow-hidden">
+    <!-- Left Pane: Groups -->
+    <aside class="w-80 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar">
+      <div class="p-6 mt-12 flex gap-2">
+        <button routerLink="/chat/instructor" class="flex-1 py-2 rounded-lg font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Conversations</button>
+        <button routerLink="/chat/room" class="flex-1 py-2 rounded-lg font-bold bg-primary text-white">Groups</button>
+      </div>
+      <div class="px-4 mb-4">
+        <button (click)="showNewGroupModal = true" class="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-xl font-semibold transition-all shadow-sm">
+          <span class="material-symbols-outlined text-sm">add</span>
+          New Group
+        </button>
+      </div>
+      <div class="px-4 space-y-2">
+        <button *ngFor="let room of rooms" (click)="loadSession(room._id, room.name)" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all" [class.bg-primary!]="currentSessionId === room._id" [class.text-white!]="currentSessionId === room._id">
+          <div class="size-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold">
+            <span class="material-symbols-outlined">group</span>
+          </div>
+          <div class="text-left overflow-hidden flex-1">
+            <p class="text-sm font-semibold truncate">{{ room.name }}</p>
+            <p class="text-[11px] opacity-70">{{ room.participants?.length || 0 }} members</p>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right Pane: Active Chat Window -->
+    <section class="flex-1 flex flex-col relative">
+      <div *ngIf="currentSessionId" class="flex-1 flex flex-col h-full">
+        <div class="px-8 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-10">
+          <h1 class="text-lg font-bold">{{ currentSessionTitle }}</h1>
+        </div>
+
+        <!-- Messages Container -->
+        <div class="flex-1 overflow-y-auto px-8 py-6 space-y-8 custom-scrollbar" #scrollMe>
+          <ng-container *ngFor="let msg of messages">
+            
+            <!-- Other Person Message -->
+            <div *ngIf="msg.sender !== userId" class="flex gap-4 max-w-3xl">
+              <div class="size-8 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-500 text-xs">
+                <span class="material-symbols-outlined text-sm">person</span>
+              </div>
+              <div class="space-y-2">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-700">
+                  <p class="text-sm leading-relaxed" [innerHTML]="msg.content"></p>
+                </div>
+                <!-- Group chat shows sender ID/name -->
+                <span class="text-[10px] text-slate-400 font-medium ml-1">{{ msg.sender.substring(0,6) }} • {{ msg.createdAt | date:'shortTime' }}</span>
+              </div>
+            </div>
+
+            <!-- User Message -->
+            <div *ngIf="msg.sender === userId" class="flex gap-4 max-w-3xl ml-auto flex-row-reverse">
+              <div class="size-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-xs overflow-hidden">
+                <span class="material-symbols-outlined text-sm">person</span>
+              </div>
+              <div class="space-y-2 text-right">
+                <div class="bg-primary p-5 rounded-2xl rounded-tr-none shadow-lg shadow-primary/20 text-white inline-block">
+                  <p class="text-sm leading-relaxed text-left" [innerHTML]="msg.content"></p>
+                </div>
+                <div class="flex justify-end items-center gap-1.5 mr-1">
+                  <span class="text-[10px] text-slate-400 font-medium">YOU • {{ msg.createdAt | date:'shortTime' }}</span>
+                  <span class="material-symbols-outlined text-xs text-primary">done_all</span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <div class="p-8 bg-gradient-to-t from-white dark:from-slate-900 via-white/95 dark:via-slate-900/95 to-transparent mt-auto">
+          <div class="relative flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary/20">
+            <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" class="flex-1 border-none bg-transparent py-4 px-6 text-sm focus:ring-0 outline-none" placeholder="Type to group..." type="text">
+            <button (click)="sendMessage()" class="bg-primary text-white h-full px-6 flex items-center justify-center hover:bg-blue-700 transition">
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!currentSessionId" class="flex-1 flex flex-col items-center justify-center text-slate-500">
+        <span class="material-symbols-outlined text-6xl mb-4 text-slate-300">workspaces</span>
+        <h2 class="text-xl font-bold text-slate-700">Select a Group Chat</h2>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- New Group Modal -->
+<div *ngIf="showNewGroupModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800">
+    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <h2 class="font-bold text-lg">Create New Group</h2>
+      <button (click)="showNewGroupModal = false" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+        <span class="material-symbols-outlined text-slate-500">close</span>
+      </button>
+    </div>
+    <div class="p-4 border-b border-slate-100 dark:border-slate-800">
+      <input [(ngModel)]="newGroupName" type="text" placeholder="Group Name..." class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-primary/50 outline-none">
+    </div>
+    <div class="max-h-64 overflow-y-auto custom-scrollbar p-2">
+      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-2 mt-2">Select Students</p>
+      <button *ngFor="let stud of students" (click)="toggleStudentSelection(stud.id)" class="w-full text-left flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" [class.bg-indigo-50]="selectedStudents.includes(stud.id)">
+        <div class="size-5 rounded border border-slate-300 flex items-center justify-center" [class.bg-indigo-500]="selectedStudents.includes(stud.id)" [class.border-indigo-500]="selectedStudents.includes(stud.id)">
+          <span *ngIf="selectedStudents.includes(stud.id)" class="material-symbols-outlined text-[14px] text-white">check</span>
+        </div>
+        <div class="size-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+          {{ (stud.first_name?.[0] || 'U') }}{{ (stud.last_name?.[0] || '') }}
+        </div>
+        <div>
+          <p class="text-sm font-bold">{{ stud.first_name }} {{ stud.last_name }}</p>
+        </div>
+      </button>
+      <div *ngIf="students?.length === 0" class="p-6 text-center text-slate-500 text-sm">
+        No students found.
+      </div>
+    </div>
+    <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+      <button (click)="createGroup()" [disabled]="!newGroupName.trim() || selectedStudents.length === 0" class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white px-6 py-2 rounded-xl font-bold transition-all">
+        Create Group
+      </button>
+    </div>
+  </div>
+</div>

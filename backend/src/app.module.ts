@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { ActivityModule } from './activity/activity.module';
 import { AppController } from './app.controller';
 import { AdaptiveLearningModule } from './adaptive-learning/adaptive-learning.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AdaptiveLearningModule } from './adaptive-learning/adaptive-learning.mo
     UsersModule,
     ActivityModule,
     AdaptiveLearningModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [],
