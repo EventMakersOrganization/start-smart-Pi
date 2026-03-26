@@ -70,12 +70,15 @@ let ChatService = class ChatService {
         const room = new this.chatRoomModel({ name, participants });
         return room.save();
     }
-    async getUserSessions(userId) {
+    async getUserSessions(userId, role) {
         const aiSessions = await this.chatAiModel.find({ student: userId }).sort({ updatedAt: -1 }).lean();
         const rawInstructorSessions = await this.chatInstructorModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
-        const rawRooms = await this.chatRoomModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
         const instructorSessions = await Promise.all(rawInstructorSessions.map((s) => this.resolveParticipants(s)));
-        const rooms = await Promise.all(rawRooms.map((s) => this.resolveParticipants(s)));
+        let rooms = [];
+        if (role === 'student' || !role) {
+            const rawRooms = await this.chatRoomModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
+            rooms = await Promise.all(rawRooms.map((s) => this.resolveParticipants(s)));
+        }
         return {
             ai: aiSessions,
             instructor: instructorSessions,

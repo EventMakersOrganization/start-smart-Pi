@@ -19,12 +19,15 @@ export class ChatController {
 
   @Post('room')
   async createRoom(@Request() req, @Body() body: { name: string; participants: string[] }) {
+    if (req.user.role !== 'student') {
+      throw new UnauthorizedException('Only students can create group chats.');
+    }
     return this.chatService.createRoom(body.name, [req.user.id, ...body.participants]);
   }
 
   @Get('sessions')
   async getUserSessions(@Request() req) {
-    return this.chatService.getUserSessions(req.user.id);
+    return this.chatService.getUserSessions(req.user.id, req.user.role);
   }
 
   @Get('history/:sessionType/:sessionId')

@@ -59,13 +59,15 @@ export class ChatService {
     return room.save();
   }
 
-  async getUserSessions(userId: string) {
+  async getUserSessions(userId: string, role?: string) {
     const aiSessions = await this.chatAiModel.find({ student: userId }).sort({ updatedAt: -1 }).lean();
     const rawInstructorSessions = await this.chatInstructorModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
-    const rawRooms = await this.chatRoomModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
-
     const instructorSessions = await Promise.all(rawInstructorSessions.map((s: any) => this.resolveParticipants(s)));
-    const rooms = await Promise.all(rawRooms.map((s: any) => this.resolveParticipants(s)));
+    let rooms = [];
+    if (role === 'student' || !role) {
+      const rawRooms = await this.chatRoomModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
+      rooms = await Promise.all(rawRooms.map((s: any) => this.resolveParticipants(s)));
+    }
 
     return {
       ai: aiSessions,

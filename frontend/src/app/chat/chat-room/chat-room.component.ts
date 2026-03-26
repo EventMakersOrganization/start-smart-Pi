@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { ChatApiService } from '../services/chat-api.service';
 import { ChatSocketService } from '../services/chat-socket.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-chat-room',
@@ -25,7 +26,8 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   constructor(
     private chatApiService: ChatApiService,
-    private chatSocketService: ChatSocketService
+    private chatSocketService: ChatSocketService,
+    private router: Router
   ) { }
 
   ngOnInit() {
@@ -35,6 +37,11 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
         const payload = JSON.parse(atob(token.split('.')[1]));
         this.userId = payload.sub || payload.id || 'mock-user-id';
         this.userRole = payload.role || '';
+        
+        if (this.userRole !== 'student') {
+          this.router.navigate([this.getDashboardRoute()]);
+          return;
+        }
       } catch (e) {
         this.userId = 'mock-user-id';
       }

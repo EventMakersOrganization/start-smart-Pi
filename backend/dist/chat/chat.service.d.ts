@@ -19,7 +19,7 @@ export declare class ChatService {
     createRoom(name: string, participants: string[]): Promise<import("mongoose").Document<unknown, {}, ChatRoomDocument> & ChatRoom & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
-    getUserSessions(userId: string): Promise<{
+    getUserSessions(userId: string, role?: string): Promise<{
         ai: (import("mongoose").FlattenMaps<ChatAiDocument> & {
             _id: import("mongoose").Types.ObjectId;
         })[];

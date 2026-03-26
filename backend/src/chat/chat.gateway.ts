@@ -76,6 +76,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionType: string, sessionId: string }) {
     const userId = client.data.user.id;
+    const userRole = client.data.user.role;
+
+    if (payload.sessionType === 'ChatRoom' && userRole !== 'student') {
+      this.logger.warn(`User ${userId} (role: ${userRole}) attempted to join ChatRoom ${payload.sessionId}`);
+      return;
+    }
+
     const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
     
     if (isAllowed) {
@@ -96,6 +103,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sendMessage')
   async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionType: string, sessionId: string, content: string }) {
     const userId = client.data.user.id;
+    const userRole = client.data.user.role;
+
+    if (payload.sessionType === 'ChatRoom' && userRole !== 'student') {
+      this.logger.warn(`User ${userId} (role: ${userRole}) attempted to send to ChatRoom ${payload.sessionId}`);
+      return;
+    }
+
     const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
 
     if (!isAllowed) {

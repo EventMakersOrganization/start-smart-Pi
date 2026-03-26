@@ -67,6 +67,11 @@ let ChatGateway = class ChatGateway {
     }
     async handleJoinRoom(client, payload) {
         const userId = client.data.user.id;
+        const userRole = client.data.user.role;
+        if (payload.sessionType === 'ChatRoom' && userRole !== 'student') {
+            this.logger.warn(`User ${userId} (role: ${userRole}) attempted to join ChatRoom ${payload.sessionId}`);
+            return;
+        }
         const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
         if (isAllowed) {
             client.join(payload.sessionId);
@@ -81,6 +86,11 @@ let ChatGateway = class ChatGateway {
     }
     async handleMessage(client, payload) {
         const userId = client.data.user.id;
+        const userRole = client.data.user.role;
+        if (payload.sessionType === 'ChatRoom' && userRole !== 'student') {
+            this.logger.warn(`User ${userId} (role: ${userRole}) attempted to send to ChatRoom ${payload.sessionId}`);
+            return;
+        }
         const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
         if (!isAllowed) {
             this.logger.warn(`User ${userId} attempted to send message to unauthorized room ${payload.sessionId}`);
