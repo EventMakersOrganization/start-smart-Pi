@@ -1,5 +1,5 @@
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
+import { HttpService } from "@nestjs/axios";
+import { ConfigService } from "@nestjs/config";
 export interface AiChatResponse {
     answer: string;
     sources: Array<{
@@ -17,6 +17,12 @@ export interface SemanticSearchResult {
     course_id: string;
     course_title: string;
     similarity: number;
+}
+export interface LearningEventPayload {
+    event_type: "quiz" | "exercise" | "chat" | "brainrush";
+    score?: number;
+    duration_sec?: number;
+    metadata?: Record<string, any>;
 }
 export declare class AiService {
     private readonly httpService;
@@ -39,6 +45,8 @@ export declare class AiService {
     completeLevelTest(sessionId: string): Promise<any>;
     getLevelTestSession(sessionId: string): Promise<any>;
     getPersonalizedRecommendations(studentProfile: Record<string, any>, nResults?: number): Promise<any>;
+    recordLearningEvent(studentId: string, payload: LearningEventPayload): Promise<any>;
+    getLearningState(studentId: string): Promise<any>;
     healthCheck(): Promise<{
         status: string;
         model?: string;

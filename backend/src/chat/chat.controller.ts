@@ -7,12 +7,12 @@ import {
   Query,
   UseGuards,
   Request,
-} from '@nestjs/common';
-import { ChatService } from './chat.service';
-import { AiService } from './ai.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+} from "@nestjs/common";
+import { ChatService } from "./chat.service";
+import { AiService, LearningEventPayload } from "./ai.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
-@Controller('chat')
+@Controller("chat")
 @UseGuards(JwtAuthGuard)
 export class ChatController {
   constructor(
@@ -20,12 +20,12 @@ export class ChatController {
     private readonly aiService: AiService,
   ) {}
 
-  @Post('ai/session')
+  @Post("ai/session")
   async createAiSession(@Request() req, @Body() body: { title?: string }) {
     return this.chatService.createAiSession(req.user.id, body.title);
   }
 
-  @Post('instructor/session')
+  @Post("instructor/session")
   async createInstructorSession(
     @Request() req,
     @Body() body: { instructorId: string },
@@ -36,7 +36,7 @@ export class ChatController {
     );
   }
 
-  @Post('room')
+  @Post("room")
   async createRoom(
     @Request() req,
     @Body() body: { name: string; participants: string[] },
@@ -47,21 +47,21 @@ export class ChatController {
     ]);
   }
 
-  @Get('sessions')
+  @Get("sessions")
   async getUserSessions(@Request() req) {
     return this.chatService.getUserSessions(req.user.id);
   }
 
-  @Get('history/:sessionType/:sessionId')
+  @Get("history/:sessionType/:sessionId")
   async getChatHistory(
     @Request() req,
-    @Param('sessionType') sessionType: string,
-    @Param('sessionId') sessionId: string,
+    @Param("sessionType") sessionType: string,
+    @Param("sessionId") sessionId: string,
   ) {
     return this.chatService.getChatHistory(sessionType, sessionId, req.user.id);
   }
 
-  @Post('send')
+  @Post("send")
   async sendMessage(
     @Request() req,
     @Body() body: { sessionType: string; sessionId: string; content: string },
@@ -74,10 +74,10 @@ export class ChatController {
     });
   }
 
-  @Get('ai/search')
+  @Get("ai/search")
   async semanticSearch(
-    @Query('q') query: string,
-    @Query('n') nResults?: string,
+    @Query("q") query: string,
+    @Query("n") nResults?: string,
   ) {
     const results = await this.aiService.semanticSearch(
       query,
@@ -86,44 +86,41 @@ export class ChatController {
     return { results };
   }
 
-  @Get('ai/health')
+  @Get("ai/health")
   async aiHealth() {
     return this.aiService.healthCheck();
   }
 
-  @Get('ai/latency')
+  @Get("ai/latency")
   async aiLatencyStats() {
-    return { status: 'success', stats: this.aiService.getAiLatencyStats() };
+    return { status: "success", stats: this.aiService.getAiLatencyStats() };
   }
 
   // ----- Sprint 7: Level-test routes -----
 
-  @Post('ai/level-test/start')
-  async levelTestStart(
-    @Request() req,
-    @Body() body: { subjects?: string[] },
-  ) {
+  @Post("ai/level-test/start")
+  async levelTestStart(@Request() req, @Body() body: { subjects?: string[] }) {
     return this.aiService.startLevelTest(req.user.id, body.subjects);
   }
 
-  @Post('ai/level-test/submit-answer')
+  @Post("ai/level-test/submit-answer")
   async levelTestSubmitAnswer(
     @Body() body: { session_id: string; answer: string },
   ) {
     return this.aiService.submitAnswer(body.session_id, body.answer);
   }
 
-  @Post('ai/level-test/complete')
+  @Post("ai/level-test/complete")
   async levelTestComplete(@Body() body: { session_id: string }) {
     return this.aiService.completeLevelTest(body.session_id);
   }
 
-  @Get('ai/level-test/session/:sessionId')
-  async levelTestSession(@Param('sessionId') sessionId: string) {
+  @Get("ai/level-test/session/:sessionId")
+  async levelTestSession(@Param("sessionId") sessionId: string) {
     return this.aiService.getLevelTestSession(sessionId);
   }
 
-  @Post('ai/recommendations')
+  @Post("ai/recommendations")
   async personalizedRecommendations(
     @Body() body: { student_profile: Record<string, any>; n_results?: number },
   ) {
@@ -131,5 +128,18 @@ export class ChatController {
       body.student_profile,
       body.n_results ?? 5,
     );
+  }
+
+  @Post("ai/adaptive/event")
+  async recordAdaptiveLearningEvent(
+    @Request() req,
+    @Body() body: LearningEventPayload,
+  ) {
+    return this.aiService.recordLearningEvent(req.user.id, body);
+  }
+
+  @Get("ai/adaptive/state")
+  async getAdaptiveLearningState(@Request() req) {
+    return this.aiService.getLearningState(req.user.id);
   }
 }

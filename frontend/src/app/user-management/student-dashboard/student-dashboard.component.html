@@ -64,16 +64,26 @@
       >
         <span class="material-symbols-outlined">military_tech</span> Badges
       </a>
-      
+
       <div class="pt-4 mt-2">
-        <p class="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Messages</p>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          routerLink="/chat/instructor">
-          <span class="material-symbols-outlined text-indigo-500">chat_bubble</span>
+        <p
+          class="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2"
+        >
+          Messages
+        </p>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          routerLink="/chat/instructor"
+        >
+          <span class="material-symbols-outlined text-indigo-500"
+            >chat_bubble</span
+          >
           Conversations
         </a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          routerLink="/chat/room">
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          routerLink="/chat/room"
+        >
           <span class="material-symbols-outlined text-orange-500">groups</span>
           Groups
         </a>
@@ -325,6 +335,76 @@
             {{ completedModules }}
           </p>
           <p class="text-xs text-slate-500 mt-1">exercises ≥ 70%</p>
+        </div>
+      </div>
+
+      <!-- ── Adaptive State Snapshot ── -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" *ngIf="learningState">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span
+              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >Pace Mode</span
+            >
+            <div
+              class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-blue-600 text-sm"
+                >speed</span
+              >
+            </div>
+          </div>
+          <p class="text-3xl font-black text-slate-900 capitalize">
+            {{ adaptivePace }}
+          </p>
+          <p class="text-xs text-slate-500 mt-1">Real-time adaptive rhythm</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span
+              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >Confidence</span
+            >
+            <div
+              class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-emerald-600 text-sm"
+                >psychology</span
+              >
+            </div>
+          </div>
+          <p class="text-3xl font-black text-slate-900">
+            {{ adaptiveConfidence }}%
+          </p>
+          <div class="mt-2 w-full bg-slate-100 h-1.5 rounded-full">
+            <div
+              class="bg-emerald-500 h-full rounded-full"
+              [style.width.%]="adaptiveConfidence"
+            ></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span
+              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >Mastery</span
+            >
+            <div
+              class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-violet-600 text-sm"
+                >auto_graph</span
+              >
+            </div>
+          </div>
+          <p class="text-3xl font-black text-slate-900">
+            {{ adaptiveMastery }}%
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            {{ adaptiveMasteryCount }} concept(s) tracked
+          </p>
         </div>
       </div>
 
@@ -708,10 +788,9 @@
   <!-- ── AI Floating Button ── -->
   <div class="fixed bottom-8 right-8 z-40">
     <button
+      routerLink="/chat/ai"
       class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"
     >
-    <button routerLink="/chat/ai"
-      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
       <span class="material-symbols-outlined text-3xl">psychology</span>
       <div
         class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity"

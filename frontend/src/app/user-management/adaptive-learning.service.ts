@@ -58,9 +58,22 @@ export interface SpacedRepetitionResponse {
   } | null;
 }
 
+export interface LearningEventRequest {
+  event_type: 'quiz' | 'exercise' | 'chat' | 'brainrush';
+  score?: number;
+  duration_sec?: number;
+  metadata?: {
+    concept?: string;
+    topic?: string;
+    is_correct?: boolean;
+    [key: string]: any;
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
+  private chatApiUrl = 'http://localhost:3000/api/chat/ai';
   private goalsStorageKey = 'adaptive_learning_goals_v1';
 
   constructor(private http: HttpClient) {}
@@ -146,6 +159,14 @@ export class AdaptiveLearningService {
     return this.http.get<AchievementBadgesResponse>(
       `${this.apiUrl}/badges/${studentId}`,
     );
+  }
+
+  recordLearningEvent(payload: LearningEventRequest): Observable<any> {
+    return this.http.post(`${this.chatApiUrl}/adaptive/event`, payload);
+  }
+
+  getAdaptiveLearningState(): Observable<any> {
+    return this.http.get(`${this.chatApiUrl}/adaptive/state`);
   }
 
   getGoalSettings(studentId: string): GoalSettings | null {

@@ -26,13 +26,13 @@ let AiService = AiService_1 = class AiService {
         this.CACHE_TTL_MS = 5 * 60 * 1000;
         this.redisClient = null;
         this.latencyByEndpoint = new Map();
-        this.aiBaseUrl = this.configService.get('AI_SERVICE_URL', 'http://localhost:8000');
-        this.redisPrefix = this.configService.get('REDIS_CACHE_PREFIX', 'startsmart:backend:ai');
+        this.aiBaseUrl = this.configService.get("AI_SERVICE_URL", "http://localhost:8000");
+        this.redisPrefix = this.configService.get("REDIS_CACHE_PREFIX", "startsmart:backend:ai");
         this.tryInitRedis();
         this.logger.log(`AI Service URL: ${this.aiBaseUrl}`);
     }
     async askChatbot(question, conversationHistory) {
-        const cacheKey = this.makeCacheKey('chatbot', {
+        const cacheKey = this.makeCacheKey("chatbot", {
             question: question.trim().toLowerCase(),
             historyTail: (conversationHistory || []).slice(-4),
         });
@@ -42,14 +42,14 @@ let AiService = AiService_1 = class AiService {
             return cached;
         }
         try {
-            const { data } = await this.timedAiCall('/chatbot/ask', async () => {
+            const { data } = await this.timedAiCall("/chatbot/ask", async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/chatbot/ask`, {
                     question,
                     conversation_history: conversationHistory || [],
                 }, { timeout: 120_000 }));
             });
             const result = {
-                answer: data.answer || 'Sorry, I could not generate an answer.',
+                answer: data.answer || "Sorry, I could not generate an answer.",
                 sources: data.sources || [],
                 confidence: data.validation?.confidence ?? 0,
                 is_valid: data.validation?.is_valid ?? false,
@@ -60,7 +60,7 @@ let AiService = AiService_1 = class AiService {
         catch (error) {
             this.logger.error(`AI chatbot request failed: ${error.message}`);
             return {
-                answer: 'I am temporarily unavailable. Please try again in a moment.',
+                answer: "I am temporarily unavailable. Please try again in a moment.",
                 sources: [],
                 confidence: 0,
                 is_valid: false,
@@ -68,7 +68,7 @@ let AiService = AiService_1 = class AiService {
         }
     }
     async semanticSearch(query, nResults = 10) {
-        const cacheKey = this.makeCacheKey('semantic-search', {
+        const cacheKey = this.makeCacheKey("semantic-search", {
             query: query.trim().toLowerCase(),
             nResults,
         });
@@ -77,17 +77,17 @@ let AiService = AiService_1 = class AiService {
             return cached;
         }
         try {
-            const { data } = await this.timedAiCall('/search-chunks', async () => {
+            const { data } = await this.timedAiCall("/search-chunks", async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/search-chunks`, {
                     query,
                     n_results: nResults,
                 }, { timeout: 30_000 }));
             });
             const results = (data.results || []).map((r) => ({
-                chunk_id: r.chunk_id || '',
-                chunk_text: r.chunk_text || '',
-                course_id: r.course_id || '',
-                course_title: (r.metadata || {}).course_title || '',
+                chunk_id: r.chunk_id || "",
+                chunk_text: r.chunk_text || "",
+                course_id: r.course_id || "",
+                course_title: (r.metadata || {}).course_title || "",
                 similarity: r.similarity || 0,
             }));
             await this.setInCache(cacheKey, results);
@@ -100,7 +100,7 @@ let AiService = AiService_1 = class AiService {
     }
     async startLevelTest(studentId, subjects) {
         try {
-            const { data } = await this.timedAiCall('/level-test/start', async () => {
+            const { data } = await this.timedAiCall("/level-test/start", async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/start`, { student_id: studentId, subjects: subjects || null }, { timeout: 120_000 }));
             });
             return data;
@@ -112,7 +112,7 @@ let AiService = AiService_1 = class AiService {
     }
     async submitAnswer(sessionId, answer) {
         try {
-            const { data } = await this.timedAiCall('/level-test/submit-answer', async () => {
+            const { data } = await this.timedAiCall("/level-test/submit-answer", async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/submit-answer`, { session_id: sessionId, answer }, { timeout: 120_000 }));
             });
             return data;
@@ -124,7 +124,7 @@ let AiService = AiService_1 = class AiService {
     }
     async completeLevelTest(sessionId) {
         try {
-            const { data } = await this.timedAiCall('/level-test/complete', async () => {
+            const { data } = await this.timedAiCall("/level-test/complete", async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/complete`, { session_id: sessionId }, { timeout: 60_000 }));
             });
             return data;
@@ -136,7 +136,7 @@ let AiService = AiService_1 = class AiService {
     }
     async getLevelTestSession(sessionId) {
         try {
-            const { data } = await this.timedAiCall('/level-test/session', async () => {
+            const { data } = await this.timedAiCall("/level-test/session", async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.get(`${this.aiBaseUrl}/level-test/session/${sessionId}`, { timeout: 10_000 }));
             });
             return data;
@@ -148,7 +148,7 @@ let AiService = AiService_1 = class AiService {
     }
     async getPersonalizedRecommendations(studentProfile, nResults = 5) {
         try {
-            const { data } = await this.timedAiCall('/recommendations/personalized', async () => {
+            const { data } = await this.timedAiCall("/recommendations/personalized", async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/recommendations/personalized`, { student_profile: studentProfile, n_results: nResults }, { timeout: 30_000 }));
             });
             return data;
@@ -158,15 +158,56 @@ let AiService = AiService_1 = class AiService {
             throw error;
         }
     }
+    async recordLearningEvent(studentId, payload) {
+        try {
+            const { data } = await this.timedAiCall("/learning-state/event", async () => {
+                return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/learning-state/event`, {
+                    student_id: studentId,
+                    event_type: payload.event_type,
+                    score: payload.score,
+                    duration_sec: payload.duration_sec,
+                    metadata: payload.metadata || {},
+                }, { timeout: 30_000 }));
+            });
+            return data;
+        }
+        catch (error) {
+            this.logger.error(`recordLearningEvent failed: ${error.message}`);
+            throw error;
+        }
+    }
+    async getLearningState(studentId) {
+        try {
+            const { data } = await this.timedAiCall("/learning-state/{student_id}", async () => {
+                return await (0, rxjs_1.firstValueFrom)(this.httpService.get(`${this.aiBaseUrl}/learning-state/${studentId}`, {
+                    timeout: 15_000,
+                }));
+            });
+            return data;
+        }
+        catch (error) {
+            if (error?.response?.status === 404) {
+                this.logger.debug(`No adaptive learning state yet for student ${studentId}`);
+                return {
+                    status: "success",
+                    learning_state: null,
+                    initialized: false,
+                    message: "No learning state found yet for this student",
+                };
+            }
+            this.logger.error(`getLearningState failed: ${error.message}`);
+            throw error;
+        }
+    }
     async healthCheck() {
         try {
-            const { data } = await this.timedAiCall('/health', async () => {
+            const { data } = await this.timedAiCall("/health", async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.get(`${this.aiBaseUrl}/health`, { timeout: 5_000 }));
             });
-            return { status: 'ok', model: data.ollama_model };
+            return { status: "ok", model: data.ollama_model };
         }
         catch {
-            return { status: 'unavailable' };
+            return { status: "unavailable" };
         }
     }
     getAiLatencyStats() {
@@ -202,7 +243,7 @@ let AiService = AiService_1 = class AiService {
         }
     }
     tryInitRedis() {
-        const redisUrl = this.configService.get('REDIS_URL', '');
+        const redisUrl = this.configService.get("REDIS_URL", "");
         if (!redisUrl)
             return;
         try {
@@ -210,11 +251,11 @@ let AiService = AiService_1 = class AiService {
                 maxRetriesPerRequest: 1,
                 lazyConnect: true,
             });
-            client.on('error', (err) => {
+            client.on("error", (err) => {
                 this.logger.warn(`Redis cache error: ${err?.message || err}`);
             });
             this.redisClient = client;
-            this.logger.log('Redis cache configured for AiService');
+            this.logger.log("Redis cache configured for AiService");
         }
         catch (error) {
             this.redisClient = null;
@@ -223,7 +264,7 @@ let AiService = AiService_1 = class AiService {
     }
     makeCacheKey(scope, payload) {
         const raw = JSON.stringify(payload);
-        const digest = (0, crypto_1.createHash)('sha256').update(raw).digest('hex');
+        const digest = (0, crypto_1.createHash)("sha256").update(raw).digest("hex");
         return `${this.redisPrefix}:${scope}:${digest}`;
     }
     async getFromCache(key) {
@@ -248,7 +289,7 @@ let AiService = AiService_1 = class AiService {
         this.pruneCache();
         if (this.redisClient) {
             try {
-                await this.redisClient.set(key, JSON.stringify(value), 'PX', this.CACHE_TTL_MS);
+                await this.redisClient.set(key, JSON.stringify(value), "PX", this.CACHE_TTL_MS);
             }
             catch {
             }

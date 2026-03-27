@@ -30,9 +30,9 @@ let UsersService = class UsersService {
         this.activityService = activityService;
     }
     async getProfile(userId) {
-        const user = await this.userModel.findById(userId).select('-password');
+        const user = await this.userModel.findById(userId).select("-password");
         if (!user) {
-            throw new common_1.NotFoundException('User not found');
+            throw new common_1.NotFoundException("User not found");
         }
         const profile = await this.profileModel.findOne({ userId }).exec();
         return {
@@ -57,31 +57,28 @@ let UsersService = class UsersService {
     async updateProfile(userId, updateProfileDto) {
         const user = await this.userModel.findById(userId);
         if (!user) {
-            throw new common_1.NotFoundException('User not found');
+            throw new common_1.NotFoundException("User not found");
         }
-        if (updateProfileDto.first_name) {
+        if (updateProfileDto.first_name)
             user.first_name = updateProfileDto.first_name;
-        }
-        if (updateProfileDto.last_name) {
+        if (updateProfileDto.last_name)
             user.last_name = updateProfileDto.last_name;
-        }
-        if (updateProfileDto.phone) {
+        if (updateProfileDto.phone)
             user.phone = updateProfileDto.phone;
-        }
-        if (user.role === user_schema_1.UserRole.STUDENT && (updateProfileDto.academic_level ||
-            updateProfileDto.risk_level ||
-            updateProfileDto.points_gamification !== undefined)) {
-            let profile = await this.profileModel.findOne({ userId }).exec();
-            if (!profile) {
-                profile = new this.profileModel({ userId });
-            }
+        if (user.role === user_schema_1.UserRole.STUDENT &&
+            (updateProfileDto.academic_level ||
+                updateProfileDto.risk_level ||
+                updateProfileDto.points_gamification !== undefined)) {
+            const updateData = {};
             if (updateProfileDto.academic_level)
-                profile.academic_level = updateProfileDto.academic_level;
+                updateData.academic_level = updateProfileDto.academic_level;
             if (updateProfileDto.risk_level)
-                profile.risk_level = updateProfileDto.risk_level;
+                updateData.risk_level = updateProfileDto.risk_level;
             if (updateProfileDto.points_gamification !== undefined)
-                profile.points_gamification = updateProfileDto.points_gamification;
-            await profile.save();
+                updateData.points_gamification = updateProfileDto.points_gamification;
+            await this.profileModel
+                .findOneAndUpdate({ userId }, { $set: updateData, $setOnInsert: { userId } }, { new: true, upsert: true, setDefaultsOnInsert: true })
+                .exec();
         }
         await user.save();
         await this.activityService.logActivity(userId, activity_schema_1.ActivityAction.PROFILE_UPDATE);
@@ -90,19 +87,28 @@ let UsersService = class UsersService {
     async getUsersByRole(role) {
         let query;
         if (role.toLowerCase() === 'instructor') {
-            query = { role: { $regex: new RegExp(`^(instructor|teacher)$`, 'i') } };
+            query = {
+                role: { $regex: new RegExp(`^(instructor|teacher)$`, 'i') }
+            };
         }
         else {
-            query = { role: { $regex: new RegExp(`^${role}$`, 'i') } };
+            query = {
+                role: { $regex: new RegExp(`^${role}$`, 'i') }
+            };
         }
-        const users = await this.userModel.find(query).select('-password').exec();
-        console.log(`[DEBUG] getUsersByRole('${role}') found ${users.length} users with query:`, query);
+        const users = await this.userModel
+            .find(query)
+            .select('-password')
+            .exec();
+        console.log(`[DEBUG] getUsersByRole('${role}') found ${users.length} users`);
         if (role.toLowerCase() === 'student') {
-            const userIds = users.map(u => u._id);
-            const profiles = await this.profileModel.find({ userId: { $in: userIds } }).exec();
+            const userIds = users.map((u) => u._id);
+            const profiles = await this.profileModel
+                .find({ userId: { $in: userIds } })
+                .exec();
             const profileMap = new Map();
-            profiles.forEach(p => profileMap.set(String(p.userId), p));
-            return users.map(u => {
+            profiles.forEach((p) => profileMap.set(String(p.userId), p));
+            return users.map((u) => {
                 const p = profileMap.get(String(u._id));
                 return {
                     id: u._id,
@@ -120,7 +126,7 @@ let UsersService = class UsersService {
                 };
             });
         }
-        return users.map(u => ({
+        return users.map((u) => ({
             id: u._id,
             first_name: u.first_name,
             last_name: u.last_name,
@@ -134,9 +140,8 @@ let UsersService = class UsersService {
     }
     async updateUserById(id, dto) {
         const user = await this.userModel.findById(id);
-        if (!user) {
-            throw new common_1.NotFoundException('User not found');
-        }
+        if (!user)
+            throw new common_1.NotFoundException("User not found");
         if (dto.first_name)
             user.first_name = dto.first_name;
         if (dto.last_name)
@@ -149,33 +154,31 @@ let UsersService = class UsersService {
             user.role = dto.role;
         if (dto.status)
             user.status = dto.status;
-        if (dto.password) {
+        if (dto.password)
             user.password = await bcrypt.hash(dto.password, 10);
-        }
         await user.save();
-        if (user.role === user_schema_1.UserRole.STUDENT && (dto.academic_level ||
-            dto.risk_level ||
-            dto.points_gamification !== undefined)) {
-            let profile = await this.profileModel.findOne({ userId: id }).exec();
-            if (!profile) {
-                profile = new this.profileModel({ userId: id });
-            }
+        if (user.role === user_schema_1.UserRole.STUDENT &&
+            (dto.academic_level ||
+                dto.risk_level ||
+                dto.points_gamification !== undefined)) {
+            const updateData = {};
             if (dto.academic_level)
-                profile.academic_level = dto.academic_level;
+                updateData.academic_level = dto.academic_level;
             if (dto.risk_level)
-                profile.risk_level = dto.risk_level;
+                updateData.risk_level = dto.risk_level;
             if (dto.points_gamification !== undefined)
-                profile.points_gamification = dto.points_gamification;
-            await profile.save();
+                updateData.points_gamification = dto.points_gamification;
+            await this.profileModel
+                .findOneAndUpdate({ userId: id }, { $set: updateData, $setOnInsert: { userId: id } }, { new: true, upsert: true, setDefaultsOnInsert: true })
+                .exec();
         }
         await this.activityService.logActivity(id, activity_schema_1.ActivityAction.PROFILE_UPDATE);
         return { success: true };
     }
     async deleteUserById(id) {
         const user = await this.userModel.findById(id);
-        if (!user) {
-            throw new common_1.NotFoundException('User not found');
-        }
+        if (!user)
+            throw new common_1.NotFoundException("User not found");
         await this.profileModel.deleteOne({ userId: id }).exec();
         await this.userModel.deleteOne({ _id: id }).exec();
         await this.activityService.logActivity(id, activity_schema_1.ActivityAction.PROFILE_UPDATE);
@@ -183,12 +186,11 @@ let UsersService = class UsersService {
     }
     async createUserByAdmin(dto) {
         const existing = await this.userModel.findOne({ email: dto.email });
-        if (existing) {
-            throw new common_1.ConflictException('Email already exists');
-        }
+        if (existing)
+            throw new common_1.ConflictException("Email already exists");
         const plainPassword = dto.password && dto.password.trim().length >= 6
             ? dto.password
-            : crypto.randomBytes(6).toString('base64').slice(0, 10);
+            : crypto.randomBytes(6).toString("base64").slice(0, 10);
         const hashedPassword = await bcrypt.hash(plainPassword, 10);
         const lastName = dto.last_name && dto.last_name.trim().length > 0
             ? dto.last_name
@@ -205,19 +207,19 @@ let UsersService = class UsersService {
         await user.save();
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587', 10),
-            secure: process.env.SMTP_SECURE === 'true',
+            port: parseInt(process.env.SMTP_PORT || "587", 10),
+            secure: process.env.SMTP_SECURE === "true",
             auth: process.env.SMTP_USER
                 ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
                 : undefined,
         });
-        const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:4200'}/login`;
+        const loginUrl = `${process.env.FRONTEND_URL || "http://localhost:4200"}/login`;
         try {
             if (process.env.SMTP_HOST && process.env.SMTP_USER) {
                 await transporter.sendMail({
                     from: process.env.SMTP_FROM || process.env.SMTP_USER,
                     to: dto.email,
-                    subject: 'Your StartSmart account',
+                    subject: "Your StartSmart account",
                     text: `Hello ${dto.first_name},\n\n` +
                         `An account has been created for you.\n\n` +
                         `Email: ${dto.email}\n` +
@@ -226,17 +228,17 @@ let UsersService = class UsersService {
                 });
             }
             else {
-                console.log('[Admin create user] Credentials (no SMTP configured):', {
+                console.log("[Admin create user] Credentials (no SMTP):", {
                     email: dto.email,
                     password: plainPassword,
                 });
             }
         }
         catch (err) {
-            console.error('Send create-user email failed:', err);
+            console.error("Send create-user email failed:", err);
         }
         return {
-            message: 'User created successfully',
+            message: "User created successfully",
             user: {
                 id: user._id,
                 first_name: user.first_name,

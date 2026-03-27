@@ -15,9 +15,14 @@ export class StudentDashboardComponent implements OnInit {
 
   // Adaptive Learning
   adaptiveProfile: any = null;
+  learningState: any = null;
   recommendations: any[] = [];
   performances: any[] = [];
   adaptiveLoading = true;
+  adaptivePace = 'unknown';
+  adaptiveConfidence = 0;
+  adaptiveMastery = 0;
+  adaptiveMasteryCount = 0;
 
   // Stats
   progress = 0;
@@ -87,6 +92,48 @@ export class StudentDashboardComponent implements OnInit {
 
   loadAdaptiveData(): void {
     const userId = this.user._id || this.user.id;
+
+    // ── Charger état adaptatif courant (AI service) ──
+    this.adaptiveService.getAdaptiveLearningState().subscribe({
+      next: (data) => {
+        const state = data?.learning_state || null;
+        this.learningState = state;
+        this.adaptivePace = state?.pace_mode || 'unknown';
+
+        const rawConfidence = Number(state?.confidence_score ?? 0);
+        this.adaptiveConfidence = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence,
+            ),
+          ),
+        );
+
+        const masteryMap = state?.concept_mastery || {};
+        const masteryValues = Object.values(masteryMap)
+          .map((v: any) => Number(v))
+          .filter((v: number) => Number.isFinite(v));
+        this.adaptiveMasteryCount = masteryValues.length;
+
+        if (masteryValues.length > 0) {
+          const avg =
+            masteryValues.reduce((sum: number, v: number) => sum + v, 0) /
+            masteryValues.length;
+          this.adaptiveMastery = Math.max(0, Math.min(100, Math.round(avg)));
+        } else {
+          this.adaptiveMastery = 0;
+        }
+      },
+      error: () => {
+        this.learningState = null;
+        this.adaptivePace = 'unknown';
+        this.adaptiveConfidence = 0;
+        this.adaptiveMastery = 0;
+        this.adaptiveMasteryCount = 0;
+      },
+    });
 
     // ── Charger profil adaptatif ──
     this.adaptiveService.getProfile(userId).subscribe({

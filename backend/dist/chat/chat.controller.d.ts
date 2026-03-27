@@ -1,5 +1,5 @@
-import { ChatService } from './chat.service';
-import { AiService } from './ai.service';
+import { ChatService } from "./chat.service";
+import { AiService, LearningEventPayload } from "./ai.service";
 export declare class ChatController {
     private readonly chatService;
     private readonly aiService;
@@ -61,4 +61,6 @@ export declare class ChatController {
         student_profile: Record<string, any>;
         n_results?: number;
     }): Promise<any>;
+    recordAdaptiveLearningEvent(req: any, body: LearningEventPayload): Promise<any>;
+    getAdaptiveLearningState(req: any): Promise<any>;
 }
