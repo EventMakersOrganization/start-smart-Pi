@@ -7,3 +7,16 @@
 2026-03-24 22:01:27,271 - ERROR - [embeddings_pipeline] generate_embedding error: the input length exceeds the context length (status code: 400)
 2026-03-24 22:01:27,340 - ERROR - [embeddings_pipeline] generate_embedding error: the input length exceeds the context length (status code: 400)
 2026-03-24 22:12:38,198 - ERROR - [embeddings_pipeline] generate_embedding error: timed out waiting for llama runner to start - progress 0.00 -  (status code: 500)
+2026-03-27 11:56:44,985 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-27 11:56:49,633 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-27 11:57:35,574 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-27 11:57:40,119 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-27 12:29:12,747 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+2026-03-27 12:29:14,864 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+2026-03-27 12:29:16,711 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+2026-03-27 12:37:39,986 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+2026-03-27 12:37:42,016 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+2026-03-27 12:37:44,000 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+2026-03-27 19:42:45,637 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+2026-03-27 19:42:45,673 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)
+2026-03-27 19:42:45,685 - ERROR - [embeddings_pipeline] generate_embedding error: model "nomic-embed-text" not found, try pulling it first (status code: 404)

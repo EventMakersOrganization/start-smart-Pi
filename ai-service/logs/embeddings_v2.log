@@ -453,3 +453,18 @@
 2026-03-26 11:22:37,234 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
 2026-03-26 11:30:12,505 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
 2026-03-27 08:50:55,638 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-27 11:51:02,118 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-27 11:56:44,986 - ERROR - search_chunks: could not embed query
+2026-03-27 11:56:49,633 - ERROR - search_chunks: could not embed query
+2026-03-27 11:57:35,575 - ERROR - search_chunks: could not embed query
+2026-03-27 11:57:40,119 - ERROR - search_chunks: could not embed query
+2026-03-27 12:29:12,748 - ERROR - search_chunks: could not embed query
+2026-03-27 12:29:14,865 - ERROR - search_chunks: could not embed query
+2026-03-27 12:29:16,712 - ERROR - search_chunks: could not embed query
+2026-03-27 12:37:39,986 - ERROR - search_chunks: could not embed query
+2026-03-27 12:37:42,016 - ERROR - search_chunks: could not embed query
+2026-03-27 12:37:44,000 - ERROR - search_chunks: could not embed query
+2026-03-27 19:05:30,304 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-27 19:42:45,639 - ERROR - search_chunks: could not embed query
+2026-03-27 19:42:45,673 - ERROR - search_chunks: could not embed query
+2026-03-27 19:42:45,685 - ERROR - search_chunks: could not embed query
