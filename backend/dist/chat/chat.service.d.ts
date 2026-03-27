@@ -19,7 +19,7 @@ export declare class ChatService {
     createRoom(name: string, participants: string[]): Promise<ChatRoom & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
-    getUserSessions(userId: string): Promise<{
+    getUserSessions(userId: string, role?: string): Promise<{
         ai: import("mongoose").LeanDocument<ChatAi & import("mongoose").Document<any, any, any> & {
             _id: import("mongoose").Types.ObjectId;
         }>[];
@@ -40,4 +40,5 @@ export declare class ChatService {
     }): Promise<ChatMessage & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
+    isParticipant(sessionType: string, sessionId: string, userId: string): Promise<boolean>;
 }

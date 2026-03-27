@@ -30,6 +30,6 @@ import { ActivityModule } from '../activity/activity.module';
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy, RolesGuard, JwtAuthGuard],
   controllers: [AuthController],
-  exports: [AuthService, RolesGuard, JwtAuthGuard],
+  exports: [AuthService, RolesGuard, JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}

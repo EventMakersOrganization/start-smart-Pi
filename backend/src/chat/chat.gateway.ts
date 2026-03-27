@@ -7,40 +7,58 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { AiService } from './ai.service';
+import { Logger, UseGuards } from '@nestjs/common';
+import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private readonly logger = new Logger(ChatGateway.name);
+  private logger: Logger = new Logger('ChatGateway');
+
+  // Track connected users: object key is userId, value is socketId(s)
   private connectedUsers = new Map<string, string[]>();
 
   constructor(
     private readonly chatService: ChatService,
     private readonly aiService: AiService,
-  ) {}
+    private readonly jwtService: JwtService
+  ) { }
 
   async handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (userId) {
-      if (!this.connectedUsers.has(userId)) {
-        this.connectedUsers.set(userId, []);
+    try {
+      const token = client.handshake?.auth?.token || client.handshake?.query?.token;
+      if (!token) {
+        client.disconnect();
+        return;
       }
-      this.connectedUsers.get(userId).push(client.id);
+      const payload = await this.jwtService.verifyAsync(token as string);
+      const userId = payload.sub || payload.id;
+      
+      if (userId) {
+        client.data.user = { id: userId, email: payload.email, role: payload.role };
+        if (!this.connectedUsers.has(userId)) {
+          this.connectedUsers.set(userId, []);
+        }
+        this.connectedUsers.get(userId).push(client.id);
 
-      // Broadcast online status
-      this.server.emit('userStatus', { userId, status: 'online' });
+        // Broadcast online status
+        this.server.emit('userStatus', { userId, status: 'online' });
+        this.logger.log(`Client authenticated: ${userId} (${client.id})`);
+      }
+    } catch (e) {
+      this.logger.error('Connection authentication failed');
+      client.disconnect();
     }
-    console.log(`Client connected: ${client.id}`);
   }
 
   async handleDisconnect(client: Socket) {
-    const userId = client.handshake.query.userId as string;
+    const userId = client.data.user?.id;
     if (userId && this.connectedUsers.has(userId)) {
       const sockets = this.connectedUsers.get(userId);
       const index = sockets.indexOf(client.id);
@@ -56,27 +74,60 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Client disconnected: ${client.id}`);
   }
 
+  @UseGuards(WsJwtGuard)
   @SubscribeMessage('joinRoom')
-  handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() room: string) {
-    client.join(room);
+  async handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionType: string, sessionId: string }) {
+    const userId = client.data.user.id;
+    const userRole = client.data.user.role;
+
+    if (payload.sessionType === 'ChatRoom' && userRole !== 'student') {
+      this.logger.warn(`User ${userId} (role: ${userRole}) attempted to join ChatRoom ${payload.sessionId}`);
+      return;
+    }
+
+    const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
+    
+    if (isAllowed) {
+      client.join(payload.sessionId);
+      this.logger.log(`User ${userId} joined room ${payload.sessionId}`);
+    } else {
+      this.logger.warn(`User ${userId} attempted to join unauthorized room ${payload.sessionId}`);
+    }
   }
 
+  @UseGuards(WsJwtGuard)
   @SubscribeMessage('leaveRoom')
   handleLeaveRoom(@ConnectedSocket() client: Socket, @MessageBody() room: string) {
     client.leave(room);
   }
 
+  @UseGuards(WsJwtGuard)
   @SubscribeMessage('sendMessage')
-  async handleMessage(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: {
-      sessionType: string;
-      sessionId: string;
-      sender: string;
-      content: string;
-    },
-  ) {
-    const message = await this.chatService.saveMessage(payload);
+  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionType: string, sessionId: string, content: string }) {
+    const userId = client.data.user.id;
+    const userRole = client.data.user.role;
+
+    if (payload.sessionType === 'ChatRoom' && userRole !== 'student') {
+      this.logger.warn(`User ${userId} (role: ${userRole}) attempted to send to ChatRoom ${payload.sessionId}`);
+      return;
+    }
+
+    const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
+
+    if (!isAllowed) {
+      this.logger.warn(`User ${userId} attempted to send message to unauthorized room ${payload.sessionId}`);
+      return;
+    }
+
+    // Save to DB with authenticated userId as sender
+    const message = await this.chatService.saveMessage({
+      sessionType: payload.sessionType,
+      sessionId: payload.sessionId,
+      sender: userId,
+      content: payload.content,
+    });
+
+    // Broadcast to room
     this.server.to(payload.sessionId).emit('newMessage', message);
 
     if (payload.sessionType === 'ChatAi') {
@@ -140,9 +191,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return message;
   }
 
+  @UseGuards(WsJwtGuard)
   @SubscribeMessage('typing')
-  handleTyping(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionId: string, sender: string, isTyping: boolean }) {
-    // Broadcast to room except sender
-    client.broadcast.to(payload.sessionId).emit('userTyping', payload);
+  async handleTyping(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionId: string, sessionType: string, isTyping: boolean }) {
+    const userId = client.data.user.id;
+    const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
+    
+    if (isAllowed) {
+      client.broadcast.to(payload.sessionId).emit('userTyping', {
+        sessionId: payload.sessionId,
+        sender: userId,
+        isTyping: payload.isTyping
+      });
+    }
   }
 }

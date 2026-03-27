@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,19 +28,16 @@ export class ChatController {
   }
 
   @Post('room')
-  async createRoom(
-    @Request() req,
-    @Body() body: { name: string; participants: string[] },
-  ) {
-    return this.chatService.createRoom(body.name, [
-      req.user.id,
-      ...body.participants,
-    ]);
+  async createRoom(@Request() req, @Body() body: { name: string; participants: string[] }) {
+    if (req.user.role !== 'student') {
+      throw new UnauthorizedException('Only students can create group chats.');
+    }
+    return this.chatService.createRoom(body.name, [req.user.id, ...body.participants]);
   }
 
   @Get('sessions')
   async getUserSessions(@Request() req) {
-    return this.chatService.getUserSessions(req.user.id);
+    return this.chatService.getUserSessions(req.user.id, req.user.role);
   }
 
   @Get('history/:sessionType/:sessionId')
@@ -62,10 +50,11 @@ export class ChatController {
   }
 
   @Post('send')
-  async sendMessage(
-    @Request() req,
-    @Body() body: { sessionType: string; sessionId: string; content: string },
-  ) {
+  async sendMessage(@Request() req, @Body() body: { sessionType: string, sessionId: string, content: string }) {
+    const isAllowed = await this.chatService.isParticipant(body.sessionType, body.sessionId, req.user.id);
+    if (!isAllowed) {
+      throw new UnauthorizedException('You are not a participant in this chat.');
+    }
     return this.chatService.saveMessage({
       sessionType: body.sessionType,
       sessionId: body.sessionId,

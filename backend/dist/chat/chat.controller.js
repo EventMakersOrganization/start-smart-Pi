@@ -29,18 +29,22 @@ let ChatController = class ChatController {
         return this.chatService.createInstructorSession(req.user.id, body.instructorId);
     }
     async createRoom(req, body) {
-        return this.chatService.createRoom(body.name, [
-            req.user.id,
-            ...body.participants,
-        ]);
+        if (req.user.role !== 'student') {
+            throw new common_1.UnauthorizedException('Only students can create group chats.');
+        }
+        return this.chatService.createRoom(body.name, [req.user.id, ...body.participants]);
     }
     async getUserSessions(req) {
-        return this.chatService.getUserSessions(req.user.id);
+        return this.chatService.getUserSessions(req.user.id, req.user.role);
     }
     async getChatHistory(req, sessionType, sessionId) {
         return this.chatService.getChatHistory(sessionType, sessionId, req.user.id);
     }
     async sendMessage(req, body) {
+        const isAllowed = await this.chatService.isParticipant(body.sessionType, body.sessionId, req.user.id);
+        if (!isAllowed) {
+            throw new common_1.UnauthorizedException('You are not a participant in this chat.');
+        }
         return this.chatService.saveMessage({
             sessionType: body.sessionType,
             sessionId: body.sessionId,

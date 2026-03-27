@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { ChatApiService } from '../services/chat-api.service';
 import { ChatSocketService } from '../services/chat-socket.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-chat-room',
@@ -17,6 +18,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentSessionTitle = '';
   newMessage = '';
   userId = '';
+  userRole = '';
   showNewGroupModal = false;
   newGroupName = '';
   selectedStudents: string[] = [];
@@ -24,14 +26,30 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   constructor(
     private chatApiService: ChatApiService,
-    private chatSocketService: ChatSocketService
+    private chatSocketService: ChatSocketService,
+    private router: Router
   ) { }
 
   ngOnInit() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    this.userId = user._id || user.id || 'mock-user-id';
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        this.userId = payload.sub || payload.id || 'mock-user-id';
+        this.userRole = payload.role || '';
+        
+        if (this.userRole !== 'student') {
+          this.router.navigate([this.getDashboardRoute()]);
+          return;
+        }
+      } catch (e) {
+        this.userId = 'mock-user-id';
+      }
+    } else {
+      this.userId = 'mock-user-id';
+    }
 
-    this.chatSocketService.connect(this.userId);
+    this.chatSocketService.connect();
     this.loadSessions();
     this.loadStudents();
 
@@ -113,7 +131,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.currentSessionId = sessionId;
     this.currentSessionTitle = title;
-    this.chatSocketService.joinRoom(sessionId);
+    this.chatSocketService.joinRoom('ChatRoom', sessionId);
 
     this.chatApiService.getHistory('ChatRoom', sessionId).subscribe({
       next: (msgs: any) => {
@@ -127,7 +145,13 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   sendMessage() {
     if (!this.newMessage.trim() || !this.currentSessionId) return;
 
-    this.chatSocketService.sendMessage('ChatRoom', this.currentSessionId, this.userId, this.newMessage);
+    this.chatSocketService.sendMessage('ChatRoom', this.currentSessionId, this.newMessage);
     this.newMessage = '';
+  }
+
+  getDashboardRoute(): string {
+    if (this.userRole === 'admin') return '/admin';
+    if (this.userRole === 'instructor') return '/instructor/dashboard';
+    return '/student-dashboard';
   }
 }
