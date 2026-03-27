@@ -7,6 +7,7 @@ import re
 import sys
 import time
 import uuid
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -38,8 +39,18 @@ from generation.answer_evaluator import AnswerEvaluator
 from generation.difficulty_classifier import DifficultyClassifier
 from optimization.ai_feedback_loop import AIFeedbackLoop
 from optimization.ai_monitor import AIPerformanceMonitor
+from optimization.eval_benchmark_store import EvalBenchmarkStore
+from optimization.intervention_effectiveness import InterventionEffectivenessTracker
+from optimization.hybrid_response_cache import HybridResponseCache
+from optimization.async_refresh import run_with_timeout, submit_refresh
 from level_test.adaptive_engine import AdaptiveLevelTest
 from level_test.scoring import compute_subject_mastery, generate_student_profile
+from learning_state import StudentStateStore
+from adaptive import AdaptivePolicyEngine, PacingEngine, InterventionEngine
+from generation.tutor_response_builder import TutorResponseBuilder
+from recommendation.continuous_recommender import ContinuousRecommender
+from analytics.learning_analytics_service import LearningAnalyticsService
+from quality.question_guardrails import QuestionGuardrails
 from utils import langchain_ollama
 
 try:
@@ -82,9 +93,26 @@ answer_evaluator = AnswerEvaluator()
 difficulty_classifier = DifficultyClassifier()
 ai_feedback_loop = AIFeedbackLoop()
 ai_monitor = AIPerformanceMonitor()
+eval_benchmark_store = EvalBenchmarkStore()
+intervention_effectiveness_tracker = InterventionEffectivenessTracker()
+response_cache = HybridResponseCache(cache_dir="./response_cache", max_entries=3000, ttl_seconds=3600)
 
 # Sprint 7 singletons
 adaptive_level_test = AdaptiveLevelTest()
+student_state_store = StudentStateStore()
+policy_engine = AdaptivePolicyEngine()
+pacing_engine = PacingEngine()
+intervention_engine = InterventionEngine()
+tutor_response_builder = TutorResponseBuilder()
+continuous_recommender = ContinuousRecommender()
+learning_analytics_service = LearningAnalyticsService()
+question_guardrails = QuestionGuardrails()
+
+# Latency budgets (balanced target)
+CHAT_SOFT_BUDGET = 2.5
+CHAT_HARD_BUDGET = 4.0
+BRAINRUSH_SOFT_BUDGET = 2.5
+BRAINRUSH_HARD_BUDGET = 5.0
 
 # CORS: allow all origins for development (NestJS backend can call this API)
 app.add_middleware(
@@ -172,17 +200,21 @@ class BrainRushQuestionRequest(BaseModel):
     difficulty: str = Field(default="medium", description="easy | medium | hard")
     topic: str = Field(default="general", description="Specific topic")
     question_type: str = Field(default="MCQ", description="MCQ | TrueFalse | DragDrop")
+    student_id: str | None = Field(default=None, description="Optional student for adaptive difficulty")
 
 
 class BrainRushSessionRequest(BaseModel):
     subject: str = Field(..., description="Subject area")
     difficulty: str = Field(default="medium", description="easy | medium | hard")
     num_questions: int = Field(default=10, ge=5, le=50, description="Number of questions")
+    student_id: str | None = Field(default=None, description="Optional student for adaptive difficulty")
 
 
 class ChatbotRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000, description="User question")
     conversation_history: list[dict[str, str]] = Field(default_factory=list, description="Previous messages")
+    student_id: str | None = Field(default=None, description="Optional student for personalized tutoring style")
+    mode: str | None = Field(default=None, description="Optional style override: explain_like_beginner | step_by_step | analogy_fun_mode | challenge_mode")
 
 
 class ValidateAnswerRequest(BaseModel):
@@ -290,6 +322,14 @@ class PersonalizedRecommendationsRequest(BaseModel):
     n_results: int = Field(default=5, ge=1, le=20, description="Number of recommendations")
 
 
+class LearningEventRequest(BaseModel):
+    student_id: str = Field(..., description="Unique student identifier")
+    event_type: str = Field(..., description="quiz | exercise | chat | brainrush")
+    score: float | None = Field(default=None, ge=0, le=100, description="Optional event score 0..100")
+    duration_sec: int | None = Field(default=None, ge=0, le=86400, description="Optional study duration for event")
+    metadata: dict[str, Any] | None = Field(default=None, description="Extra event context")
+
+
 # --- Helpers: file content extraction ---
 
 
@@ -339,6 +379,23 @@ def _sanitize_query(q: str, max_len: int = 2000) -> str:
     if not q or not isinstance(q, str):
         return ""
     return re.sub(r"\s+", " ", q.strip())[:max_len]
+
+
+def _state_hash(state: dict[str, Any] | None) -> str:
+    """Coarse hash of learner state fields relevant to adaptation."""
+    if not state:
+        return "none"
+    payload = {
+        "pace_mode": state.get("pace_mode"),
+        "confidence_score": round(float(state.get("confidence_score", 0.0)), 2),
+        "recent_scores": list(state.get("recent_scores", []))[-5:],
+    }
+    raw = json.dumps(payload, sort_keys=True, default=str)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _cache_key(endpoint: str, payload: dict[str, Any]) -> str:
+    return response_cache.make_key({"endpoint": endpoint, **payload})
 
 
 def _embedding_optimize_metrics(batch_stats: dict[str, Any]) -> dict[str, float]:
@@ -472,11 +529,23 @@ async def root():
             "GET /monitor/stats": "Sprint 6: API performance stats (latency, throughput)",
             "GET /monitor/errors": "Sprint 6: recent failed API requests",
             "GET /monitor/throughput": "Sprint 6: requests per minute",
+            "GET /monitor/eval-benchmark": "Step 5: unified AI quality/latency benchmark snapshot",
+            "POST /monitor/eval-benchmark/run": "Step 5: run + persist eval benchmark snapshot",
+            "GET /monitor/eval-benchmark/history": "Step 5: recent benchmark runs history",
+            "GET /monitor/eval-benchmark/regression": "Step 5: regression check latest run vs baseline",
             "POST /level-test/start": "Sprint 7: start an adaptive level test session",
             "POST /level-test/submit-answer": "Sprint 7: submit answer for current question",
             "POST /level-test/complete": "Sprint 7: finalise level test and get profile",
             "GET /level-test/session/{session_id}": "Sprint 7: get session state",
             "POST /recommendations/personalized": "Sprint 7: personalised learning-path from profile",
+            "GET /learning-state/{student_id}": "Sprint 7+: get persisted adaptive learning state",
+            "POST /learning-state/event": "Sprint 7+: record learning event and refresh pace/confidence",
+            "POST /learning-state/sync-from-level-test/{session_id}": "Sprint 7+: recompute learner state from level-test profile",
+            "GET /analytics/learning/{student_id}": "Sprint 7+: learner dashboard analytics view",
+            "GET /analytics/pace/{student_id}": "Sprint 7+: learner pace trend",
+            "GET /analytics/concepts/{student_id}": "Sprint 7+: concept strengths and weaknesses",
+            "GET /interventions/effectiveness/{student_id}": "Step 4: effectiveness stats for one learner",
+            "GET /interventions/effectiveness": "Step 4: global intervention effectiveness stats",
         },
     }
 
@@ -979,21 +1048,152 @@ async def rag_health():
 @app.post("/brainrush/generate-question")
 async def brainrush_generate_question(body: BrainRushQuestionRequest):
     """Generate a BrainRush question (MCQ, TrueFalse, or DragDrop)."""
+    t0 = time.time()
     try:
+        cache_payload = {
+            "student_id": body.student_id or "",
+            "subject": body.subject,
+            "difficulty": body.difficulty,
+            "topic": body.topic,
+            "question_type": body.question_type,
+        }
+        ckey = _cache_key("/brainrush/generate-question", cache_payload)
+        cached, cache_age_ms = response_cache.get(ckey)
+        if cached is not None:
+            elapsed_cached = time.time() - t0
+            ai_feedback_loop.record_response_latency(
+                "/brainrush/generate-question",
+                elapsed_cached,
+                {"cache_hit": True, "tier_used": "cache", "subject": body.subject, "topic": body.topic},
+            )
+            ai_monitor.record_request(
+                "/brainrush/generate-question",
+                elapsed_cached,
+                True,
+                {"cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache", "llm_called": False, "fallback_used": False},
+            )
+            return {"status": "success", **cached, "cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache"}
+
+        chosen_difficulty = body.difficulty
+        state = None
+        policy = None
+        if body.student_id:
+            state = student_state_store.get_state(body.student_id)
+            conf = float((state or {}).get("confidence_score", 0.5))
+            recent_scores = list((state or {}).get("recent_scores", []))[-3:]
+            pseudo_recent = [{"is_correct": (float(s) >= 50), "response_time_sec": 15} for s in recent_scores]
+            policy = policy_engine.decide_next_difficulty(
+                current_difficulty=body.difficulty,
+                recent_answers=pseudo_recent,
+                confidence_score=conf,
+                hint_used=False,
+            )
+            chosen_difficulty = policy["target_difficulty"]
         qtype = body.question_type.strip().lower()
-        if qtype == "mcq":
-            question = brainrush_generator.generate_mcq(body.subject, body.difficulty, body.topic)
-        elif qtype in ("truefalse", "true/false", "true false"):
-            question = brainrush_generator.generate_true_false(body.subject, body.difficulty, body.topic)
-        elif qtype in ("dragdrop", "drag&drop", "drag and drop"):
-            question = brainrush_generator.generate_drag_drop(body.subject, body.difficulty, body.topic)
-        else:
-            question = brainrush_generator.generate_mcq(body.subject, body.difficulty, body.topic)
+        def _generate_compact():
+            if qtype in ("dragdrop", "drag&drop", "drag and drop"):
+                return brainrush_generator.generate_drag_drop(body.subject, chosen_difficulty, body.topic)
+            if qtype in ("truefalse", "true/false", "true false"):
+                return brainrush_generator.generate_true_false(body.subject, chosen_difficulty, body.topic)
+            return brainrush_generator.generate_mcq(body.subject, chosen_difficulty, body.topic)
+
+        question, timed_out = run_with_timeout(_generate_compact, BRAINRUSH_HARD_BUDGET)
+        tier_used = "compact"
+        fallback_used = False
+        llm_called = True
+        if timed_out or not question:
+            tier_used = "fallback"
+            fallback_used = True
+            llm_called = False
+            question = question_guardrails.fallback_question(body.subject, body.topic, chosen_difficulty)
+
+        q_check = question_guardrails.validate_question(question)
+        if not q_check["is_valid"]:
+            tier_used = "fallback"
+            fallback_used = True
+            question = question_guardrails.fallback_question(body.subject, body.topic, chosen_difficulty)
+            question["quality_issues"] = q_check["issues"]
+            question["validation_confidence"] = q_check["confidence"]
         conf = question.get("validation_confidence", 0.0)
+        ai_feedback_loop.record_question_feedback(
+            {
+                "subject": body.subject,
+                "topic": body.topic,
+                "difficulty": chosen_difficulty,
+                "question": question.get("question", ""),
+            },
+            quality_score=max(0.0, min(100.0, float(conf) * 100.0)),
+            difficulty_matched=(chosen_difficulty == body.difficulty),
+        )
         logger.info("brainrush generate-question: subject=%s topic=%s type=%s confidence=%.2f",
                     body.subject, body.topic, question.get("type"), conf)
-        return {"status": "success", "question": question, "validation_confidence": conf}
+        result = {
+            "status": "success",
+            "question": question,
+            "validation_confidence": conf,
+            "difficulty_policy": policy,
+            "selected_difficulty": chosen_difficulty,
+            "cache_hit": False,
+            "tier_used": tier_used,
+        }
+        response_cache.set(
+            ckey,
+            {
+                "question": question,
+                "validation_confidence": conf,
+                "difficulty_policy": policy,
+                "selected_difficulty": chosen_difficulty,
+                "tier_used": tier_used,
+            },
+        )
+        if tier_used == "fallback":
+            def _refresh_brainrush_q():
+                q2 = _generate_compact()
+                qc2 = question_guardrails.validate_question(q2 or {})
+                if not qc2["is_valid"]:
+                    q2 = question_guardrails.fallback_question(body.subject, body.topic, chosen_difficulty)
+                response_cache.set(
+                    ckey,
+                    {
+                        "question": q2,
+                        "validation_confidence": q2.get("validation_confidence", 0.0),
+                        "difficulty_policy": policy,
+                        "selected_difficulty": chosen_difficulty,
+                        "tier_used": "compact",
+                    },
+                )
+            submit_refresh(_refresh_brainrush_q)
+        ai_monitor.record_request(
+            "/brainrush/generate-question",
+            time.time() - t0,
+            True,
+            {
+                "cache_hit": False,
+                "tier_used": tier_used,
+                "llm_called": llm_called,
+                "fallback_used": fallback_used,
+                "timed_out": timed_out,
+            },
+        )
+        ai_feedback_loop.record_response_latency(
+            "/brainrush/generate-question",
+            time.time() - t0,
+            {
+                "cache_hit": False,
+                "tier_used": tier_used,
+                "subject": body.subject,
+                "topic": body.topic,
+                "difficulty": chosen_difficulty,
+            },
+        )
+        return result
     except Exception as e:  # noqa: BLE001
+        ai_monitor.record_request(
+            "/brainrush/generate-question",
+            time.time() - t0,
+            False,
+            {"error": str(e), "cache_hit": False},
+        )
         logger.exception("brainrush generate-question error")
         raise HTTPException(status_code=500, detail=f"BrainRush question generation failed: {e}")
 
@@ -1001,19 +1201,154 @@ async def brainrush_generate_question(body: BrainRushQuestionRequest):
 @app.post("/brainrush/generate-session")
 async def brainrush_generate_session(body: BrainRushSessionRequest):
     """Generate a mixed BrainRush question set."""
+    t0 = time.time()
     try:
-        questions = brainrush_generator.generate_mixed_question_set(
-            body.subject, body.difficulty, body.num_questions
+        cache_payload = {
+            "student_id": body.student_id or "",
+            "subject": body.subject,
+            "difficulty": body.difficulty,
+            "num_questions": body.num_questions,
+        }
+        ckey = _cache_key("/brainrush/generate-session", cache_payload)
+        cached, cache_age_ms = response_cache.get(ckey)
+        if cached is not None:
+            elapsed_cached = time.time() - t0
+            ai_feedback_loop.record_response_latency(
+                "/brainrush/generate-session",
+                elapsed_cached,
+                {"cache_hit": True, "tier_used": "cache", "subject": body.subject},
+            )
+            ai_monitor.record_request(
+                "/brainrush/generate-session",
+                elapsed_cached,
+                True,
+                {"cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache", "llm_called": False, "fallback_used": False},
+            )
+            return {"status": "success", **cached, "cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache"}
+
+        chosen_difficulty = body.difficulty
+        policy = None
+        if body.student_id:
+            state = student_state_store.get_state(body.student_id)
+            conf = float((state or {}).get("confidence_score", 0.5))
+            recent_scores = list((state or {}).get("recent_scores", []))[-3:]
+            pseudo_recent = [{"is_correct": (float(s) >= 50), "response_time_sec": 15} for s in recent_scores]
+            policy = policy_engine.decide_next_difficulty(
+                current_difficulty=body.difficulty,
+                recent_answers=pseudo_recent,
+                confidence_score=conf,
+                hint_used=False,
+            )
+            chosen_difficulty = policy["target_difficulty"]
+        questions, timed_out = run_with_timeout(
+            brainrush_generator.generate_mixed_question_set,
+            BRAINRUSH_HARD_BUDGET,
+            body.subject,
+            chosen_difficulty,
+            body.num_questions,
         )
+        tier_used = "compact"
+        fallback_used = False
+        llm_called = True
+        if timed_out or not questions:
+            tier_used = "fallback"
+            fallback_used = True
+            llm_called = False
+            questions = [
+                question_guardrails.fallback_question(body.subject, "general", chosen_difficulty)
+                for _ in range(body.num_questions)
+            ]
+        cleaned = []
+        for q in questions:
+            qc = question_guardrails.validate_question(q)
+            if qc["is_valid"]:
+                cleaned.append(q)
+            else:
+                tier_used = "fallback"
+                fallback_used = True
+                cleaned.append(question_guardrails.fallback_question(body.subject, q.get("topic", "general"), chosen_difficulty))
+        questions = cleaned
         total_points = sum(q.get("points", 0) for q in questions)
+        avg_q_conf = 0.0
+        if questions:
+            conf_vals = [float((q or {}).get("validation_confidence", 0.0)) for q in questions]
+            avg_q_conf = sum(conf_vals) / max(len(conf_vals), 1)
+        ai_feedback_loop.record_signal(
+            "question_quality",
+            max(0.0, min(100.0, avg_q_conf * 100.0)),
+            {
+                "subject": body.subject,
+                "difficulty": chosen_difficulty,
+                "count": len(questions),
+                "question_type": "mixed",
+            },
+        )
         logger.info("brainrush generate-session: subject=%s num=%s total_pts=%s",
                     body.subject, len(questions), total_points)
-        return {
+        result = {
             "status": "success",
             "questions": questions,
-            "session_info": {"total_points": total_points, "avg_difficulty": body.difficulty},
+            "session_info": {"total_points": total_points, "avg_difficulty": chosen_difficulty},
+            "difficulty_policy": policy,
+            "cache_hit": False,
+            "tier_used": tier_used,
         }
+        response_cache.set(
+            ckey,
+            {
+                "questions": questions,
+                "session_info": {"total_points": total_points, "avg_difficulty": chosen_difficulty},
+                "difficulty_policy": policy,
+                "tier_used": tier_used,
+            },
+        )
+        if tier_used == "fallback":
+            def _refresh_brainrush_session():
+                qset = brainrush_generator.generate_mixed_question_set(body.subject, chosen_difficulty, body.num_questions)
+                cleaned2 = []
+                for q in qset:
+                    qc = question_guardrails.validate_question(q)
+                    cleaned2.append(q if qc["is_valid"] else question_guardrails.fallback_question(body.subject, q.get("topic", "general"), chosen_difficulty))
+                response_cache.set(
+                    ckey,
+                    {
+                        "questions": cleaned2,
+                        "session_info": {"total_points": sum(q.get("points", 0) for q in cleaned2), "avg_difficulty": chosen_difficulty},
+                        "difficulty_policy": policy,
+                        "tier_used": "compact",
+                    },
+                )
+            submit_refresh(_refresh_brainrush_session)
+        ai_monitor.record_request(
+            "/brainrush/generate-session",
+            time.time() - t0,
+            True,
+            {
+                "cache_hit": False,
+                "tier_used": tier_used,
+                "llm_called": llm_called,
+                "fallback_used": fallback_used,
+                "timed_out": timed_out,
+            },
+        )
+        ai_feedback_loop.record_response_latency(
+            "/brainrush/generate-session",
+            time.time() - t0,
+            {
+                "cache_hit": False,
+                "tier_used": tier_used,
+                "subject": body.subject,
+                "difficulty": chosen_difficulty,
+            },
+        )
+        return result
     except Exception as e:  # noqa: BLE001
+        ai_monitor.record_request(
+            "/brainrush/generate-session",
+            time.time() - t0,
+            False,
+            {"error": str(e), "cache_hit": False},
+        )
         logger.exception("brainrush generate-session error")
         raise HTTPException(status_code=500, detail=f"BrainRush session generation failed: {e}")
 
@@ -1035,22 +1370,72 @@ async def brainrush_topics(subject: str):
 @app.post("/chatbot/ask")
 async def chatbot_ask(body: ChatbotRequest):
     """Chatbot Q&A with RAG context and hallucination prevention."""
+    t0 = time.time()
     try:
-        prompt = prompt_builder.build_chatbot_prompt(body.question, body.conversation_history)
-        prompt = hallucination_guard_instance.add_hallucination_prevention_instructions(prompt)
-        logger.info("chatbot ask: question=%s  prompt_len=%d", body.question[:80], len(prompt))
-        response = langchain_ollama.generate_response(prompt)
-        logger.info("chatbot ask: response_len=%d", len(response))
+        state = student_state_store.get_state(body.student_id) if body.student_id else None
+        state_sig = _state_hash(state)
+        cache_payload = {
+            "student_id": body.student_id or "",
+            "question": body.question,
+            "history_tail": body.conversation_history[-4:],
+            "mode": body.mode or "",
+            "state_sig": state_sig,
+        }
+        ckey = _cache_key("/chatbot/ask", cache_payload)
+        cached, cache_age_ms = response_cache.get(ckey)
+        if cached is not None:
+            elapsed_cached = time.time() - t0
+            ai_feedback_loop.record_response_latency(
+                "/chatbot/ask",
+                elapsed_cached,
+                {"cache_hit": True, "tier_used": "cache", "student_id": body.student_id or ""},
+            )
+            ai_monitor.record_request(
+                "/chatbot/ask",
+                elapsed_cached,
+                True,
+                {"cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache", "llm_called": False, "fallback_used": False},
+            )
+            return {"status": "success", **cached, "cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache"}
 
+        # Tier B: compact prompt + top 3 chunks
         chunks = embeddings_pipeline_v2.search_chunks(
-            body.question, n_results=8, collection_name=embeddings_pipeline_v2.DEFAULT_CHUNK_COLLECTION
+            body.question,
+            n_results=3,
+            collection_name=embeddings_pipeline_v2.DEFAULT_CHUNK_COLLECTION,
         )
-        logger.info("chatbot ask: search returned %d chunks", len(chunks))
+        context_quick = "\n\n".join((c.get("chunk_text") or "")[:350] for c in chunks[:3])
+        compact_prompt = (
+            "You are an educational assistant. Use ONLY this context.\n"
+            "If uncertain, say so.\n"
+            f"Context:\n{context_quick}\n\n"
+            f"Question: {body.question}\n"
+            "Answer in <=5 short lines."
+        )
+        quick_answer, quick_timeout = run_with_timeout(langchain_ollama.generate_response, CHAT_SOFT_BUDGET, compact_prompt)
+        tier_used = "compact"
+        llm_called = True
+        fallback_used = False
+        if quick_timeout or not quick_answer:
+            tier_used = "fallback"
+            llm_called = False
+            fallback_used = True
+            quick_answer = "I need a bit more context. Try asking with a specific concept (e.g. variables, loops, functions)."
 
-        context_for_validation = "\n".join(
-            (c.get("chunk_text") or "") for c in chunks
-        )
-        pp = hallucination_guard_instance.post_process_response(response, context_for_validation)
+        elapsed = time.time() - t0
+        use_full = elapsed < CHAT_SOFT_BUDGET and quick_answer and not quick_timeout
+        final_answer = quick_answer
+        if use_full:
+            # Tier C: full path but bounded by hard budget remainder
+            prompt = prompt_builder.build_chatbot_prompt(body.question, body.conversation_history)
+            prompt = hallucination_guard_instance.add_hallucination_prevention_instructions(prompt)
+            remaining = max(0.3, CHAT_HARD_BUDGET - (time.time() - t0))
+            full_answer, full_timeout = run_with_timeout(langchain_ollama.generate_response, remaining, prompt)
+            if full_answer and not full_timeout:
+                final_answer = full_answer
+                tier_used = "full"
+            elif full_timeout:
+                tier_used = "compact"
 
         sources = [
             {
@@ -1061,13 +1446,108 @@ async def chatbot_ask(body: ChatbotRequest):
             }
             for c in chunks
         ]
-        return {
+        context_for_validation = "\n".join((c.get("chunk_text") or "") for c in chunks)
+        pp = hallucination_guard_instance.post_process_response(final_answer, context_for_validation)
+        val = pp.get("validation", {}) if isinstance(pp, dict) else {}
+        grounded_conf = float(val.get("confidence", 0.0)) if isinstance(val, dict) else 0.0
+        hallucination_risk = max(0.0, min(1.0, 1.0 - grounded_conf))
+        ai_feedback_loop.record_hallucination(
+            response_preview=pp.get("cleaned_response", ""),
+            confidence=hallucination_risk,
+            metadata={"endpoint": "/chatbot/ask", "tier_used": tier_used, "student_id": body.student_id or ""},
+        )
+
+        pace_decision = pacing_engine.decide(state)
+        selected_style = body.mode or tutor_response_builder.select_style(
+            pace_mode=pace_decision.get("pace_mode", "slow"),
+            confidence_score=float((state or {}).get("confidence_score", 0.4)),
+        )
+        pedagogical = tutor_response_builder.build(
+            question=body.question,
+            raw_answer=pp.get("cleaned_response", ""),
+            style=selected_style,
+            sources=sources,
+        )
+        intervention = intervention_engine.evaluate(
+            recent_answers=[(state or {}).get("last_event", {})] if state else [],
+            confidence_score=float((state or {}).get("confidence_score", 0.4)),
+        )
+        result = {
             "status": "success",
             "answer": pp.get("cleaned_response", ""),
             "validation": pp.get("validation", {}),
             "sources": sources,
+            "pedagogical_response": pedagogical,
+            "pace_decision": pace_decision,
+            "intervention": intervention,
+            "cache_hit": False,
+            "tier_used": tier_used,
         }
+        response_cache.set(
+            ckey,
+            {
+                "answer": pp.get("cleaned_response", ""),
+                "validation": pp.get("validation", {}),
+                "sources": sources,
+                "pedagogical_response": pedagogical,
+                "pace_decision": pace_decision,
+                "intervention": intervention,
+                "tier_used": tier_used,
+            },
+        )
+
+        # If we returned non-full tier, warm full result in background for next call.
+        if tier_used != "full":
+            def _refresh_full():
+                prompt2 = prompt_builder.build_chatbot_prompt(body.question, body.conversation_history)
+                prompt2 = hallucination_guard_instance.add_hallucination_prevention_instructions(prompt2)
+                full = langchain_ollama.generate_response(prompt2)
+                pp2 = hallucination_guard_instance.post_process_response(full, context_for_validation)
+                response_cache.set(
+                    ckey,
+                    {
+                        "answer": pp2.get("cleaned_response", ""),
+                        "validation": pp2.get("validation", {}),
+                        "sources": sources,
+                        "pedagogical_response": pedagogical,
+                        "pace_decision": pace_decision,
+                        "intervention": intervention,
+                        "tier_used": "full",
+                    },
+                )
+            submit_refresh(_refresh_full)
+
+        ai_monitor.record_request(
+            "/chatbot/ask",
+            time.time() - t0,
+            True,
+            {
+                "cache_hit": False,
+                "tier_used": tier_used,
+                "llm_called": llm_called,
+                "fallback_used": fallback_used,
+                "soft_budget_s": CHAT_SOFT_BUDGET,
+                "hard_budget_s": CHAT_HARD_BUDGET,
+            },
+        )
+        ai_feedback_loop.record_response_latency(
+            "/chatbot/ask",
+            time.time() - t0,
+            {
+                "cache_hit": False,
+                "tier_used": tier_used,
+                "student_id": body.student_id or "",
+                "mode": body.mode or "",
+            },
+        )
+        return result
     except Exception as e:  # noqa: BLE001
+        ai_monitor.record_request(
+            "/chatbot/ask",
+            time.time() - t0,
+            False,
+            {"error": str(e), "cache_hit": False},
+        )
         logger.exception("chatbot ask error")
         raise HTTPException(status_code=500, detail=f"Chatbot failed: {e}")
 
@@ -1478,6 +1958,81 @@ async def monitor_throughput(minutes: int = Query(default=60, ge=1, le=1440)):
         raise HTTPException(status_code=500, detail=f"Throughput check failed: {e}")
 
 
+@app.get("/monitor/eval-benchmark")
+async def monitor_eval_benchmark(last_n: int = Query(default=200, ge=20, le=5000)):
+    """Unified benchmark snapshot for quality, safety, and intervention outcomes."""
+    try:
+        latency = ai_feedback_loop.get_signal_stats("response_latency", last_n=last_n)
+        accuracy = ai_feedback_loop.get_signal_stats("answer_accuracy", last_n=last_n)
+        hallucination = ai_feedback_loop.get_signal_stats("hallucination", last_n=last_n)
+        user_rating = ai_feedback_loop.get_signal_stats("user_rating", last_n=last_n)
+        intervention_stats = intervention_effectiveness_tracker.get_stats(student_id=None, last_n=last_n)
+
+        quality_gate = {
+            "latency_ok": float(latency.get("mean", 99.0)) <= 2.5 if latency.get("count") else False,
+            "accuracy_ok": float(accuracy.get("mean", 0.0)) >= 0.7 if accuracy.get("count") else False,
+            "hallucination_ok": float(hallucination.get("mean", 1.0)) <= 0.2 if hallucination.get("count") else True,
+            "rating_ok": float(user_rating.get("mean", 0.0)) >= 3.8 if user_rating.get("count") else False,
+            "intervention_ok": float(intervention_stats.get("effective_rate", 0.0)) >= 0.55
+            if intervention_stats.get("count")
+            else False,
+        }
+        passed = all(quality_gate.values())
+        payload = {
+            "status": "success",
+            "passed": passed,
+            "quality_gate": quality_gate,
+            "signals": {
+                "response_latency": latency,
+                "answer_accuracy": accuracy,
+                "hallucination": hallucination,
+                "user_rating": user_rating,
+            },
+            "interventions": intervention_stats,
+        }
+        return payload
+    except Exception as e:  # noqa: BLE001
+        logger.exception("monitor/eval-benchmark error")
+        raise HTTPException(status_code=500, detail=f"Eval benchmark failed: {e}")
+
+
+@app.post("/monitor/eval-benchmark/run")
+async def monitor_eval_benchmark_run(last_n: int = Query(default=200, ge=20, le=5000)):
+    """Run benchmark and persist snapshot for trend analysis."""
+    result = await monitor_eval_benchmark(last_n=last_n)
+    run_id = eval_benchmark_store.save_run(
+        {
+            "passed": result.get("passed"),
+            "quality_gate": result.get("quality_gate", {}),
+            "signals": result.get("signals", {}),
+            "interventions": result.get("interventions", {}),
+            "last_n": last_n,
+        }
+    )
+    regression = eval_benchmark_store.regression_report(last_n_baseline=10)
+    return {"status": "success", "run_id": run_id, "benchmark": result, "regression": regression}
+
+
+@app.get("/monitor/eval-benchmark/history")
+async def monitor_eval_benchmark_history(last_n: int = Query(default=30, ge=1, le=500)):
+    """Get recent persisted benchmark runs."""
+    try:
+        return {"status": "success", "runs": eval_benchmark_store.history(last_n=last_n)}
+    except Exception as e:  # noqa: BLE001
+        logger.exception("monitor/eval-benchmark/history error")
+        raise HTTPException(status_code=500, detail=f"Eval benchmark history failed: {e}")
+
+
+@app.get("/monitor/eval-benchmark/regression")
+async def monitor_eval_benchmark_regression(last_n_baseline: int = Query(default=10, ge=1, le=100)):
+    """Detect whether latest persisted benchmark regressed vs recent baseline."""
+    try:
+        return {"status": "success", **eval_benchmark_store.regression_report(last_n_baseline=last_n_baseline)}
+    except Exception as e:  # noqa: BLE001
+        logger.exception("monitor/eval-benchmark/regression error")
+        raise HTTPException(status_code=500, detail=f"Eval benchmark regression failed: {e}")
+
+
 # ==========================================================================
 # Sprint 7: Adaptive level test & personalised recommendations
 # ==========================================================================
@@ -1519,8 +2074,9 @@ async def level_test_complete(body: LevelTestCompleteRequest):
     t0 = time.time()
     try:
         profile = adaptive_level_test.complete_test(body.session_id)
+        state = student_state_store.upsert_from_level_test(profile, body.session_id)
         ai_monitor.record_request("/level-test/complete", time.time() - t0, True)
-        return {"status": "success", "profile": profile}
+        return {"status": "success", "profile": profile, "learning_state": state}
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
@@ -1570,17 +2126,205 @@ async def recommendations_personalized(body: PersonalizedRecommendationsRequest)
                 "relevant_material_preview": rag_context[:500] if rag_context else "",
             })
 
+        continuous = []
+        student_id = str(profile.get("student_id") or "")
+        if student_id:
+            ls = student_state_store.get_state(student_id) or {}
+            continuous = continuous_recommender.recommend(ls, n_results=body.n_results)
         ai_monitor.record_request("/recommendations/personalized", time.time() - t0, True)
         return {
             "status": "success",
             "overall_level": profile.get("overall_level", ""),
             "overall_mastery": profile.get("overall_mastery", 0),
             "recommendations": enriched,
+            "continuous_recommendations": continuous,
         }
     except Exception as e:
         ai_monitor.record_request("/recommendations/personalized", time.time() - t0, False, {"error": str(e)})
         logger.exception("recommendations/personalized error")
         raise HTTPException(status_code=500, detail=f"Personalized recommendations failed: {e}")
+
+
+@app.get("/learning-state/{student_id}")
+async def get_learning_state(student_id: str):
+    """Get the persisted learner state for a student."""
+    try:
+        state = student_state_store.get_state(student_id)
+        if not state:
+            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+        return {"status": "success", "learning_state": state}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("learning-state/get error")
+        raise HTTPException(status_code=500, detail=f"Failed to get learning state: {e}")
+
+
+@app.post("/learning-state/event")
+async def record_learning_event(body: LearningEventRequest):
+    """Record one learning event and update pace/confidence/engagement."""
+    t0 = time.time()
+    try:
+        state = student_state_store.record_learning_event(
+            student_id=body.student_id,
+            event_type=body.event_type,
+            score=body.score,
+            duration_sec=body.duration_sec,
+            metadata=body.metadata,
+        )
+        pace_decision = pacing_engine.decide(state)
+        concept = ""
+        if body.metadata and isinstance(body.metadata, dict):
+            concept = str(body.metadata.get("concept", body.metadata.get("topic", ""))).strip().lower().replace(" ", "_")
+        concept_events = list((state or {}).get("concept_events", []))
+        if concept:
+            relevant = [e for e in concept_events if str(e.get("concept", "")) == concept][-5:]
+        else:
+            relevant = concept_events[-5:]
+        intervention = intervention_engine.evaluate(
+            recent_answers=relevant,
+            confidence_score=float((state or {}).get("confidence_score", 0.4)),
+        )
+        effectiveness_outcome = None
+        if concept and body.score is not None:
+            # Resolve any pending intervention first with this new score.
+            effectiveness_outcome = intervention_effectiveness_tracker.resolve_with_event(
+                student_id=body.student_id,
+                concept=concept,
+                new_score=body.score,
+                metadata={"event_type": body.event_type},
+            )
+        if concept and intervention.get("triggered"):
+            intervention_effectiveness_tracker.register_intervention(
+                student_id=body.student_id,
+                concept=concept,
+                intervention_type=str(intervention.get("type", "unknown")),
+                baseline_score=body.score,
+                metadata={"recommended_action": intervention.get("recommended_action")},
+            )
+        effectiveness_stats = intervention_effectiveness_tracker.get_stats(student_id=body.student_id, last_n=100)
+        continuous = continuous_recommender.recommend(state, n_results=5)
+        ai_monitor.record_request("/learning-state/event", time.time() - t0, True)
+        return {
+            "status": "success",
+            "learning_state": state,
+            "pace_decision": pace_decision,
+            "intervention": intervention,
+            "intervention_effectiveness_outcome": effectiveness_outcome,
+            "intervention_effectiveness_stats": effectiveness_stats,
+            "continuous_recommendations": continuous,
+        }
+    except ValueError as ve:
+        ai_monitor.record_request("/learning-state/event", time.time() - t0, False, {"error": str(ve)})
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        ai_monitor.record_request("/learning-state/event", time.time() - t0, False, {"error": str(e)})
+        logger.exception("learning-state/event error")
+        raise HTTPException(status_code=500, detail=f"Failed to record learning event: {e}")
+
+
+@app.post("/learning-state/sync-from-level-test/{session_id}")
+async def sync_learning_state_from_level_test(session_id: str):
+    """Rebuild learner state from an existing level-test session/profile."""
+    t0 = time.time()
+    try:
+        session = adaptive_level_test.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        profile = session.get("profile")
+        if not profile:
+            profile = generate_student_profile(session)
+        state = student_state_store.upsert_from_level_test(profile, session_id=session_id)
+        ai_monitor.record_request("/learning-state/sync-from-level-test", time.time() - t0, True)
+        return {"status": "success", "profile": profile, "learning_state": state}
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        ai_monitor.record_request("/learning-state/sync-from-level-test", time.time() - t0, False, {"error": str(ve)})
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        ai_monitor.record_request("/learning-state/sync-from-level-test", time.time() - t0, False, {"error": str(e)})
+        logger.exception("learning-state/sync-from-level-test error")
+        raise HTTPException(status_code=500, detail=f"Failed to sync learning state: {e}")
+
+
+@app.get("/analytics/learning/{student_id}")
+async def analytics_learning(student_id: str):
+    """Full learner analytics payload for dashboard."""
+    try:
+        state = student_state_store.get_state(student_id)
+        if not state:
+            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+        recs = continuous_recommender.recommend(state, n_results=5)
+        return {
+            "status": "success",
+            "daily_progress": learning_analytics_service.daily_progress(state),
+            "concepts": learning_analytics_service.concept_strengths_weaknesses(state),
+            "pace": learning_analytics_service.pace_trend(state),
+            "predicted_success": learning_analytics_service.predicted_success(recs),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("analytics/learning error")
+        raise HTTPException(status_code=500, detail=f"Analytics learning failed: {e}")
+
+
+@app.get("/analytics/pace/{student_id}")
+async def analytics_pace(student_id: str):
+    """Learner pace trend summary."""
+    try:
+        state = student_state_store.get_state(student_id)
+        if not state:
+            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+        return {"status": "success", **learning_analytics_service.pace_trend(state)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("analytics/pace error")
+        raise HTTPException(status_code=500, detail=f"Analytics pace failed: {e}")
+
+
+@app.get("/analytics/concepts/{student_id}")
+async def analytics_concepts(student_id: str):
+    """Concept mastery strengths and weaknesses."""
+    try:
+        state = student_state_store.get_state(student_id)
+        if not state:
+            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+        return {"status": "success", **learning_analytics_service.concept_strengths_weaknesses(state)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("analytics/concepts error")
+        raise HTTPException(status_code=500, detail=f"Analytics concepts failed: {e}")
+
+
+@app.get("/interventions/effectiveness/{student_id}")
+async def interventions_effectiveness_student(student_id: str):
+    """Intervention effectiveness statistics for a specific learner."""
+    try:
+        return {
+            "status": "success",
+            "student_id": student_id,
+            "stats": intervention_effectiveness_tracker.get_stats(student_id=student_id, last_n=300),
+        }
+    except Exception as e:
+        logger.exception("interventions/effectiveness/{student_id} error")
+        raise HTTPException(status_code=500, detail=f"Intervention effectiveness failed: {e}")
+
+
+@app.get("/interventions/effectiveness")
+async def interventions_effectiveness_global():
+    """Global intervention effectiveness statistics."""
+    try:
+        return {
+            "status": "success",
+            "stats": intervention_effectiveness_tracker.get_stats(student_id=None, last_n=500),
+        }
+    except Exception as e:
+        logger.exception("interventions/effectiveness error")
+        raise HTTPException(status_code=500, detail=f"Global intervention effectiveness failed: {e}")
 
 
 if __name__ == "__main__":

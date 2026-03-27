@@ -277,6 +277,8 @@ class TestLevelTestScoringUnit:
         assert profile["student_id"] == "test-student"
         assert profile["overall_level"] in ("beginner", "intermediate", "advanced")
         assert len(profile["subjects"]) == 2
+        assert "concept_mastery" in profile
+        assert isinstance(profile["concept_mastery"], dict)
         assert len(profile["recommendations"]) == 2
 
     def test_adapt_difficulty(self):
