@@ -249,7 +249,7 @@
       </div>
 
       <!-- ── Stats Cards ── -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Progress -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-3">
@@ -265,77 +265,80 @@
               >
             </div>
           </div>
-          <p class="text-3xl font-black text-slate-900">{{ progress }}%</p>
+          <p class="text-3xl font-black text-slate-900">
+            {{ analyticsProgressScore }}%
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            {{ analyticsAttempts }} attempt(s) · {{ analyticsTrend }}
+          </p>
           <div class="mt-2 w-full bg-slate-100 h-1.5 rounded-full">
             <div
               class="bg-primary h-full rounded-full"
-              [style.width.%]="progress"
+              [style.width.%]="analyticsProgressScore"
             ></div>
           </div>
         </div>
 
-        <!-- Performance -->
+        <!-- Concepts -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-3">
             <span
               class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Avg Score</span
+              >Concepts</span
             >
             <div
               class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"
             >
               <span class="material-symbols-outlined text-emerald-600 text-sm"
-                >grade</span
+                >psychology</span
               >
             </div>
           </div>
           <p class="text-3xl font-black text-slate-900">
-            {{ performance || 0 }}%
+            {{ strongConceptsCount }}/{{
+              strongConceptsCount + weakConceptsCount || 0
+            }}
           </p>
           <p class="text-xs text-slate-500 mt-1">
-            {{ performances.length }} exercises done
+            {{ strongConceptsCount }} strong · {{ weakConceptsCount }} weak
           </p>
         </div>
 
-        <!-- Streak -->
+        <!-- Predicted Success -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
           <div class="flex items-center justify-between mb-3">
             <span
               class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Streak</span
-            >
-            <div
-              class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center"
-            >
-              <span class="material-symbols-outlined text-orange-500 text-sm"
-                >local_fire_department</span
-              >
-            </div>
-          </div>
-          <p class="text-3xl font-black text-slate-900">{{ learningStreak }}</p>
-          <p class="text-xs text-slate-500 mt-1">days in a row</p>
-        </div>
-
-        <!-- Completed -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <span
-              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Completed</span
+              >Predicted Success</span
             >
             <div
               class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"
             >
               <span class="material-symbols-outlined text-purple-600 text-sm"
-                >task_alt</span
+                >insights</span
               >
             </div>
           </div>
           <p class="text-3xl font-black text-slate-900">
-            {{ completedModules }}
+            {{ predictedSuccessTop }}%
           </p>
-          <p class="text-xs text-slate-500 mt-1">exercises ≥ 70%</p>
+          <p class="text-xs text-slate-500 mt-1">
+            {{ predictedSuccessCount }} recommendation(s)
+          </p>
         </div>
+      </div>
+
+      <div *ngIf="analyticsLoading" class="text-xs text-slate-500 -mt-2">
+        Loading learning analytics...
+      </div>
+      <div
+        *ngIf="!analyticsLoading && !analyticsError && analyticsMessage"
+        class="text-xs text-amber-600 -mt-2"
+      >
+        {{ analyticsMessage }}
+      </div>
+      <div *ngIf="analyticsError" class="text-xs text-red-500 -mt-2">
+        {{ analyticsError }}
       </div>
 
       <!-- ── Adaptive State Snapshot ── -->
@@ -637,7 +640,6 @@
         <!-- ── Strengths & Weaknesses ── -->
         <div
           class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"
-          *ngIf="adaptiveProfile"
         >
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
             <span class="material-symbols-outlined text-emerald-500"
@@ -645,7 +647,29 @@
             >
             Strengths
           </h3>
-          <div class="space-y-2" *ngIf="adaptiveProfile?.strengths?.length > 0">
+          <div class="space-y-2" *ngIf="conceptStrengths.length > 0">
+            <div
+              *ngFor="let s of conceptStrengths"
+              class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100"
+            >
+              <span class="material-symbols-outlined text-emerald-500 text-sm"
+                >check_circle</span
+              >
+              <span class="text-sm font-semibold text-emerald-800 capitalize">{{
+                s?.concept
+              }}</span>
+              <span class="ml-auto text-xs text-emerald-700 font-bold">
+                {{ s?.mastery || 0 | number: "1.0-0" }}%
+              </span>
+            </div>
+          </div>
+          <div
+            class="space-y-2"
+            *ngIf="
+              conceptStrengths.length === 0 &&
+              adaptiveProfile?.strengths?.length > 0
+            "
+          >
             <div
               *ngFor="let s of adaptiveProfile.strengths"
               class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100"
@@ -659,7 +683,10 @@
             </div>
           </div>
           <p
-            *ngIf="!adaptiveProfile?.strengths?.length"
+            *ngIf="
+              conceptStrengths.length === 0 &&
+              !adaptiveProfile?.strengths?.length
+            "
             class="text-sm text-slate-400 italic"
           >
             Complete your level test to discover your strengths.
@@ -668,7 +695,6 @@
 
         <div
           class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"
-          *ngIf="adaptiveProfile"
         >
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
             <span class="material-symbols-outlined text-orange-500"
@@ -676,9 +702,29 @@
             >
             Areas to Improve
           </h3>
+          <div class="space-y-2" *ngIf="conceptWeaknesses.length > 0">
+            <div
+              *ngFor="let w of conceptWeaknesses"
+              class="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100"
+            >
+              <span class="material-symbols-outlined text-orange-500 text-sm"
+                >priority_high</span
+              >
+              <span class="text-sm font-semibold text-orange-800 capitalize">{{
+                w?.concept
+              }}</span>
+              <span class="ml-auto text-xs text-orange-700 font-bold"
+                >{{ w?.mastery || 0 | number: "1.0-0" }}%</span
+              >
+              <span class="text-xs text-orange-600 font-bold">Needs work</span>
+            </div>
+          </div>
           <div
             class="space-y-2"
-            *ngIf="adaptiveProfile?.weaknesses?.length > 0"
+            *ngIf="
+              conceptWeaknesses.length === 0 &&
+              adaptiveProfile?.weaknesses?.length > 0
+            "
           >
             <div
               *ngFor="let w of adaptiveProfile.weaknesses"
@@ -696,11 +742,1533 @@
             </div>
           </div>
           <p
-            *ngIf="!adaptiveProfile?.weaknesses?.length"
+            *ngIf="
+              conceptWeaknesses.length === 0 &&
+              !adaptiveProfile?.weaknesses?.length
+            "
             class="text-sm text-slate-400 italic"
           >
             No weak areas detected yet.
           </p>
+          <p *ngIf="conceptsMessage" class="text-xs text-slate-500 mt-3">
+            {{ conceptsMessage }}
+          </p>
+        </div>
+
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-indigo-500"
+                >monitoring</span
+              >
+              Intervention Effectiveness
+            </h3>
+            <div class="text-right">
+              <span class="text-xs text-slate-500 block"
+                >Global pedagogical monitoring</span
+              >
+              <span
+                *ngIf="interventionsLastUpdatedAt"
+                class="text-[11px] text-slate-400"
+              >
+                Last updated: {{ getInterventionsLastUpdatedRelative() }}
+              </span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div
+              class="p-4 rounded-xl border"
+              [ngClass]="getEffectiveRateCardClass()"
+            >
+              <p
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Effective Rate
+              </p>
+              <p
+                class="text-2xl font-black"
+                [ngClass]="getEffectiveRateValueClass()"
+              >
+                {{ interventionStats.effectiveRate }}%
+              </p>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <p
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Interventions
+              </p>
+              <p class="text-2xl font-black text-slate-900">
+                {{ interventionStats.count }}
+              </p>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <p
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Avg Delta Score
+              </p>
+              <p class="text-2xl font-black text-slate-900">
+                {{ interventionStats.avgDeltaScore }}
+              </p>
+            </div>
+          </div>
+
+          <div *ngIf="interventionStats.byType | keyvalue as entries">
+            <div *ngIf="entries.length > 0" class="flex flex-wrap gap-2">
+              <span
+                *ngFor="let kv of entries"
+                class="px-3 py-1 text-xs font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100"
+              >
+                {{ kv.key }}: {{ kv.value }}
+              </span>
+            </div>
+          </div>
+
+          <p *ngIf="interventionsMessage" class="text-xs text-slate-500 mt-3">
+            {{ interventionsMessage }}
+          </p>
+        </div>
+
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-blue-600"
+                >grading</span
+              >
+              Answer Evaluation
+            </h3>
+            <span class="text-xs text-slate-500"
+              >Scoring & feedback (élève)</span
+            >
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Question</label
+              >
+              <textarea
+                [(ngModel)]="evaluationQuestion"
+                rows="3"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                placeholder="Ex: Explain photosynthesis in one sentence."
+              ></textarea>
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Correct Answer</label
+              >
+              <textarea
+                [(ngModel)]="evaluationCorrectAnswer"
+                rows="3"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                placeholder="Ex: Photosynthesis converts light into chemical energy."
+              ></textarea>
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Student Answer</label
+              >
+              <textarea
+                [(ngModel)]="evaluationStudentAnswer"
+                rows="3"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                placeholder="Réponse de l'élève..."
+              ></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                  >Difficulty</label
+                >
+                <select
+                  [(ngModel)]="evaluationDifficulty"
+                  class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                >
+                  <option value="easy">easy</option>
+                  <option value="medium">medium</option>
+                  <option value="hard">hard</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                  >Time (sec)</label
+                >
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="evaluationTimeTakenSec"
+                  class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 mb-3">
+            <button
+              (click)="evaluateStudentAnswer()"
+              [disabled]="evaluationLoading"
+              class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-60"
+            >
+              {{ evaluationLoading ? "Evaluating..." : "Evaluate Answer" }}
+            </button>
+            <span *ngIf="evaluationError" class="text-xs text-red-600">
+              {{ evaluationError }}
+            </span>
+          </div>
+
+          <div
+            *ngIf="evaluationResult"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm font-bold text-slate-700">Result</p>
+              <p
+                class="text-sm font-bold"
+                [ngClass]="getEvaluationScoreClass()"
+              >
+                {{ getEvaluationScorePercent() }}%
+              </p>
+            </div>
+            <p class="text-xs text-slate-500 mb-2">
+              Correct: {{ evaluationResult.is_correct ? "Yes" : "No" }}
+            </p>
+            <p class="text-sm text-slate-700">
+              {{ evaluationResult.feedback || "No feedback provided." }}
+            </p>
+            <p
+              *ngIf="evaluationResult.correct_answer"
+              class="text-xs text-slate-500 mt-2"
+            >
+              Correct answer: {{ evaluationResult.correct_answer }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-cyan-600"
+                >playlist_add_check_circle</span
+              >
+              Batch Evaluation
+            </h3>
+            <span class="text-xs text-slate-500">POST /evaluate/batch</span>
+          </div>
+
+          <label
+            class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+            >Submissions JSON array</label
+          >
+          <textarea
+            [(ngModel)]="batchEvaluationInput"
+            rows="12"
+            class="mt-1 w-full rounded-lg border border-slate-200 p-3 font-mono text-xs focus:ring-2 focus:ring-primary/40 focus:outline-none"
+          ></textarea>
+
+          <div class="flex items-center gap-3 mt-3 mb-3">
+            <button
+              (click)="evaluateBatchAnswers()"
+              [disabled]="batchEvaluationLoading"
+              class="px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-bold hover:bg-cyan-700 disabled:opacity-60"
+            >
+              {{
+                batchEvaluationLoading
+                  ? "Evaluating batch..."
+                  : "Evaluate Batch"
+              }}
+            </button>
+            <span *ngIf="batchEvaluationError" class="text-xs text-red-600">
+              {{ batchEvaluationError }}
+            </span>
+          </div>
+
+          <div
+            *ngIf="batchEvaluationResult"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Count
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ batchEvaluationResult.count || 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Correct
+                </p>
+                <p class="text-lg font-black text-emerald-700">
+                  {{ batchEvaluationResult.correct || 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Incorrect
+                </p>
+                <p class="text-lg font-black text-red-700">
+                  {{ batchEvaluationResult.incorrect || 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Accuracy
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{
+                    (batchEvaluationResult.accuracy || 0) * 100
+                      | number: "1.0-0"
+                  }}%
+                </p>
+              </div>
+            </div>
+
+            <div
+              *ngIf="batchEvaluationResult.per_answer?.length"
+              class="space-y-2"
+            >
+              <div
+                *ngFor="
+                  let r of batchEvaluationResult.per_answer;
+                  let i = index
+                "
+                class="rounded-lg border border-slate-200 bg-white p-3"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <p class="text-xs font-bold text-slate-600">
+                    Answer #{{ i + 1 }}
+                  </p>
+                  <p
+                    class="text-xs font-bold"
+                    [ngClass]="
+                      r?.is_correct ? 'text-emerald-700' : 'text-red-700'
+                    "
+                  >
+                    {{ r?.is_correct ? "Correct" : "Incorrect" }}
+                  </p>
+                </div>
+                <p class="text-xs text-slate-600">
+                  Score: {{ r?.score || 0 }}/{{ r?.max_score || 100 }}
+                </p>
+                <p class="text-xs text-slate-500 mt-1">
+                  {{ r?.feedback || "No feedback" }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-violet-600"
+                >rule</span
+              >
+              Difficulty Classification
+            </h3>
+            <span class="text-xs text-slate-500"
+              >POST /classify/difficulty</span
+            >
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="md:col-span-2">
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Question</label
+              >
+              <textarea
+                [(ngModel)]="classifyQuestionText"
+                rows="3"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                placeholder="Enter question text to classify..."
+              ></textarea>
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Explanation (optional)</label
+              >
+              <input
+                [(ngModel)]="classifyExplanation"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                placeholder="Optional explanation"
+              />
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Claimed difficulty (optional)</label
+              >
+              <input
+                [(ngModel)]="classifyClaimedDifficulty"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                placeholder="easy / medium / hard"
+              />
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Topic (optional)</label
+              >
+              <input
+                [(ngModel)]="classifyTopic"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                placeholder="Ex: Algebra"
+              />
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Subject (optional)</label
+              >
+              <input
+                [(ngModel)]="classifySubject"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                placeholder="Ex: Mathematics"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 mb-3">
+            <button
+              (click)="classifyDifficulty()"
+              [disabled]="classifyLoading"
+              class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 disabled:opacity-60"
+            >
+              {{ classifyLoading ? "Classifying..." : "Classify Difficulty" }}
+            </button>
+            <button
+              (click)="classifySuggestAdjustment()"
+              [disabled]="suggestAdjustmentLoading"
+              class="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 disabled:opacity-60"
+            >
+              {{
+                suggestAdjustmentLoading
+                  ? "Suggesting..."
+                  : "Suggest Adjustment"
+              }}
+            </button>
+            <span *ngIf="classifyError" class="text-xs text-red-600">
+              {{ classifyError }}
+            </span>
+            <span *ngIf="suggestAdjustmentError" class="text-xs text-red-600">
+              {{ suggestAdjustmentError }}
+            </span>
+          </div>
+
+          <div
+            *ngIf="classifyResult"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div
+                class="rounded-lg border p-3"
+                [ngClass]="getClassifiedDifficultyBadgeClass()"
+              >
+                <p class="text-[11px] uppercase font-bold text-slate-500">
+                  Predicted difficulty
+                </p>
+                <p
+                  class="text-xl font-black capitalize"
+                  [ngClass]="getClassifiedDifficultyTextClass()"
+                >
+                  {{ classifyResult.difficulty || "unknown" }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] uppercase font-bold text-slate-500">
+                  Confidence
+                </p>
+                <p class="text-xl font-black text-slate-900">
+                  {{
+                    (classifyResult.confidence || 0) * 100 | number: "1.0-0"
+                  }}%
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] uppercase font-bold text-slate-500">
+                  Composite score
+                </p>
+                <p class="text-xl font-black text-slate-900">
+                  {{ classifyResult.composite_score || 0 }}
+                </p>
+              </div>
+            </div>
+
+            <div *ngIf="classifyResult.suggestions?.length" class="space-y-1">
+              <p class="text-xs font-bold text-slate-600">Suggestions</p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  *ngFor="let s of classifyResult.suggestions"
+                  class="px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-100"
+                >
+                  {{ s }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            *ngIf="suggestAdjustmentResult"
+            class="rounded-xl border border-amber-200 bg-amber-50 p-4 mt-4"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm font-bold text-amber-800">
+                Difficulty Adjustment Suggestion
+              </p>
+              <span
+                class="text-xs font-bold px-2 py-0.5 rounded-full"
+                [ngClass]="
+                  suggestAdjustmentResult.adjustment_needed
+                    ? 'bg-amber-200 text-amber-900'
+                    : 'bg-emerald-200 text-emerald-900'
+                "
+              >
+                {{
+                  suggestAdjustmentResult.adjustment_needed
+                    ? "Adjustment needed"
+                    : "No adjustment needed"
+                }}
+              </span>
+            </div>
+
+            <p class="text-xs text-amber-900 mb-2">
+              Claimed: {{ suggestAdjustmentResult.claimed || "-" }} | Predicted:
+              {{ suggestAdjustmentResult.predicted || "-" }}
+              <span *ngIf="suggestAdjustmentResult.direction">
+                | Direction: {{ suggestAdjustmentResult.direction }}
+              </span>
+            </p>
+
+            <div *ngIf="suggestAdjustmentResult.tips?.length" class="space-y-1">
+              <p class="text-xs font-bold text-amber-900">Tips</p>
+              <ul class="list-disc pl-5 text-xs text-amber-900 space-y-1">
+                <li *ngFor="let tip of suggestAdjustmentResult.tips">
+                  {{ tip }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-fuchsia-600"
+                >library_books</span
+              >
+              Difficulty Classification Batch
+            </h3>
+            <span class="text-xs text-slate-500"
+              >POST /classify/difficulty-batch</span
+            >
+          </div>
+
+          <label
+            class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+            >Questions JSON array</label
+          >
+          <textarea
+            [(ngModel)]="classifyBatchInput"
+            rows="10"
+            class="mt-1 w-full rounded-lg border border-slate-200 p-3 font-mono text-xs focus:ring-2 focus:ring-primary/40 focus:outline-none"
+          ></textarea>
+
+          <div class="flex items-center gap-3 mt-3 mb-3">
+            <button
+              (click)="classifyDifficultyBatch()"
+              [disabled]="classifyBatchLoading"
+              class="px-4 py-2 rounded-lg bg-fuchsia-600 text-white text-sm font-bold hover:bg-fuchsia-700 disabled:opacity-60"
+            >
+              {{
+                classifyBatchLoading ? "Classifying batch..." : "Classify Batch"
+              }}
+            </button>
+            <span *ngIf="classifyBatchError" class="text-xs text-red-600">
+              {{ classifyBatchError }}
+            </span>
+          </div>
+
+          <div
+            *ngIf="classifyBatchResult"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Count
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ classifyBatchResult.count || 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Average score
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ classifyBatchResult.average_score || 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Std dev
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ classifyBatchResult.stdev_score || 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Mismatches
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ classifyBatchResult.mismatches?.length || 0 }}
+                </p>
+              </div>
+            </div>
+
+            <div *ngIf="classifyBatchResult.distribution as dist" class="mb-4">
+              <p class="text-xs font-bold text-slate-600 mb-1">Distribution</p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100"
+                  >easy: {{ dist["easy"] || 0 }}</span
+                >
+                <span
+                  class="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100"
+                  >medium: {{ dist["medium"] || 0 }}</span
+                >
+                <span
+                  class="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100"
+                  >hard: {{ dist["hard"] || 0 }}</span
+                >
+              </div>
+            </div>
+
+            <div
+              *ngIf="classifyBatchResult.per_question?.length"
+              class="space-y-2"
+            >
+              <div
+                *ngFor="
+                  let r of classifyBatchResult.per_question;
+                  let i = index
+                "
+                class="rounded-lg border border-slate-200 bg-white p-3"
+              >
+                <div class="flex items-center justify-between">
+                  <p class="text-xs font-bold text-slate-600">
+                    Question #{{ i + 1 }}
+                  </p>
+                  <p class="text-xs font-bold capitalize text-slate-800">
+                    {{ r.difficulty || "unknown" }}
+                  </p>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">
+                  confidence: {{ (r.confidence || 0) * 100 | number: "1.0-0" }}%
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Feedback Recording ── -->
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-violet-600"
+                >psychology</span
+              >
+              Record Quality Signal
+            </h3>
+            <span class="text-xs text-slate-500"
+              >Feedback loop IA (signals qualité)</span
+            >
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Signal Type</label
+              >
+              <select
+                [(ngModel)]="recordFeedbackSignalType"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none bg-white"
+              >
+                <option value="question_quality">Question Quality</option>
+                <option value="answer_accuracy">Answer Accuracy</option>
+                <option value="response_latency">Response Latency</option>
+                <option value="difficulty_mismatch">Difficulty Mismatch</option>
+                <option value="hallucination">Hallucination</option>
+              </select>
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Signal Value (0-10)</label
+              >
+              <input
+                type="number"
+                [(ngModel)]="recordFeedbackValue"
+                min="0"
+                max="10"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Metadata (JSON optional)</label
+              >
+              <input
+                type="text"
+                [(ngModel)]="recordFeedbackMetadata"
+                placeholder='{"context": "value"}'
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 mb-3">
+            <button
+              (click)="recordFeedback()"
+              [disabled]="recordFeedbackLoading"
+              class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 disabled:opacity-60"
+            >
+              {{
+                recordFeedbackLoading ? "Recording signal..." : "Record Signal"
+              }}
+            </button>
+            <span *ngIf="recordFeedbackError" class="text-xs text-red-600">
+              {{ recordFeedbackError }}
+            </span>
+          </div>
+
+          <div
+            *ngIf="recordFeedbackResult"
+            class="rounded-xl border border-violet-200 bg-violet-50 p-4"
+          >
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-green-600 text-2xl"
+                >check_circle</span
+              >
+              <div>
+                <p class="text-sm font-bold text-violet-900">
+                  Signal recorded successfully
+                </p>
+                <p class="text-xs text-violet-700 mt-1">
+                  ID: {{ recordFeedbackResult.id }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── User Rating ── -->
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-yellow-600"
+                >star</span
+              >
+              Rate Your Experience
+            </h3>
+            <span class="text-xs text-slate-500">User satisfaction rating</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Rating (1-5 stars)</label
+              >
+              <div class="mt-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  [(ngModel)]="userRatingValue"
+                  min="1"
+                  max="5"
+                  class="w-20 rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+                />
+                <div class="flex gap-1">
+                  <span
+                    *ngFor="let i of [1, 2, 3, 4, 5]"
+                    class="material-symbols-outlined text-2xl cursor-pointer transition-colors"
+                    [ngClass]="
+                      i <= userRatingValue
+                        ? 'text-yellow-500'
+                        : 'text-slate-300'
+                    "
+                    (click)="userRatingValue = i"
+                    >star</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >What is this about?</label
+              >
+              <input
+                type="text"
+                [(ngModel)]="userRatingContext"
+                placeholder="e.g., Question quality, Interface feedback"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Metadata (JSON optional)</label
+              >
+              <input
+                type="text"
+                [(ngModel)]="userRatingMetadata"
+                placeholder='{"feature": "value"}'
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 mb-3">
+            <button
+              (click)="recordUserRating()"
+              [disabled]="userRatingLoading"
+              class="px-4 py-2 rounded-lg bg-yellow-600 text-white text-sm font-bold hover:bg-yellow-700 disabled:opacity-60"
+            >
+              {{ userRatingLoading ? "Submitting rating..." : "Submit Rating" }}
+            </button>
+            <span *ngIf="userRatingError" class="text-xs text-red-600">
+              {{ userRatingError }}
+            </span>
+          </div>
+
+          <div
+            *ngIf="userRatingResult"
+            class="rounded-xl border border-yellow-200 bg-yellow-50 p-4"
+          >
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-green-600 text-2xl"
+                >check_circle</span
+              >
+              <div>
+                <p class="text-sm font-bold text-yellow-900">
+                  Thank you for your feedback!
+                </p>
+                <p class="text-xs text-yellow-700 mt-1">
+                  ID: {{ userRatingResult.id }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── AI Improvement Recommendations ── -->
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-indigo-600"
+                >lightbulb</span
+              >
+              AI Tuning Recommendations
+            </h3>
+            <span class="text-xs text-slate-500"
+              >Recommandations d'amélioration IA</span
+            >
+          </div>
+
+          <div class="flex items-center gap-3 mb-4">
+            <button
+              (click)="loadFeedbackRecommendations()"
+              [disabled]="feedbackRecommendationsLoading"
+              class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {{
+                feedbackRecommendationsLoading
+                  ? "Loading recommendations..."
+                  : "Load Recommendations"
+              }}
+            </button>
+            <span
+              *ngIf="feedbackRecommendationsError"
+              class="text-xs text-red-600"
+            >
+              {{ feedbackRecommendationsError }}
+            </span>
+          </div>
+
+          <div *ngIf="feedbackRecommendationsResult" class="space-y-4">
+            <div class="text-xs text-slate-500 mb-3">
+              Generated:
+              {{ feedbackRecommendationsResult.generated_at | date: "medium" }}
+            </div>
+
+            <div
+              *ngIf="
+                (feedbackRecommendationsResult?.recommendations?.length || 0) >
+                0
+              "
+            >
+              <p class="text-xs font-bold text-slate-600 mb-3">
+                Recommendations
+              </p>
+              <div class="space-y-2">
+                <div
+                  *ngFor="
+                    let rec of feedbackRecommendationsResult?.recommendations ||
+                      []
+                  "
+                  [ngClass]="
+                    'rounded-lg border p-3 ' +
+                    getRecommendationPriorityClass(rec.priority)
+                  "
+                >
+                  <div class="flex items-start gap-3">
+                    <span
+                      class="material-symbols-outlined text-lg flex-shrink-0 mt-0.5"
+                      [ngClass]="{
+                        'text-red-600': rec.priority === 'high',
+                        'text-orange-600': rec.priority === 'medium',
+                        'text-blue-600': rec.priority === 'low',
+                      }"
+                    >
+                      {{
+                        rec.priority === "high"
+                          ? "priority_high"
+                          : rec.priority === "medium"
+                            ? "priority_medium"
+                            : "priority_low"
+                      }}
+                    </span>
+                    <div>
+                      <p class="text-xs font-bold capitalize mb-1">
+                        {{ rec.area }} ({{ rec.priority }})
+                      </p>
+                      <p class="text-xs leading-relaxed">
+                        {{ rec.recommendation }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              *ngIf="feedbackRecommendationsResult.signal_summary"
+              class="mt-6 pt-6 border-t border-slate-200"
+            >
+              <p class="text-xs font-bold text-slate-600 mb-3">
+                Signal Summary
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div class="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                  <p class="text-slate-600 font-bold mb-1">Question Quality</p>
+                  <p class="text-slate-900 font-black">
+                    {{
+                      feedbackRecommendationsResult.signal_summary[
+                        "question_quality"
+                      ]?.mean || "N/A"
+                    }}
+                  </p>
+                </div>
+                <div class="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                  <p class="text-slate-600 font-bold mb-1">Answer Accuracy</p>
+                  <p class="text-slate-900 font-black">
+                    {{
+                      (feedbackRecommendationsResult.signal_summary[
+                        "answer_accuracy"
+                      ]?.mean || 0) * 100 | number: "1.0-0"
+                    }}%
+                  </p>
+                </div>
+                <div class="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                  <p class="text-slate-600 font-bold mb-1">Avg Latency</p>
+                  <p class="text-slate-900 font-black">
+                    {{
+                      feedbackRecommendationsResult.signal_summary[
+                        "response_latency"
+                      ]?.mean || "N/A"
+                    }}s
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Feedback Stats By Signal Type ── -->
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-cyan-600"
+                >monitoring</span
+              >
+              Feedback Signal Stats
+            </h3>
+            <span class="text-xs text-slate-500">Stats par type de signal</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Signal Type</label
+              >
+              <select
+                [(ngModel)]="feedbackStatsSignalType"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none bg-white"
+              >
+                <option value="question_quality">question_quality</option>
+                <option value="answer_accuracy">answer_accuracy</option>
+                <option value="response_latency">response_latency</option>
+                <option value="user_rating">user_rating</option>
+                <option value="difficulty_mismatch">difficulty_mismatch</option>
+                <option value="hallucination">hallucination</option>
+              </select>
+            </div>
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Last N Samples</label
+              >
+              <input
+                type="number"
+                [(ngModel)]="feedbackStatsLastN"
+                min="1"
+                max="5000"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+            </div>
+            <div class="flex items-end">
+              <button
+                (click)="loadFeedbackSignalStats()"
+                [disabled]="feedbackStatsLoading"
+                class="px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-bold hover:bg-cyan-700 disabled:opacity-60"
+              >
+                {{ feedbackStatsLoading ? "Loading stats..." : "Load Stats" }}
+              </button>
+            </div>
+          </div>
+
+          <span *ngIf="feedbackStatsError" class="text-xs text-red-600">
+            {{ feedbackStatsError }}
+          </span>
+
+          <div
+            *ngIf="feedbackStatsResult"
+            class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Count
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ feedbackStatsResult.count ?? 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Mean
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ feedbackStatsResult.mean ?? 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Median
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ feedbackStatsResult.median ?? 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Min
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ feedbackStatsResult.min ?? 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Max
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ feedbackStatsResult.max ?? 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Std
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ feedbackStatsResult.std ?? 0 }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Global Health Monitor ── -->
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-emerald-600"
+                >health_and_safety</span
+              >
+              Global Health
+            </h3>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-500">Santé globale</span>
+              <button
+                (click)="loadMonitorHealth()"
+                [disabled]="monitorHealthLoading"
+                class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {{ monitorHealthLoading ? "Loading..." : "Refresh" }}
+              </button>
+            </div>
+          </div>
+
+          <span *ngIf="monitorHealthError" class="text-xs text-red-600">
+            {{ monitorHealthError }}
+          </span>
+
+          <div
+            *ngIf="monitorHealthResult"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <p class="text-xs text-slate-500 uppercase font-bold">
+                  Overall
+                </p>
+                <p
+                  class="text-lg font-black capitalize"
+                  [ngClass]="{
+                    'text-emerald-700':
+                      monitorHealthResult.overall === 'healthy',
+                    'text-amber-700': monitorHealthResult.overall === 'slow',
+                    'text-red-700': monitorHealthResult.overall === 'degraded',
+                    'text-slate-700':
+                      monitorHealthResult.overall !== 'healthy' &&
+                      monitorHealthResult.overall !== 'slow' &&
+                      monitorHealthResult.overall !== 'degraded',
+                  }"
+                >
+                  {{ monitorHealthResult.overall || "unknown" }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-slate-500 uppercase font-bold">
+                  Checked at
+                </p>
+                <p class="text-xs text-slate-700">
+                  {{ monitorHealthResult.checked_at | date: "medium" }}
+                </p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+              <div class="p-3 rounded-lg border border-slate-200 bg-white">
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  15m Requests
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{
+                    monitorHealthResult.api_performance_15m?.total_requests ?? 0
+                  }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg border border-slate-200 bg-white">
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  15m Success rate
+                </p>
+                <p class="text-lg font-black text-emerald-700">
+                  {{
+                    (monitorHealthResult.api_performance_15m?.success_rate ??
+                      0) * 100 | number: "1.0-1"
+                  }}%
+                </p>
+              </div>
+              <div class="p-3 rounded-lg border border-slate-200 bg-white">
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  15m Median latency
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{
+                    monitorHealthResult.api_performance_15m?.median_latency ??
+                      0
+                  }}s
+                </p>
+              </div>
+              <div class="p-3 rounded-lg border border-slate-200 bg-white">
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  RAG Status
+                </p>
+                <p class="text-lg font-black text-slate-900 capitalize">
+                  {{ monitorHealthResult.components?.["status"] || "unknown" }}
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <span
+                class="px-2.5 py-1 rounded-full text-xs font-semibold border"
+                [ngClass]="
+                  monitorHealthResult.checks?.api_success_rate_ok
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                    : 'bg-red-50 text-red-700 border-red-100'
+                "
+              >
+                API success rate check:
+                {{
+                  monitorHealthResult.checks?.api_success_rate_ok
+                    ? "OK"
+                    : "FAIL"
+                }}
+              </span>
+              <span
+                class="px-2.5 py-1 rounded-full text-xs font-semibold border"
+                [ngClass]="
+                  monitorHealthResult.checks?.api_latency_ok
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                    : 'bg-red-50 text-red-700 border-red-100'
+                "
+              >
+                API latency check:
+                {{ monitorHealthResult.checks?.api_latency_ok ? "OK" : "FAIL" }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Recent API Errors ── -->
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-rose-600">error</span>
+              Recent API Errors
+            </h3>
+            <div class="flex items-center gap-2">
+              <input
+                type="number"
+                [(ngModel)]="monitorErrorsLastN"
+                min="1"
+                max="500"
+                class="w-24 rounded-lg border border-slate-200 p-2 text-xs focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+              <button
+                (click)="loadMonitorErrors()"
+                [disabled]="monitorErrorsLoading"
+                class="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 disabled:opacity-60"
+              >
+                {{ monitorErrorsLoading ? "Loading..." : "Refresh" }}
+              </button>
+            </div>
+          </div>
+
+          <span *ngIf="monitorErrorsError" class="text-xs text-red-600">
+            {{ monitorErrorsError }}
+          </span>
+
+          <div
+            *ngIf="monitorErrorsResult"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <p class="text-xs text-slate-600 font-bold mb-3">
+              Total recent errors: {{ monitorErrorsResult.count ?? 0 }}
+            </p>
+
+            <div
+              *ngIf="(monitorErrorsResult.errors?.length || 0) === 0"
+              class="text-xs text-slate-500"
+            >
+              No recent API errors found.
+            </div>
+
+            <div
+              *ngIf="(monitorErrorsResult.errors?.length || 0) > 0"
+              class="space-y-2 max-h-72 overflow-auto pr-1"
+            >
+              <div
+                *ngFor="let err of monitorErrorsResult.errors || []"
+                class="rounded-lg border border-rose-200 bg-white p-3"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-xs font-bold text-rose-700 break-all">
+                    {{ err.endpoint || "unknown-endpoint" }}
+                  </p>
+                  <p class="text-[11px] text-slate-500">
+                    {{ err.timestamp | date: "short" }}
+                  </p>
+                </div>
+                <p class="text-[11px] text-slate-600 mt-1">
+                  latency: {{ err.latency ?? 0 }}s
+                </p>
+                <p class="text-[11px] text-slate-500 mt-1 break-all">
+                  metadata: {{ err.metadata | json }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── API Throughput ── -->
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-sky-600"
+                >timeline</span
+              >
+              API Throughput
+            </h3>
+            <span class="text-xs text-slate-500">Débit</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Window (minutes)</label
+              >
+              <input
+                type="number"
+                [(ngModel)]="monitorThroughputMinutes"
+                min="1"
+                max="1440"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+            </div>
+            <div class="md:col-span-2 flex items-end">
+              <button
+                (click)="loadMonitorThroughput()"
+                [disabled]="monitorThroughputLoading"
+                class="px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-bold hover:bg-sky-700 disabled:opacity-60"
+              >
+                {{
+                  monitorThroughputLoading
+                    ? "Loading throughput..."
+                    : "Load Throughput"
+                }}
+              </button>
+            </div>
+          </div>
+
+          <span *ngIf="monitorThroughputError" class="text-xs text-red-600">
+            {{ monitorThroughputError }}
+          </span>
+
+          <div
+            *ngIf="monitorThroughputResult"
+            class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="p-3 rounded-lg border border-slate-200 bg-white">
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Window
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ monitorThroughputResult.window_minutes ?? 0 }} min
+                </p>
+              </div>
+              <div class="p-3 rounded-lg border border-slate-200 bg-white">
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Total requests
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ monitorThroughputResult.total_requests ?? 0 }}
+                </p>
+              </div>
+              <div class="p-3 rounded-lg border border-slate-200 bg-white">
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Requests / min
+                </p>
+                <p class="text-lg font-black text-sky-700">
+                  {{ monitorThroughputResult.requests_per_minute ?? 0 }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── API Performance Monitor ── -->
+        <div
+          *ngIf="canSeeInternalOpsPanels"
+          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-teal-600">speed</span>
+              API Performance Monitor
+            </h3>
+            <span class="text-xs text-slate-500">GET /monitor/stats</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label
+                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >Window (minutes)</label
+              >
+              <input
+                type="number"
+                [(ngModel)]="monitorStatsMinutes"
+                min="1"
+                max="1440"
+                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
+              />
+            </div>
+            <div class="md:col-span-2 flex items-end">
+              <button
+                (click)="loadMonitorStats()"
+                [disabled]="monitorStatsLoading"
+                class="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-bold hover:bg-teal-700 disabled:opacity-60"
+              >
+                {{
+                  monitorStatsLoading
+                    ? "Loading performance..."
+                    : "Load API Performance"
+                }}
+              </button>
+            </div>
+          </div>
+
+          <span *ngIf="monitorStatsError" class="text-xs text-red-600">
+            {{ monitorStatsError }}
+          </span>
+
+          <div
+            *ngIf="monitorStatsResult"
+            class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Requests
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ monitorStatsResult.total_requests ?? 0 }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Success rate
+                </p>
+                <p class="text-lg font-black text-emerald-700">
+                  {{
+                    (monitorStatsResult.success_rate ?? 0) * 100
+                      | number: "1.0-1"
+                  }}%
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Mean latency
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ monitorStatsResult.mean_latency ?? 0 }}s
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  Median latency
+                </p>
+                <p class="text-lg font-black text-slate-900">
+                  {{ monitorStatsResult.median_latency ?? 0 }}s
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-500 uppercase font-bold">
+                  P95 latency
+                </p>
+                <p class="text-lg font-black text-orange-700">
+                  {{ monitorStatsResult.p95_latency ?? 0 }}s
+                </p>
+              </div>
+            </div>
+
+            <div
+              *ngIf="monitorStatsResult.per_endpoint | keyvalue as endpoints"
+            >
+              <p class="text-xs font-bold text-slate-600 mb-2">
+                Per-endpoint stats
+              </p>
+              <div class="space-y-2 max-h-64 overflow-auto pr-1">
+                <div
+                  *ngFor="let ep of endpoints"
+                  class="rounded-lg border border-slate-200 bg-white p-3"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="text-xs font-bold text-slate-700 break-all">
+                      {{ ep.key }}
+                    </p>
+                    <span class="text-[11px] text-slate-500"
+                      >{{ ep.value.count ?? 0 }} req</span
+                    >
+                  </div>
+                  <p class="text-[11px] text-slate-500 mt-1">
+                    mean: {{ ep.value.mean_latency ?? 0 }}s · median:
+                    {{ ep.value.median_latency ?? 0 }}s · p95:
+                    {{ ep.value.p95_latency ?? 0 }}s · max:
+                    {{ ep.value.max_latency ?? 0 }}s
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ── Progress Charts ── -->

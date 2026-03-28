@@ -104,6 +104,17 @@ class AdaptiveLevelTest:
         from .batch_question_generator import generate_all_subjects_parallel
 
         subject_map = _build_subject_map()
+
+        if not subject_map:
+            raise ValueError(
+                "No courses found in MongoDB collection 'courses'. Ingest your existing ai-service courses first."
+            )
+
+        logger.info(
+            "Using %d existing course(s) from MongoDB for level test: %s",
+            len(subject_map),
+            ", ".join([v.get("title", "") for v in subject_map.values()]),
+        )
         if not selected_subjects:
             selected_subjects = list(subject_map.keys())
         else:

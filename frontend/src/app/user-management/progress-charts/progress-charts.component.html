@@ -35,15 +35,17 @@
       <p class="text-lg font-black text-primary capitalize">
         {{ getTopTopic() }}
       </p>
-      <p class="text-xs text-slate-500 mt-1">strongest area</p>
+      <p class="text-xs text-slate-500 mt-1">highest average score</p>
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
-      <p class="text-xs font-bold text-slate-500 uppercase mb-1">Study Time</p>
-      <p class="text-2xl font-black text-blue-600">
-        {{ getTotalStudyTime() }} min
+      <p class="text-xs font-bold text-slate-500 uppercase mb-1">
+        Study Sessions
       </p>
-      <p class="text-xs text-slate-500 mt-1">total tracked time</p>
+      <p class="text-2xl font-black text-blue-600">
+        {{ performances.length }}
+      </p>
+      <p class="text-xs text-slate-500 mt-1">completed attempts</p>
     </div>
   </div>
 
@@ -76,7 +78,7 @@
 
         <div class="text-center md:text-left">
           <p class="text-xs font-bold text-slate-500 uppercase">
-            Most studied topic
+            Most active topic
           </p>
           <p class="text-xl font-black text-primary capitalize">
             {{ getMostStudiedTopic() }}

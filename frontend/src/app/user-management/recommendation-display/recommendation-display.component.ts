@@ -4,10 +4,9 @@ import { AdaptiveLearningService } from '../adaptive-learning.service';
 @Component({
   selector: 'app-recommendation-display',
   templateUrl: './recommendation-display.component.html',
-  styleUrls: ['./recommendation-display.component.css']
+  styleUrls: ['./recommendation-display.component.css'],
 })
 export class RecommendationDisplayComponent implements OnInit {
-
   @Input() recommendations: any[] = [];
   @Input() studentId: string = '';
   @Output() recommendationViewed = new EventEmitter<string>();
@@ -16,58 +15,71 @@ export class RecommendationDisplayComponent implements OnInit {
   isGenerating = false;
   expandedId: string | null = null;
 
-  constructor(
-    private adaptiveService: AdaptiveLearningService
-  ) {}
+  constructor(private adaptiveService: AdaptiveLearningService) {}
 
   ngOnInit(): void {}
 
   get filtered(): any[] {
     if (this.selectedFilter === 'all') return this.recommendations;
     return this.recommendations.filter(
-      r => r.contentType === this.selectedFilter
+      (r) => r.contentType === this.selectedFilter,
     );
   }
 
   get exerciseCount(): number {
-    return this.recommendations.filter(
-      r => r.contentType === 'exercise'
-    ).length;
+    return this.recommendations.filter((r) => r.contentType === 'exercise')
+      .length;
   }
 
   get courseCount(): number {
-    return this.recommendations.filter(
-      r => r.contentType === 'course'
-    ).length;
+    return this.recommendations.filter((r) => r.contentType === 'course')
+      .length;
   }
 
   get unviewedCount(): number {
-    return this.recommendations.filter(r => !r.isViewed).length;
+    return this.recommendations.filter((r) => !r.isViewed).length;
   }
 
   markAsViewed(rec: any): void {
     if (rec.isViewed) return;
-    this.adaptiveService.markRecommendationViewed(rec._id)
-      .subscribe({
-        next: () => {
-          rec.isViewed = true;
-          this.recommendationViewed.emit(rec._id);
-        },
-        error: () => {}
-      });
+    this.adaptiveService.markRecommendationViewed(rec._id).subscribe({
+      next: () => {
+        rec.isViewed = true;
+        this.recommendationViewed.emit(rec._id);
+      },
+      error: () => {},
+    });
   }
 
   generateNew(): void {
     if (!this.studentId) return;
     this.isGenerating = true;
-    this.adaptiveService.generateRecommendations(
-      this.studentId
-    ).subscribe({
+
+    const applyRecommendations = (data: any): void => {
+      const items = Array.isArray(data?.recommendations)
+        ? data.recommendations
+        : Array.isArray(data)
+          ? data
+          : [];
+      this.recommendations = items;
+      this.isGenerating = false;
+    };
+
+    this.adaptiveService.generateRecommendationsV2(this.studentId).subscribe({
       next: (data) => {
-        this.recommendations = data.recommendations;
-        this.isGenerating = false;
+        applyRecommendations(data);
       },
-      error: () => { this.isGenerating = false; }
+      error: () => {
+        // Keep v1 as fallback path while preferring v2 (ai-service-backed).
+        this.adaptiveService.generateRecommendations(this.studentId).subscribe({
+          next: (data) => {
+            applyRecommendations(data);
+          },
+          error: () => {
+            this.isGenerating = false;
+          },
+        });
+      },
     });
   }
 
@@ -81,7 +93,7 @@ export class RecommendationDisplayComponent implements OnInit {
       'from-emerald-500 to-teal-600',
       'from-orange-500 to-pink-600',
       'from-violet-500 to-indigo-600',
-      'from-cyan-500 to-blue-600'
+      'from-cyan-500 to-blue-600',
     ];
     return gradients[index % gradients.length];
   }

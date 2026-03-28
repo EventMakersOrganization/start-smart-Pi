@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
+import axios from "axios";
 import {
   StudentProfile,
   StudentProfileDocument,
@@ -22,6 +23,10 @@ import { CreateQuestionDto } from "./dto/create-question.dto";
 
 @Injectable()
 export class AdaptiveLearningService {
+  private readonly logger = new Logger(AdaptiveLearningService.name);
+  private readonly aiServiceBaseUrl =
+    process.env.AI_SERVICE_URL || "http://localhost:8000";
+
   constructor(
     @InjectModel(StudentProfile.name)
     private profileModel: Model<StudentProfileDocument>,
@@ -117,6 +122,24 @@ export class AdaptiveLearningService {
       .find({ studentId })
       .sort({ attemptDate: -1 })
       .exec();
+  }
+
+  async findPerformanceById(id: string): Promise<StudentPerformance> {
+    const performance = await this.performanceModel.findById(id).exec();
+    if (!performance)
+      throw new NotFoundException(`Performance ${id} not found`);
+    return performance;
+  }
+
+  async updatePerformance(
+    id: string,
+    updateData: Partial<StudentPerformance>,
+  ): Promise<StudentPerformance> {
+    const updated = await this.performanceModel
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .exec();
+    if (!updated) throw new NotFoundException(`Performance ${id} not found`);
+    return updated;
   }
 
   async deletePerformance(id: string): Promise<void> {
@@ -636,6 +659,36 @@ export class AdaptiveLearningService {
   // PERSONALIZED RECOMMENDATION v2 API
   // ══════════════════════════════════════
 
+  private async searchChromaChunks(
+    query: string,
+    nResults = 3,
+  ): Promise<any[]> {
+    try {
+      const { data } = await axios.post(
+        `${this.aiServiceBaseUrl}/search-chunks`,
+        {
+          query,
+          n_results: nResults,
+          aggregate_by_course: false,
+        },
+        { timeout: 8000 },
+      );
+
+      if (Array.isArray(data?.results)) {
+        return data.results;
+      }
+      if (Array.isArray(data)) {
+        return data;
+      }
+      return [];
+    } catch (error: any) {
+      this.logger.warn(
+        `Chroma search unavailable (${query}): ${error?.message || "unknown error"}`,
+      );
+      return [];
+    }
+  }
+
   async generateRecommendationsV2(studentId: string): Promise<{
     recommendations: any[];
     profile: any;
@@ -643,6 +696,13 @@ export class AdaptiveLearningService {
       topicsAnalyzed: number;
       levelTestTopicsDetailed: any[];
       topicDiagnostics: any[];
+      semanticMatches: Array<{
+        topic: string;
+        query: string;
+        resultsCount: number;
+        topCourseId?: string;
+        topSimilarity?: number;
+      }>;
     };
     totalGenerated: number;
   }> {
@@ -800,6 +860,13 @@ export class AdaptiveLearningService {
       .exec();
 
     const recommendations: any[] = [];
+    const semanticMatches: Array<{
+      topic: string;
+      query: string;
+      resultsCount: number;
+      topCourseId?: string;
+      topSimilarity?: number;
+    }> = [];
     const nextLevel =
       currentLevel === "beginner"
         ? "intermediate"
@@ -817,13 +884,53 @@ export class AdaptiveLearningService {
             ? currentLevel
             : nextLevel;
 
+      // Sprint 4: semantic retrieval (ChromaDB via ai-service)
+      const semanticQuery = `${diag.topic} ${recommendedLevel} exercises for ${currentLevel} student`;
+      const semanticResults = await this.searchChromaChunks(semanticQuery, 3);
+      const topSemantic = semanticResults[0] || null;
+
+      semanticMatches.push({
+        topic: diag.topic,
+        query: semanticQuery,
+        resultsCount: semanticResults.length,
+        topCourseId: topSemantic?.course_id,
+        topSimilarity:
+          typeof topSemantic?.similarity === "number"
+            ? topSemantic.similarity
+            : undefined,
+      });
+
+      const semanticCourse = String(
+        topSemantic?.course_title || topSemantic?.course_id || "",
+      ).trim();
+      const semanticSnippet = String(
+        topSemantic?.snippet || topSemantic?.chunk_text || "",
+      )
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 180);
+
+      const semanticContentSuffix = semanticCourse
+        ? ` • source: ${semanticCourse}`
+        : "";
+
+      const semanticReasonSuffix = semanticCourse
+        ? ` Semantic match from ChromaDB: ${semanticCourse}${semanticSnippet ? ` (${semanticSnippet})` : ""}.`
+        : "";
+
       const payload: any = {
         studentId,
-        recommendedContent: `${diag.topic} — ${recommendedLevel} targeted exercises`,
-        reason: this.buildReasonV2(diag.topic, currentLevel, diag),
+        recommendedContent: `${diag.topic} — ${recommendedLevel} targeted exercises${semanticContentSuffix}`,
+        reason: `${this.buildReasonV2(diag.topic, currentLevel, diag)}${semanticReasonSuffix}`,
         contentType: diag.priority === "low" ? "course" : "exercise",
         confidenceScore: Math.max(60, Math.min(95, diag.urgencyScore)),
         priority: diag.priority,
+        semanticQuery,
+        semanticCourseId: topSemantic?.course_id || null,
+        semanticSimilarity:
+          typeof topSemantic?.similarity === "number"
+            ? topSemantic.similarity
+            : null,
         isViewed: false,
         generatedAt: new Date(),
       };
@@ -858,6 +965,7 @@ export class AdaptiveLearningService {
         topicsAnalyzed: allTopics.length,
         levelTestTopicsDetailed,
         topicDiagnostics,
+        semanticMatches,
       },
       totalGenerated: recommendations.length,
     };
@@ -3265,6 +3373,24 @@ export class AdaptiveLearningService {
       .find({ studentId })
       .sort({ generatedAt: -1 })
       .exec();
+  }
+
+  async findRecommendationById(id: string): Promise<Recommendation> {
+    const recommendation = await this.recommendationModel.findById(id).exec();
+    if (!recommendation)
+      throw new NotFoundException(`Recommendation ${id} not found`);
+    return recommendation;
+  }
+
+  async updateRecommendation(
+    id: string,
+    updateData: Partial<Recommendation>,
+  ): Promise<Recommendation> {
+    const updated = await this.recommendationModel
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .exec();
+    if (!updated) throw new NotFoundException(`Recommendation ${id} not found`);
+    return updated;
   }
 
   async markRecommendationViewed(id: string): Promise<Recommendation> {

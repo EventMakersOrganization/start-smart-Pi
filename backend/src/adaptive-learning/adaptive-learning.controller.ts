@@ -60,6 +60,16 @@ export class AdaptiveLearningController {
     return this.adaptiveService.findPerformanceByStudent(studentId);
   }
 
+  @Get("performances/:id")
+  findPerformanceById(@Param("id") id: string) {
+    return this.adaptiveService.findPerformanceById(id);
+  }
+
+  @Put("performances/:id")
+  updatePerformance(@Param("id") id: string, @Body() updateData: any) {
+    return this.adaptiveService.updatePerformance(id, updateData);
+  }
+
   @Get("performances/student/:studentId/average")
   getAverageScore(@Param("studentId") studentId: string) {
     return this.adaptiveService.getAverageScore(studentId);
@@ -157,6 +167,16 @@ export class AdaptiveLearningController {
   @Get("recommendations/student/:studentId")
   findRecommendationsByStudent(@Param("studentId") studentId: string) {
     return this.adaptiveService.findRecommendationsByStudent(studentId);
+  }
+
+  @Get("recommendations/:id")
+  findRecommendationById(@Param("id") id: string) {
+    return this.adaptiveService.findRecommendationById(id);
+  }
+
+  @Put("recommendations/:id")
+  updateRecommendation(@Param("id") id: string, @Body() updateData: any) {
+    return this.adaptiveService.updateRecommendation(id, updateData);
   }
 
   @Patch("recommendations/:id/viewed")
