@@ -513,3 +513,28 @@
 2026-03-28 10:37:35,467 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
 2026-03-28 10:38:04,567 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
 2026-03-28 11:04:11,631 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-28 18:06:35,916 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-28 19:39:17,002 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:19,052 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:21,853 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:23,900 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:25,437 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:30,058 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:31,596 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:36,192 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:37,720 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:42,310 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:43,889 - ERROR - search_chunks: could not embed query
+2026-03-28 19:39:48,445 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:05,220 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:07,273 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:10,228 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:12,279 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:13,378 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:18,411 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:19,484 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:24,552 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:25,623 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:30,680 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:31,730 - ERROR - search_chunks: could not embed query
+2026-03-28 19:40:36,814 - ERROR - search_chunks: could not embed query

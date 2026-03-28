@@ -7,3 +7,27 @@
 2026-03-24 22:01:27,271 - ERROR - [embeddings_pipeline] generate_embedding error: the input length exceeds the context length (status code: 400)
 2026-03-24 22:01:27,340 - ERROR - [embeddings_pipeline] generate_embedding error: the input length exceeds the context length (status code: 400)
 2026-03-24 22:12:38,198 - ERROR - [embeddings_pipeline] generate_embedding error: timed out waiting for llama runner to start - progress 0.00 -  (status code: 500)
+2026-03-28 19:39:16,998 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:19,052 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:21,852 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:23,899 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:25,437 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:30,058 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:31,596 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:36,192 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:37,720 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:42,310 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:43,888 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:39:48,443 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:05,218 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:07,273 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:10,228 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:12,279 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:13,378 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:18,411 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:19,484 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:24,552 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:25,623 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:30,680 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:31,730 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download
+2026-03-28 19:40:36,814 - ERROR - [embeddings_pipeline] generate_embedding error: Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download

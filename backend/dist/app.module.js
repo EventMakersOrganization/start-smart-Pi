@@ -15,6 +15,7 @@ const users_module_1 = require("./users/users.module");
 const activity_module_1 = require("./activity/activity.module");
 const app_controller_1 = require("./app.controller");
 const chat_module_1 = require("./chat/chat.module");
+const brainrush_module_1 = require("./brainrush/brainrush.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -36,6 +37,7 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             activity_module_1.ActivityModule,
             chat_module_1.ChatModule,
+            brainrush_module_1.BrainrushModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],

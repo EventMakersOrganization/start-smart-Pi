@@ -9,7 +9,8 @@ const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'chat/ai', component: ChatAiComponent },
   { path: 'chat/instructor', component: ChatInstructorComponent },
-  { path: 'chat/room', component: ChatRoomComponent }
+  { path: 'chat/room', component: ChatRoomComponent },
+  { path: 'brainrush', loadChildren: () => import('./brainrush/brainrush.module').then(m => m.BrainrushModule) }
 ];
 
 @NgModule({
