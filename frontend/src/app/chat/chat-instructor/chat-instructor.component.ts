@@ -17,6 +17,7 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
   currentSessionTitle = '';
   newMessage = '';
   userId = '';
+  userRole = '';
   showNewChatModal = false;
   private subs: any[] = [];
 
@@ -32,6 +33,7 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
         const payload = JSON.parse(atob(token.split('.')[1]));
         // The backend uses 'sub' for the user ID in the JWT token payload
         this.userId = payload.sub || payload.id || 'mock-user-id';
+        this.userRole = payload.role || '';
       } catch (e) {
         this.userId = 'mock-user-id';
       }
@@ -39,7 +41,7 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
       this.userId = 'mock-user-id';
     }
 
-    this.chatSocketService.connect(this.userId);
+    this.chatSocketService.connect();
     this.loadSessions();
     this.loadInstructors();
 
@@ -123,7 +125,7 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
 
     this.currentSessionId = sessionId;
     this.currentSessionTitle = title;
-    this.chatSocketService.joinRoom(sessionId);
+    this.chatSocketService.joinRoom('ChatInstructor', sessionId);
 
     this.chatApiService.getHistory('ChatInstructor', sessionId).subscribe({
       next: (msgs: any) => {
@@ -137,7 +139,13 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
   sendMessage() {
     if (!this.newMessage.trim() || !this.currentSessionId) return;
 
-    this.chatSocketService.sendMessage('ChatInstructor', this.currentSessionId, this.userId, this.newMessage);
+    this.chatSocketService.sendMessage('ChatInstructor', this.currentSessionId, this.newMessage);
     this.newMessage = '';
+  }
+
+  getDashboardRoute(): string {
+    if (this.userRole === 'admin') return '/admin';
+    if (this.userRole === 'instructor') return '/instructor/dashboard';
+    return '/student-dashboard';
   }
 }

@@ -15,6 +15,8 @@ import { environment } from '../environments/environment';
 import { ChatAiComponent } from './chat/chat-ai/chat-ai.component';
 import { ChatInstructorComponent } from './chat/chat-instructor/chat-instructor.component';
 import { ChatRoomComponent } from './chat/chat-room/chat-room.component';
+import { MarkdownModule, MarkedOptions } from 'ngx-markdown';
+import { chatMarkdownOptionsFactory } from './chat/markdown-options.factory';
 
 @NgModule({
   declarations: [
@@ -30,7 +32,13 @@ import { ChatRoomComponent } from './chat/chat-room/chat-room.component';
     BrowserAnimationsModule,
     UserManagementModule,
     SocialLoginModule,
-    FormsModule
+    FormsModule,
+    MarkdownModule.forRoot({
+      markedOptions: {
+        provide: MarkedOptions,
+        useFactory: chatMarkdownOptionsFactory,
+      },
+    }),
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },

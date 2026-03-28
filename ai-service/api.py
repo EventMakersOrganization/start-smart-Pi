@@ -3,11 +3,14 @@ FastAPI application - AI service API for embeddings, search, RAG, and question g
 """
 import json
 import logging
+import math
 import re
 import sys
 import time
+import unicodedata
 import uuid
 import hashlib
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
@@ -108,11 +111,17 @@ continuous_recommender = ContinuousRecommender()
 learning_analytics_service = LearningAnalyticsService()
 question_guardrails = QuestionGuardrails()
 
-# Latency budgets (balanced target)
-CHAT_SOFT_BUDGET = 2.5
-CHAT_HARD_BUDGET = 4.0
+# Single LLM call + embedding search: local Ollama often needs >25s for long prompt + ~1500 output tokens.
+CHAT_SOFT_BUDGET = 5.0
+# Wall-clock for monitoring / logging only (do not use this as the LLM phase budget — see CHAT_LLM_HARD_BUDGET).
+CHAT_HARD_BUDGET = 95.0
+# Budget for the Ollama call ONLY (must NOT share the same t0 as embedding search, or retrieval eats all seconds).
+CHAT_LLM_HARD_BUDGET = 120.0
+# Max thread wait for one Ollama invoke.
+CHAT_LLM_MAX_WAIT_SEC = 120.0
 BRAINRUSH_SOFT_BUDGET = 2.5
 BRAINRUSH_HARD_BUDGET = 5.0
+CACHE_SCHEMA_VERSION = "chat_v21_adaptive_tutor_format"
 
 # CORS: allow all origins for development (NestJS backend can call this API)
 app.add_middleware(
@@ -215,6 +224,13 @@ class ChatbotRequest(BaseModel):
     conversation_history: list[dict[str, str]] = Field(default_factory=list, description="Previous messages")
     student_id: str | None = Field(default=None, description="Optional student for personalized tutoring style")
     mode: str | None = Field(default=None, description="Optional style override: explain_like_beginner | step_by_step | analogy_fun_mode | challenge_mode")
+
+
+class DirectTutorRequest(BaseModel):
+    """No RAG: single-turn tutor answer with structured sections (for testing or simple Q&A)."""
+
+    prompt: str = Field(..., min_length=1, max_length=4000, description="User question only")
+    max_tokens: int = Field(default=1500, ge=800, le=2048, description="Ollama num_predict (output cap)")
 
 
 class ValidateAnswerRequest(BaseModel):
@@ -398,6 +414,1538 @@ def _cache_key(endpoint: str, payload: dict[str, Any]) -> str:
     return response_cache.make_key({"endpoint": endpoint, **payload})
 
 
+def _token_count(text: str) -> int:
+    import re
+    return len(re.findall(r"\b[\w-]+\b", text or ""))
+
+
+def _is_followup_message(text: str) -> bool:
+    q = (text or "").strip().lower()
+    followups = {
+        "pas a pas", "pas à pas", "explique pas a pas", "explique pas à pas",
+        "continue", "plus", "encore", "detaille", "détaille", "exemple",
+        "more", "go on", "step by step", "explain step by step",
+    }
+    if q in followups:
+        return True
+    return _token_count(q) <= 5
+
+
+def _effective_question(question: str, history: list[dict[str, str]] | None) -> str:
+    """
+    Keep topic continuity for short follow-up prompts like:
+    'pas a pas', 'continue', 'more details'.
+    """
+    q = (question or "").strip()
+    if not _is_followup_message(q):
+        return q
+    hist = history or []
+    prev_user = ""
+    for msg in reversed(hist):
+        role = str(msg.get("role", "")).lower()
+        content = str(msg.get("content", "")).strip()
+        if role == "user" and content and content != q:
+            prev_user = content
+            break
+    if not prev_user:
+        return q
+    return f"{prev_user}\nInstruction de suivi: {q}"
+
+
+def _format_conversation_history_for_prompt(
+    history: list[dict[str, str]] | None,
+    *,
+    max_messages: int = 10,
+    max_chars_per_msg: int = 900,
+    max_total_chars: int = 4500,
+) -> str:
+    """Recent turns for the tutor prompt (pronouns + topic continuity)."""
+    if not history:
+        return ""
+    lines: list[str] = []
+    total = 0
+    tail = history[-max_messages:]
+    for m in tail:
+        role = str(m.get("role", "")).lower()
+        content = str(m.get("content", "")).strip()
+        if not content:
+            continue
+        if len(content) > max_chars_per_msg:
+            content = content[:max_chars_per_msg] + "…"
+        if role == "user":
+            label = "Etudiant"
+        elif role in ("assistant", "ai", "tutor"):
+            label = "Tuteur"
+        else:
+            label = role.capitalize() or "Message"
+        block = f"{label}: {content}"
+        total += len(block)
+        if total > max_total_chars:
+            break
+        lines.append(block)
+    return "\n\n".join(lines)
+
+
+def _should_merge_retrieval_with_previous(question: str) -> bool:
+    """
+    True when the current message likely continues the previous topic (follow-up).
+    Used to widen embedding search with the prior user message.
+    """
+    q = (question or "").strip().lower()
+    if len(q) < 6:
+        return True
+    follow_markers = (
+        "maintenant",
+        "ensuite",
+        "toujours",
+        "donc",
+        "aussi",
+        "et apres",
+        "et après",
+        "comment les",
+        "pourquoi les",
+        "comment l'",
+        "les utiliser",
+        "utiliser dans",
+        "dans une fonction",
+        "dans un programme",
+        "comme avant",
+        "plus de details",
+        "plus de détails",
+        "autre exemple",
+        "encore un",
+    )
+    if any(m in q for m in follow_markers):
+        return True
+    # Do not block merge on "tableau" / "array" — follow-ups like "dans un tableau" often continue
+    # the same topic (e.g. tableau de structures), not a new subject.
+    topic_words = (
+        "pointeur",
+        "pointer",
+        "boucle",
+        "loop",
+        "chaine",
+        "chaîne",
+        "string",
+        "fichier",
+        "file",
+        "malloc",
+        "preprocesseur",
+        "#include",
+    )
+    if any(w in q for w in topic_words):
+        return False
+    if re.search(r"\bstruct\b", q):
+        return False
+    if " les " in f" {q} " or q.startswith("les "):
+        return True
+    return False
+
+
+def _trim_history_exclude_current_turn(
+    history: list[dict[str, str]] | None,
+    current_question: str,
+) -> list[dict[str, str]]:
+    """
+    Backend may append the current user message to history; drop it so we do not duplicate
+    the question in CONVERSATION + USER MESSAGE, and so retrieval 'previous' is the prior turn.
+    """
+    if not history:
+        return []
+    cur = (current_question or "").strip()
+    if not cur:
+        return list(history)
+    last = history[-1]
+    if str(last.get("role", "")).lower() == "user" and str(last.get("content", "")).strip() == cur:
+        return history[:-1]
+    return list(history)
+
+
+def _retrieval_query_for_chat(question: str, history: list[dict[str, str]] | None) -> str:
+    """RAG query: merge previous user message when follow-up refers to the same topic."""
+    q = (question or "").strip()
+    hist = history or []
+    prev_users = [
+        str(m.get("content", "")).strip()
+        for m in hist
+        if str(m.get("role", "")).lower() == "user" and str(m.get("content", "")).strip()
+    ]
+    if not prev_users or not _should_merge_retrieval_with_previous(q):
+        return q
+    prev = prev_users[-1]
+    merged = f"{prev} {q}"
+    return merged[:800]
+
+
+def _conversation_text_for_signals(history: list[dict[str, str]] | None) -> str:
+    """Recent user+assistant text for retrieval alignment (not shown to the model)."""
+    parts: list[str] = []
+    for m in (history or [])[-8:]:
+        parts.append(str(m.get("content", "")))
+    return " ".join(parts).lower()
+
+
+_RAG_STOPWORDS = frozenset(
+    """
+    the and for are but not you all can her was one our out day get has him his how its may new now old
+    see two who way use any from this that with have this will just than then them they what when your
+    more most some such time very also back been call came come each even ever here just like long
+    made make many much must only over part same seem show such take than that their them these they
+    thing think those though three through under until very want well were what when where which while
+    whom whose would about after again against
+    le la les des un une dans pour avec sans sous entre chez est pas que qui dont sur son ses leur
+    cette comme aussi plus tout tres etre etre et ou si ne ai a ce ca ces cet cette celui celle
+    mais meme deja tres bien alors ainsi donc voici ainsi
+    chapitre section partie version cours module lecon numero introduction
+    """.split()
+)
+
+# Tokens in syllabus/module labels — ignored when measuring "extra" words in a title vs. a short query.
+_RAG_MODULE_BOILERPLATE = frozenset(
+    """
+    chapitre section partie version cours module lecon numero introduction
+    """.split()
+)
+
+
+def _tokenize_rag_overlap(text: str) -> set[str]:
+    """Lowercase tokens (accent-folded) for generic lexical overlap; drops very common words."""
+    raw = _fold_accents((text or "").lower())
+    words = re.findall(r"[a-zà-ÿ]{3,}", raw, flags=re.IGNORECASE)
+    out: set[str] = set()
+    for w in words:
+        wl = w.lower()
+        if wl in _RAG_STOPWORDS:
+            continue
+        out.add(wl)
+    return out
+
+
+def _rag_token_set_matches_term(toks: set[str], term: str) -> bool:
+    """Match query token to chunk/title tokens; simple French plural overlap (structure ↔ structures)."""
+    if term in toks:
+        return True
+    if len(term) >= 5 and term.endswith("s") and term[:-1] in toks:
+        return True
+    if len(term) >= 4 and (term + "s") in toks:
+        return True
+    return False
+
+
+def _strip_noise_for_retrieval_snippet(text: str) -> str:
+    """Remove fenced code blocks from prior tutor answer so keywords still matter for embedding."""
+    t = re.sub(r"```[\s\S]*?```", " ", text or "")
+    t = re.sub(r"\s+", " ", t).strip()
+    return t[:520]
+
+
+def _augment_retrieval_query_from_history(
+    base: str,
+    history: list[dict[str, str]] | None,
+) -> str:
+    """
+    Append a snippet of the last assistant message so the embedding query reflects the *ongoing*
+    lesson topic (works for any subject — pointers, files, structs, etc.).
+    """
+    b = (base or "").strip()
+    if not history:
+        return b[:900]
+    last_asst = ""
+    for m in reversed(history):
+        if str(m.get("role", "")).lower() in ("assistant", "ai", "tutor"):
+            last_asst = str(m.get("content") or "").strip()
+            break
+    if len(last_asst) < 40:
+        return b[:900]
+    snippet = _strip_noise_for_retrieval_snippet(last_asst)
+    if len(snippet) < 25:
+        return b[:900]
+    merged = f"{b} {snippet}".strip()
+    return merged[:900]
+
+
+def _local_idf_weights_for_candidates(
+    chunks: list[dict[str, Any]], qset: set[str]
+) -> dict[str, float]:
+    """IDF over the current candidate set only — down-weights terms that appear in many chunks."""
+    n = len(chunks)
+    df: dict[str, int] = {t: 0 for t in qset}
+    for c in chunks:
+        meta = c.get("metadata") or {}
+        blob = " ".join(
+            [
+                str(c.get("chunk_text") or ""),
+                str(meta.get("module_name") or ""),
+                str(meta.get("course_title") or ""),
+            ]
+        )
+        toks = _tokenize_rag_overlap(blob)
+        for t in qset:
+            if t in toks:
+                df[t] += 1
+    return {t: math.log((n + 1.0) / (df[t] + 0.5)) for t in qset}
+
+
+def _rerank_chunks_by_lexical_alignment(
+    chunks: list[dict[str, Any]],
+    alignment_text: str,
+) -> list[dict[str, Any]]:
+    """
+    Re-score chunks using local IDF (within the retrieved set) and stronger weight on chunk body
+    than on module titles. For short queries, penalize module/course titles that add extra topic
+    words beyond the question (e.g. \"structures iteratives\" vs \"structures\" only) so the
+    narrowest-matching chapter wins. Plural/singular overlap is handled for French.
+    """
+    if not chunks or not (alignment_text or "").strip():
+        return chunks
+    qset = _tokenize_rag_overlap(alignment_text)
+    if not qset:
+        return chunks
+
+    idf = _local_idf_weights_for_candidates(chunks, qset)
+    denom = sum(idf[t] * 0.65 for t in qset) or 1.0
+    short_query = len(qset) <= 6
+    title_surplus_query = len(qset) <= 4
+
+    def blended_score(c: dict[str, Any]) -> float:
+        meta = c.get("metadata") or {}
+        body = _tokenize_rag_overlap(str(c.get("chunk_text") or ""))
+        mod = _tokenize_rag_overlap(
+            " ".join(
+                [
+                    str(meta.get("module_name") or ""),
+                    str(meta.get("course_title") or ""),
+                ]
+            )
+        )
+        bonus = 0.0
+        for t in qset:
+            w = idf.get(t, 0.0)
+            if _rag_token_set_matches_term(body, t):
+                bonus += w * 0.65
+            elif _rag_token_set_matches_term(mod, t):
+                bonus += w * 0.22
+        norm_bonus = bonus / denom
+        if title_surplus_query:
+            # Prefer titles that are not a strict superset of the query terms (fewer extra topic words).
+            extra_topic = mod - qset - _RAG_MODULE_BOILERPLATE
+            extra_disc = {t for t in extra_topic if len(t) >= 5}
+            norm_bonus -= 0.075 * min(len(extra_disc), 10)
+        norm_bonus = max(0.0, norm_bonus)
+        base = float(c.get("similarity") or 0.0)
+        return base + 0.48 * norm_bonus
+
+    return sorted((dict(x) for x in chunks), key=blended_score, reverse=True)
+
+
+def _module_title_surplus_count(chunk: dict[str, Any], qset: set[str]) -> int:
+    """Count discriminative tokens in module/course title not present in the query overlap set."""
+    meta = chunk.get("metadata") or {}
+    mod = _tokenize_rag_overlap(
+        " ".join(
+            [
+                str(meta.get("module_name") or ""),
+                str(meta.get("course_title") or ""),
+            ]
+        )
+    )
+    extra_topic = mod - qset - _RAG_MODULE_BOILERPLATE
+    extra_disc = {t for t in extra_topic if len(t) >= 5}
+    return len(extra_disc)
+
+
+def _filter_chunks_by_minimal_title_surplus(
+    chunks: list[dict[str, Any]],
+    alignment_text: str,
+) -> list[dict[str, Any]]:
+    """
+    For short queries (<=4 content tokens), keep only chunks whose module titles add the fewest
+    extra topic words versus the question — narrowest chapter-title match. If that leaves fewer
+    than two chunks, merge in the next surplus tier so the pipeline still has context.
+    """
+    if not chunks:
+        return chunks
+    qset = _tokenize_rag_overlap(alignment_text or "")
+    if len(qset) > 4:
+        return chunks
+
+    def surplus(c: dict[str, Any]) -> int:
+        return _module_title_surplus_count(c, qset)
+
+    sur_values = [surplus(c) for c in chunks]
+    m = min(sur_values)
+    out: list[dict[str, Any]] = [dict(c) for c in chunks if surplus(c) == m]
+    if len(out) >= 2:
+        return out
+    # Fewer than two at min tier: add next tier(s) in original order until at least two or exhausted.
+    tiers_sorted = sorted(set(sur_values))
+    for tier in tiers_sorted:
+        if tier <= m:
+            continue
+        for c in chunks:
+            if surplus(c) != tier:
+                continue
+            out.append(dict(c))
+            if len(out) >= 2:
+                return out
+    return out if out else [dict(x) for x in chunks]
+
+
+def _clean_extracted_sentence(text: str) -> str:
+    s = str(text or "").replace("\n", " ").strip()
+    s = re.sub(r"\s+", " ", s)
+    # Remove noisy chapter headers / numbering from raw chunks.
+    s = re.sub(r"\bchapitre\s*\d+\s*[:\-]?\s*", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"^\s*[\d\-\)\(•\.:]+\s*", "", s)
+    s = re.sub(r"\s{2,}", " ", s).strip(" -:;,.")
+    return s
+
+
+def _context_similarity(answer: str, context: str) -> float:
+    a = re.sub(r"\s+", " ", (answer or "").strip().lower())
+    c = re.sub(r"\s+", " ", (context or "").strip().lower())
+    if not a or not c:
+        return 0.0
+    # Keep bounded size for latency.
+    return SequenceMatcher(None, a[:1800], c[:2200]).ratio()
+
+
+def _sections_complete(text: str) -> bool:
+    """True if all four emoji sections exist and each has substantive body text."""
+    t = (text or "").strip()
+    if not t:
+        return False
+    parts = [p for p in re.split(r"(?=📘|🧠|✅|🎯)", t) if p.strip()]
+    found = [p for p in parts if p.strip() and p.strip()[0] in "📘🧠✅🎯"]
+    if len(found) < 4:
+        return False
+    kinds: set[str] = set()
+    for p in found:
+        em = p.strip()
+        if em.startswith("📘"):
+            kinds.add("c")
+        elif em.startswith("🧠"):
+            kinds.add("e")
+        elif em.startswith("✅"):
+            kinds.add("x")
+        elif em.startswith("🎯"):
+            kinds.add("m")
+        else:
+            continue
+        lines = p.strip().splitlines()
+        if len(lines) < 2:
+            return False
+        body = "\n".join(lines[1:]).strip()
+        if len(re.sub(r"\s+", "", body)) < 12:
+            return False
+    return kinds == {"c", "e", "x", "m"}
+
+
+def _has_placeholder_ellipsis(text: str) -> bool:
+    """True if prose contains ellipsis used as filler (outside typical code string literals)."""
+    t = text or ""
+    if "..." not in t and "…" not in t:
+        return False
+    prose = re.sub(r"```[\s\S]*?```", "", t)
+    if "..." not in prose and "…" not in prose:
+        return False
+    # Strip quoted strings that often contain format dots
+    prose2 = re.sub(r'"[^"]*"', "", prose)
+    prose2 = re.sub(r"'[^']*'", "", prose2)
+    if "..." in prose2 or "…" in prose2:
+        return True
+    return False
+
+
+def _strip_fenced_code_blocks(text: str) -> str:
+    return re.sub(r"```[\s\S]*?```", "", text or "")
+
+
+def _slice_between_markers(text: str, start_marker: str, end_marker: str | None) -> str:
+    """Extract body after start_marker up to end_marker (exclusive). If end_marker is None, use rest of text."""
+    t = text or ""
+    i = t.find(start_marker)
+    if i < 0:
+        return ""
+    start_i = i + len(start_marker)
+    if end_marker:
+        j = t.find(end_marker, start_i)
+        chunk = t[start_i:j] if j >= 0 else t[start_i:]
+    else:
+        chunk = t[start_i:]
+    lines = chunk.splitlines()
+    while lines and not lines[0].strip():
+        lines = lines[1:]
+    if lines and re.match(r"^\s*(Explanation|Example|Mini exercise)\s*:?\s*$", lines[0], re.I):
+        lines = lines[1:]
+    return "\n".join(lines).strip()
+
+
+def _explanation_meets_depth(text: str) -> bool:
+    body = _slice_between_markers(text, "🧠", "✅")
+    body = _strip_fenced_code_blocks(body)
+    if len(body.strip()) < 40:
+        return False
+    parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", body) if len(p.strip()) > 12]
+    if len(parts) >= 3:
+        return True
+    lines = [ln.strip() for ln in body.splitlines() if ln.strip() and not ln.strip().startswith("#")]
+    substantial = [ln for ln in lines if len(re.sub(r"^[-*•]\s*", "", ln)) > 12]
+    return len(substantial) >= 3
+
+
+def _example_meets_depth(text: str) -> bool:
+    body = _slice_between_markers(text, "✅", "🎯")
+    if len(body.strip()) < 20:
+        return False
+    full = text or ""
+    if "```" in full:
+        return True
+    return bool(re.search(r"[{;}]|#include|def\s+\w+|int\s+\w+|for\s*\(|while\s*\(|printf|print\(", body))
+
+
+def _exercise_meets_depth(text: str) -> bool:
+    body = _slice_between_markers(text, "🎯", None)
+    return bool(body.strip()) and ("?" in body or "？" in body)
+
+
+def _tutor_pedagogical_depth_ok(text: str) -> bool:
+    """At least 3 explanation units, real code in Example, question mark in Mini exercise."""
+    t = text or ""
+    if not all(x in t for x in ("📘", "🧠", "✅", "🎯")):
+        return False
+    return (
+        _explanation_meets_depth(t)
+        and _example_meets_depth(t)
+        and _exercise_meets_depth(t)
+    )
+
+
+def _anti_copy_violation(answer: str, cleaned_source: str, summary: str) -> bool:
+    """True if the answer is too close to cleaned raw source or to Stage A summary (not expanded)."""
+    a = (answer or "").strip()
+    if not a:
+        return False
+    if cleaned_source and _context_similarity(a, cleaned_source) >= 0.74:
+        return True
+    if summary and len(summary.strip()) > 40 and _context_similarity(a, summary) >= 0.85:
+        return True
+    return False
+
+
+def _is_low_quality_answer(
+    answer: str, question: str, cleaned_source: str = "", summary: str = ""
+) -> bool:
+    a = (answer or "").strip()
+    if not a:
+        return True
+    low = a.lower()
+    # Unwanted template traces.
+    forbidden_markers = [
+        "reponse directe:",
+        "explication pas a pas:",
+        "step-by-step:",
+        "common mistakes:",
+        "d'apres les chapitres du cours",
+        "from the course sources",
+    ]
+    if any(m in low for m in forbidden_markers):
+        return True
+    if cleaned_source:
+        if summary:
+            if _anti_copy_violation(a, cleaned_source, summary):
+                return True
+        elif _context_similarity(a, cleaned_source) >= 0.78:
+            return True
+    if not _sections_complete(a):
+        return True
+    if _has_placeholder_ellipsis(a):
+        return True
+    # If user asked step-by-step, we require at least a few list lines.
+    q = (question or "").lower()
+    asks_steps = ("pas a pas" in q) or ("pas à pas" in q) or ("step by step" in q)
+    if asks_steps and len(re.findall(r"(?m)^\s*[-*]\s+", a)) < 3:
+        return True
+    if _has_instruction_leakage(a):
+        return True
+    return False
+
+
+def _detect_language(question: str, history: list[dict[str, str]] | None = None) -> str:
+    """Heuristic language detector focused on FR/EN tutoring chats."""
+    text = " ".join(
+        [
+            str(question or ""),
+            " ".join(str(m.get("content", "")) for m in (history or [])[-3:] if str(m.get("role", "")).lower() == "user"),
+        ]
+    ).lower()
+    fr_hits = [
+        " je ", " j'", " pas ", " avec ", " pour ", " pourquoi ", " comment ", " explique",
+        " début", " debut", "pointeur", "tableau", "fonction", "donner", "plus claire",
+    ]
+    en_hits = [
+        " the ", " and ", " with ", " why ", " how ", " explain ", "beginner", "pointer",
+        "step by step", "clear answer",
+    ]
+    fr_score = sum(1 for t in fr_hits if t in f" {text} ")
+    en_score = sum(1 for t in en_hits if t in f" {text} ")
+    return "fr" if fr_score >= en_score else "en"
+
+
+def _is_clarification_request(question: str) -> bool:
+    q = (question or "").lower()
+    markers = [
+        "j'ai pas compris", "jai pas compris", "pas compris", "explique autrement",
+        "plus clair", "plus claire", "reexplique", "réexplique", "simplifie",
+        "i didn't understand", "did not understand", "explain differently", "simpler",
+    ]
+    return any(m in q for m in markers)
+
+
+def _has_instruction_leakage(text: str) -> bool:
+    """True if the model answered with meta-instructions instead of teaching content."""
+    if not (text or "").strip():
+        return False
+    low = (text or "").lower()
+    bad_substrings = [
+        "explain this",
+        "write an example",
+        "write this",
+        "explain the following",
+    ]
+    if any(s in low for s in bad_substrings):
+        return True
+    for raw_line in (text or "").splitlines():
+        line = raw_line.strip().lower()
+        if line.startswith("explique ") or line.startswith("écris ") or line.startswith("ecris "):
+            return True
+        if line.startswith("donne ") or line.startswith("donne-moi"):
+            return True
+        if line.startswith("write ") and not line.startswith("printf"):
+            return True
+    return False
+
+
+def _classify_user_intent(question: str) -> str:
+    q = (question or "").lower()
+    if any(k in q for k in ["quiz", "qcm", "question", "exercise", "exercice", "test me"]):
+        return "quiz"
+    if any(k in q for k in ["bug", "error", "erreur", "debug", "fix", "corriger"]):
+        return "debugging"
+    if any(k in q for k in ["example", "exemple", "montre", "show me", "sample"]):
+        return "example"
+    # Use scorer heuristic for remaining.
+    try:
+        info = relevance_scorer.detect_query_intent(question)
+        t = str(info.get("intent_type", "general"))
+        if t == "example":
+            return "example"
+    except Exception:
+        pass
+    return "explanation"
+
+
+def _format_context_chunks_for_prompt(chunks: list[dict[str, Any]]) -> str:
+    """Label chunks for the CONTEXT block without mixing with instructions."""
+    parts: list[str] = []
+    for i, c in enumerate(chunks[:5], start=1):
+        t = str(c.get("chunk_text") or "").strip()
+        if not t:
+            continue
+        parts.append(f"[chunk{i}]\n{t[:900]}")
+    return "\n\n".join(parts)
+
+
+def _few_shot_teacher_example(lang: str) -> str:
+    if lang == "fr":
+        return """EXAMPLE (reference style only — answer the USER MESSAGE below, not this example):
+
+User: Explique les boucles for et while
+
+Assistant:
+📘 Concept:
+Les boucles permettent de répéter un bloc de code.
+
+🧠 Explanation:
+La boucle while exécute un bloc tant qu'une condition est vraie.
+La boucle for est utilisée quand on connaît le nombre d'itérations.
+
+✅ Example:
+int i = 0;
+while (i < 3) {
+  printf("%d", i);
+  i++;
+}
+
+for (int j = 0; j < 3; j++) {
+  printf("%d", j);
+}
+
+🎯 Mini exercise:
+Quelle est la différence principale entre for et while ?
+"""
+    return """EXAMPLE (reference style only — answer the USER MESSAGE below, not this example):
+
+User: Explain for and while loops
+
+Assistant:
+📘 Concept:
+Loops repeat a block of code until a condition is met or for a fixed count.
+
+🧠 Explanation:
+A while loop runs while its condition stays true.
+A for loop is often used when you know how many iterations you need.
+
+✅ Example:
+int i = 0;
+while (i < 3) {
+  printf("%d", i);
+  i++;
+}
+
+for (int j = 0; j < 3; j++) {
+  printf("%d", j);
+}
+
+🎯 Mini exercise:
+When would you choose while instead of for?
+"""
+
+
+def _system_grounding_safety() -> str:
+    return (
+        "GROUNDING (still part of SYSTEM rules):\n"
+        "1. Base your answer primarily on the CONTEXT block below.\n"
+        "2. Do NOT invent facts, formulas, or code not supported by CONTEXT.\n"
+        "3. You MAY rephrase, summarize, and explain in your own words.\n"
+        "4. If CONTEXT is insufficient, say so briefly, then help with what is available.\n"
+    )
+
+
+def _select_diverse_chunks(query: str, chunks: list[dict[str, Any]], n_max: int = 5) -> list[dict[str, Any]]:
+    if not chunks:
+        return []
+    ranked = relevance_scorer.rank_chunks_by_relevance(query, chunks, use_intent=True) or chunks
+    selected: list[dict[str, Any]] = []
+
+    def _signature(c: dict[str, Any]) -> str:
+        meta = c.get("metadata") or {}
+        return f"{meta.get('course_title','')}|{meta.get('module_name','')}|{c.get('course_id','')}"
+
+    def _overlap(a: str, b: str) -> float:
+        ta = set(re.findall(r"\b[\w-]{4,}\b", (a or "").lower()))
+        tb = set(re.findall(r"\b[\w-]{4,}\b", (b or "").lower()))
+        if not ta or not tb:
+            return 0.0
+        return len(ta & tb) / max(len(ta | tb), 1)
+
+    seen_sig: set[str] = set()
+    for c in ranked:
+        if len(selected) >= n_max:
+            break
+        text = str(c.get("chunk_text") or "")
+        sig = _signature(c)
+        if sig in seen_sig:
+            continue
+        if any(_overlap(text, str(s.get("chunk_text") or "")) > 0.62 for s in selected):
+            continue
+        selected.append(c)
+        seen_sig.add(sig)
+
+    if len(selected) < 3:
+        for c in ranked:
+            if len(selected) >= min(3, len(ranked)):
+                break
+            if c not in selected:
+                selected.append(c)
+    return selected[:n_max]
+
+
+def _fold_accents(s: str) -> str:
+    """Lowercase ASCII fold for French keyword matching (e.g. chaînes → chaines)."""
+    if not s:
+        return ""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+    ).lower()
+
+
+def _llm_failure_plain_message(lang: str) -> str:
+    """No fake Concept/Example templates — honest short message when the LLM path fails."""
+    if lang == "fr":
+        return (
+            "Je n'ai pas pu generer une reponse complete a temps avec le modele local. "
+            "Reessaie dans quelques secondes. Si le probleme continue, formule une seule question courte et precise.\n\n"
+            "Exemple: « Comment declarer et lire une chaine de caracteres en C ? »"
+        )
+    return (
+        "The tutor model could not finish a full answer in time. Please try again in a few seconds, "
+        "or ask one shorter, specific question."
+    )
+
+
+def _is_llm_failure_plain_response(text: str) -> bool:
+    """True for the deterministic timeout message — must not be wrapped in tutor section headers."""
+    t = (text or "").strip()
+    if not t:
+        return False
+    return (
+        "Je n'ai pas pu generer une reponse complete a temps avec le modele local." in t
+        or "The tutor model could not finish a full answer in time." in t
+    )
+
+
+def _select_tutor_chunks(query: str, chunks: list[dict[str, Any]], n_max: int = 5) -> list[dict[str, Any]]:
+    """
+    Group chunks from the same course as the top-ranked hit first, then dedupe by text.
+    Chunks are ordered by embedding + _rerank_chunks_by_lexical_alignment; the first item sets
+    the primary chapter so Concept/Explanation/Example stay coherent in the LLM.
+    """
+    if not chunks:
+        return []
+    primary = _course_key(chunks[0])
+    same_course = [c for c in chunks if _course_key(c) == primary]
+    rest = [c for c in chunks if _course_key(c) != primary]
+    ordered = same_course + rest
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for c in ordered:
+        if len(out) >= n_max:
+            break
+        t = str(c.get("chunk_text") or "").strip()
+        sig = _normalize_sentence_key(t[:500])
+        if sig in seen:
+            continue
+        seen.add(sig)
+        out.append(c)
+    return out
+
+
+def _normalize_sentence_key(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip().lower())[:220]
+
+
+def _course_key(chunk: dict[str, Any]) -> str:
+    """Stable key so chunks from the same course stay grouped in the tutor context."""
+    cid = str(chunk.get("course_id") or "").strip()
+    if cid:
+        return f"id:{cid}"
+    meta = chunk.get("metadata") or {}
+    ct = str(meta.get("course_title") or "").strip()
+    mn = str(meta.get("module_name") or "").strip()
+    return f"t:{ct}|m:{mn[:160]}"
+
+
+def _chunks_for_sources_display(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Chunks shown as Sources in the API: only the same course as [Source 1] (top-ranked
+    after rerank), so unrelated chapters do not appear when the answer was grounded on one chapter.
+    """
+    if not chunks:
+        return []
+    primary = _course_key(chunks[0])
+    out = [c for c in chunks if _course_key(c) == primary]
+    return out if out else [chunks[0]]
+
+
+def _format_labeled_course_context(chunks: list[dict[str, Any]]) -> str:
+    """Build CONTEXT with [Source n] labels so the model anchors all sections on the same excerpt."""
+    parts: list[str] = []
+    for i, c in enumerate(chunks[:5], start=1):
+        meta = c.get("metadata") or {}
+        title = str(meta.get("course_title") or "").strip() or "Cours"
+        mod = str(meta.get("module_name") or "").strip() or "Module"
+        body = str(c.get("chunk_text") or "").strip()
+        if not body:
+            continue
+        parts.append(f"[Source {i}] {title} — {mod}\n{body}")
+    return "\n\n".join(parts)
+
+
+def _clean_course_chunk_text(text: str) -> str:
+    """Dedupe sentences, drop noisy lines, trim fragments before Stage A."""
+    raw = str(text or "").replace("\r", "\n")
+    pieces = re.split(r"(?<=[.!?])\s+|\n+", raw)
+    seen: set[str] = set()
+    out: list[str] = []
+    for ch in pieces:
+        s = ch.strip()
+        if not s:
+            continue
+        if len(s) < 12 and "`" not in s and "{" not in s:
+            continue
+        if re.match(r"^[\d\-\)\.\s•:]+$", s):
+            continue
+        sig = _normalize_sentence_key(s)
+        if len(sig) < 10:
+            continue
+        if sig in seen:
+            continue
+        seen.add(sig)
+        out.append(s)
+    joined = " ".join(out)
+    if not joined.strip():
+        one = " ".join(x.strip() for x in raw.splitlines() if x.strip())
+        return one[:1200]
+    return joined[:900]
+
+
+def _clean_chunks_for_pipeline(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for c in chunks[:5]:
+        ct = str(c.get("chunk_text") or "")
+        cleaned = _clean_course_chunk_text(ct)
+        if len(cleaned.strip()) < 12:
+            continue
+        nc = dict(c)
+        nc["chunk_text"] = cleaned
+        out.append(nc)
+    if not out and chunks:
+        c0 = dict(chunks[0])
+        c0["chunk_text"] = str(c0.get("chunk_text") or "")[:2000]
+        return [c0]
+    return out[:5]
+
+
+_TUTOR_SYSTEM_PROMPT_FR = """\
+Tu es un tuteur IA expert integre dans une plateforme d'apprentissage adaptative.
+
+Ton role est d'AIDER LES ETUDIANTS A COMPRENDRE, pas de repeter ou copier le contenu du cours.
+
+========================
+COMPORTEMENT PRINCIPAL
+========================
+
+- Tu enseignes comme un tuteur humain.
+- Tu expliques les concepts clairement et simplement.
+- Tu t'adaptes au niveau debutant sauf indication contraire.
+- Tu ne copies JAMAIS le texte du cours/contexte.
+- Tu REFORMULES TOUJOURS avec tes propres mots.
+- Tu ne produis JAMAIS d'instructions ou de placeholders (comme "...", "explique ceci", etc.).
+- Tu generes TOUJOURS des reponses completes et significatives.
+
+========================
+REGLES D'UTILISATION DU CONTEXTE
+========================
+
+Tu recois du contenu de cours comme CONTEXT.
+
+IMPORTANT:
+- Ce contexte est BRUT et peut etre mal ecrit.
+- NE copie PAS les phrases.
+- NE les repete PAS.
+- Tu dois COMPRENDRE le contenu, puis le REECRIRE de maniere plus claire.
+- Ajoute les explications manquantes UNIQUEMENT dans le meme theme que [Source 1] (titre de module).
+
+Si le contexte est insuffisant pour repondre precisement:
+- Dis-le en une phrase courte; n'importe PAS de notions d'autres chapitres pour combler.
+- N'utilise pas des connaissances generales pour melanger des sujets (ex: autre chapitre du cours) non demandes.
+
+Si un bloc CONVERSATION est fourni:
+- Utilise-le pour savoir de QUOI parle l'etudiant (ex: "les pointeurs") quand la question dit "les", "ca", "maintenant", etc.
+- Ne change PAS de sujet (ex: boucles for/while) si la suite logique porte sur le theme deja discute.
+
+COHERENCE (OBLIGATOIRE — toutes les sections sur le meme theme):
+- Le CONTEXT est decoupe en [Source 1], [Source 2], ... avec le titre du cours et du module pour chaque extrait.
+- [Source 1] est le plus pertinent en tete: base TOUTES les sections (Concept, Explanation, Example, Mini exercise) sur le meme theme que [Source 1].
+- Le titre du module de [Source 1] fixe le sens du sujet (pas un sens vague ou un autre cours): toutes les sections doivent avoir ce meme sens.
+- Si la meme expression apparait dans plusieurs titres de chapitres, ne melange pas: explique le sens du chapitre de [Source 1], pas un autre chapitre qui ne partage qu'une partie du titre.
+- Les extraits suivants ne servent qu'en appoint si [Source 1] ne suffit pas; ils ne doivent pas contredire ou remplacer le theme principal.
+
+========================
+CONTROLE DU SUJET (OBLIGATOIRE)
+========================
+
+- Identifie le sujet EXACT demande par la question (un seul theme principal).
+- Ne reponds QUE sur ce sujet; n'introduis pas des sous-themes ou chapitres voisins sauf si l'etudiant les demande explicitement.
+- Deux titres de chapitre qui partagent un mot ne sont PAS le meme sujet: ne les fusionne pas.
+- Ne propose pas de comparaisons avec d'autres chapitres sauf demande explicite.
+- Si tu risques de melanger deux themes, limite-toi a [Source 1] et dis en une phrase que les autres themes sont vus ailleurs.
+
+AUTO-VERIFICATION avant d'envoyer la reponse:
+- Est-ce que chaque section ne parle que du sujet demande et du theme de [Source 1] ?
+- Ai-je melange un autre chapitre par erreur ? Si oui, supprime ou corrige.
+
+========================
+STYLE D'ENSEIGNEMENT
+========================
+
+Quand tu reponds:
+
+1. Commence par une DEFINITION SIMPLE
+2. Explique etape par etape
+3. Utilise un langage clair et amical
+4. Ajoute un exemple pratique
+5. Souligne les differences s'il y a plusieurs concepts
+6. Aide l'etudiant a reflechir (pas seulement a lire)
+
+Tu dois ressembler a:
+- un professeur patient
+- clair et structure
+- utile et encourageant
+
+========================
+STRUCTURE DE REPONSE (OBLIGATOIRE)
+========================
+
+Tu DOIS TOUJOURS suivre cette structure:
+
+📘 Concept:
+- Donne une definition courte et claire
+
+🧠 Explanation:
+- Explique en termes simples (au moins 3-5 phrases)
+- Decompose l'idee etape par etape
+- Si tu compares (ex: for vs while), explique clairement les differences
+
+✅ Example:
+- Donne un VRAI exemple (code ou vie reelle)
+- Il doit etre complet et comprehensible
+
+🎯 Mini exercise:
+- Pose une petite question pour tester la comprehension
+
+REMPLISSAGE DES QUATRE SECTIONS (CRITIQUE):
+- Ne mets PAS toute la reponse sous 📘 Concept seul. Chaque section doit contenir du texte utile.
+- 🧠 Explanation: au moins 2 phrases qui developpent le concept (pas une ligne vide).
+- ✅ Example: au moins un exemple concret (code court ou cas pratique).
+- 🎯 Mini exercise: au moins une question claire se terminant souvent par « ? ».
+- Si tu ecris plusieurs paragraphes, repartis-les entre les sections au lieu de tout empiler sous Concept.
+
+========================
+FORMATAGE (INTERFACE)
+========================
+
+- Utilise du Markdown (style GitHub): blocs de code avec balises de langue (ex: ```c ... ```).
+- N'ecris pas une ligne qui contient uniquement --- (ligne horizontale); cela casse l'interface.
+
+========================
+REGLES STRICTES
+========================
+
+- JAMAIS de sections vides
+- JAMAIS de "..." ou placeholders
+- JAMAIS de "fais ceci" ou "explique ceci"
+- JAMAIS de copie du texte du contexte
+- JAMAIS de contenu brut du cours
+
+Si tu le fais, ta reponse est INVALIDE.
+
+========================
+QUALITE REQUISE
+========================
+
+Avant de repondre, assure-toi que:
+
+- La reponse est claire pour un debutant
+- L'explication est complete dans le cadre du sujet de [Source 1] uniquement
+- L'exemple est correct et utile
+- Toutes les sections sont remplies
+- Aucun melange de chapitres non demande
+
+Produis toujours des reponses a ce niveau de clarte et de completude."""
+
+_TUTOR_SYSTEM_PROMPT_EN = """\
+You are an expert AI tutor integrated into an adaptive learning platform.
+
+Your role is to HELP STUDENTS UNDERSTAND, not to repeat or copy course material.
+
+========================
+CORE BEHAVIOR
+========================
+
+- You teach like a human tutor.
+- You explain concepts clearly and simply.
+- You adapt to beginner-level unless told otherwise.
+- You NEVER copy text from the course/context.
+- You ALWAYS reformulate in your own words.
+- You NEVER output instructions or placeholders (like "...", "explain this", etc.).
+- You ALWAYS generate complete, meaningful answers.
+
+========================
+CONTEXT USAGE RULES
+========================
+
+You may receive course content as CONTEXT.
+
+IMPORTANT:
+- This context is RAW and may be poorly written.
+- DO NOT copy sentences from it.
+- DO NOT repeat it.
+- You must UNDERSTAND it, then REWRITE it in a better way.
+- Add missing explanations ONLY within the same topic as [Source 1] (module title).
+
+If context is insufficient to answer precisely:
+- Say so briefly; do NOT import ideas from unrelated chapters to fill gaps.
+- Do NOT use general knowledge to mix in other course topics the student did not ask about.
+
+If a CONVERSATION block is provided:
+- Use it to know WHAT the student means (e.g. "pointers") when they say "them", "it", "now", etc.
+- Do NOT switch topic (e.g. to unrelated loops) if the follow-up clearly continues the same thread.
+
+COHERENCE (MANDATORY — one topic across all sections):
+- CONTEXT is split into [Source 1], [Source 2], ... each labeled with course and module title.
+- [Source 1] is the best match first: base ALL sections (Concept, Explanation, Example, Mini exercise) on the SAME topic as [Source 1].
+- The [Source 1] module title fixes the meaning of the topic (not a vague gloss or a different subject): all sections must follow that same meaning.
+- If a word appears in several chapter titles, do not mix meanings: explain the chapter [Source 1] is about, not a different chapter that only shares a word in the title.
+- Later sources are supplementary only; they must not override or contradict the primary topic.
+
+========================
+TOPIC CONTROL (MANDATORY)
+========================
+
+- Identify the EXACT topic the question asks for (one main theme).
+- Answer ONLY on that topic; do not bring in neighboring subtopics or chapters unless the student explicitly asks.
+- Two chapter titles that share a word are NOT the same topic: do not merge them.
+- Do not offer comparisons with other chapters unless explicitly requested.
+- If you risk mixing two themes, stay with [Source 1] only and say in one sentence that other themes are covered elsewhere.
+
+SELF-CHECK before sending:
+- Does every section stick to the requested topic and [Source 1]'s theme?
+- Did you accidentally mix another chapter? If yes, remove or fix.
+
+========================
+TEACHING STYLE
+========================
+
+When answering:
+
+1. Start with a SIMPLE definition
+2. Explain step-by-step
+3. Use clear and friendly language
+4. Add a practical example
+5. Highlight differences if multiple concepts exist
+6. Help the student think (not just read)
+
+You should sound like:
+- a patient teacher
+- clear and structured
+- helpful and encouraging
+
+========================
+RESPONSE STRUCTURE (MANDATORY)
+========================
+
+You MUST ALWAYS follow this structure:
+
+📘 Concept:
+- Give a short and clear definition
+
+🧠 Explanation:
+- Explain in simple terms (at least 3-5 sentences)
+- Break down the idea step by step
+- If comparing (e.g. for vs while), explain differences clearly
+
+✅ Example:
+- Give a REAL example (code or real-life)
+- It must be complete and understandable
+
+🎯 Mini exercise:
+- Ask a small question to test understanding
+
+FOUR-SECTION FILL (CRITICAL):
+- Do NOT put the entire answer under 📘 Concept only. Each section must contain useful text.
+- 🧠 Explanation: at least 2 sentences that expand the concept (not a blank line).
+- ✅ Example: at least one concrete example (short code or real-life case).
+- 🎯 Mini exercise: at least one clear question (often ending with ?).
+- If you write several paragraphs, spread them across sections instead of stacking everything under Concept.
+
+========================
+FORMATTING (UI)
+========================
+
+- Use GitHub-flavored Markdown: fenced code blocks with language tags (e.g. ```c ... ```).
+- Do not output a line that contains only --- (horizontal rule); it breaks the UI.
+
+========================
+STRICT RULES
+========================
+
+- NEVER leave sections empty
+- NEVER write "..." or placeholders
+- NEVER say "do this" or "explain this"
+- NEVER copy the context text
+- NEVER output raw course content
+
+If you do, your answer is INVALID.
+
+========================
+QUALITY REQUIREMENTS
+========================
+
+Before answering, make sure:
+
+- The answer is clear for a beginner
+- The explanation is complete within [Source 1]'s topic only
+- The example is correct and useful
+- All sections are filled
+- No unrelated chapter mixing
+
+Always produce answers at this level of clarity and completeness."""
+
+_TUTOR_FEW_SHOT_FR = (
+    "EXAMPLE (reference de style uniquement — reponds a USER MESSAGE ci-dessous, PAS a cet exemple):\n\n"
+    "User: Explique les boucles for et while\n\n"
+    "Assistant:\n"
+    "📘 Concept:\n"
+    "Les boucles permettent de repeter un bloc de code.\n\n"
+    "🧠 Explanation:\n"
+    "La boucle while execute un bloc tant qu'une condition est vraie.\n"
+    "La boucle for est utilisee quand on connait le nombre d'iterations.\n\n"
+    "✅ Example:\n"
+    "int i = 0;\n"
+    "while (i < 3) { printf(\"%d\", i); i++; }\n"
+    "for (int j = 0; j < 3; j++) { printf(\"%d\", j); }\n\n"
+    "🎯 Mini exercise:\n"
+    "Quelle est la difference principale entre for et while ?\n"
+)
+
+_TUTOR_FEW_SHOT_EN = (
+    "EXAMPLE (reference style only — answer USER MESSAGE below, NOT this example):\n\n"
+    "User: Explain for and while loops\n\n"
+    "Assistant:\n"
+    "📘 Concept:\n"
+    "Loops repeat a block of code until a condition is met or for a fixed count.\n\n"
+    "🧠 Explanation:\n"
+    "A while loop runs while its condition stays true.\n"
+    "A for loop is often used when you know how many iterations you need.\n\n"
+    "✅ Example:\n"
+    "int i = 0;\n"
+    "while (i < 3) { printf(\"%d\", i); i++; }\n"
+    "for (int j = 0; j < 3; j++) { printf(\"%d\", j); }\n\n"
+    "🎯 Mini exercise:\n"
+    "When would you choose while instead of for?\n"
+)
+
+_TUTOR_SYSTEM_PROMPT_FR_TARGETED = """\
+Tu es un tuteur IA. Tu t'appuies sur le CONTEXT (sources [Source 1], etc.).
+
+- Reformule; ne copie pas le cours mot a mot.
+- Reste sur le theme de [Source 1] si le contexte est decoupe par source.
+- La question demande souvent UNE chose precise (ex: un exemple de code, une reponse courte).
+- Reponds DIRECTEMENT: pas de lecon complete avec les quatre sections 📘 🧠 ✅ 🎯.
+- Pas de repetition de tout le chapitre precedent: si on demande seulement un exemple, donne l'exemple (code dans ```c ... ``` si C) et au plus une ou deux phrases utiles.
+- N'utilise les en-tetes emoji que si tu juges necessaire; sinon texte libre ou code seul.
+- Markdown: blocs ```lang ... ```; pas de ligne --- seule."""
+
+_TUTOR_SYSTEM_PROMPT_EN_TARGETED = """\
+You are a tutor AI. Use the CONTEXT ([Source 1], etc.).
+
+- Paraphrase; do not copy course text verbatim.
+- Stay aligned with [Source 1] when sources are labeled.
+- The question often asks for ONE specific thing (e.g. a code example, a short answer).
+- Answer DIRECTLY: do NOT output a full lesson with four sections 📘 🧠 ✅ 🎯.
+- Do not repeat an earlier full lesson: if they only asked for an example, give the example (code in ```c ... ``` when C) plus at most a line or two if helpful.
+- Use emoji section headers only if clearly useful; otherwise plain text or code only.
+- Markdown: use ```lang ... ``` fences; do not output a line with only ---."""
+
+_TUTOR_FEW_SHOT_TARGETED_FR = (
+    "EXEMPLE (style uniquement — reponds a USER MESSAGE ci-dessous, PAS a cet exemple):\n\n"
+    "User: Donne un exemple de printf\n\n"
+    "Assistant:\n"
+    "```c\nprintf(\"n = %%d\\\\n\", n);\n```\n"
+    "Affiche la valeur de n sur la sortie standard.\n"
+)
+
+_TUTOR_FEW_SHOT_TARGETED_EN = (
+    "EXAMPLE (style only — answer USER MESSAGE below, NOT this example):\n\n"
+    "User: Give one printf example\n\n"
+    "Assistant:\n"
+    "```c\nprintf(\"n = %d\\n\", n);\n```\n"
+    "Prints the value of n to stdout.\n"
+)
+
+
+def _tutor_response_mode(question: str) -> str:
+    """
+    full = four emoji sections (concept / explanation / example / mini exercise).
+    targeted = answer only what was asked (code snippet, short reply, etc.).
+    """
+    q = (question or "").strip()
+    if not q:
+        return "full"
+    low = _fold_accents(q.lower())
+
+    if re.search(r"\bexplique\b", low) and re.search(
+        r"\b(donne|exemple|example|montre|montrez)\b", low
+    ):
+        return "full"
+    if re.search(r"\bexplain\b", low) and re.search(r"\b(give|show|example)\b", low):
+        return "full"
+
+    if re.search(
+        r"(c'est quoi|qu'est-ce que|quest-ce que|qu'est ce que|que signifie|"
+        r"what is|what are|defin(is|ir|ition)\b|pourquoi\b|^why\b|difference entre|"
+        r"compare| vs |comment fonctionne)",
+        low,
+    ):
+        return "full"
+
+    words = re.findall(r"[a-zà-êëïéèùçôû]+", low)
+    if len(words) <= 2 and not re.search(
+        r"exemple|example|code|donne|montre|give|show|write|snippet", low
+    ):
+        return "full"
+
+    if re.search(
+        r"(^|\b)(donne[rz]?|donne-moi|montre[rz]?|montre-moi|montrez|un\s+exemple|"
+        r"exemples?\s+de|exemple\s+de\s+code|snippet|peux-tu\s+donner|pourrais-tu\s+donner|"
+        r"give\s+me\s+an?\s+example|show\s+me\s+(the\s+)?(code|example)|write\s+(a\s+)?(code|snippet)|"
+        r"juste\s+(un|une|le|la)|only\s+(a|the|an)\s+)",
+        low,
+    ):
+        return "targeted"
+
+    if re.search(r"\bcode\b", low) and re.search(
+        r"(exemple|example|donne|show|give|write|montre)", low
+    ):
+        return "targeted"
+
+    if re.search(
+        r"(^|\s)(resume|summarize|en\s+une\s+phrase|in\s+one\s+sentence)\b", low
+    ):
+        return "targeted"
+
+    return "full"
+
+
+def _build_tutor_prompt(
+    *,
+    question: str,
+    context: str,
+    lang: str,
+    conversation_block: str = "",
+    response_mode: str = "full",
+) -> str:
+    """
+    SYSTEM + CONTEXT + optional CONVERSATION (history) + few-shot + USER (current question).
+    response_mode: "full" = four emoji sections; "targeted" = answer only what was asked.
+    """
+    if response_mode == "targeted":
+        sys_prompt = _TUTOR_SYSTEM_PROMPT_FR_TARGETED if lang == "fr" else _TUTOR_SYSTEM_PROMPT_EN_TARGETED
+        few_shot = _TUTOR_FEW_SHOT_TARGETED_FR if lang == "fr" else _TUTOR_FEW_SHOT_TARGETED_EN
+        fmt = (
+            "FORMAT: Reponse directe adaptee a la question (pas de template quatre sections obligatoire)."
+            if lang == "fr"
+            else "FORMAT: Direct answer matching the question (no mandatory four-section template)."
+        )
+    else:
+        sys_prompt = _TUTOR_SYSTEM_PROMPT_FR if lang == "fr" else _TUTOR_SYSTEM_PROMPT_EN
+        few_shot = _TUTOR_FEW_SHOT_FR if lang == "fr" else _TUTOR_FEW_SHOT_EN
+        fmt = (
+            "FORMAT DE SORTIE: Reponds avec les QUATRE sections remplies (Concept court; puis Explanation; puis Example; puis Mini exercise). "
+            "Ne regroupe pas tout le texte sous Concept."
+            if lang == "fr"
+            else "OUTPUT FORMAT: Respond with ALL FOUR sections filled (short Concept; then Explanation; then Example; then Mini exercise). "
+            "Do not put all text under Concept only."
+        )
+    ctx = (context or "").strip()[:8000]
+    q = (question or "").strip()
+    conv = (conversation_block or "").strip()
+    if lang == "fr":
+        conv_section = (
+            "========================\n"
+            "CONVERSATION (messages precedents — pour comprendre pronoms et sujet en cours):\n"
+            "========================\n"
+            f"{conv}\n\n"
+        )
+    else:
+        conv_section = (
+            "========================\n"
+            "CONVERSATION (recent turns — resolve pronouns and ongoing topic):\n"
+            "========================\n"
+            f"{conv}\n\n"
+        )
+    mid = f"{ctx}\n\n{conv_section}{few_shot}" if conv else f"{ctx}\n\n{few_shot}"
+    return (
+        f"{sys_prompt}\n\n"
+        f"========================\n"
+        f"CONTEXT (course material — DO NOT copy, reformulate):\n"
+        f"========================\n"
+        f"{mid}\n\n"
+        f"========================\n"
+        f"USER MESSAGE:\n"
+        f"========================\n"
+        f"{q}\n\n"
+        f"{fmt}"
+    )
+
+
+def _build_direct_tutor_prompt(user_prompt: str) -> str:
+    """No retrieval / no course context: just the system prompt + question."""
+    sys_prompt = _TUTOR_SYSTEM_PROMPT_EN
+    q = (user_prompt or "").strip()
+    return (
+        f"{sys_prompt}\n\n"
+        f"{_TUTOR_FEW_SHOT_EN}\n\n"
+        f"========================\n"
+        f"USER MESSAGE:\n"
+        f"========================\n"
+        f"{q}"
+    )
+
+
+def _tutor_extract_section_body(text: str, start: str, end: str | None) -> str:
+    """Body text between a section header and the next header (or end of string)."""
+    i = text.find(start)
+    if i < 0:
+        return ""
+    i += len(start)
+    if end:
+        j = text.find(end, i)
+        chunk = text[i:j] if j >= 0 else text[i:]
+    else:
+        chunk = text[i:]
+    return chunk.strip()
+
+
+def _tutor_section_body_too_thin(s: str, min_non_space: int = 12) -> bool:
+    return len(re.sub(r"\s+", "", s or "")) < min_non_space
+
+
+def _redistribute_tutor_sections_if_needed(text: str, lang: str) -> str:
+    """
+    If the model put almost everything under Concept and left other sections empty,
+    split Concept paragraphs across Explanation / Example / Mini exercise.
+    """
+    if _is_llm_failure_plain_response(text):
+        return text
+    concept = _tutor_extract_section_body(text, "📘 Concept:", "🧠 Explanation:")
+    expl = _tutor_extract_section_body(text, "🧠 Explanation:", "✅ Example:")
+    ex = _tutor_extract_section_body(text, "✅ Example:", "🎯 Mini exercise:")
+    mini = _tutor_extract_section_body(text, "🎯 Mini exercise:", None)
+
+    if not (
+        _tutor_section_body_too_thin(expl)
+        and _tutor_section_body_too_thin(ex)
+        and _tutor_section_body_too_thin(mini)
+    ):
+        return text
+    if len(re.sub(r"\s+", "", concept)) < 120:
+        return text
+
+    paras = [p.strip() for p in re.split(r"\n\s*\n+", concept) if p.strip()]
+    if len(paras) < 2:
+        return text
+
+    if len(paras) >= 4:
+        new_c = paras[0]
+        new_e = "\n\n".join(paras[1:-2])
+        new_x = paras[-2]
+        new_m = paras[-1]
+    elif len(paras) == 3:
+        new_c, new_e, new_x = paras[0], paras[1], paras[2]
+        new_m = (
+            "Peux-tu resumer en une phrase pourquoi ce concept est utile dans un programme ?"
+            if lang == "fr"
+            else "In one sentence, why is this concept useful in a program?"
+        )
+    else:
+        new_c, new_e = paras[0], paras[1]
+        new_x = (
+            "Exemple: applique la definition ci-dessus a un petit cas concret (voir aussi le cours)."
+            if lang == "fr"
+            else "Example: apply the definition above to a small concrete case (see the course)."
+        )
+        new_m = (
+            "Quelle nuance importante retiens-tu par rapport a une simple variable ?"
+            if lang == "fr"
+            else "What key nuance matters compared to a plain variable?"
+        )
+
+    return (
+        f"📘 Concept:\n{new_c}\n\n"
+        f"🧠 Explanation:\n{new_e}\n\n"
+        f"✅ Example:\n{new_x}\n\n"
+        f"🎯 Mini exercise:\n{new_m}"
+    )
+
+
+def _normalize_tutor_markdown(text: str, lang: str, response_mode: str = "full") -> str:
+    """Ensure section headers exist for full mode; targeted answers stay as-is (no forced template)."""
+    out = (text or "").strip()
+    if not out:
+        return out
+    if _is_llm_failure_plain_response(out):
+        return out
+    tail_note = ""
+    if "[Note:" in out:
+        ni = out.find("[Note:")
+        tail_note = out[ni:].strip()
+        out = out[:ni].rstrip()
+    if response_mode == "targeted":
+        if tail_note:
+            out = f"{out}\n\n{tail_note}"
+        return out
+    if "📘" not in out:
+        out = "📘 Concept:\n" + out
+    if "🧠" not in out:
+        out += "\n\n🧠 Explanation:\n"
+    if "✅" not in out:
+        out += "\n\n✅ Example:\n"
+    if "🎯" not in out:
+        out += "\n\n🎯 Mini exercise:\n"
+    out = _redistribute_tutor_sections_if_needed(out, lang)
+    if tail_note:
+        out = f"{out}\n\n{tail_note}"
+    return out
+
+
+def _run_chatbot_pipeline(
+    *,
+    effective_question: str,
+    lang: str,
+    context: str,
+    conversation_block: str = "",
+    t0: float,
+    budget_hard: float,
+    response_mode: str = "full",
+) -> tuple[str, str, bool, bool]:
+    """
+    Single LLM call pipeline. No multi-stage, no quality gates, no retries eating the budget.
+    Returns (final_answer, tier_used, llm_called, fallback_used).
+    """
+    if not context.strip():
+        return _llm_failure_plain_message(lang), "fallback", False, True
+
+    remaining = budget_hard - (time.time() - t0)
+    if remaining < 2.0:
+        return _llm_failure_plain_message(lang), "fallback", False, True
+
+    prompt = _build_tutor_prompt(
+        question=effective_question,
+        context=context,
+        lang=lang,
+        conversation_block=conversation_block,
+        response_mode=response_mode,
+    )
+    logger.info("TUTOR PROMPT length=%d chars", len(prompt))
+
+    llm_wait = max(5.0, min(remaining - 1.0, CHAT_LLM_MAX_WAIT_SEC))
+    answer, timed_out = run_with_timeout(
+        langchain_ollama.generate_response_explain,
+        llm_wait,
+        prompt,
+    )
+
+    if timed_out:
+        logger.warning(
+            "chatbot LLM timed out after %.1fs (prompt_len=%d)",
+            llm_wait,
+            len(prompt),
+        )
+        return _llm_failure_plain_message(lang), "fallback", True, True
+
+    if not (answer or "").strip():
+        logger.error(
+            "chatbot LLM returned empty (no timeout; check Ollama logs / model error). prompt_len=%d",
+            len(prompt),
+        )
+        return _llm_failure_plain_message(lang), "fallback", True, True
+
+    return answer.strip(), "full", True, False
+
+
 def _embedding_optimize_metrics(batch_stats: dict[str, Any]) -> dict[str, float]:
     """Derive time_saved and speedup from batch processing stats vs sequential estimate."""
     tc = int(batch_stats.get("total_chunks") or 0)
@@ -505,6 +2053,7 @@ async def root():
             "POST /brainrush/generate-session": "Generate mixed BrainRush question set",
             "GET /brainrush/topics/{subject}": "Get available topics for a subject from RAG",
             "POST /chatbot/ask": "Chatbot Q&A with RAG and hallucination guard",
+            "POST /chatbot/direct": "Tutor answer without retrieval (single-turn, num_predict)",
             "POST /chatbot/validate-answer": "Generate explanation for answer correctness",
             "POST /embeddings/optimize": "Sprint 5: batch-embed courses with optimization metrics",
             "POST /embeddings/batch-process": "Sprint 5: batch process courses (statistics)",
@@ -1373,13 +2922,20 @@ async def chatbot_ask(body: ChatbotRequest):
     t0 = time.time()
     try:
         state = student_state_store.get_state(body.student_id) if body.student_id else None
+        effective_question = _effective_question(body.question, body.conversation_history)
+        lang = _detect_language(effective_question, body.conversation_history)
+        intent = _classify_user_intent(effective_question)
+        response_mode = _tutor_response_mode(effective_question)
         state_sig = _state_hash(state)
         cache_payload = {
             "student_id": body.student_id or "",
-            "question": body.question,
+            "question": effective_question,
             "history_tail": body.conversation_history[-4:],
             "mode": body.mode or "",
+            "intent": intent,
+            "response_mode": response_mode,
             "state_sig": state_sig,
+            "schema_v": CACHE_SCHEMA_VERSION,
         }
         ckey = _cache_key("/chatbot/ask", cache_payload)
         cached, cache_age_ms = response_cache.get(ckey)
@@ -1398,45 +2954,38 @@ async def chatbot_ask(body: ChatbotRequest):
             )
             return {"status": "success", **cached, "cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache"}
 
-        # Tier B: compact prompt + top 3 chunks
-        chunks = embeddings_pipeline_v2.search_chunks(
-            body.question,
-            n_results=3,
+        hist_trimmed = _trim_history_exclude_current_turn(body.conversation_history, body.question)
+        retrieval_base = _retrieval_query_for_chat(body.question, hist_trimmed)
+        retrieval_query = _augment_retrieval_query_from_history(retrieval_base, hist_trimmed)
+        conversation_block = _format_conversation_history_for_prompt(hist_trimmed)
+        align_text = f"{retrieval_query} {_conversation_text_for_signals(hist_trimmed)}"
+
+        raw_chunks = embeddings_pipeline_v2.search_chunks(
+            retrieval_query,
+            n_results=16,
             collection_name=embeddings_pipeline_v2.DEFAULT_CHUNK_COLLECTION,
         )
-        context_quick = "\n\n".join((c.get("chunk_text") or "")[:350] for c in chunks[:3])
-        compact_prompt = (
-            "You are an educational assistant. Use ONLY this context.\n"
-            "If uncertain, say so.\n"
-            f"Context:\n{context_quick}\n\n"
-            f"Question: {body.question}\n"
-            "Answer in <=5 short lines."
+        raw_chunks = _rerank_chunks_by_lexical_alignment(raw_chunks, align_text)
+        raw_chunks = _filter_chunks_by_minimal_title_surplus(raw_chunks, align_text)
+        chunks = _select_tutor_chunks(retrieval_query, raw_chunks, n_max=5)
+
+        cleaned_chunks = _clean_chunks_for_pipeline(chunks)
+        cleaned_concat = _format_labeled_course_context(cleaned_chunks)
+
+        # LLM budget must start AFTER retrieval/chunk work — otherwise embedding search consumes CHAT_HARD_BUDGET
+        # and the model hits "could not finish in time" even when Ollama never got a fair slice of wall time.
+        t_llm = time.time()
+        final_answer, tier_used, llm_called, fallback_used = _run_chatbot_pipeline(
+            effective_question=effective_question,
+            lang=lang,
+            context=cleaned_concat,
+            conversation_block=conversation_block,
+            t0=t_llm,
+            budget_hard=CHAT_LLM_HARD_BUDGET,
+            response_mode=response_mode,
         )
-        quick_answer, quick_timeout = run_with_timeout(langchain_ollama.generate_response, CHAT_SOFT_BUDGET, compact_prompt)
-        tier_used = "compact"
-        llm_called = True
-        fallback_used = False
-        if quick_timeout or not quick_answer:
-            tier_used = "fallback"
-            llm_called = False
-            fallback_used = True
-            quick_answer = "I need a bit more context. Try asking with a specific concept (e.g. variables, loops, functions)."
 
-        elapsed = time.time() - t0
-        use_full = elapsed < CHAT_SOFT_BUDGET and quick_answer and not quick_timeout
-        final_answer = quick_answer
-        if use_full:
-            # Tier C: full path but bounded by hard budget remainder
-            prompt = prompt_builder.build_chatbot_prompt(body.question, body.conversation_history)
-            prompt = hallucination_guard_instance.add_hallucination_prevention_instructions(prompt)
-            remaining = max(0.3, CHAT_HARD_BUDGET - (time.time() - t0))
-            full_answer, full_timeout = run_with_timeout(langchain_ollama.generate_response, remaining, prompt)
-            if full_answer and not full_timeout:
-                final_answer = full_answer
-                tier_used = "full"
-            elif full_timeout:
-                tier_used = "compact"
-
+        source_chunks = _chunks_for_sources_display(chunks)
         sources = [
             {
                 "course_id": c.get("course_id", ""),
@@ -1444,10 +2993,28 @@ async def chatbot_ask(body: ChatbotRequest):
                 "chunk_text": (c.get("chunk_text") or "")[:200],
                 "similarity": c.get("similarity"),
             }
-            for c in chunks
+            for c in source_chunks
         ]
-        context_for_validation = "\n".join((c.get("chunk_text") or "") for c in chunks)
-        pp = hallucination_guard_instance.post_process_response(final_answer, context_for_validation)
+        context_for_validation = (
+            cleaned_concat if cleaned_concat.strip() else "\n".join((c.get("chunk_text") or "") for c in chunks)
+        )
+        logger.info("RAW LLM RESPONSE (before normalize): %s", final_answer)
+        final_answer = _normalize_tutor_markdown(final_answer, lang, response_mode=response_mode)
+
+        if _is_llm_failure_plain_response(final_answer):
+            pp = {
+                "cleaned_response": final_answer,
+                "is_safe": True,
+                "validation": {
+                    "confidence": 1.0,
+                    "is_valid": True,
+                    "issues": [],
+                    "skipped_grounding": True,
+                    "reason": "llm_timeout_or_unavailable",
+                },
+            }
+        else:
+            pp = hallucination_guard_instance.post_process_response(final_answer, context_for_validation)
         val = pp.get("validation", {}) if isinstance(pp, dict) else {}
         grounded_conf = float(val.get("confidence", 0.0)) if isinstance(val, dict) else 0.0
         hallucination_risk = max(0.0, min(1.0, 1.0 - grounded_conf))
@@ -1463,7 +3030,7 @@ async def chatbot_ask(body: ChatbotRequest):
             confidence_score=float((state or {}).get("confidence_score", 0.4)),
         )
         pedagogical = tutor_response_builder.build(
-            question=body.question,
+            question=effective_question,
             raw_answer=pp.get("cleaned_response", ""),
             style=selected_style,
             sources=sources,
@@ -1482,6 +3049,8 @@ async def chatbot_ask(body: ChatbotRequest):
             "intervention": intervention,
             "cache_hit": False,
             "tier_used": tier_used,
+            "intent": intent,
+            "response_mode": response_mode,
         }
         response_cache.set(
             ckey,
@@ -1493,29 +3062,10 @@ async def chatbot_ask(body: ChatbotRequest):
                 "pace_decision": pace_decision,
                 "intervention": intervention,
                 "tier_used": tier_used,
+                "intent": intent,
+                "response_mode": response_mode,
             },
         )
-
-        # If we returned non-full tier, warm full result in background for next call.
-        if tier_used != "full":
-            def _refresh_full():
-                prompt2 = prompt_builder.build_chatbot_prompt(body.question, body.conversation_history)
-                prompt2 = hallucination_guard_instance.add_hallucination_prevention_instructions(prompt2)
-                full = langchain_ollama.generate_response(prompt2)
-                pp2 = hallucination_guard_instance.post_process_response(full, context_for_validation)
-                response_cache.set(
-                    ckey,
-                    {
-                        "answer": pp2.get("cleaned_response", ""),
-                        "validation": pp2.get("validation", {}),
-                        "sources": sources,
-                        "pedagogical_response": pedagogical,
-                        "pace_decision": pace_decision,
-                        "intervention": intervention,
-                        "tier_used": "full",
-                    },
-                )
-            submit_refresh(_refresh_full)
 
         ai_monitor.record_request(
             "/chatbot/ask",
@@ -1524,10 +3074,12 @@ async def chatbot_ask(body: ChatbotRequest):
             {
                 "cache_hit": False,
                 "tier_used": tier_used,
+                "intent": intent,
                 "llm_called": llm_called,
                 "fallback_used": fallback_used,
                 "soft_budget_s": CHAT_SOFT_BUDGET,
                 "hard_budget_s": CHAT_HARD_BUDGET,
+                "llm_phase_budget_s": CHAT_LLM_HARD_BUDGET,
             },
         )
         ai_feedback_loop.record_response_latency(
@@ -1538,6 +3090,7 @@ async def chatbot_ask(body: ChatbotRequest):
                 "tier_used": tier_used,
                 "student_id": body.student_id or "",
                 "mode": body.mode or "",
+                "intent": intent,
             },
         )
         return result
@@ -1550,6 +3103,29 @@ async def chatbot_ask(body: ChatbotRequest):
         )
         logger.exception("chatbot ask error")
         raise HTTPException(status_code=500, detail=f"Chatbot failed: {e}")
+
+
+@app.post("/chatbot/direct")
+async def chatbot_direct(body: DirectTutorRequest):
+    """
+    Single-turn tutor: no embedding retrieval and no course chunks.
+    max_tokens maps to Ollama num_predict (default 1500).
+    """
+    t0 = time.time()
+    try:
+        prompt = _build_direct_tutor_prompt(body.prompt)
+        raw = langchain_ollama.generate_response_explain(prompt, num_predict=body.max_tokens)
+        text = (raw or "").strip()
+        return {
+            "status": "success",
+            "answer": text,
+            "prompt": body.prompt,
+            "max_tokens": body.max_tokens,
+            "elapsed_ms": int((time.time() - t0) * 1000),
+        }
+    except Exception as e:  # noqa: BLE001
+        logger.exception("chatbot direct error")
+        raise HTTPException(status_code=500, detail=f"Failed: {e}") from e
 
 
 @app.post("/chatbot/validate-answer")

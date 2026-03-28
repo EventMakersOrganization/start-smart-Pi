@@ -10,10 +10,11 @@ export class ChatSocketService {
 
   constructor() { }
 
-  connect(userId: string) {
+  connect() {
     if (!this.socket) {
+      const token = localStorage.getItem('authToken');
       this.socket = io('http://localhost:3000', {
-        query: { userId }
+        auth: { token }
       });
     }
   }
@@ -25,16 +26,17 @@ export class ChatSocketService {
     }
   }
 
-  joinRoom(room: string) {
-    this.socket?.emit('joinRoom', room);
+  joinRoom(sessionType: string, sessionId: string) {
+    this.socket?.emit('joinRoom', { sessionType, sessionId });
   }
 
-  leaveRoom(room: string) {
-    this.socket?.emit('leaveRoom', room);
+  leaveRoom(sessionId: string) {
+    this.socket?.emit('leaveRoom', sessionId);
   }
 
-  sendMessage(sessionType: string, sessionId: string, sender: string, content: string) {
-    this.socket?.emit('sendMessage', { sessionType, sessionId, sender, content });
+  sendMessage(sessionType: string, sessionId: string, content: string) {
+    // sender is now derived from the authenticated socket on the backend
+    this.socket?.emit('sendMessage', { sessionType, sessionId, content });
   }
 
   onNewMessage(): Observable<any> {
@@ -43,8 +45,8 @@ export class ChatSocketService {
     });
   }
 
-  sendTyping(sessionId: string, sender: string, isTyping: boolean) {
-    this.socket?.emit('typing', { sessionId, sender, isTyping });
+  sendTyping(sessionType: string, sessionId: string, isTyping: boolean) {
+    this.socket?.emit('typing', { sessionType, sessionId, isTyping });
   }
 
   onUserTyping(): Observable<any> {

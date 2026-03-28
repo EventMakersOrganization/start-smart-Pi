@@ -70,12 +70,15 @@ let ChatService = class ChatService {
         const room = new this.chatRoomModel({ name, participants });
         return room.save();
     }
-    async getUserSessions(userId) {
+    async getUserSessions(userId, role) {
         const aiSessions = await this.chatAiModel.find({ student: userId }).sort({ updatedAt: -1 }).lean();
         const rawInstructorSessions = await this.chatInstructorModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
-        const rawRooms = await this.chatRoomModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
         const instructorSessions = await Promise.all(rawInstructorSessions.map((s) => this.resolveParticipants(s)));
-        const rooms = await Promise.all(rawRooms.map((s) => this.resolveParticipants(s)));
+        let rooms = [];
+        if (role === 'student' || !role) {
+            const rawRooms = await this.chatRoomModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
+            rooms = await Promise.all(rawRooms.map((s) => this.resolveParticipants(s)));
+        }
         return {
             ai: aiSessions,
             instructor: instructorSessions,
@@ -129,6 +132,26 @@ let ChatService = class ChatService {
             console.error('Failed to update session timestamp', e);
         }
         return message;
+    }
+    async isParticipant(sessionType, sessionId, userId) {
+        try {
+            if (sessionType === 'ChatAi') {
+                const session = await this.chatAiModel.findById(sessionId).lean();
+                return session?.student?.toString() === userId;
+            }
+            else if (sessionType === 'ChatInstructor') {
+                const session = await this.chatInstructorModel.findById(sessionId).lean();
+                return session?.participants?.map(p => p.toString()).includes(userId);
+            }
+            else if (sessionType === 'ChatRoom') {
+                const session = await this.chatRoomModel.findById(sessionId).lean();
+                return session?.participants?.map(p => p.toString()).includes(userId);
+            }
+            return false;
+        }
+        catch (e) {
+            return false;
+        }
     }
 };
 exports.ChatService = ChatService;
