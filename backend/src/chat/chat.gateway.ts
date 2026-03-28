@@ -21,8 +21,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private logger: Logger = new Logger('ChatGateway');
 
+  /** Appended after AI answer for sources; avoids Markdown `---` HR collisions. Legacy `\n\n---\n` still supported when reading history. */
+  private static readonly CHAT_SOURCES_DELIM = '\n\n<<<CHAT_SOURCES>>>\n\n';
+
   // Track connected users: object key is userId, value is socketId(s)
   private connectedUsers = new Map<string, string[]>();
+
+  /** Strip sources/confidence tail from stored AI messages before sending to the LLM. */
+  private stripAiMetadataForHistory(raw: string): string {
+    const s = String(raw || '');
+    const marker = '\n\n<<<CHAT_SOURCES>>>\n\n';
+    const idx = s.indexOf(marker);
+    if (idx >= 0) {
+      return s.slice(0, idx).trimEnd();
+    }
+    const legacy = s.split('\n\n---\n');
+    return legacy[0] ?? s;
+  }
 
   constructor(
     private readonly chatService: ChatService,
@@ -140,15 +155,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           payload.sessionId,
           6,
         );
-        const conversationHistory = history.map((m) => ({
-          role: m.sender === 'AI' ? 'assistant' : 'user',
-          content: m.content,
-        }));
+        const conversationHistory = history.map((m) => {
+          const raw = String(m.content || '');
+          const cleaned =
+            m.sender === 'AI' ? this.stripAiMetadataForHistory(raw) : raw;
+          return {
+            role: m.sender === 'AI' ? 'assistant' : 'user',
+            content: cleaned,
+          };
+        });
 
+        const msgLower = String(payload.content || '').toLowerCase();
+        const mode =
+          msgLower.includes('pas a pas') ||
+          msgLower.includes('pas à pas') ||
+          msgLower.includes('step by step')
+            ? 'step_by_step'
+            : undefined;
         const aiResponse = await this.aiService.askChatbot(
           payload.content,
           conversationHistory,
+          userId,
+          mode,
         );
+
+        console.log('RAW LLM RESPONSE:', aiResponse.answer);
 
         let content = aiResponse.answer;
         if (aiResponse.sources?.length > 0) {
@@ -159,7 +190,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 `📖 ${s.course_title} (${Math.round(s.similarity * 100)}%)`,
             )
             .join('\n');
-          content += `\n\n---\n**Sources:**\n${srcList}`;
+          content += `${ChatGateway.CHAT_SOURCES_DELIM}**Sources:**\n${srcList}`;
         }
         if (aiResponse.confidence > 0) {
           content += `\n\n🎯 Confidence: ${Math.round(aiResponse.confidence * 100)}%`;

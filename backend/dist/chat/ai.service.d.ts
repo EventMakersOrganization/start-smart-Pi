@@ -32,7 +32,7 @@ export declare class AiService {
     askChatbot(question: string, conversationHistory?: Array<{
         role: string;
         content: string;
-    }>): Promise<AiChatResponse>;
+    }>, studentId?: string, mode?: string): Promise<AiChatResponse>;
     semanticSearch(query: string, nResults?: number): Promise<SemanticSearchResult[]>;
     startLevelTest(studentId: string, subjects?: string[]): Promise<any>;
     submitAnswer(sessionId: string, answer: string): Promise<any>;

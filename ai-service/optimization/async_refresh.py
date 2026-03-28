@@ -1,8 +1,11 @@
 """Async refresh helpers for non-blocking cache warmup."""
 from __future__ import annotations
 
+import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
 
 _pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ai-refresh")
 
@@ -23,4 +26,5 @@ def run_with_timeout(fn: Callable[..., Any], timeout_seconds: float, *args, **kw
     except TimeoutError:
         return None, True
     except Exception:
+        logger.exception("run_with_timeout: worker raised (not a timeout)")
         return None, False

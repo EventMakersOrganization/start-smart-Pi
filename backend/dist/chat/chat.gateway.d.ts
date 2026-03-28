@@ -9,7 +9,9 @@ export declare class ChatGateway implements OnGatewayConnection, OnGatewayDiscon
     private readonly jwtService;
     server: Server;
     private logger;
+    private static readonly CHAT_SOURCES_DELIM;
     private connectedUsers;
+    private stripAiMetadataForHistory;
     constructor(chatService: ChatService, aiService: AiService, jwtService: JwtService);
     handleConnection(client: Socket): Promise<void>;
     handleDisconnect(client: Socket): Promise<void>;

@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var ChatGateway_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatGateway = void 0;
 const websockets_1 = require("@nestjs/websockets");
@@ -20,7 +21,17 @@ const ai_service_1 = require("./ai.service");
 const common_1 = require("@nestjs/common");
 const ws_jwt_guard_1 = require("../auth/guards/ws-jwt.guard");
 const jwt_1 = require("@nestjs/jwt");
-let ChatGateway = class ChatGateway {
+let ChatGateway = ChatGateway_1 = class ChatGateway {
+    stripAiMetadataForHistory(raw) {
+        const s = String(raw || '');
+        const marker = '\n\n<<<CHAT_SOURCES>>>\n\n';
+        const idx = s.indexOf(marker);
+        if (idx >= 0) {
+            return s.slice(0, idx).trimEnd();
+        }
+        const legacy = s.split('\n\n---\n');
+        return legacy[0] ?? s;
+    }
     constructor(chatService, aiService, jwtService) {
         this.chatService = chatService;
         this.aiService = aiService;
@@ -111,18 +122,29 @@ let ChatGateway = class ChatGateway {
                 .emit('userTyping', { sender: 'AI', isTyping: true });
             try {
                 const history = await this.chatService.getRecentHistory(payload.sessionId, 6);
-                const conversationHistory = history.map((m) => ({
-                    role: m.sender === 'AI' ? 'assistant' : 'user',
-                    content: m.content,
-                }));
-                const aiResponse = await this.aiService.askChatbot(payload.content, conversationHistory);
+                const conversationHistory = history.map((m) => {
+                    const raw = String(m.content || '');
+                    const cleaned = m.sender === 'AI' ? this.stripAiMetadataForHistory(raw) : raw;
+                    return {
+                        role: m.sender === 'AI' ? 'assistant' : 'user',
+                        content: cleaned,
+                    };
+                });
+                const msgLower = String(payload.content || '').toLowerCase();
+                const mode = msgLower.includes('pas a pas') ||
+                    msgLower.includes('pas à pas') ||
+                    msgLower.includes('step by step')
+                    ? 'step_by_step'
+                    : undefined;
+                const aiResponse = await this.aiService.askChatbot(payload.content, conversationHistory, userId, mode);
+                console.log('RAW LLM RESPONSE:', aiResponse.answer);
                 let content = aiResponse.answer;
                 if (aiResponse.sources?.length > 0) {
                     const srcList = aiResponse.sources
                         .slice(0, 3)
                         .map((s) => `📖 ${s.course_title} (${Math.round(s.similarity * 100)}%)`)
                         .join('\n');
-                    content += `\n\n---\n**Sources:**\n${srcList}`;
+                    content += `${ChatGateway_1.CHAT_SOURCES_DELIM}**Sources:**\n${srcList}`;
                 }
                 if (aiResponse.confidence > 0) {
                     content += `\n\n🎯 Confidence: ${Math.round(aiResponse.confidence * 100)}%`;
@@ -166,6 +188,7 @@ let ChatGateway = class ChatGateway {
     }
 };
 exports.ChatGateway = ChatGateway;
+ChatGateway.CHAT_SOURCES_DELIM = '\n\n<<<CHAT_SOURCES>>>\n\n';
 __decorate([
     (0, websockets_1.WebSocketServer)(),
     __metadata("design:type", socket_io_1.Server)
@@ -206,7 +229,7 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
     __metadata("design:returntype", Promise)
 ], ChatGateway.prototype, "handleTyping", null);
-exports.ChatGateway = ChatGateway = __decorate([
+exports.ChatGateway = ChatGateway = ChatGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({ cors: { origin: '*' } }),
     __metadata("design:paramtypes", [chat_service_1.ChatService,
         ai_service_1.AiService,

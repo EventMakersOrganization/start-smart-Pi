@@ -5,8 +5,19 @@ Two LLM instances:
   * **default** — ``OLLAMA_MODEL`` (mistral) for chatbot, explanations, etc.
   * **fast**    — ``OLLAMA_FAST_MODEL`` (qwen2.5:3b) for bulk question generation.
                   Falls back to the default model if the fast model isn't pulled yet.
+
+Teaching/chat uses ``num_predict`` (Ollama max output tokens) of 1500 so answers are not truncated.
 """
+import logging
+
 from core import config
+
+logger = logging.getLogger(__name__)
+
+# Ollama default is often 128; tutor answers need room for Concept + Explanation + Example + Exercise.
+EXPLAIN_NUM_PREDICT_DEFAULT = 1500
+# RAG tutor prompt = long SYSTEM + CONTEXT; 4096 was too small and truncated or stressed the model.
+EXPLAIN_NUM_CTX = 16384
 
 try:
     from langchain_community.llms import Ollama
@@ -16,6 +27,7 @@ except ImportError:
 DEFAULT_TIMEOUT = 60
 
 _llm_instance = None
+_explain_llm_instance = None
 _fast_llm_instance = None
 _fast_model_checked = False
 
@@ -34,6 +46,30 @@ def get_ollama_llm():
         )
         print(f"[langchain_ollama] LLM initialized: model={config.OLLAMA_MODEL}, base_url={config.OLLAMA_BASE_URL}")
     return _llm_instance
+
+
+def get_ollama_llm_explain():
+    """
+    Chatbot / teaching explanations: higher temperature for clearer, varied phrasing.
+    Does not affect fast bulk generation.
+    """
+    global _explain_llm_instance
+    if Ollama is None:
+        raise ImportError("langchain_community is required. Install with: pip install langchain-community")
+    if _explain_llm_instance is None:
+        _explain_llm_instance = Ollama(
+            model=config.OLLAMA_MODEL,
+            base_url=config.OLLAMA_BASE_URL,
+            temperature=0.7,
+            num_ctx=EXPLAIN_NUM_CTX,
+            num_predict=EXPLAIN_NUM_PREDICT_DEFAULT,
+        )
+        print(
+            f"[langchain_ollama] Explain LLM initialized: model={config.OLLAMA_MODEL}, "
+            f"temperature=0.7, num_ctx={EXPLAIN_NUM_CTX}, num_predict={EXPLAIN_NUM_PREDICT_DEFAULT}, "
+            f"base_url={config.OLLAMA_BASE_URL}"
+        )
+    return _explain_llm_instance
 
 
 def _is_model_available(model_name: str) -> bool:
@@ -107,6 +143,47 @@ def test_ollama_connection():
         print(f"[langchain_ollama] test_ollama_connection failed: {e}")
         print("[langchain_ollama] Check that Ollama is running (e.g. ollama serve) and the model is pulled.")
         return False
+
+
+def _make_explain_llm(num_predict: int):
+    """One-off explain LLM when a different num_predict (max output tokens) is required."""
+    if Ollama is None:
+        raise ImportError("langchain_community is required.")
+    return Ollama(
+        model=config.OLLAMA_MODEL,
+        base_url=config.OLLAMA_BASE_URL,
+        temperature=0.7,
+        num_ctx=EXPLAIN_NUM_CTX,
+        num_predict=max(800, int(num_predict)),
+    )
+
+
+def generate_response_explain(prompt, timeout=DEFAULT_TIMEOUT, num_predict: int | None = None):
+    """
+    Generate chatbot teaching answers with temperature 0.7 (explanations only).
+    Logs the full prompt before the request and the raw LLM output before any trimming/formatting.
+    """
+    if not prompt or not str(prompt).strip():
+        print("[langchain_ollama] generate_response_explain: empty prompt.")
+        return ""
+    try:
+        if Ollama is None:
+            print("[langchain_ollama] Error: langchain_community not installed.")
+            return ""
+        full_prompt = str(prompt)
+        logger.info("FULL LLM PROMPT (explain):\n%s", full_prompt)
+        if num_predict is not None:
+            llm = _make_explain_llm(num_predict)
+        else:
+            llm = get_ollama_llm_explain()
+        response = llm.invoke(full_prompt)
+        raw = response if isinstance(response, str) else getattr(response, "content", str(response))
+        logger.info("RAW LLM RESPONSE: %s", raw)
+        text = raw.strip()
+        return text
+    except Exception as e:
+        print(f"[langchain_ollama] generate_response_explain error: {e}")
+        return ""
 
 
 def generate_response(prompt, timeout=DEFAULT_TIMEOUT):

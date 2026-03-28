@@ -31,10 +31,12 @@ let AiService = AiService_1 = class AiService {
         this.tryInitRedis();
         this.logger.log(`AI Service URL: ${this.aiBaseUrl}`);
     }
-    async askChatbot(question, conversationHistory) {
+    async askChatbot(question, conversationHistory, studentId, mode) {
         const cacheKey = this.makeCacheKey('chatbot', {
             question: question.trim().toLowerCase(),
             historyTail: (conversationHistory || []).slice(-4),
+            studentId: studentId || '',
+            mode: mode || '',
         });
         const cached = await this.getFromCache(cacheKey);
         if (cached) {
@@ -46,6 +48,8 @@ let AiService = AiService_1 = class AiService {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/chatbot/ask`, {
                     question,
                     conversation_history: conversationHistory || [],
+                    student_id: studentId || null,
+                    mode: mode || null,
                 }, { timeout: 120_000 }));
             });
             const result = {
@@ -54,6 +58,7 @@ let AiService = AiService_1 = class AiService {
                 confidence: data.validation?.confidence ?? 0,
                 is_valid: data.validation?.is_valid ?? false,
             };
+            console.log('RAW LLM RESPONSE:', result.answer);
             await this.setInCache(cacheKey, result);
             return result;
         }

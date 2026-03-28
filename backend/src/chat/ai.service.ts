@@ -54,10 +54,14 @@ export class AiService {
   async askChatbot(
     question: string,
     conversationHistory?: Array<{ role: string; content: string }>,
+    studentId?: string,
+    mode?: string,
   ): Promise<AiChatResponse> {
     const cacheKey = this.makeCacheKey('chatbot', {
       question: question.trim().toLowerCase(),
       historyTail: (conversationHistory || []).slice(-4),
+      studentId: studentId || '',
+      mode: mode || '',
     });
     const cached = await this.getFromCache<AiChatResponse>(cacheKey);
     if (cached) {
@@ -71,6 +75,8 @@ export class AiService {
           this.httpService.post(`${this.aiBaseUrl}/chatbot/ask`, {
             question,
             conversation_history: conversationHistory || [],
+            student_id: studentId || null,
+            mode: mode || null,
           }, { timeout: 120_000 }),
         );
       });
@@ -81,6 +87,8 @@ export class AiService {
         confidence: data.validation?.confidence ?? 0,
         is_valid: data.validation?.is_valid ?? false,
       };
+
+      console.log('RAW LLM RESPONSE:', result.answer);
 
       await this.setInCache(cacheKey, result);
       return result;
