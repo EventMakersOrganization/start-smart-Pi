@@ -47,7 +47,6 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       `${this.user.first_name || ''} ${this.user.last_name || ''}`.trim() ||
       'Student';
     this.initializeTest();
-    this.startTimer();
   }
 
   ngOnDestroy() {
@@ -109,6 +108,9 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     if (test.isAiGenerated && test.session_id) {
       this.prefetchNextQuestions();
     }
+
+    // START TIMER ONLY AFTER TEST IS LOADED
+    this.startTimer();
   }
 
   private questionsCache: Map<number, any> = new Map();

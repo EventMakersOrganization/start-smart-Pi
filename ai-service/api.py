@@ -2222,22 +2222,38 @@ async def batch_embed_courses():
 
 @app.post("/generate-level-test")
 async def generate_level_test(body: LevelTestRequest):
-    """Generates level test questions and saves to database."""
+    """Generates level test questions using real imported exercises."""
     try:
-        question_ids = question_generator.generate_and_save_level_test(
-            subject=body.subject,
-            num_questions=body.num_questions,
+        from level_test.real_exercise_loader import get_level_test_questions
+        
+        # Load real questions from imported courses
+        questions = get_level_test_questions(
             course_id=body.course_id,
+            num_questions=body.num_questions,
+            difficulty=body.difficulty or "mixed"
         )
-        questions = []
-        for qid in question_ids:
-            questions.append({"id": qid})
+        
+        if not questions:
+            logger.warning(f"No real exercises found for course {body.course_id}, falling back to AI generation")
+            # Fallback: generate via AI if no real exercises found
+            question_ids = question_generator.generate_and_save_level_test(
+                subject=body.subject,
+                num_questions=body.num_questions,
+                course_id=body.course_id,
+            )
+            questions = [{"id": qid} for qid in question_ids]
+            source = "generated"
+        else:
+            source = "real_exercises"
+        
         return {
             "status": "success",
             "questions": questions,
-            "question_ids": question_ids,
+            "count": len(questions),
+            "source": source,
         }
     except Exception as e:
+        logger.error(f"Error in /generate-level-test: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

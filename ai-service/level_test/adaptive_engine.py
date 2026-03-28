@@ -98,10 +98,10 @@ class AdaptiveLevelTest:
         """
         Initialise a test session.
 
-        All questions for every subject are pre-generated in parallel
-        during this call — subsequent ``submit_answer`` calls are instant.
+        All questions for every subject are loaded from real imported exercises
+        in parallel during this call — subsequent ``submit_answer`` calls are instant.
         """
-        from .batch_question_generator import generate_all_subjects_parallel
+        from .batch_question_generator import generate_all_subjects_parallel_from_real_exercises
 
         subject_map = _build_subject_map()
 
@@ -138,8 +138,8 @@ class AdaptiveLevelTest:
                 "count": QUESTIONS_PER_SUBJECT,
             })
 
-        logger.info("Pre-generating questions for %d subjects in parallel...", len(batch_input))
-        all_questions = generate_all_subjects_parallel(batch_input, self.rag_service)
+        logger.info("Loading real exercises for %d subjects in parallel...", len(batch_input))
+        all_questions = generate_all_subjects_parallel_from_real_exercises(batch_input)
 
         session_id = str(uuid.uuid4())
         subjects_state: dict[str, dict] = {}

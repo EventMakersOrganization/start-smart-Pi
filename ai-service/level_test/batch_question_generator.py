@@ -255,5 +255,71 @@ def _fallback_question(subject: str, topic: str, difficulty: str) -> dict:
     }
 
 
+def generate_all_subjects_parallel_from_real_exercises(
+    subjects: list[dict[str, Any]],
+) -> dict[str, list[dict]]:
+    """
+    Generate questions for ALL subjects using REAL imported exercises.
+    
+    This parallel-loads authentic exercises from MongoDB instead of
+    generating them via LLM. Falls back to generated questions if
+    no real exercises found for a course.
+    
+    Args:
+        subjects: list of ``{key, title, topics, difficulties, count}``
+    
+    Returns:
+        ``{subject_key: [question_dicts]}``
+    """
+    from level_test.real_exercise_loader import (
+        get_questions_for_course,
+        get_mixed_difficulty_questions,
+        get_level_test_questions,
+    )
+    
+    t0 = time.perf_counter()
+    results: dict[str, list[dict]] = {}
+    
+    for s in subjects:
+        key = s["key"]
+        count = s.get("count", 5)
+        difficulties = s.get("difficulties", ["medium"] * count)
+        
+        # Try to load real exercises for this subject/course
+        questions = get_level_test_questions(
+            course_id=key,
+            num_questions=count,
+            difficulty="mixed"
+        )
+        
+        if not questions:
+            # Fallback: generate via LLM if no real exercises found
+            logger.warning(f"No real exercises for {key}, falling back to AI generation")
+            rag_service = RAGService.get_instance()
+            questions = generate_batch_for_subject(
+                subject_title=s["title"],
+                topics=s["topics"],
+                difficulties=difficulties,
+                count=count,
+                rag_service=rag_service,
+            )
+        else:
+            # Adjust difficulty levels if needed
+            for i, q in enumerate(questions):
+                if i < len(difficulties):
+                    q["difficulty"] = difficulties[i].lower()
+        
+        results[key] = questions[:count]
+        logger.info(f"Loaded {len(results[key])} questions for subject {key} (source: real_exercises)")
+    
+    elapsed = time.perf_counter() - t0
+    total_q = sum(len(v) for v in results.values())
+    logger.info(
+        "All subjects done: %d subjects, %d total questions in %.1fs",
+        len(results), total_q, elapsed,
+    )
+    return results
+
+
 def clear_cache():
     _question_cache.clear()
