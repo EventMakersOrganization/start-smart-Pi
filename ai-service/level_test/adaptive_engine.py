@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import sys
 import uuid
+import random
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -141,11 +142,34 @@ class AdaptiveLevelTest:
         logger.info("Loading real exercises for %d subjects in parallel...", len(batch_input))
         all_questions = generate_all_subjects_parallel_from_real_exercises(batch_input)
 
+        def _qid(q: dict) -> str:
+            oid = str((q or {}).get("original_id") or "").strip()
+            if oid:
+                return f"id:{oid}"
+            return f"txt:{str((q or {}).get('question', '')).strip().lower()}"
+
+        def _dedupe_pool(pool: list[dict]) -> list[dict]:
+            out: list[dict] = []
+            seen: set[str] = set()
+            for q in pool or []:
+                key = _qid(q)
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                out.append(q)
+            return out
+
         session_id = str(uuid.uuid4())
         subjects_state: dict[str, dict] = {}
         for sid in selected_subjects:
             info = subject_map[sid]
-            questions_pool = all_questions.get(sid, [])
+            questions_pool = _dedupe_pool(all_questions.get(sid, []))
+            if len(questions_pool) < QUESTIONS_PER_SUBJECT:
+                raise ValueError(
+                    f"Not enough unique real questions for chapter '{info['title']}' "
+                    f"({len(questions_pool)}/{QUESTIONS_PER_SUBJECT}). "
+                    "Add more real exercises for this chapter."
+                )
             subjects_state[sid] = {
                 "course_id": sid,
                 "title": info["title"],
@@ -336,26 +360,65 @@ class AdaptiveLevelTest:
         subj = session["subjects"][subj_key]
         q_num = subj["questions_asked"]
         pool = subj.get("question_pool", [])
+
+        # Session-wide already asked keys (across all subjects) to avoid repeats.
+        asked_keys: set[str] = set()
+        for sk in session.get("subject_order", []):
+            sstate = session.get("subjects", {}).get(sk, {})
+            for a in sstate.get("answers", []) or []:
+                qd = a.get("question") or {}
+                key = self._question_key(qd)
+                if key:
+                    asked_keys.add(key)
+
+        used_indices = {
+            a.get("pool_index")
+            for a in subj.get("answers", [])
+            if a.get("pool_index") is not None
+        }
+        if not used_indices:
+            used_indices = {a.get("question_index") for a in subj.get("answers", [])}
+
         question = None
-        if q_num < len(pool):
-            if target_difficulty:
-                used_indices = {a.get("question_index") for a in subj.get("answers", [])}
-                for i, cand in enumerate(pool):
-                    if i in used_indices:
-                        continue
-                    if str(cand.get("difficulty", "")).lower() == target_difficulty.lower():
-                        question = cand
-                        break
-            if question is None:
-                question = pool[q_num]
+        selected_pool_index: int | None = None
+
+        def _candidate_ok(i: int, cand: dict) -> bool:
+            if i in used_indices:
+                return False
+            key = self._question_key(cand)
+            if key and key in asked_keys:
+                return False
+            return self._is_complete_question_dict(cand)
+
+        if target_difficulty:
+            for i, cand in enumerate(pool):
+                if not _candidate_ok(i, cand):
+                    continue
+                if str(cand.get("difficulty", "")).lower() == target_difficulty.lower():
+                    question = cand
+                    selected_pool_index = i
+                    break
+
         if question is None:
-            question = self._fallback_question(subj["title"], "general", target_difficulty or subj["current_difficulty"])
+            for i, cand in enumerate(pool):
+                if not _candidate_ok(i, cand):
+                    continue
+                question = cand
+                selected_pool_index = i
+                break
+
+        if question is None:
+            raise ValueError(
+                f"No more unique real questions available for chapter '{subj['title']}'. "
+                "Fallback is disabled by configuration."
+            )
 
         difficulty = question.get("difficulty", subj["current_difficulty"])
         topic = question.get("topic", "general")
 
         answer_entry = {
             "question_index": q_num,
+            "pool_index": selected_pool_index,
             "question": question,
             "difficulty": difficulty,
             "topic": topic,
@@ -403,21 +466,165 @@ class AdaptiveLevelTest:
         return DIFFICULTIES[idx]
 
     @staticmethod
-    def _fallback_question(subject: str, topic: str, difficulty: str) -> dict:
-        return {
-            "question": f"What is an important concept related to '{topic}' in {subject}?",
-            "options": [
-                f"Concept A about {topic}",
-                f"Concept B about {topic}",
-                f"Concept C about {topic}",
-                f"Concept D about {topic}",
-            ],
-            "correct_answer": f"Concept A about {topic}",
-            "explanation": f"This is a fallback question about {topic}.",
+    def _coherent_static_fallback(subject_title: str, difficulty: str) -> dict:
+        bank = [
+            {
+                "question": "In C, what does #include <stdio.h> provide?",
+                "options": [
+                    "A. Input/output functions like printf and scanf",
+                    "B. Dynamic memory allocation only",
+                    "C. Math functions only",
+                    "D. Thread scheduling APIs",
+                ],
+                "correct_answer": "A. Input/output functions like printf and scanf",
+                "topic": "C programming basics",
+            },
+            {
+                "question": "What is the primary purpose of a variable in programming?",
+                "options": [
+                    "A. To store and update values",
+                    "B. To compile source code",
+                    "C. To define the operating system",
+                    "D. To replace all functions",
+                ],
+                "correct_answer": "A. To store and update values",
+                "topic": "Programming fundamentals",
+            },
+            {
+                "question": "What does an if statement do?",
+                "options": [
+                    "A. Executes code conditionally",
+                    "B. Declares a new data type",
+                    "C. Compiles the project",
+                    "D. Creates a database table",
+                ],
+                "correct_answer": "A. Executes code conditionally",
+                "topic": "Control flow",
+            },
+        ]
+        q = random.choice(bank).copy()
+        q.update({
+            "explanation": f"Fallback coherent MCQ for {subject_title}.",
             "difficulty": difficulty,
-            "topic": topic,
             "type": "MCQ",
-        }
+        })
+        return q
+
+    @staticmethod
+    def _question_key(question: dict) -> str:
+        oid = str((question or {}).get("original_id") or "").strip()
+        if oid:
+            return f"id:{oid}"
+        stem = str((question or {}).get("question", "")).strip().lower()
+        return f"txt:{stem}" if stem else ""
+
+    @staticmethod
+    def _is_complete_question_dict(question: dict) -> bool:
+        stem = str((question or {}).get("question", "")).strip()
+        options = (question or {}).get("options") or []
+        if not stem or len(options) < 2:
+            return False
+
+        low = stem.lower()
+        if low == "quelle est la sortie ?":
+            return False
+
+        asks_output = any(
+            marker in low
+            for marker in [
+                "quelle est la sortie",
+                "que va-t-il s'afficher",
+                "que va-t-il s’afficher",
+                "what is the output",
+            ]
+        )
+        if asks_output:
+            has_output_call = any(token in low for token in ["printf", "cout", "system.out", "print"])
+            if not has_output_call:
+                return False
+
+        asks_code_context = any(
+            marker in low
+            for marker in [
+                "soit le code suivant",
+                "considérez le code suivant",
+                "considerez le code suivant",
+                "given the following code",
+                "following code",
+            ]
+        )
+        if asks_code_context:
+            has_code_context = any(
+                token in low
+                for token in ["\n", ";", " if ", " for ", " while ", "switch", " case ", "return "]
+            )
+            if not has_code_context:
+                return False
+
+        return True
+
+    @classmethod
+    def _fallback_question(
+        cls,
+        subject_key: str,
+        subject_title: str,
+        difficulty: str,
+        excluded_keys: set[str] | None = None,
+    ) -> dict:
+        """Avoid generic placeholders by preferring real exercises first.
+        Never return duplicate questions (even fallback statics)."""
+        excluded = excluded_keys or set()
+        tried_fallback_keys: set[str] = set()
+        
+        try:
+            from level_test.real_exercise_loader import get_level_test_questions
+
+            # Prefer same-course real question.
+            local_q = get_level_test_questions(
+                course_id=subject_key,
+                num_questions=8,
+                difficulty="mixed",
+            )
+            for cand in local_q or []:
+                key = cls._question_key(cand)
+                if key and key in excluded:
+                    continue
+                if not cls._is_complete_question_dict(cand):
+                    continue
+                q = dict(cand)
+                q["difficulty"] = difficulty
+                return q
+
+            # Then use any real imported question globally.
+            global_q = get_level_test_questions(
+                course_id=None,
+                num_questions=12,
+                difficulty="mixed",
+            )
+            for cand in global_q or []:
+                key = cls._question_key(cand)
+                if key and key in excluded:
+                    continue
+                if not cls._is_complete_question_dict(cand):
+                    continue
+                q = dict(cand)
+                q["difficulty"] = difficulty
+                return q
+        except Exception:
+            pass
+
+        # Final safety net: coherent static MCQ (never placeholder text).
+        # Try up to 10 times to get a non-duplicate fallback
+        for _ in range(10):
+            q = cls._coherent_static_fallback(subject_title, difficulty)
+            key = cls._question_key(q)
+            if key and (key in excluded or key in tried_fallback_keys):
+                continue
+            tried_fallback_keys.add(key)
+            return q
+
+        # If all attempts produced duplicates, still return (shouldn't happen with 3 uniques in bank)
+        return cls._coherent_static_fallback(subject_title, difficulty)
 
     @staticmethod
     def _response_time_sec(started_iso: str | None, ended_iso: str | None) -> float | None:

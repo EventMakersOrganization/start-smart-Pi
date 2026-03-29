@@ -18,77 +18,6 @@ export interface SemanticSearchResult {
     course_title: string;
     similarity: number;
 }
-export interface LearningEventPayload {
-    event_type: "quiz" | "exercise" | "chat" | "brainrush";
-    score?: number;
-    duration_sec?: number;
-    metadata?: Record<string, any>;
-}
-export interface EvaluateAnswerPayload {
-    question: Record<string, any>;
-    student_answer: any;
-    time_taken?: number | null;
-}
-export interface EvaluateBatchPayload {
-    submissions: Array<{
-        question: Record<string, any>;
-        student_answer: any;
-        time_taken?: number | null;
-    }>;
-}
-export interface ClassifyDifficultyPayload {
-    question: Record<string, any>;
-}
-export interface ClassifyDifficultyBatchPayload {
-    questions: Array<Record<string, any>>;
-}
-export interface RecordFeedbackPayload {
-    signal_type: string;
-    value: number;
-    metadata?: Record<string, any>;
-}
-export interface UserRatingPayload {
-    rating: number;
-    context?: string;
-    metadata?: Record<string, any>;
-}
-export interface FeedbackStatsQuery {
-    signal_type: string;
-    last_n?: number;
-}
-export interface MonitorStatsQuery {
-    minutes?: number;
-}
-export interface MonitorErrorsQuery {
-    last_n?: number;
-}
-export interface MonitorThroughputQuery {
-    minutes?: number;
-}
-export interface MonitorHealthResponse {
-    status: string;
-    overall?: string;
-    components?: Record<string, any>;
-    api_performance_15m?: Record<string, any>;
-    checks?: Record<string, any>;
-    checked_at?: string;
-}
-export interface MonitorErrorsResponse {
-    status: string;
-    count: number;
-    errors: Array<{
-        endpoint?: string;
-        latency?: number;
-        metadata?: Record<string, any>;
-        timestamp?: string;
-    }>;
-}
-export interface MonitorThroughputResponse {
-    status: string;
-    window_minutes: number;
-    total_requests: number;
-    requests_per_minute: number;
-}
 export declare class AiService {
     private readonly httpService;
     private readonly configService;
@@ -110,24 +39,10 @@ export declare class AiService {
     completeLevelTest(sessionId: string): Promise<any>;
     getLevelTestSession(sessionId: string): Promise<any>;
     getPersonalizedRecommendations(studentProfile: Record<string, any>, nResults?: number): Promise<any>;
-    evaluateAnswer(payload: EvaluateAnswerPayload): Promise<any>;
-    evaluateBatch(payload: EvaluateBatchPayload): Promise<any>;
-    classifyDifficulty(payload: ClassifyDifficultyPayload): Promise<any>;
-    classifySuggestAdjustment(payload: ClassifyDifficultyPayload): Promise<any>;
-    classifyDifficultyBatch(payload: ClassifyDifficultyBatchPayload): Promise<any>;
-    recordFeedback(payload: RecordFeedbackPayload): Promise<any>;
-    recordUserRating(payload: UserRatingPayload): Promise<any>;
-    getFeedbackRecommendations(): Promise<any>;
-    getFeedbackStats(query: FeedbackStatsQuery): Promise<any>;
-    getMonitorStats(query: MonitorStatsQuery): Promise<any>;
-    getMonitorHealth(): Promise<MonitorHealthResponse>;
-    getMonitorErrors(query: MonitorErrorsQuery): Promise<MonitorErrorsResponse>;
-    getMonitorThroughput(query: MonitorThroughputQuery): Promise<MonitorThroughputResponse>;
-    recordLearningEvent(studentId: string, payload: LearningEventPayload): Promise<any>;
     getLearningState(studentId: string): Promise<any>;
-    getLearningAnalytics(studentId: string, forceRefresh?: boolean): Promise<any>;
-    getPaceAnalytics(studentId: string, forceRefresh?: boolean): Promise<any>;
-    getConceptsAnalytics(studentId: string, forceRefresh?: boolean): Promise<any>;
+    getLearningAnalytics(studentId: string, refresh?: boolean): Promise<any>;
+    getPaceAnalytics(studentId: string, refresh?: boolean): Promise<any>;
+    getConceptsAnalytics(studentId: string, refresh?: boolean): Promise<any>;
     getInterventionsEffectiveness(studentId: string): Promise<any>;
     getInterventionsEffectivenessGlobal(): Promise<any>;
     healthCheck(): Promise<{
@@ -142,6 +57,4 @@ export declare class AiService {
     private setInCache;
     private timedAiCall;
     private recordLatency;
-    private isAiServiceUnavailableError;
-    private getErrorMessage;
 }

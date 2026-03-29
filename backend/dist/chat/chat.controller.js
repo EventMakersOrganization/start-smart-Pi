@@ -29,10 +29,13 @@ let ChatController = class ChatController {
         return this.chatService.createInstructorSession(req.user.id, body.instructorId);
     }
     async createRoom(req, body) {
-        if (req.user.role !== 'student') {
-            throw new common_1.UnauthorizedException('Only students can create group chats.');
+        if (req.user.role !== "student") {
+            throw new common_1.UnauthorizedException("Only students can create group chats.");
         }
-        return this.chatService.createRoom(body.name, [req.user.id, ...body.participants]);
+        return this.chatService.createRoom(body.name, [
+            req.user.id,
+            ...body.participants,
+        ]);
     }
     async getUserSessions(req) {
         return this.chatService.getUserSessions(req.user.id, req.user.role);
@@ -43,7 +46,7 @@ let ChatController = class ChatController {
     async sendMessage(req, body) {
         const isAllowed = await this.chatService.isParticipant(body.sessionType, body.sessionId, req.user.id);
         if (!isAllowed) {
-            throw new common_1.UnauthorizedException('You are not a participant in this chat.');
+            throw new common_1.UnauthorizedException("You are not a participant in this chat.");
         }
         return this.chatService.saveMessage({
             sessionType: body.sessionType,
@@ -62,27 +65,6 @@ let ChatController = class ChatController {
     async aiLatencyStats() {
         return { status: "success", stats: this.aiService.getAiLatencyStats() };
     }
-    async monitorStats(minutes) {
-        const payload = {
-            minutes: minutes ? Number(minutes) : 60,
-        };
-        return this.aiService.getMonitorStats(payload);
-    }
-    async monitorHealth() {
-        return this.aiService.getMonitorHealth();
-    }
-    async monitorErrors(lastN) {
-        const payload = {
-            last_n: lastN ? Number(lastN) : 50,
-        };
-        return this.aiService.getMonitorErrors(payload);
-    }
-    async monitorThroughput(minutes) {
-        const payload = {
-            minutes: minutes ? Number(minutes) : 60,
-        };
-        return this.aiService.getMonitorThroughput(payload);
-    }
     async levelTestStart(req, body) {
         return this.aiService.startLevelTest(req.user.id, body.subjects);
     }
@@ -98,68 +80,29 @@ let ChatController = class ChatController {
     async personalizedRecommendations(body) {
         return this.aiService.getPersonalizedRecommendations(body.student_profile, body.n_results ?? 5);
     }
-    async recordAdaptiveLearningEvent(req, body) {
-        return this.aiService.recordLearningEvent(req.user.id, body);
-    }
-    async evaluateAnswer(body) {
-        return this.aiService.evaluateAnswer(body);
-    }
-    async evaluateBatch(body) {
-        return this.aiService.evaluateBatch(body);
-    }
-    async classifyDifficulty(body) {
-        return this.aiService.classifyDifficulty(body);
-    }
-    async classifySuggestAdjustment(body) {
-        return this.aiService.classifySuggestAdjustment(body);
-    }
-    async classifyDifficultyBatch(body) {
-        return this.aiService.classifyDifficultyBatch(body);
-    }
-    async recordFeedback(body) {
-        return this.aiService.recordFeedback(body);
-    }
-    async recordUserRating(body) {
-        return this.aiService.recordUserRating(body);
-    }
-    async getFeedbackRecommendations() {
-        return this.aiService.getFeedbackRecommendations();
-    }
-    async getFeedbackStats(signalType, lastN) {
-        const payload = {
-            signal_type: signalType,
-            last_n: lastN ? Number(lastN) : 200,
-        };
-        return this.aiService.getFeedbackStats(payload);
-    }
-    async getAdaptiveLearningState(req) {
-        return this.aiService.getLearningState(req.user.id);
-    }
-    async getLearningAnalytics(req, studentId, refresh) {
-        const resolvedStudentId = studentId && studentId !== "me" ? studentId : req.user.id;
-        return this.aiService.getLearningAnalytics(resolvedStudentId, this.isTruthy(refresh));
-    }
-    async getPaceAnalytics(req, studentId, refresh) {
-        const resolvedStudentId = studentId && studentId !== "me" ? studentId : req.user.id;
-        return this.aiService.getPaceAnalytics(resolvedStudentId, this.isTruthy(refresh));
-    }
-    async getConceptsAnalytics(req, studentId, refresh) {
-        const resolvedStudentId = studentId && studentId !== "me" ? studentId : req.user.id;
-        return this.aiService.getConceptsAnalytics(resolvedStudentId, this.isTruthy(refresh));
-    }
-    async getInterventionsEffectiveness(req, studentId) {
-        const resolvedStudentId = studentId && studentId !== "me" ? studentId : req.user.id;
-        return this.aiService.getInterventionsEffectiveness(resolvedStudentId);
-    }
-    async getInterventionsEffectivenessGlobal() {
-        return this.aiService.getInterventionsEffectivenessGlobal();
-    }
-    isTruthy(value) {
-        if (!value) {
-            return false;
+    resolveStudentId(raw, req) {
+        if (!raw || raw === "me") {
+            return req.user.id;
         }
-        const normalized = value.trim().toLowerCase();
-        return normalized === "1" || normalized === "true" || normalized === "yes";
+        return raw;
+    }
+    async learningState(req, studentId) {
+        return this.aiService.getLearningState(this.resolveStudentId(studentId, req));
+    }
+    async learningAnalytics(req, studentId, refresh) {
+        return this.aiService.getLearningAnalytics(this.resolveStudentId(studentId, req), refresh === "true");
+    }
+    async paceAnalytics(req, studentId, refresh) {
+        return this.aiService.getPaceAnalytics(this.resolveStudentId(studentId, req), refresh === "true");
+    }
+    async conceptsAnalytics(req, studentId, refresh) {
+        return this.aiService.getConceptsAnalytics(this.resolveStudentId(studentId, req), refresh === "true");
+    }
+    async interventionsEffectiveness(req, studentId) {
+        return this.aiService.getInterventionsEffectiveness(this.resolveStudentId(studentId, req));
+    }
+    async interventionsEffectivenessGlobal() {
+        return this.aiService.getInterventionsEffectivenessGlobal();
     }
 };
 exports.ChatController = ChatController;
@@ -232,33 +175,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "aiLatencyStats", null);
 __decorate([
-    (0, common_1.Get)("ai/monitor/stats"),
-    __param(0, (0, common_1.Query)("minutes")),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "monitorStats", null);
-__decorate([
-    (0, common_1.Get)("ai/monitor/health"),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "monitorHealth", null);
-__decorate([
-    (0, common_1.Get)("ai/monitor/errors"),
-    __param(0, (0, common_1.Query)("last_n")),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "monitorErrors", null);
-__decorate([
-    (0, common_1.Get)("ai/monitor/throughput"),
-    __param(0, (0, common_1.Query)("minutes")),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "monitorThroughput", null);
-__decorate([
     (0, common_1.Post)("ai/level-test/start"),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
@@ -295,83 +211,13 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "personalizedRecommendations", null);
 __decorate([
-    (0, common_1.Post)("ai/adaptive/event"),
+    (0, common_1.Get)("ai/learning-state/:studentId"),
     __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Body)()),
+    __param(1, (0, common_1.Param)("studentId")),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
-], ChatController.prototype, "recordAdaptiveLearningEvent", null);
-__decorate([
-    (0, common_1.Post)("ai/evaluate/answer"),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "evaluateAnswer", null);
-__decorate([
-    (0, common_1.Post)("ai/evaluate/batch"),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "evaluateBatch", null);
-__decorate([
-    (0, common_1.Post)("ai/classify/difficulty"),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "classifyDifficulty", null);
-__decorate([
-    (0, common_1.Post)("ai/classify/suggest-adjustment"),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "classifySuggestAdjustment", null);
-__decorate([
-    (0, common_1.Post)("ai/classify/difficulty-batch"),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "classifyDifficultyBatch", null);
-__decorate([
-    (0, common_1.Post)("ai/feedback/record"),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "recordFeedback", null);
-__decorate([
-    (0, common_1.Post)("ai/feedback/user-rating"),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "recordUserRating", null);
-__decorate([
-    (0, common_1.Get)("ai/feedback/recommendations"),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "getFeedbackRecommendations", null);
-__decorate([
-    (0, common_1.Get)("ai/feedback/stats/:signalType"),
-    __param(0, (0, common_1.Param)("signalType")),
-    __param(1, (0, common_1.Query)("last_n")),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "getFeedbackStats", null);
-__decorate([
-    (0, common_1.Get)("ai/adaptive/state"),
-    __param(0, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "getAdaptiveLearningState", null);
+], ChatController.prototype, "learningState", null);
 __decorate([
     (0, common_1.Get)("ai/analytics/learning/:studentId"),
     __param(0, (0, common_1.Request)()),
@@ -380,7 +226,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
-], ChatController.prototype, "getLearningAnalytics", null);
+], ChatController.prototype, "learningAnalytics", null);
 __decorate([
     (0, common_1.Get)("ai/analytics/pace/:studentId"),
     __param(0, (0, common_1.Request)()),
@@ -389,7 +235,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
-], ChatController.prototype, "getPaceAnalytics", null);
+], ChatController.prototype, "paceAnalytics", null);
 __decorate([
     (0, common_1.Get)("ai/analytics/concepts/:studentId"),
     __param(0, (0, common_1.Request)()),
@@ -398,7 +244,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
-], ChatController.prototype, "getConceptsAnalytics", null);
+], ChatController.prototype, "conceptsAnalytics", null);
 __decorate([
     (0, common_1.Get)("ai/interventions/effectiveness/:studentId"),
     __param(0, (0, common_1.Request)()),
@@ -406,13 +252,13 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
-], ChatController.prototype, "getInterventionsEffectiveness", null);
+], ChatController.prototype, "interventionsEffectiveness", null);
 __decorate([
     (0, common_1.Get)("ai/interventions/effectiveness"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], ChatController.prototype, "getInterventionsEffectivenessGlobal", null);
+], ChatController.prototype, "interventionsEffectivenessGlobal", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)("chat"),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

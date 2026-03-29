@@ -215,4 +215,9 @@ export class AdaptiveLearningController {
   findLevelTest(@Param("studentId") studentId: string) {
     return this.adaptiveService.findLevelTestByStudent(studentId);
   }
+
+  @Get("level-test/student/:studentId/latest-completed")
+  findLatestCompletedLevelTest(@Param("studentId") studentId: string) {
+    return this.adaptiveService.findLatestCompletedLevelTestByStudent(studentId);
+  }
 }

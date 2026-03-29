@@ -322,7 +322,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.loadInterventionsEffectivenessGlobal();
 
     // ── Charger état adaptatif courant (AI service) ──
-    this.adaptiveService.getAdaptiveLearningState().subscribe({
+    this.adaptiveService.getAdaptiveLearningState(userId).subscribe({
       next: (data) => {
         const state = data?.learning_state || null;
         this.learningState = state;
@@ -1289,9 +1289,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.adaptiveService.getLevelTest(userId).subscribe({
+    this.adaptiveService.getLatestCompletedLevelTest(userId).subscribe({
       next: (test) => {
-        if (test && test.status === 'completed') {
+        if (test) {
           this.router.navigate(['/student-dashboard/level-test-result'], {
             state: { result: test },
           });
@@ -1362,6 +1362,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       this.router.url.includes('/student-dashboard/level-test-result') ||
       this.router.url.includes('/student-dashboard/goal-setting') ||
       this.router.url.includes('/student-dashboard/badges')
+    );
+  }
+
+  isTakingLevelTest(): boolean {
+    return (
+      this.router.url.includes('/student-dashboard/level-test') &&
+      !this.router.url.includes('/student-dashboard/level-test-result')
     );
   }
 

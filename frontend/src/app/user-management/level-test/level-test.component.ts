@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
 import { AuthService } from '../auth.service';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-level-test',
@@ -12,6 +13,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   loading = true;
   submitting = false;
   loadingNextQuestion = false;
+  nextErrorMessage = '';
   user: any;
   userFullName = '';
 
@@ -62,7 +64,15 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     this.adaptiveService.getLevelTest(userId).subscribe({
       next: (existingTest) => {
         if (existingTest && existingTest.status === 'in-progress') {
-          this.setupTest(existingTest);
+          if (this.shouldReuseExistingTest(existingTest)) {
+            this.setupTest(existingTest);
+          } else {
+            // Old/malformed session: start a fresh AI session.
+            this.adaptiveService.startLevelTest(userId).subscribe({
+              next: (newTest) => this.setupTest(newTest),
+              error: () => (this.loading = false),
+            });
+          }
         } else if (existingTest && existingTest.status === 'completed') {
           // Redirect if test is already complete
           this.router.navigate(['/student-dashboard/level-test-result'], {
@@ -84,6 +94,160 @@ export class LevelTestComponent implements OnInit, OnDestroy {
         });
       },
     });
+  }
+
+  private shouldReuseExistingTest(test: any): boolean {
+    if (
+      !test ||
+      !Array.isArray(test.questions) ||
+      test.questions.length === 0
+    ) {
+      return false;
+    }
+
+    // Prefer AI flow and avoid old legacy tests that can contain malformed content.
+    if (!test.isAiGenerated) {
+      return false;
+    }
+
+    // Allow placeholders for future questions, but validate loaded ones.
+    const loaded = test.questions.filter(
+      (q: any) => q && q.question && q.question !== 'Loading next question...',
+    );
+
+    if (loaded.length === 0) return false;
+
+    return loaded.every((q: any) => {
+      const question = (q.questionText || q.question || '').toString().trim();
+      const opts = Array.isArray(q.options)
+        ? q.options.filter((o: any) => `${o}`.trim())
+        : [];
+      return (
+        question.length >= 8 &&
+        opts.length >= 2 &&
+        this.isPromptComplete(question) &&
+        this.hasBasicQuestionOptionCoherence(question, opts)
+      );
+    });
+  }
+
+  private isPromptComplete(questionText: string): boolean {
+    const q = (questionText || '').trim();
+    if (!q) return false;
+
+    if (/^quelle est la sortie\s*\?$/i.test(q)) {
+      return false;
+    }
+
+    const asksOutput =
+      /quelle est la sortie|que va-t-il s[’']afficher|what is the output/i.test(
+        q,
+      );
+    if (asksOutput) {
+      const hasCodeContext =
+        /\n|;|\bif\b|\bfor\b|\bwhile\b|\bswitch\b|printf|cout|System\.out|\bprint\b/i.test(
+          q,
+        );
+      const hasOutputCall = /printf|cout|System\.out|\bprint\b/i.test(q);
+      if (!(hasCodeContext && hasOutputCall)) {
+        return false;
+      }
+    }
+
+    const asksCodeContext =
+      /soit le code suivant|consid[eé]rez le code suivant|given the following code|following code/i.test(
+        q,
+      );
+    if (asksCodeContext) {
+      const hasCodeContext =
+        /\n|;|\bif\b|\bfor\b|\bwhile\b|\bswitch\b|\bcase\b|\breturn\b/i.test(q);
+      if (!hasCodeContext) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private hasBasicQuestionOptionCoherence(
+    questionText: string,
+    options: string[],
+  ): boolean {
+    const q = (questionText || '').toLowerCase();
+    if (!q || !Array.isArray(options) || options.length < 2) return false;
+
+    const stopwords = new Set([
+      'le',
+      'la',
+      'les',
+      'de',
+      'des',
+      'du',
+      'un',
+      'une',
+      'et',
+      'ou',
+      'dans',
+      'pour',
+      'avec',
+      'que',
+      'quel',
+      'quelle',
+      'quels',
+      'quelles',
+      'est',
+      'sont',
+      'the',
+      'and',
+      'for',
+      'with',
+      'what',
+      'which',
+      'when',
+      'where',
+    ]);
+
+    const qTokens = new Set(
+      (q.match(/[A-Za-zÀ-ÿ]{4,}/g) || []).filter((t) => !stopwords.has(t)),
+    );
+    if (qTokens.size < 4) {
+      return true;
+    }
+
+    let overlap = 0;
+    for (const opt of options) {
+      const body = `${opt || ''}`
+        .replace(/^\s*[A-Ea-e]\s*[\.)]\s*/, '')
+        .toLowerCase();
+      const oTokens = new Set(
+        (body.match(/[A-Za-zÀ-ÿ]{4,}/g) || []).filter((t) => !stopwords.has(t)),
+      );
+      for (const t of oTokens) {
+        if (qTokens.has(t)) {
+          overlap++;
+        }
+      }
+    }
+
+    if (overlap > 0) {
+      return true;
+    }
+
+    const compactBodies = options.map((opt) =>
+      `${opt || ''}`
+        .replace(/^\s*[A-Ea-e]\s*[\.)]\s*/, '')
+        .trim()
+        .toLowerCase(),
+    );
+    const boolSet = new Set(['true', 'false', 'vrai', 'faux', 'yes', 'no']);
+    if (
+      compactBodies.length > 0 &&
+      compactBodies.every((b) => boolSet.has(b) || b.length <= 3)
+    ) {
+      return true;
+    }
+
+    return false;
   }
 
   setupTest(test: any) {
@@ -144,6 +308,32 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     return null;
   }
 
+  formatQuestionText(question: any): string {
+    const raw = (question?.questionText || question?.question || '')
+      .toString()
+      .trim();
+    if (!raw) return '';
+
+    // Remove noisy heading lines such as: "Quiz 1 : ..."
+    const lines = raw
+      .split('\n')
+      .map((l: string) => l.trim())
+      .filter((l: string) => !!l);
+
+    if (lines.length > 1 && /^quiz\s*\d+/i.test(lines[0])) {
+      return lines.slice(1).join(' ');
+    }
+    return lines.join(' ');
+  }
+
+  formatOptionText(option: any): string {
+    const raw = (option || '').toString().trim();
+    if (!raw) return '';
+
+    // Remove duplicated prefixes like "A. ...", "B) ..."
+    return raw.replace(/^\s*[A-Ea-e]\s*[\.)]\s*/, '').trim();
+  }
+
   injectLoadedQuestion(questionIndex: number, question: any) {
     if (
       this.testData &&
@@ -155,6 +345,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   }
 
   selectAnswer(answer: string) {
+    this.nextErrorMessage = '';
     if (
       this.testData?.isAiGenerated &&
       this.aiSubmittedQuestions.has(this.currentQuestionIndex)
@@ -178,6 +369,9 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   }
 
   nextQuestion() {
+    if (this.loadingNextQuestion) return;
+    if (!this.testData?.questions?.length) return;
+
     if (this.currentQuestionIndex < this.testData.questions.length - 1) {
       if (this.testData?.isAiGenerated && this.testData?.session_id) {
         const currentIndex = this.currentQuestionIndex;
@@ -186,6 +380,8 @@ export class LevelTestComponent implements OnInit, OnDestroy {
           this.answers[currentIndex]?.selectedAnswer?.toString().trim() || '';
 
         if (!selectedAnswer) {
+          this.nextErrorMessage =
+            'Selectionne une reponse avant de passer a la question suivante.';
           return;
         }
 
@@ -205,10 +401,32 @@ export class LevelTestComponent implements OnInit, OnDestroy {
         }
 
         this.loadingNextQuestion = true;
+        this.nextErrorMessage = '';
         this.adaptiveService
           .submitLevelTestAnswer(this.testData.session_id, selectedAnswer)
+          .pipe(
+            finalize(() => {
+              this.loadingNextQuestion = false;
+            }),
+          )
           .subscribe({
             next: (response) => {
+              const hasUsableNextQuestion =
+                !!response?.next_question ||
+                !!this.testData?.questions?.[nextIndex]?.options?.length ||
+                !!this.testData?.questions?.[nextIndex]?.questionText ||
+                (!!this.testData?.questions?.[nextIndex]?.question &&
+                  this.testData.questions[nextIndex].question !==
+                    'Loading next question...');
+
+              if (!hasUsableNextQuestion) {
+                // Keep user on current question and allow explicit retry.
+                this.aiSubmittedQuestions.delete(currentIndex);
+                this.nextErrorMessage =
+                  "La question suivante n'est pas encore disponible. Reessaie dans quelques secondes.";
+                return;
+              }
+
               this.aiSubmittedQuestions.add(currentIndex);
               if (
                 typeof response?.correct === 'boolean' &&
@@ -224,11 +442,12 @@ export class LevelTestComponent implements OnInit, OnDestroy {
               }
               this.currentQuestionIndex++;
               this.questionStartTime = Date.now();
-              this.loadingNextQuestion = false;
+              this.nextErrorMessage = '';
             },
             error: (err) => {
               console.error('Error loading next AI question', err);
-              this.loadingNextQuestion = false;
+              this.nextErrorMessage =
+                'Impossible de charger la prochaine question. Verifie ai-service puis reessaie.';
             },
           });
         return;
@@ -243,6 +462,24 @@ export class LevelTestComponent implements OnInit, OnDestroy {
         this.loadQuestionAtIndex(this.currentQuestionIndex);
       }
     }
+  }
+
+  canGoNext(): boolean {
+    if (!this.testData?.questions?.length) return false;
+    if (this.loadingNextQuestion) return false;
+    if (this.currentQuestionIndex >= this.testData.questions.length - 1) {
+      return false;
+    }
+
+    if (this.testData?.isAiGenerated && this.testData?.session_id) {
+      const selected =
+        this.answers?.[this.currentQuestionIndex]?.selectedAnswer
+          ?.toString()
+          .trim() || '';
+      return !!selected;
+    }
+
+    return true;
   }
 
   previousQuestion() {
@@ -401,9 +638,72 @@ export class LevelTestComponent implements OnInit, OnDestroy {
           isCorrect: !!a.isCorrect,
         })),
         totalScore,
-        resultLevel: profile?.level || 'beginner',
+        resultLevel: profile?.overall_level || profile?.level || 'beginner',
         status: 'completed',
       };
+    };
+
+    const toTopicTitles = (arr: any): string[] => {
+      if (!Array.isArray(arr)) return [];
+      return arr
+        .map((item: any) => {
+          if (typeof item === 'string') return item;
+          if (item && typeof item === 'object') {
+            return String(item.title || item.topic || '').trim();
+          }
+          return '';
+        })
+        .filter((v: string) => !!v);
+    };
+
+    const syncAiProfileToBackend = (profile: any, result: any) => {
+      const userId = this.user?._id || this.user?.id;
+      if (!userId || !profile) return;
+
+      const mappedProfile = {
+        userId,
+        level: profile?.overall_level || profile?.level || 'beginner',
+        progress: Number(result?.totalScore ?? profile?.overall_mastery ?? 0),
+        strengths: toTopicTitles(profile?.strengths),
+        weaknesses: toTopicTitles(profile?.weaknesses),
+        levelTestCompleted: true,
+      };
+
+      // Keep NestJS profile (dashboard source) in sync with AI-level-test result.
+      this.adaptiveService.updateProfile(userId, mappedProfile).subscribe({
+        next: () => {},
+        error: () => {
+          this.adaptiveService.createProfile(mappedProfile).subscribe({
+            next: () => {},
+            error: () => {},
+          });
+        },
+      });
+
+      const totalDurationSec = (result?.answers || []).reduce(
+        (acc: number, item: any) => acc + Number(item?.timeSpent || 0),
+        0,
+      );
+
+      this.adaptiveService
+        .createPerformance({
+          studentId: userId,
+          exerciseId: String(
+            result?._id || this.testData?._id || 'ai-level-test',
+          ),
+          score: Number(result?.totalScore || 0),
+          timeSpent: totalDurationSec,
+          source: 'level-test',
+          topic: 'Level Test',
+          difficulty: mappedProfile.level as
+            | 'beginner'
+            | 'intermediate'
+            | 'advanced',
+        })
+        .subscribe({
+          next: () => {},
+          error: () => {},
+        });
     };
 
     const finalizeAiResult = (
@@ -411,6 +711,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       aiPersonalizedRecommendations: any[] = [],
     ) => {
       const result = buildAiResult(profile);
+      syncAiProfileToBackend(profile, result);
       const totalDurationSec = (result.answers || []).reduce(
         (acc: number, item: any) => acc + Number(item?.timeSpent || 0),
         0,

@@ -166,11 +166,20 @@
         <h2 class="text-lg font-semibold text-gray-900 mb-4">
           Performance by Topic
         </h2>
-        <div class="relative h-80 w-full">
+        <div
+          class="relative w-full"
+          style="
+            min-height: 320px;
+            max-height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          "
+        >
           <canvas
             id="peerComparisonChart"
             #barChartCanvas
-            class="w-full h-full"
+            class="chart-canvas"
           ></canvas>
         </div>
       </div>
@@ -180,11 +189,20 @@
         <h2 class="text-lg font-semibold text-gray-900 mb-4">
           Skills Comparison
         </h2>
-        <div class="relative h-80 w-full">
+        <div
+          class="relative w-full"
+          style="
+            min-height: 320px;
+            max-height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          "
+        >
           <canvas
             id="peerRadarChart"
             #radarChartCanvas
-            class="w-full h-full"
+            class="chart-canvas"
           ></canvas>
         </div>
       </div>

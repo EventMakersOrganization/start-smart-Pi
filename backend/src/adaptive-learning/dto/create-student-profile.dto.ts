@@ -1,12 +1,19 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  Min,
+  Max,
+  IsArray,
+} from "class-validator";
 
 export class CreateStudentProfileDto {
-
   @IsString()
   userId: string;
 
   @IsOptional()
-  @IsEnum(['beginner', 'intermediate', 'advanced'])
+  @IsEnum(["beginner", "intermediate", "advanced"])
   level?: string;
 
   @IsOptional()
@@ -15,4 +22,20 @@ export class CreateStudentProfileDto {
     preferredDifficulty?: string;
     studyHoursPerDay?: number;
   };
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  progress?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  strengths?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  weaknesses?: string[];
 }

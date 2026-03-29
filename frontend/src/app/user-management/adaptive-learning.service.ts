@@ -8,6 +8,7 @@ import {
   map,
   switchMap,
   tap,
+  timeout,
 } from 'rxjs/operators';
 
 export type TargetLevel = 'beginner' | 'intermediate' | 'advanced';
@@ -367,6 +368,18 @@ export class AdaptiveLearningService {
     );
   }
 
+  createPerformance(data: {
+    studentId: string;
+    exerciseId: string;
+    score: number;
+    timeSpent?: number;
+    source?: 'quiz' | 'exercise' | 'brainrush' | 'level-test';
+    topic?: string;
+    difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/performances`, data);
+  }
+
   getRecommendations(studentId: string): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.apiUrl}/recommendations/student/${studentId}`,
@@ -431,10 +444,12 @@ export class AdaptiveLearningService {
   }
 
   submitLevelTestAnswer(sessionId: string, answer: string): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/level-test/submit-answer`, {
-      session_id: sessionId,
-      answer,
-    });
+    return this.http
+      .post(`${this.chatApiUrl}/level-test/submit-answer`, {
+        session_id: sessionId,
+        answer,
+      })
+      .pipe(timeout(15000));
   }
 
   submitLevelTestAnswersToAi(
@@ -485,6 +500,12 @@ export class AdaptiveLearningService {
 
   getLevelTest(studentId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/level-test/student/${studentId}`);
+  }
+
+  getLatestCompletedLevelTest(studentId: string): Observable<any> {
+    return this.http.get(
+      `${this.apiUrl}/level-test/student/${studentId}/latest-completed`,
+    );
   }
 
   markRecommendationViewed(id: string): Observable<any> {
@@ -539,8 +560,8 @@ export class AdaptiveLearningService {
     return this.http.post(`${this.chatApiUrl}/adaptive/event`, payload);
   }
 
-  getAdaptiveLearningState(): Observable<any> {
-    return this.http.get(`${this.chatApiUrl}/adaptive/state`);
+  getAdaptiveLearningState(studentId: string): Observable<any> {
+    return this.http.get(`${this.chatApiUrl}/learning-state/${studentId}`);
   }
 
   getLearningAnalytics(

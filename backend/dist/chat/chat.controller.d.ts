@@ -1,5 +1,5 @@
 import { ChatService } from "./chat.service";
-import { AiService, ClassifyDifficultyPayload, ClassifyDifficultyBatchPayload, EvaluateAnswerPayload, EvaluateBatchPayload, LearningEventPayload, RecordFeedbackPayload, UserRatingPayload } from "./ai.service";
+import { AiService } from "./ai.service";
 export declare class ChatController {
     private readonly chatService;
     private readonly aiService;
@@ -46,10 +46,6 @@ export declare class ChatController {
         status: string;
         stats: Record<string, any>;
     }>;
-    monitorStats(minutes?: string): Promise<any>;
-    monitorHealth(): Promise<import("./ai.service").MonitorHealthResponse>;
-    monitorErrors(lastN?: string): Promise<import("./ai.service").MonitorErrorsResponse>;
-    monitorThroughput(minutes?: string): Promise<import("./ai.service").MonitorThroughputResponse>;
     levelTestStart(req: any, body: {
         subjects?: string[];
     }): Promise<any>;
@@ -65,21 +61,11 @@ export declare class ChatController {
         student_profile: Record<string, any>;
         n_results?: number;
     }): Promise<any>;
-    recordAdaptiveLearningEvent(req: any, body: LearningEventPayload): Promise<any>;
-    evaluateAnswer(body: EvaluateAnswerPayload): Promise<any>;
-    evaluateBatch(body: EvaluateBatchPayload): Promise<any>;
-    classifyDifficulty(body: ClassifyDifficultyPayload): Promise<any>;
-    classifySuggestAdjustment(body: ClassifyDifficultyPayload): Promise<any>;
-    classifyDifficultyBatch(body: ClassifyDifficultyBatchPayload): Promise<any>;
-    recordFeedback(body: RecordFeedbackPayload): Promise<any>;
-    recordUserRating(body: UserRatingPayload): Promise<any>;
-    getFeedbackRecommendations(): Promise<any>;
-    getFeedbackStats(signalType: string, lastN?: string): Promise<any>;
-    getAdaptiveLearningState(req: any): Promise<any>;
-    getLearningAnalytics(req: any, studentId: string, refresh?: string): Promise<any>;
-    getPaceAnalytics(req: any, studentId: string, refresh?: string): Promise<any>;
-    getConceptsAnalytics(req: any, studentId: string, refresh?: string): Promise<any>;
-    getInterventionsEffectiveness(req: any, studentId: string): Promise<any>;
-    getInterventionsEffectivenessGlobal(): Promise<any>;
-    private isTruthy;
+    private resolveStudentId;
+    learningState(req: any, studentId: string): Promise<any>;
+    learningAnalytics(req: any, studentId: string, refresh?: string): Promise<any>;
+    paceAnalytics(req: any, studentId: string, refresh?: string): Promise<any>;
+    conceptsAnalytics(req: any, studentId: string, refresh?: string): Promise<any>;
+    interventionsEffectiveness(req: any, studentId: string): Promise<any>;
+    interventionsEffectivenessGlobal(): Promise<any>;
 }

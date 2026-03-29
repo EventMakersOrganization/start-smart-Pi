@@ -136,11 +136,64 @@ export class SkillMasteryComponent implements OnInit, OnDestroy, OnChanges {
         },
         error: (err) => {
           console.error('Failed to load skill tracking data:', err);
-          this.error = 'Impossible de charger les données de compétences';
+          // Fallback: derive visible skill cards from adaptive profile strengths/weaknesses.
+          this.skills = this.buildSkillsFromProfile();
+          this.applyFilter('all');
+          this.error = null;
           this.loading = false;
           this.cdr.markForCheck();
         },
       });
+  }
+
+  private buildSkillsFromProfile(): SkillTopic[] {
+    const strengths = Array.isArray(this.adaptiveProfile?.strengths)
+      ? this.adaptiveProfile.strengths
+      : [];
+    const weaknesses = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+
+    const fromStrengths = strengths.map((topic: any) => ({
+      topic: this.capitalizeTopic(String(topic || 'general')),
+      score: 80,
+      attempts: 1,
+      averageScore: 80,
+      proficiency: 'Advanced',
+      source: 'strength' as const,
+      stars: 4,
+    }));
+
+    const fromWeaknesses = weaknesses
+      .filter((w: any) => !strengths.includes(w))
+      .map((topic: any) => ({
+        topic: this.capitalizeTopic(String(topic || 'general')),
+        score: 40,
+        attempts: 1,
+        averageScore: 40,
+        proficiency: 'Learning',
+        source: 'weakness' as const,
+        stars: 2,
+      }));
+
+    const merged = [...fromStrengths, ...fromWeaknesses];
+    if (merged.length > 0) {
+      return merged;
+    }
+
+    return [
+      {
+        topic: 'General',
+        score: Number(this.adaptiveProfile?.progress ?? 0),
+        attempts: 0,
+        averageScore: Number(this.adaptiveProfile?.progress ?? 0),
+        proficiency: this.getSkillLevel(
+          Number(this.adaptiveProfile?.progress ?? 0),
+        ).level,
+        source: 'neutral',
+        stars: 1,
+      },
+    ];
   }
 
   private processTrackingData(trackingData: any): SkillTopic[] {
@@ -223,16 +276,18 @@ export class SkillMasteryComponent implements OnInit, OnDestroy, OnChanges {
 
     switch (filter) {
       case 'strengths':
-        this.filteredSkills = this.skills.filter((s) => s.source === 'strength');
+        this.filteredSkills = this.skills.filter(
+          (s) => s.source === 'strength',
+        );
         break;
       case 'weaknesses':
-        this.filteredSkills = this.skills.filter((s) => s.source === 'weakness');
+        this.filteredSkills = this.skills.filter(
+          (s) => s.source === 'weakness',
+        );
         break;
       case 'in-progress':
         this.filteredSkills = this.skills.filter(
-          (s) =>
-            s.proficiency === 'Learning' ||
-            s.proficiency === 'Beginner',
+          (s) => s.proficiency === 'Learning' || s.proficiency === 'Beginner',
         );
         break;
       default:

@@ -3839,6 +3839,15 @@ export class AdaptiveLearningService {
     return testObj;
   }
 
+  async findLatestCompletedLevelTestByStudent(studentId: string): Promise<any> {
+    const test = await this.levelTestModel
+      .findOne({ studentId, status: "completed" })
+      .sort({ completedAt: -1, createdAt: -1 })
+      .exec();
+
+    return test ? test.toObject() : null;
+  }
+
   // ══════════════════════════════════════════════════════
   // INITIAL RECOMMENDATIONS FROM LEVEL TEST API
   // ══════════════════════════════════════════════════════

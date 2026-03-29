@@ -1,6 +1,7 @@
 <div class="flex min-h-screen bg-slate-50 dark:bg-slate-950">
   <!-- ── Sidebar ── -->
   <aside
+    *ngIf="!isTakingLevelTest()"
     class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col fixed h-full z-20"
   >
     <div class="p-6 flex items-center gap-3">
@@ -123,7 +124,7 @@
   </aside>
 
   <!-- ── Main Content ── -->
-  <main class="flex-1 ml-64 min-h-screen">
+  <main class="flex-1 min-h-screen" [class.ml-64]="!isTakingLevelTest()">
     <!-- Top Navbar -->
     <header
       class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between"
@@ -2354,7 +2355,7 @@
   </main>
 
   <!-- ── AI Floating Button ── -->
-  <div class="fixed bottom-8 right-8 z-40">
+  <div class="fixed bottom-8 right-8 z-40" *ngIf="!isTakingLevelTest()">
     <button
       routerLink="/chat/ai"
       class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"

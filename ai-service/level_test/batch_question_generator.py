@@ -17,6 +17,7 @@ import logging
 import re
 import sys
 import time
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -239,20 +240,49 @@ def generate_all_subjects_parallel(
 
 
 def _fallback_question(subject: str, topic: str, difficulty: str) -> dict:
-    return {
-        "question": f"What is an important concept related to '{topic}' in {subject}?",
-        "options": [
-            f"Concept A about {topic}",
-            f"Concept B about {topic}",
-            f"Concept C about {topic}",
-            f"Concept D about {topic}",
-        ],
-        "correct_answer": f"Concept A about {topic}",
-        "explanation": f"This is a fallback question about {topic}.",
+    # Coherent safety fallback (never placeholder "Concept A about ...").
+    bank = [
+        {
+            "question": "What is the role of a variable in a program?",
+            "options": [
+                "A. Store values that can change during execution",
+                "B. Replace the compiler",
+                "C. Connect directly to hardware drivers",
+                "D. Disable functions",
+            ],
+            "correct_answer": "A. Store values that can change during execution",
+            "topic": "Programming fundamentals",
+        },
+        {
+            "question": "What does an equality comparison operator do?",
+            "options": [
+                "A. Checks whether two values are equal",
+                "B. Declares a new variable type",
+                "C. Terminates the program",
+                "D. Imports a library",
+            ],
+            "correct_answer": "A. Checks whether two values are equal",
+            "topic": "Operators",
+        },
+        {
+            "question": "Why do developers use functions?",
+            "options": [
+                "A. To reuse logic and improve readability",
+                "B. To avoid all conditions",
+                "C. To remove variables from memory",
+                "D. To force code duplication",
+            ],
+            "correct_answer": "A. To reuse logic and improve readability",
+            "topic": "Code structure",
+        },
+    ]
+    q = random.choice(bank).copy()
+    q.update({
+        "explanation": f"Fallback coherent MCQ for {subject}.",
         "difficulty": difficulty,
-        "topic": topic,
         "type": "MCQ",
-    }
+    })
+    return q
 
 
 def generate_all_subjects_parallel_from_real_exercises(
@@ -271,46 +301,54 @@ def generate_all_subjects_parallel_from_real_exercises(
     Returns:
         ``{subject_key: [question_dicts]}``
     """
-    from level_test.real_exercise_loader import (
-        get_questions_for_course,
-        get_mixed_difficulty_questions,
-        get_level_test_questions,
-    )
+    from level_test.real_exercise_loader import get_level_test_questions
     
     t0 = time.perf_counter()
     results: dict[str, list[dict]] = {}
+    used_keys: set[str] = set()
+
+    def _qid(q: dict) -> str:
+        oid = str((q or {}).get("original_id") or "").strip()
+        if oid:
+            return f"id:{oid}"
+        return f"txt:{str((q or {}).get('question', '')).strip().lower()}"
+
+    def _dedupe_with_global(candidates: list[dict], limit: int) -> list[dict]:
+        out: list[dict] = []
+        for q in candidates or []:
+            key = _qid(q)
+            if not key or key in used_keys:
+                continue
+            used_keys.add(key)
+            out.append(q)
+            if len(out) >= limit:
+                break
+        return out
     
     for s in subjects:
         key = s["key"]
         count = s.get("count", 5)
         difficulties = s.get("difficulties", ["medium"] * count)
-        
-        # Try to load real exercises for this subject/course
+
+        # Strict mode: real exercises from the SAME chapter only.
+        # No global fallback and no AI generation fallback.
         questions = get_level_test_questions(
             course_id=key,
-            num_questions=count,
+            num_questions=max(count * 8, 40),
             difficulty="mixed"
         )
-        
-        if not questions:
-            # Fallback: generate via LLM if no real exercises found
-            logger.warning(f"No real exercises for {key}, falling back to AI generation")
-            rag_service = RAGService.get_instance()
-            questions = generate_batch_for_subject(
-                subject_title=s["title"],
-                topics=s["topics"],
-                difficulties=difficulties,
-                count=count,
-                rag_service=rag_service,
-            )
-        else:
-            # Adjust difficulty levels if needed
-            for i, q in enumerate(questions):
-                if i < len(difficulties):
-                    q["difficulty"] = difficulties[i].lower()
+        questions = _dedupe_with_global(questions, count)
+
+        # Adjust difficulty levels if needed
+        for i, q in enumerate(questions):
+            if i < len(difficulties):
+                q["difficulty"] = difficulties[i].lower()
         
         results[key] = questions[:count]
-        logger.info(f"Loaded {len(results[key])} questions for subject {key} (source: real_exercises)")
+        logger.info(
+            "Loaded %d/%d real questions for subject %s (strict per-course mode)",
+            len(results[key]), count, key
+        )
     
     elapsed = time.perf_counter() - t0
     total_q = sum(len(v) for v in results.values())
