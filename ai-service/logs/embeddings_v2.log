@@ -440,3 +440,22 @@
 2026-03-25 22:59:13,299 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
 2026-03-25 23:10:28,393 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
 2026-03-25 23:18:25,341 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-30 19:07:08,372 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-30 20:42:47,343 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-30 20:55:04,527 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-03-30 20:55:04,789 - INFO - store_chunks_in_chromadb: stored 8 chunks
+2026-03-30 20:55:04,789 - INFO - process_and_embed_course_chunks: course_id=69cad50be6989d1dd39e778f stored=8
+2026-03-30 20:55:10,343 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-03-30 20:55:10,343 - INFO - process_and_embed_course_chunks: course_id=69cad50be6989d1dd39e779a stored=4
+2026-03-30 20:55:13,351 - INFO - store_chunks_in_chromadb: stored 5 chunks
+2026-03-30 20:55:13,352 - INFO - process_and_embed_course_chunks: course_id=69cad50de6989d1dd39e77a5 stored=5
+2026-03-30 20:55:19,203 - INFO - store_chunks_in_chromadb: stored 6 chunks
+2026-03-30 20:55:19,203 - INFO - process_and_embed_course_chunks: course_id=69cad510e6989d1dd39e77bd stored=6
+2026-03-30 20:55:28,260 - INFO - store_chunks_in_chromadb: stored 8 chunks
+2026-03-30 20:55:28,261 - INFO - process_and_embed_course_chunks: course_id=69cad512e6989d1dd39e77d6 stored=8
+2026-03-30 20:55:32,106 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-03-30 20:55:32,107 - INFO - process_and_embed_course_chunks: course_id=69cad512e6989d1dd39e77e0 stored=4
+2026-03-30 20:55:41,006 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-03-30 20:55:41,006 - INFO - process_and_embed_course_chunks: course_id=69cad512e6989d1dd39e77e1 stored=4
+2026-03-30 20:55:56,894 - INFO - store_chunks_in_chromadb: stored 7 chunks
+2026-03-30 20:55:56,895 - INFO - process_and_embed_course_chunks: course_id=69cad512e6989d1dd39e77e2 stored=7

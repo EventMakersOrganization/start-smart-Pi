@@ -31,6 +31,11 @@ export declare class AiService {
         content: string;
     }>): Promise<AiChatResponse>;
     semanticSearch(query: string, nResults?: number): Promise<SemanticSearchResult[]>;
+    startLevelTest(studentId: string, subjects?: string[]): Promise<any>;
+    submitAnswer(sessionId: string, answer: string): Promise<any>;
+    completeLevelTest(sessionId: string): Promise<any>;
+    getLevelTestSession(sessionId: string): Promise<any>;
+    getPersonalizedRecommendations(studentProfile: Record<string, any>, nResults?: number): Promise<any>;
     healthCheck(): Promise<{
         status: string;
         model?: string;

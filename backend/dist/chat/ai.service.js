@@ -76,6 +76,56 @@ let AiService = AiService_1 = class AiService {
             return [];
         }
     }
+    async startLevelTest(studentId, subjects) {
+        try {
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/start`, { student_id: studentId, subjects: subjects || null }, { timeout: 120_000 }));
+            return data;
+        }
+        catch (error) {
+            this.logger.error(`startLevelTest failed: ${error.message}`);
+            throw error;
+        }
+    }
+    async submitAnswer(sessionId, answer) {
+        try {
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/submit-answer`, { session_id: sessionId, answer }, { timeout: 120_000 }));
+            return data;
+        }
+        catch (error) {
+            this.logger.error(`submitAnswer failed: ${error.message}`);
+            throw error;
+        }
+    }
+    async completeLevelTest(sessionId) {
+        try {
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/complete`, { session_id: sessionId }, { timeout: 60_000 }));
+            return data;
+        }
+        catch (error) {
+            this.logger.error(`completeLevelTest failed: ${error.message}`);
+            throw error;
+        }
+    }
+    async getLevelTestSession(sessionId) {
+        try {
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.get(`${this.aiBaseUrl}/level-test/session/${sessionId}`, { timeout: 10_000 }));
+            return data;
+        }
+        catch (error) {
+            this.logger.error(`getLevelTestSession failed: ${error.message}`);
+            throw error;
+        }
+    }
+    async getPersonalizedRecommendations(studentProfile, nResults = 5) {
+        try {
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/recommendations/personalized`, { student_profile: studentProfile, n_results: nResults }, { timeout: 30_000 }));
+            return data;
+        }
+        catch (error) {
+            this.logger.error(`getPersonalizedRecommendations failed: ${error.message}`);
+            throw error;
+        }
+    }
     async healthCheck() {
         try {
             const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.get(`${this.aiBaseUrl}/health`, { timeout: 5_000 }));

@@ -11,17 +11,23 @@ import { AuthService } from '../auth.service';
 export class LevelTestComponent implements OnInit, OnDestroy {
   loading = true;
   submitting = false;
+  submittingAnswer = false;
   user: any;
   userFullName = '';
 
   testData: any;
   currentQuestionIndex = 0;
+  loadedQuestionsCount = 0;
+  sessionId: string | null = null;
+  private submittedQuestionIndexes = new Set<number>();
 
   // Format matching backend expectations
   answers: {
     questionIndex: number;
-    selectedAnswer: string;
+    selectedAnswer: string | null;
     timeSpent: number;
+    isCorrect?: boolean;
+    serverSubmitted?: boolean;
   }[] = [];
 
   timeRemaining = 1800; // 60 minutes
@@ -55,48 +61,58 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   }
 
   initializeTest() {
-    const userId = this.user._id || this.user.id;
-
-    // First, check if test exists
-    this.adaptiveService.getLevelTest(userId).subscribe({
-      next: (existingTest) => {
-        if (existingTest && existingTest.status === 'in-progress') {
-          this.setupTest(existingTest);
-        } else if (existingTest && existingTest.status === 'completed') {
-          // Redirect if test is already complete
-          this.router.navigate(['/student-dashboard/level-test-result'], {
-            state: { result: existingTest },
-          });
-        } else {
-          // Test does not exist or empty, generate new
-          this.adaptiveService.startLevelTest(userId).subscribe({
-            next: (newTest) => this.setupTest(newTest),
-            error: () => (this.loading = false),
-          });
-        }
-      },
-      error: () => {
-        // Create new
-        this.adaptiveService.startLevelTest(userId).subscribe({
-          next: (newTest) => this.setupTest(newTest),
-          error: () => (this.loading = false),
-        });
-      },
+    this.adaptiveService.startLevelTestStage().subscribe({
+      next: (response) => this.setupTestFromSession(response),
+      error: () => (this.loading = false),
     });
   }
 
-  setupTest(test: any) {
-    this.testData = test;
-    // Ensure answers array has an entry for each question so template can access safely
-    const existing = test.answers || [];
-    const questionsCount = (test.questions && test.questions.length) || 0;
-    this.answers = Array.from({ length: questionsCount }).map((_, i) => {
-      return (
-        existing[i] || { questionIndex: i, selectedAnswer: null, timeSpent: 0 }
-      );
-    });
+  setupTestFromSession(response: any) {
+    const firstQuestion = this.mapQuestion(response?.first_question);
+    const totalQuestions = response?.total_questions || 0;
+
+    this.sessionId = response?.session_id || null;
+    this.loadedQuestionsCount = firstQuestion ? 1 : 0;
+    this.submittedQuestionIndexes.clear();
+
+    this.testData = {
+      session_id: this.sessionId,
+      total_questions: totalQuestions,
+      questions: Array.from({ length: totalQuestions }).map((_, i) =>
+        i === 0 && firstQuestion
+          ? firstQuestion
+          : {
+              questionText: '',
+              options: [],
+              difficulty: '',
+              topic: '',
+              pending: true,
+            },
+      ),
+    };
+
+    this.answers = Array.from({ length: totalQuestions }).map((_, i) => ({
+      questionIndex: i,
+      selectedAnswer: null,
+      timeSpent: 0,
+      isCorrect: undefined,
+      serverSubmitted: false,
+    }));
+
     this.loading = false;
     this.questionStartTime = Date.now();
+  }
+
+  private mapQuestion(question: any): any {
+    if (!question) return null;
+    return {
+      questionText: question.question || '',
+      options: question.options || [],
+      difficulty: question.difficulty || 'medium',
+      topic: question.topic || 'General',
+      subject: question.subject || '',
+      pending: false,
+    };
   }
 
   get currentQuestion() {
@@ -121,11 +137,14 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   }
 
   nextQuestion() {
-    if (this.currentQuestionIndex < this.testData.questions.length - 1) {
+    if (this.currentQuestionIndex < this.loadedQuestionsCount - 1) {
       this.updateTimeSpent();
       this.currentQuestionIndex++;
       this.questionStartTime = Date.now();
+      return;
     }
+
+    this.submitCurrentAnswerAndFetchNext();
   }
 
   previousQuestion() {
@@ -137,11 +156,58 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   }
 
   goToQuestion(index: number) {
-    if (index >= 0 && index < this.testData.questions.length) {
+    if (index >= 0 && index < this.loadedQuestionsCount) {
       this.updateTimeSpent();
       this.currentQuestionIndex = index;
       this.questionStartTime = Date.now();
     }
+  }
+
+  private submitCurrentAnswerAndFetchNext(onDone?: () => void) {
+    if (this.submittingAnswer || !this.sessionId) return;
+
+    const currentAnswer =
+      this.answers[this.currentQuestionIndex]?.selectedAnswer;
+    if (!currentAnswer) return;
+
+    if (this.submittedQuestionIndexes.has(this.currentQuestionIndex)) {
+      if (onDone) onDone();
+      return;
+    }
+
+    this.updateTimeSpent();
+    this.submittingAnswer = true;
+
+    this.adaptiveService
+      .submitLevelTestAnswer(this.sessionId, currentAnswer)
+      .subscribe({
+        next: (result) => {
+          this.submittedQuestionIndexes.add(this.currentQuestionIndex);
+          this.answers[this.currentQuestionIndex].serverSubmitted = true;
+          this.answers[this.currentQuestionIndex].isCorrect = !!result?.correct;
+
+          const nextQuestion = this.mapQuestion(result?.next_question);
+          if (
+            nextQuestion &&
+            this.loadedQuestionsCount < this.testData.questions.length
+          ) {
+            this.testData.questions[this.loadedQuestionsCount] = nextQuestion;
+            this.loadedQuestionsCount += 1;
+            this.currentQuestionIndex = Math.min(
+              this.currentQuestionIndex + 1,
+              this.loadedQuestionsCount - 1,
+            );
+            this.questionStartTime = Date.now();
+          }
+
+          this.submittingAnswer = false;
+          if (onDone) onDone();
+        },
+        error: (err) => {
+          console.error('Error submitting answer', err);
+          this.submittingAnswer = false;
+        },
+      });
   }
 
   updateTimeSpent() {
@@ -169,40 +235,85 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   }
 
   isAssessmentComplete(): boolean {
-    return this.countCompleted() === this.testData?.questions?.length;
+    const total = this.testData?.total_questions || 0;
+    return (
+      total > 0 &&
+      this.loadedQuestionsCount === total &&
+      this.submittedQuestionIndexes.size === total
+    );
   }
 
   submitTest() {
-    if (!this.isAssessmentComplete() || this.submitting) return;
+    if (this.submitting || !this.sessionId) return;
 
-    this.updateTimeSpent(); // ensure last viewed gets time
-    this.submitting = true;
+    const completeStage = () => {
+      if (!this.isAssessmentComplete()) return;
 
-    // Fill gaps of 'empty' responses if edge-case skips happened
-    const finalAnswers = this.testData.questions.map((q: any, i: number) => {
-      return (
-        this.answers[i] || {
-          questionIndex: i,
-          selectedAnswer: null,
-          timeSpent: 0,
-        }
-      );
-    });
+      this.submitting = true;
+      this.adaptiveService.completeLevelTestStage(this.sessionId!).subscribe({
+        next: (completeRes) => {
+          const profile = completeRes?.profile || {};
+          const result = this.buildResultPayload(profile);
 
-    this.adaptiveService
-      .submitLevelTest(this.testData._id, finalAnswers)
-      .subscribe({
-        next: (result) => {
-          // Redirect to result page and pass the result object via navigation state
           this.router.navigate(['/student-dashboard/level-test-result'], {
             state: { result },
           });
         },
         error: (err) => {
-          console.error('Error submitting test', err);
+          console.error('Error completing test', err);
           this.submitting = false;
         },
       });
+    };
+
+    const canSubmitCurrent =
+      !!this.answers[this.currentQuestionIndex]?.selectedAnswer &&
+      !this.submittedQuestionIndexes.has(this.currentQuestionIndex);
+
+    if (canSubmitCurrent) {
+      this.submitCurrentAnswerAndFetchNext(completeStage);
+      return;
+    }
+
+    completeStage();
+  }
+
+  private buildResultPayload(profile: any): any {
+    const studentId = profile?.student_id || this.user?._id || this.user?.id;
+    const totalScore = Math.round(profile?.overall_mastery || 0);
+    const resultLevel = profile?.overall_level || 'beginner';
+
+    const questions = this.testData.questions
+      .slice(0, this.loadedQuestionsCount)
+      .map((q: any) => ({ topic: q.topic || 'General' }));
+
+    const answers = this.answers
+      .slice(0, this.loadedQuestionsCount)
+      .map((a) => ({
+        isCorrect: !!a.isCorrect,
+        timeSpent: a.timeSpent || 0,
+      }));
+
+    const detectedStrengths = (profile?.strengths || []).map((s: any) => ({
+      topic: s?.title || 'General',
+      score: Math.round(s?.mastery || 0),
+    }));
+
+    const detectedWeaknesses = (profile?.weaknesses || []).map((w: any) => ({
+      topic: w?.title || 'General',
+      score: Math.round(w?.mastery || 0),
+    }));
+
+    return {
+      studentId,
+      totalScore,
+      resultLevel,
+      questions,
+      answers,
+      detectedStrengths,
+      detectedWeaknesses,
+      recommendations: profile?.recommendations || [],
+    };
   }
 
   // --- UI Helpers for Sidebar Navigation ---

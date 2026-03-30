@@ -55,6 +55,21 @@ let ChatController = class ChatController {
     async aiHealth() {
         return this.aiService.healthCheck();
     }
+    async levelTestStart(req, body) {
+        return this.aiService.startLevelTest(req.user.id, body.subjects);
+    }
+    async levelTestSubmitAnswer(body) {
+        return this.aiService.submitAnswer(body.session_id, body.answer);
+    }
+    async levelTestComplete(body) {
+        return this.aiService.completeLevelTest(body.session_id);
+    }
+    async levelTestSession(sessionId) {
+        return this.aiService.getLevelTestSession(sessionId);
+    }
+    async personalizedRecommendations(body) {
+        return this.aiService.getPersonalizedRecommendations(body.student_profile, body.n_results ?? 5);
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -119,6 +134,42 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "aiHealth", null);
+__decorate([
+    (0, common_1.Post)('ai/level-test/start'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "levelTestStart", null);
+__decorate([
+    (0, common_1.Post)('ai/level-test/submit-answer'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "levelTestSubmitAnswer", null);
+__decorate([
+    (0, common_1.Post)('ai/level-test/complete'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "levelTestComplete", null);
+__decorate([
+    (0, common_1.Get)('ai/level-test/session/:sessionId'),
+    __param(0, (0, common_1.Param)('sessionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "levelTestSession", null);
+__decorate([
+    (0, common_1.Post)('ai/recommendations'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "personalizedRecommendations", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('chat'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

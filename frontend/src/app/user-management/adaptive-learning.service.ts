@@ -61,6 +61,7 @@ export interface SpacedRepetitionResponse {
 @Injectable({ providedIn: 'root' })
 export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
+  private chatApiUrl = 'http://localhost:3000/api/chat';
   private goalsStorageKey = 'adaptive_learning_goals_v1';
 
   constructor(private http: HttpClient) {}
@@ -101,6 +102,31 @@ export class AdaptiveLearningService {
     return this.http.post(`${this.apiUrl}/level-test/${testId}/submit`, {
       answers,
     });
+  }
+
+  startLevelTestStage(subjects?: string[]): Observable<any> {
+    return this.http.post(`${this.chatApiUrl}/ai/level-test/start`, {
+      subjects: subjects || [],
+    });
+  }
+
+  submitLevelTestAnswer(sessionId: string, answer: string): Observable<any> {
+    return this.http.post(`${this.chatApiUrl}/ai/level-test/submit-answer`, {
+      session_id: sessionId,
+      answer,
+    });
+  }
+
+  completeLevelTestStage(sessionId: string): Observable<any> {
+    return this.http.post(`${this.chatApiUrl}/ai/level-test/complete`, {
+      session_id: sessionId,
+    });
+  }
+
+  getLevelTestSession(sessionId: string): Observable<any> {
+    return this.http.get(
+      `${this.chatApiUrl}/ai/level-test/session/${sessionId}`,
+    );
   }
 
   getLevelTest(studentId: string): Observable<any> {
