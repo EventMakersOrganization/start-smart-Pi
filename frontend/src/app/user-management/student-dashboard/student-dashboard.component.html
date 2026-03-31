@@ -1,2392 +1,320 @@
-<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-  <!-- ── Sidebar ── -->
+<div class="flex min-h-screen">
+  <!-- Sidebar Navigation -->
   <aside
-    *ngIf="!isTakingLevelTest()"
-    class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col fixed h-full z-20"
-  >
+    class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col fixed h-full">
     <div class="p-6 flex items-center gap-3">
-      <div
-        class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white"
-      >
+      <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
         <span class="material-symbols-outlined text-2xl">auto_awesome</span>
       </div>
       <div>
-        <h1 class="font-bold text-xl tracking-tight text-primary">
-          StartSmart
-        </h1>
-        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">
-          Adaptive Learning
-        </p>
+        <h1 class="font-bold text-xl tracking-tight text-primary">StartSmart</h1>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Adaptive Learning</p>
       </div>
     </div>
-
     <nav class="flex-1 px-4 py-4 space-y-1">
-      <a
-        (click)="activeNav = 'dashboard'"
-        routerLink="/student-dashboard"
-        [class]="
-          activeNav === 'dashboard'
-            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
-            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
-        "
-      >
-        <span class="material-symbols-outlined">dashboard</span> Dashboard
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="#">
+        <span class="material-symbols-outlined">dashboard</span>
+        Dashboard
       </a>
-      <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-      >
-        <span class="material-symbols-outlined">book_4</span> My Courses
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        href="#">
+        <span class="material-symbols-outlined">book_4</span>
+        My Courses
       </a>
-      <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-        (click)="openLevelTestFromSidebar()"
-      >
-        <span class="material-symbols-outlined">quiz</span> Level Test
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        href="#">
+        <span class="material-symbols-outlined">route</span>
+        Learning Path
       </a>
-      <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-      >
-        <span class="material-symbols-outlined">analytics</span> Performance
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        href="#">
+        <span class="material-symbols-outlined">assignment</span>
+        Assignments
       </a>
-      <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-      >
-        <span class="material-symbols-outlined">route</span> Learning Path
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        href="#">
+        <span class="material-symbols-outlined">analytics</span>
+        Performance
       </a>
-      <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-        routerLink="/student-dashboard/goal-setting"
-      >
-        <span class="material-symbols-outlined">flag</span> Goal Setting
-      </a>
-      <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-        routerLink="/student-dashboard/badges"
-      >
-        <span class="material-symbols-outlined">military_tech</span> Badges
+      <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors font-bold"
+        routerLink="/brainrush">
+        <span class="material-symbols-outlined">sports_esports</span>
+        BrainRush Game
       </a>
 
       <div class="pt-4 mt-2">
-        <p
-          class="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2"
-        >
-          Messages
-        </p>
-        <a
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          routerLink="/chat/instructor"
-        >
-          <span class="material-symbols-outlined text-indigo-500"
-            >chat_bubble</span
-          >
+        <p class="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Messages</p>
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          routerLink="/chat/instructor">
+          <span class="material-symbols-outlined text-indigo-500">chat_bubble</span>
           Conversations
         </a>
-        <a
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          routerLink="/chat/room"
-        >
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          routerLink="/chat/room">
           <span class="material-symbols-outlined text-orange-500">groups</span>
           Groups
         </a>
       </div>
     </nav>
-
-    <!-- Level Badge -->
-    <div class="px-4 mb-4" *ngIf="adaptiveProfile">
-      <div
-        [class]="
-          'flex items-center gap-3 p-3 rounded-xl border ' + getLevelColor()
-        "
-      >
-        <span class="material-symbols-outlined text-xl">{{
-          getLevelIcon()
-        }}</span>
-        <div>
-          <p class="text-xs font-bold uppercase tracking-wider">
-            Current Level
-          </p>
-          <p class="font-black capitalize text-sm">
-            {{ adaptiveProfile?.level || "beginner" }}
-          </p>
-        </div>
+    <div class="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
+      <div class="bg-primary/5 rounded-xl p-4 mb-4">
+        <p class="text-sm font-bold text-slate-800 dark:text-slate-200">Pro Version</p>
+        <p class="text-xs text-slate-500 mb-3">Unlock AI personal tutor 24/7</p>
+        <button
+          class="w-full py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors">Upgrade
+          Now</button>
       </div>
-    </div>
-
-    <div class="p-4 border-t border-slate-100 dark:border-slate-800">
-      <a
-        class="flex items-center gap-3 px-3 py-2 text-slate-600"
-        routerLink="/profile"
-      >
+      <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400" routerLink="/profile">
         <span class="material-symbols-outlined">settings</span>
-        <span class="text-sm font-medium">Account Settings</span>
+        <span class="text-sm font-medium">Account</span>
       </a>
     </div>
   </aside>
 
-  <!-- ── Main Content ── -->
-  <main class="flex-1 min-h-screen" [class.ml-64]="!isTakingLevelTest()">
+  <!-- Main Content Area -->
+  <main class="flex-1 ml-64 min-h-screen bg-background-light dark:bg-background-dark">
     <!-- Top Navbar -->
     <header
-      class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between"
-    >
+      class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between">
       <div class="flex items-center flex-1 max-w-xl">
         <div class="relative w-full">
-          <span
-            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            >search</span
-          >
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
           <input
-            class="w-full bg-slate-100 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50"
-            placeholder="Search courses, topics..."
-            type="text"
-          />
+            class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-slate-500"
+            placeholder="Search courses, skills, or mentors..." type="text" />
         </div>
       </div>
       <div class="flex items-center gap-4">
         <button
-          class="p-2 text-slate-600 hover:bg-slate-100 rounded-full relative"
-        >
+          class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
           <span class="material-symbols-outlined">notifications</span>
-          <span
-            *ngIf="alerts.length > 0"
-            class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"
-          ></span>
+          <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
         </button>
-        <div class="h-8 w-[1px] bg-slate-200 mx-2"></div>
+        <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
         <div class="flex items-center gap-3">
           <div class="text-right">
-            <p class="text-sm font-bold leading-none">
-              {{ user?.first_name }} {{ user?.last_name }}
-            </p>
-            <p class="text-xs text-primary font-medium capitalize">
-              {{ user?.role || "student" }}
-            </p>
+            <p class="text-sm font-bold leading-none">{{ user?.first_name }} {{ user?.last_name }}</p>
+            <p class="text-xs text-primary font-medium capitalize">{{ user?.role || 'student' }}</p>
           </div>
-          <div
-            class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold"
-          >
-            {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
+          <div class="flex items-center gap-2">
+            <div
+              class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold">
+              {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
+            </div>
+            <button (click)="openProfileSidebar()"
+              class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+              Account
+            </button>
+            <button (click)="logout()" class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600">
+              Logout
+            </button>
           </div>
-          <button
-            (click)="openProfileSidebar()"
-            class="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
-          >
-            Account
-          </button>
-          <button
-            (click)="logout()"
-            class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600"
-          >
-            Logout
-          </button>
         </div>
       </div>
     </header>
 
-    <div class="p-8 space-y-6 max-w-7xl mx-auto" *ngIf="!isSubPageView()">
-      <!-- ── Welcome Header ── -->
+    <div class="p-8 space-y-8 max-w-7xl mx-auto">
+      <!-- Welcome Header -->
       <section class="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 class="text-3xl font-black tracking-tight text-slate-900">
-            Welcome back, {{ user?.last_name }}! 👋
+          <h2 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+            Welcome back, {{ user?.first_name }}! 👋
           </h2>
           <p class="text-slate-500 mt-1">
-            <span *ngIf="adaptiveProfile?.levelTestCompleted">
-              You're at <strong>{{ adaptiveProfile?.level }}</strong> level ·
-              {{ progress }}% progress
-            </span>
-            <span *ngIf="!adaptiveProfile?.levelTestCompleted">
-              Take your Level Test to get your personalized learning path!
-            </span>
+            You're making great progress. You've completed {{ progress }}% of your learning goals this week.
           </p>
         </div>
         <div class="flex gap-3">
           <button
-            *ngIf="!adaptiveProfile?.levelTestCompleted"
-            (click)="goToLevelTest()"
-            class="px-5 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-orange-600 shadow-lg shadow-orange-200"
-          >
-            <span class="material-symbols-outlined text-lg">quiz</span>
-            Take Level Test
+            class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors">
+            <span class="material-symbols-outlined text-lg">calendar_today</span> Schedule
           </button>
           <button
-            *ngIf="adaptiveProfile?.levelTestCompleted"
-            (click)="goToLevelTest()"
-            class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50"
-          >
-            <span class="material-symbols-outlined text-lg">refresh</span>
-            Retake Test
+            class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-shadow shadow-lg shadow-primary/20">
+            <span class="material-symbols-outlined text-lg">bolt</span> Resume Learning
           </button>
-          <button
-            class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-primary/20"
-          >
-            <span class="material-symbols-outlined text-lg">bolt</span>
-            Resume Learning
+          <button routerLink="/brainrush"
+            class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-shadow shadow-lg shadow-purple-500/30">
+            <span class="material-symbols-outlined text-lg">sports_esports</span> Play BrainRush
           </button>
         </div>
       </section>
 
-      <!-- ── Alerts ── -->
-      <div class="space-y-2" *ngIf="alerts.length > 0">
-        <div
-          *ngFor="let alert of alerts"
-          [class]="
-            'flex items-center justify-between p-4 rounded-xl border ' +
-            getAlertClass(alert.type)
-          "
-        >
-          <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined">{{ alert.icon }}</span>
-            <p class="text-sm font-medium">{{ alert.message }}</p>
-          </div>
-          <button
-            *ngIf="alert.action"
-            (click)="alert.actionFn()"
-            class="text-xs font-bold px-3 py-1 rounded-lg bg-white/60 hover:bg-white transition-colors"
-          >
-            {{ alert.action }}
-          </button>
-        </div>
-      </div>
-
-      <!-- ── Stats Cards ── -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Progress -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <span
-              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Progress</span
-            >
-            <div
-              class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center"
-            >
-              <span class="material-symbols-outlined text-primary text-sm"
-                >trending_up</span
-              >
-            </div>
-          </div>
-          <p class="text-3xl font-black text-slate-900">
-            {{ analyticsProgressScore }}%
-          </p>
-          <p class="text-xs text-slate-500 mt-1">
-            {{ analyticsAttempts }} attempt(s) · {{ analyticsTrend }}
-          </p>
-          <div class="mt-2 w-full bg-slate-100 h-1.5 rounded-full">
-            <div
-              class="bg-primary h-full rounded-full"
-              [style.width.%]="analyticsProgressScore"
-            ></div>
-          </div>
-        </div>
-
-        <!-- Concepts -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <span
-              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Concepts</span
-            >
-            <div
-              class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"
-            >
-              <span class="material-symbols-outlined text-emerald-600 text-sm"
-                >psychology</span
-              >
-            </div>
-          </div>
-          <p class="text-3xl font-black text-slate-900">
-            {{ strongConceptsCount }}/{{
-              strongConceptsCount + weakConceptsCount || 0
-            }}
-          </p>
-          <p class="text-xs text-slate-500 mt-1">
-            {{ strongConceptsCount }} strong · {{ weakConceptsCount }} weak
-          </p>
-        </div>
-
-        <!-- Predicted Success -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <span
-              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Predicted Success</span
-            >
-            <div
-              class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"
-            >
-              <span class="material-symbols-outlined text-purple-600 text-sm"
-                >insights</span
-              >
-            </div>
-          </div>
-          <p class="text-3xl font-black text-slate-900">
-            {{ predictedSuccessTop }}%
-          </p>
-          <p class="text-xs text-slate-500 mt-1">
-            {{ predictedSuccessCount }} recommendation(s)
-          </p>
-        </div>
-      </div>
-
-      <div *ngIf="analyticsLoading" class="text-xs text-slate-500 -mt-2">
-        Loading learning analytics...
-      </div>
-      <div
-        *ngIf="!analyticsLoading && !analyticsError && analyticsMessage"
-        class="text-xs text-amber-600 -mt-2"
-      >
-        {{ analyticsMessage }}
-      </div>
-      <div *ngIf="analyticsError" class="text-xs text-red-500 -mt-2">
-        {{ analyticsError }}
-      </div>
-
-      <!-- ── Adaptive State Snapshot ── -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" *ngIf="learningState">
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <span
-              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Pace Mode</span
-            >
-            <div
-              class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"
-            >
-              <span class="material-symbols-outlined text-blue-600 text-sm"
-                >speed</span
-              >
-            </div>
-          </div>
-          <p class="text-3xl font-black text-slate-900 capitalize">
-            {{ adaptivePace }}
-          </p>
-          <p class="text-xs text-slate-500 mt-1">Real-time adaptive rhythm</p>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <span
-              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Confidence</span
-            >
-            <div
-              class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"
-            >
-              <span class="material-symbols-outlined text-emerald-600 text-sm"
-                >psychology</span
-              >
-            </div>
-          </div>
-          <p class="text-3xl font-black text-slate-900">
-            {{ adaptiveConfidence }}%
-          </p>
-          <div class="mt-2 w-full bg-slate-100 h-1.5 rounded-full">
-            <div
-              class="bg-emerald-500 h-full rounded-full"
-              [style.width.%]="adaptiveConfidence"
-            ></div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <span
-              class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >Mastery</span
-            >
-            <div
-              class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center"
-            >
-              <span class="material-symbols-outlined text-violet-600 text-sm"
-                >auto_graph</span
-              >
-            </div>
-          </div>
-          <p class="text-3xl font-black text-slate-900">
-            {{ adaptiveMastery }}%
-          </p>
-          <p class="text-xs text-slate-500 mt-1">
-            {{ adaptiveMasteryCount }} concept(s) tracked
-          </p>
-        </div>
-      </div>
-
-      <!-- ── Main Grid ── -->
+      <!-- Grid Layout for Widgets -->
       <div class="grid grid-cols-12 gap-6">
-        <!-- Topic Progress Rings -->
+        <!-- Learning Progress Rings -->
         <div
-          class="col-span-12 lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6"
-        >
+          class="col-span-12 lg:col-span-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-bold">Topic Performance</h3>
-            <span class="text-xs text-slate-500 font-medium"
-              >Based on your recent performances</span
-            >
+            <h3 class="text-lg font-bold">Learning Progress</h3>
+            <select class="bg-slate-50 border-none text-sm font-medium rounded-lg py-1 px-3">
+              <option>Weekly</option>
+              <option>Monthly</option>
+            </select>
           </div>
-          <div
-            *ngIf="adaptiveLoading"
-            class="flex items-center justify-center h-32"
-          >
-            <div
-              class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"
-            ></div>
-          </div>
-          <div
-            *ngIf="!adaptiveLoading"
-            class="grid grid-cols-2 md:grid-cols-4 gap-6"
-          >
-            <div
-              *ngFor="let ring of topicRings"
-              class="flex flex-col items-center gap-3"
-            >
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="flex flex-col items-center gap-3">
               <div class="relative w-24 h-24">
-                <svg class="w-full h-full" viewBox="0 0 100 100">
-                  <circle
-                    class="text-slate-100"
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="currentColor"
-                    stroke-width="8"
-                  ></circle>
-                  <circle
-                    [class]="ring.color"
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="currentColor"
-                    [attr.stroke-dasharray]="251.2"
-                    [attr.stroke-dashoffset]="
-                      251.2 - (251.2 * ring.score) / 100
-                    "
-                    stroke-linecap="round"
-                    stroke-width="8"
-                    style="transform: rotate(-90deg); transform-origin: 50% 50%"
-                  ></circle>
+                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                    stroke="currentColor" stroke-width="8"></circle>
+                  <circle class="text-primary" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                    stroke-dasharray="251.2" stroke-dashoffset="62.8" stroke-linecap="round" stroke-width="8"></circle>
                 </svg>
-                <span
-                  class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg"
-                >
-                  {{ ring.score }}%
-                </span>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">75%</span>
               </div>
-              <span
-                class="text-xs font-bold text-slate-500 uppercase text-center"
-                >{{ ring.name }}</span
-              >
+              <span class="text-xs font-bold text-slate-500 uppercase">Data Science</span>
+            </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="relative w-24 h-24">
+                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                    stroke="currentColor" stroke-width="8"></circle>
+                  <circle class="text-emerald-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                    stroke-dasharray="251.2" stroke-dashoffset="25.1" stroke-linecap="round" stroke-width="8"></circle>
+                </svg>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">90%</span>
+              </div>
+              <span class="text-xs font-bold text-slate-500 uppercase">UI Design</span>
+            </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="relative w-24 h-24">
+                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                    stroke="currentColor" stroke-width="8"></circle>
+                  <circle class="text-orange-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                    stroke-dasharray="251.2" stroke-dashoffset="150.7" stroke-linecap="round" stroke-width="8"></circle>
+                </svg>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">40%</span>
+              </div>
+              <span class="text-xs font-bold text-slate-500 uppercase">React JS</span>
+            </div>
+            <div class="flex flex-col items-center gap-3">
+              <div class="relative w-24 h-24">
+                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                    stroke="currentColor" stroke-width="8"></circle>
+                  <circle class="text-purple-500" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                    stroke-dasharray="251.2" stroke-dashoffset="100.5" stroke-linecap="round" stroke-width="8"></circle>
+                </svg>
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">60%</span>
+              </div>
+              <span class="text-xs font-bold text-slate-500 uppercase">AI Ethics</span>
             </div>
           </div>
         </div>
 
-        <!-- Goal Tracking -->
+        <!-- Goal Tracking Widget -->
         <div
-          class="col-span-12 lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6"
-        >
+          class="col-span-12 lg:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <h3 class="text-lg font-bold mb-6">Goal Tracking</h3>
-          <div class="space-y-5">
+          <div class="space-y-6">
             <div>
               <div class="flex justify-between text-sm mb-2">
-                <span class="font-medium text-slate-600">Study Hours</span>
-                <span class="font-bold"
-                  >{{ goalTracking.studyHoursCompleted }}/{{
-                    goalTracking.studyHoursGoal
-                  }}h</span
-                >
+                <span class="font-medium text-slate-600 dark:text-slate-400">Study Hours</span>
+                <span class="font-bold">12/15h</span>
               </div>
-              <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div
-                  class="bg-primary h-full rounded-full transition-all duration-500"
-                  [style.width.%]="
-                    (goalTracking.studyHoursCompleted /
-                      goalTracking.studyHoursGoal) *
-                    100
-                  "
-                ></div>
+              <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-primary h-full w-[80%]"></div>
               </div>
             </div>
             <div>
               <div class="flex justify-between text-sm mb-2">
-                <span class="font-medium text-slate-600"
-                  >Quiz Success Rate</span
-                >
-                <span class="font-bold">{{ goalTracking.quizSuccess }}%</span>
+                <span class="font-medium text-slate-600 dark:text-slate-400">Quiz Success</span>
+                <span class="font-bold">85% Avg</span>
               </div>
-              <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div
-                  class="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                  [style.width.%]="goalTracking.quizSuccess"
-                ></div>
+              <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-emerald-500 h-full w-[85%]"></div>
               </div>
             </div>
-            <div>
-              <div class="flex justify-between text-sm mb-2">
-                <span class="font-medium text-slate-600"
-                  >Exercises Completed</span
-                >
-                <span class="font-bold"
-                  >{{ completedModules }}/{{ totalModules }}</span
-                >
-              </div>
-              <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div
-                  class="bg-purple-500 h-full rounded-full transition-all duration-500"
-                  [style.width.%]="(completedModules / totalModules) * 100"
-                ></div>
-              </div>
-            </div>
-            <div class="pt-3 mt-3 border-t border-slate-100">
-              <p class="text-sm italic text-slate-400">
-                "Consistency is the key to mastery. Keep it up!"
-              </p>
+            <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
+              <p class="text-sm font-medium italic text-slate-500 italic">"Consistency is the key to mastery. Keep it
+                up!"</p>
             </div>
           </div>
         </div>
 
-        <!-- ── Recommendations ── -->
-        <!--<div class="col-span-12">
+        <!-- Personalized Recommendations -->
+        <div class="col-span-12 lg:col-span-9">
           <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">AI Recommendations</h3>
-              <p class="text-sm text-slate-500">Personalized based on your strengths and weaknesses</p>
-            </div>
-            <button class="text-primary text-sm font-bold hover:underline flex items-center gap-1">
-              <span class="material-symbols-outlined text-sm">refresh</span>
-              Refresh
-            </button>
+            <h3 class="text-xl font-bold">Personalized Recommendations</h3>
+            <button class="text-primary text-sm font-bold hover:underline">View All</button>
           </div>
-
-          
-
-       
-          <div *ngIf="adaptiveLoading" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div *ngFor="let i of [1,2,3]" class="bg-white rounded-xl border border-slate-200 p-4 animate-pulse">
-              <div class="h-32 bg-slate-100 rounded-lg mb-4"></div>
-              <div class="h-4 bg-slate-100 rounded w-3/4 mb-2"></div>
-              <div class="h-3 bg-slate-100 rounded w-full"></div>
-            </div>
-          </div>
-
-       
-          <div *ngIf="!adaptiveLoading && recommendations.length > 0"
-            class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div *ngFor="let rec of recommendations.slice(0, 6); let i = index"
-              class="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group">
-              <div class="h-28 relative overflow-hidden">
-                <div [class]="'absolute inset-0 bg-gradient-to-br ' + getRecommendationGradient(i)"></div>
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <span class="material-symbols-outlined text-white text-4xl opacity-80">
-                    {{ rec.contentType === 'course' ? 'school' : 'assignment' }}
-                  </span>
-                </div>
-       
-                <div class="absolute top-3 left-3">
-                  <span class="text-[10px] font-bold px-2 py-1 bg-white/80 rounded-full text-slate-700 uppercase">
-                    {{ getContentTypeLabel(rec.contentType) }}
-                  </span>
-                </div>
-              
-                <div class="absolute top-3 right-3">
-                  <span class="text-[10px] font-bold px-2 py-1 bg-white/80 rounded-full text-slate-700">
-                    {{ rec.confidenceScore }}% match
-                  </span>
-                </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- We reuse suggestedCourses from TS for dynamic content -->
+            <div *ngFor="let course of suggestedCourses"
+              class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-shadow group">
+              <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"></div>
               </div>
               <div class="p-4">
-                <h4 class="font-bold text-sm mb-1 line-clamp-1">{{ rec.recommendedContent }}</h4>
-                <p class="text-xs text-slate-500 mb-3 line-clamp-2">{{ rec.reason }}</p>
+                <h4 class="font-bold text-sm mb-1 line-clamp-1">{{ course.title }}</h4>
+                <p class="text-xs text-slate-500 mb-3">{{ course.reason }}</p>
                 <div class="flex items-center justify-between">
-                  <span [class]="'text-xs font-bold ' + getRecommendationColor(i)">AI Suggested</span>
-                  <button [class]="'material-symbols-outlined ' + getRecommendationColor(i) + ' hover:scale-110 transition-transform text-sm'">
-                    arrow_forward_ios
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-     
-          <div *ngIf="!adaptiveLoading && recommendations.length === 0"
-            class="bg-white rounded-xl border border-slate-200 p-12 text-center">
-            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4 block">auto_awesome</span>
-            <p class="font-bold text-slate-700 mb-2">No recommendations yet</p>
-            <p class="text-sm text-slate-500 mb-4">Complete your level test to get personalized recommendations</p>
-            <button (click)="goToLevelTest()"
-              class="px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-blue-700">
-              Take Level Test
-            </button>
-          </div>
-        </div>-->
-
-        <!-- ── Recommendations ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">AI Recommendations</h3>
-              <p class="text-sm text-slate-500">
-                Personalized based on your strengths and weaknesses
-              </p>
-            </div>
-          </div>
-          <app-recommendation-display
-            [recommendations]="recommendations"
-            [studentId]="user?._id || user?.id"
-            (recommendationViewed)="onRecommendationViewed($event)"
-          >
-          </app-recommendation-display>
-        </div>
-
-        <!-- ── Strengths & Weaknesses ── -->
-        <div
-          class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-            <span class="material-symbols-outlined text-emerald-500"
-              >thumb_up</span
-            >
-            Strengths
-          </h3>
-          <div class="space-y-2" *ngIf="conceptStrengths.length > 0">
-            <div
-              *ngFor="let s of conceptStrengths"
-              class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100"
-            >
-              <span class="material-symbols-outlined text-emerald-500 text-sm"
-                >check_circle</span
-              >
-              <span class="text-sm font-semibold text-emerald-800 capitalize">{{
-                s?.concept
-              }}</span>
-              <span class="ml-auto text-xs text-emerald-700 font-bold">
-                {{ s?.mastery || 0 | number: "1.0-0" }}%
-              </span>
-            </div>
-          </div>
-          <div
-            class="space-y-2"
-            *ngIf="
-              conceptStrengths.length === 0 &&
-              adaptiveProfile?.strengths?.length > 0
-            "
-          >
-            <div
-              *ngFor="let s of adaptiveProfile.strengths"
-              class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100"
-            >
-              <span class="material-symbols-outlined text-emerald-500 text-sm"
-                >check_circle</span
-              >
-              <span class="text-sm font-semibold text-emerald-800 capitalize">{{
-                s
-              }}</span>
-            </div>
-          </div>
-          <p
-            *ngIf="
-              conceptStrengths.length === 0 &&
-              !adaptiveProfile?.strengths?.length
-            "
-            class="text-sm text-slate-400 italic"
-          >
-            Complete your level test to discover your strengths.
-          </p>
-        </div>
-
-        <div
-          class="col-span-12 lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-            <span class="material-symbols-outlined text-orange-500"
-              >priority_high</span
-            >
-            Areas to Improve
-          </h3>
-          <div class="space-y-2" *ngIf="conceptWeaknesses.length > 0">
-            <div
-              *ngFor="let w of conceptWeaknesses"
-              class="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100"
-            >
-              <span class="material-symbols-outlined text-orange-500 text-sm"
-                >priority_high</span
-              >
-              <span class="text-sm font-semibold text-orange-800 capitalize">{{
-                w?.concept
-              }}</span>
-              <span class="ml-auto text-xs text-orange-700 font-bold"
-                >{{ w?.mastery || 0 | number: "1.0-0" }}%</span
-              >
-              <span class="text-xs text-orange-600 font-bold">Needs work</span>
-            </div>
-          </div>
-          <div
-            class="space-y-2"
-            *ngIf="
-              conceptWeaknesses.length === 0 &&
-              adaptiveProfile?.weaknesses?.length > 0
-            "
-          >
-            <div
-              *ngFor="let w of adaptiveProfile.weaknesses"
-              class="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100"
-            >
-              <span class="material-symbols-outlined text-orange-500 text-sm"
-                >priority_high</span
-              >
-              <span class="text-sm font-semibold text-orange-800 capitalize">{{
-                w
-              }}</span>
-              <span class="ml-auto text-xs text-orange-600 font-bold"
-                >Needs work</span
-              >
-            </div>
-          </div>
-          <p
-            *ngIf="
-              conceptWeaknesses.length === 0 &&
-              !adaptiveProfile?.weaknesses?.length
-            "
-            class="text-sm text-slate-400 italic"
-          >
-            No weak areas detected yet.
-          </p>
-          <p *ngIf="conceptsMessage" class="text-xs text-slate-500 mt-3">
-            {{ conceptsMessage }}
-          </p>
-        </div>
-
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-indigo-500"
-                >monitoring</span
-              >
-              Intervention Effectiveness
-            </h3>
-            <div class="text-right">
-              <span class="text-xs text-slate-500 block"
-                >Global pedagogical monitoring</span
-              >
-              <span
-                *ngIf="interventionsLastUpdatedAt"
-                class="text-[11px] text-slate-400"
-              >
-                Last updated: {{ getInterventionsLastUpdatedRelative() }}
-              </span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div
-              class="p-4 rounded-xl border"
-              [ngClass]="getEffectiveRateCardClass()"
-            >
-              <p
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >
-                Effective Rate
-              </p>
-              <p
-                class="text-2xl font-black"
-                [ngClass]="getEffectiveRateValueClass()"
-              >
-                {{ interventionStats.effectiveRate }}%
-              </p>
-            </div>
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <p
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >
-                Interventions
-              </p>
-              <p class="text-2xl font-black text-slate-900">
-                {{ interventionStats.count }}
-              </p>
-            </div>
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <p
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >
-                Avg Delta Score
-              </p>
-              <p class="text-2xl font-black text-slate-900">
-                {{ interventionStats.avgDeltaScore }}
-              </p>
-            </div>
-          </div>
-
-          <div *ngIf="interventionStats.byType | keyvalue as entries">
-            <div *ngIf="entries.length > 0" class="flex flex-wrap gap-2">
-              <span
-                *ngFor="let kv of entries"
-                class="px-3 py-1 text-xs font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100"
-              >
-                {{ kv.key }}: {{ kv.value }}
-              </span>
-            </div>
-          </div>
-
-          <p *ngIf="interventionsMessage" class="text-xs text-slate-500 mt-3">
-            {{ interventionsMessage }}
-          </p>
-        </div>
-
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-blue-600"
-                >grading</span
-              >
-              Answer Evaluation
-            </h3>
-            <span class="text-xs text-slate-500"
-              >Scoring & feedback (élève)</span
-            >
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Question</label
-              >
-              <textarea
-                [(ngModel)]="evaluationQuestion"
-                rows="3"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                placeholder="Ex: Explain photosynthesis in one sentence."
-              ></textarea>
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Correct Answer</label
-              >
-              <textarea
-                [(ngModel)]="evaluationCorrectAnswer"
-                rows="3"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                placeholder="Ex: Photosynthesis converts light into chemical energy."
-              ></textarea>
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Student Answer</label
-              >
-              <textarea
-                [(ngModel)]="evaluationStudentAnswer"
-                rows="3"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                placeholder="Réponse de l'élève..."
-              ></textarea>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                  >Difficulty</label
-                >
-                <select
-                  [(ngModel)]="evaluationDifficulty"
-                  class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                >
-                  <option value="easy">easy</option>
-                  <option value="medium">medium</option>
-                  <option value="hard">hard</option>
-                </select>
-              </div>
-              <div>
-                <label
-                  class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                  >Time (sec)</label
-                >
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="evaluationTimeTakenSec"
-                  class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                  placeholder="Optional"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 mb-3">
-            <button
-              (click)="evaluateStudentAnswer()"
-              [disabled]="evaluationLoading"
-              class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-60"
-            >
-              {{ evaluationLoading ? "Evaluating..." : "Evaluate Answer" }}
-            </button>
-            <span *ngIf="evaluationError" class="text-xs text-red-600">
-              {{ evaluationError }}
-            </span>
-          </div>
-
-          <div
-            *ngIf="evaluationResult"
-            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-sm font-bold text-slate-700">Result</p>
-              <p
-                class="text-sm font-bold"
-                [ngClass]="getEvaluationScoreClass()"
-              >
-                {{ getEvaluationScorePercent() }}%
-              </p>
-            </div>
-            <p class="text-xs text-slate-500 mb-2">
-              Correct: {{ evaluationResult.is_correct ? "Yes" : "No" }}
-            </p>
-            <p class="text-sm text-slate-700">
-              {{ evaluationResult.feedback || "No feedback provided." }}
-            </p>
-            <p
-              *ngIf="evaluationResult.correct_answer"
-              class="text-xs text-slate-500 mt-2"
-            >
-              Correct answer: {{ evaluationResult.correct_answer }}
-            </p>
-          </div>
-        </div>
-
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-cyan-600"
-                >playlist_add_check_circle</span
-              >
-              Batch Evaluation
-            </h3>
-            <span class="text-xs text-slate-500">POST /evaluate/batch</span>
-          </div>
-
-          <label
-            class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-            >Submissions JSON array</label
-          >
-          <textarea
-            [(ngModel)]="batchEvaluationInput"
-            rows="12"
-            class="mt-1 w-full rounded-lg border border-slate-200 p-3 font-mono text-xs focus:ring-2 focus:ring-primary/40 focus:outline-none"
-          ></textarea>
-
-          <div class="flex items-center gap-3 mt-3 mb-3">
-            <button
-              (click)="evaluateBatchAnswers()"
-              [disabled]="batchEvaluationLoading"
-              class="px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-bold hover:bg-cyan-700 disabled:opacity-60"
-            >
-              {{
-                batchEvaluationLoading
-                  ? "Evaluating batch..."
-                  : "Evaluate Batch"
-              }}
-            </button>
-            <span *ngIf="batchEvaluationError" class="text-xs text-red-600">
-              {{ batchEvaluationError }}
-            </span>
-          </div>
-
-          <div
-            *ngIf="batchEvaluationResult"
-            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Count
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ batchEvaluationResult.count || 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Correct
-                </p>
-                <p class="text-lg font-black text-emerald-700">
-                  {{ batchEvaluationResult.correct || 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Incorrect
-                </p>
-                <p class="text-lg font-black text-red-700">
-                  {{ batchEvaluationResult.incorrect || 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Accuracy
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{
-                    (batchEvaluationResult.accuracy || 0) * 100
-                      | number: "1.0-0"
-                  }}%
-                </p>
-              </div>
-            </div>
-
-            <div
-              *ngIf="batchEvaluationResult.per_answer?.length"
-              class="space-y-2"
-            >
-              <div
-                *ngFor="
-                  let r of batchEvaluationResult.per_answer;
-                  let i = index
-                "
-                class="rounded-lg border border-slate-200 bg-white p-3"
-              >
-                <div class="flex items-center justify-between mb-1">
-                  <p class="text-xs font-bold text-slate-600">
-                    Answer #{{ i + 1 }}
-                  </p>
-                  <p
-                    class="text-xs font-bold"
-                    [ngClass]="
-                      r?.is_correct ? 'text-emerald-700' : 'text-red-700'
-                    "
-                  >
-                    {{ r?.is_correct ? "Correct" : "Incorrect" }}
-                  </p>
-                </div>
-                <p class="text-xs text-slate-600">
-                  Score: {{ r?.score || 0 }}/{{ r?.max_score || 100 }}
-                </p>
-                <p class="text-xs text-slate-500 mt-1">
-                  {{ r?.feedback || "No feedback" }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-violet-600"
-                >rule</span
-              >
-              Difficulty Classification
-            </h3>
-            <span class="text-xs text-slate-500"
-              >POST /classify/difficulty</span
-            >
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div class="md:col-span-2">
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Question</label
-              >
-              <textarea
-                [(ngModel)]="classifyQuestionText"
-                rows="3"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                placeholder="Enter question text to classify..."
-              ></textarea>
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Explanation (optional)</label
-              >
-              <input
-                [(ngModel)]="classifyExplanation"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                placeholder="Optional explanation"
-              />
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Claimed difficulty (optional)</label
-              >
-              <input
-                [(ngModel)]="classifyClaimedDifficulty"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                placeholder="easy / medium / hard"
-              />
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Topic (optional)</label
-              >
-              <input
-                [(ngModel)]="classifyTopic"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                placeholder="Ex: Algebra"
-              />
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Subject (optional)</label
-              >
-              <input
-                [(ngModel)]="classifySubject"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                placeholder="Ex: Mathematics"
-              />
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-3 mb-3">
-            <button
-              (click)="classifyDifficulty()"
-              [disabled]="classifyLoading"
-              class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 disabled:opacity-60"
-            >
-              {{ classifyLoading ? "Classifying..." : "Classify Difficulty" }}
-            </button>
-            <button
-              (click)="classifySuggestAdjustment()"
-              [disabled]="suggestAdjustmentLoading"
-              class="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 disabled:opacity-60"
-            >
-              {{
-                suggestAdjustmentLoading
-                  ? "Suggesting..."
-                  : "Suggest Adjustment"
-              }}
-            </button>
-            <span *ngIf="classifyError" class="text-xs text-red-600">
-              {{ classifyError }}
-            </span>
-            <span *ngIf="suggestAdjustmentError" class="text-xs text-red-600">
-              {{ suggestAdjustmentError }}
-            </span>
-          </div>
-
-          <div
-            *ngIf="classifyResult"
-            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-              <div
-                class="rounded-lg border p-3"
-                [ngClass]="getClassifiedDifficultyBadgeClass()"
-              >
-                <p class="text-[11px] uppercase font-bold text-slate-500">
-                  Predicted difficulty
-                </p>
-                <p
-                  class="text-xl font-black capitalize"
-                  [ngClass]="getClassifiedDifficultyTextClass()"
-                >
-                  {{ classifyResult.difficulty || "unknown" }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] uppercase font-bold text-slate-500">
-                  Confidence
-                </p>
-                <p class="text-xl font-black text-slate-900">
-                  {{
-                    (classifyResult.confidence || 0) * 100 | number: "1.0-0"
-                  }}%
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] uppercase font-bold text-slate-500">
-                  Composite score
-                </p>
-                <p class="text-xl font-black text-slate-900">
-                  {{ classifyResult.composite_score || 0 }}
-                </p>
-              </div>
-            </div>
-
-            <div *ngIf="classifyResult.suggestions?.length" class="space-y-1">
-              <p class="text-xs font-bold text-slate-600">Suggestions</p>
-              <div class="flex flex-wrap gap-2">
-                <span
-                  *ngFor="let s of classifyResult.suggestions"
-                  class="px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-100"
-                >
-                  {{ s }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div
-            *ngIf="suggestAdjustmentResult"
-            class="rounded-xl border border-amber-200 bg-amber-50 p-4 mt-4"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-sm font-bold text-amber-800">
-                Difficulty Adjustment Suggestion
-              </p>
-              <span
-                class="text-xs font-bold px-2 py-0.5 rounded-full"
-                [ngClass]="
-                  suggestAdjustmentResult.adjustment_needed
-                    ? 'bg-amber-200 text-amber-900'
-                    : 'bg-emerald-200 text-emerald-900'
-                "
-              >
-                {{
-                  suggestAdjustmentResult.adjustment_needed
-                    ? "Adjustment needed"
-                    : "No adjustment needed"
-                }}
-              </span>
-            </div>
-
-            <p class="text-xs text-amber-900 mb-2">
-              Claimed: {{ suggestAdjustmentResult.claimed || "-" }} | Predicted:
-              {{ suggestAdjustmentResult.predicted || "-" }}
-              <span *ngIf="suggestAdjustmentResult.direction">
-                | Direction: {{ suggestAdjustmentResult.direction }}
-              </span>
-            </p>
-
-            <div *ngIf="suggestAdjustmentResult.tips?.length" class="space-y-1">
-              <p class="text-xs font-bold text-amber-900">Tips</p>
-              <ul class="list-disc pl-5 text-xs text-amber-900 space-y-1">
-                <li *ngFor="let tip of suggestAdjustmentResult.tips">
-                  {{ tip }}
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-fuchsia-600"
-                >library_books</span
-              >
-              Difficulty Classification Batch
-            </h3>
-            <span class="text-xs text-slate-500"
-              >POST /classify/difficulty-batch</span
-            >
-          </div>
-
-          <label
-            class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-            >Questions JSON array</label
-          >
-          <textarea
-            [(ngModel)]="classifyBatchInput"
-            rows="10"
-            class="mt-1 w-full rounded-lg border border-slate-200 p-3 font-mono text-xs focus:ring-2 focus:ring-primary/40 focus:outline-none"
-          ></textarea>
-
-          <div class="flex items-center gap-3 mt-3 mb-3">
-            <button
-              (click)="classifyDifficultyBatch()"
-              [disabled]="classifyBatchLoading"
-              class="px-4 py-2 rounded-lg bg-fuchsia-600 text-white text-sm font-bold hover:bg-fuchsia-700 disabled:opacity-60"
-            >
-              {{
-                classifyBatchLoading ? "Classifying batch..." : "Classify Batch"
-              }}
-            </button>
-            <span *ngIf="classifyBatchError" class="text-xs text-red-600">
-              {{ classifyBatchError }}
-            </span>
-          </div>
-
-          <div
-            *ngIf="classifyBatchResult"
-            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Count
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ classifyBatchResult.count || 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Average score
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ classifyBatchResult.average_score || 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Std dev
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ classifyBatchResult.stdev_score || 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Mismatches
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ classifyBatchResult.mismatches?.length || 0 }}
-                </p>
-              </div>
-            </div>
-
-            <div *ngIf="classifyBatchResult.distribution as dist" class="mb-4">
-              <p class="text-xs font-bold text-slate-600 mb-1">Distribution</p>
-              <div class="flex flex-wrap gap-2">
-                <span
-                  class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100"
-                  >easy: {{ dist["easy"] || 0 }}</span
-                >
-                <span
-                  class="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-100"
-                  >medium: {{ dist["medium"] || 0 }}</span
-                >
-                <span
-                  class="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100"
-                  >hard: {{ dist["hard"] || 0 }}</span
-                >
-              </div>
-            </div>
-
-            <div
-              *ngIf="classifyBatchResult.per_question?.length"
-              class="space-y-2"
-            >
-              <div
-                *ngFor="
-                  let r of classifyBatchResult.per_question;
-                  let i = index
-                "
-                class="rounded-lg border border-slate-200 bg-white p-3"
-              >
-                <div class="flex items-center justify-between">
-                  <p class="text-xs font-bold text-slate-600">
-                    Question #{{ i + 1 }}
-                  </p>
-                  <p class="text-xs font-bold capitalize text-slate-800">
-                    {{ r.difficulty || "unknown" }}
-                  </p>
-                </div>
-                <p class="text-xs text-slate-500 mt-1">
-                  confidence: {{ (r.confidence || 0) * 100 | number: "1.0-0" }}%
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Feedback Recording ── -->
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-violet-600"
-                >psychology</span
-              >
-              Record Quality Signal
-            </h3>
-            <span class="text-xs text-slate-500"
-              >Feedback loop IA (signals qualité)</span
-            >
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Signal Type</label
-              >
-              <select
-                [(ngModel)]="recordFeedbackSignalType"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none bg-white"
-              >
-                <option value="question_quality">Question Quality</option>
-                <option value="answer_accuracy">Answer Accuracy</option>
-                <option value="response_latency">Response Latency</option>
-                <option value="difficulty_mismatch">Difficulty Mismatch</option>
-                <option value="hallucination">Hallucination</option>
-              </select>
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Signal Value (0-10)</label
-              >
-              <input
-                type="number"
-                [(ngModel)]="recordFeedbackValue"
-                min="0"
-                max="10"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Metadata (JSON optional)</label
-              >
-              <input
-                type="text"
-                [(ngModel)]="recordFeedbackMetadata"
-                placeholder='{"context": "value"}'
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 mb-3">
-            <button
-              (click)="recordFeedback()"
-              [disabled]="recordFeedbackLoading"
-              class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 disabled:opacity-60"
-            >
-              {{
-                recordFeedbackLoading ? "Recording signal..." : "Record Signal"
-              }}
-            </button>
-            <span *ngIf="recordFeedbackError" class="text-xs text-red-600">
-              {{ recordFeedbackError }}
-            </span>
-          </div>
-
-          <div
-            *ngIf="recordFeedbackResult"
-            class="rounded-xl border border-violet-200 bg-violet-50 p-4"
-          >
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-green-600 text-2xl"
-                >check_circle</span
-              >
-              <div>
-                <p class="text-sm font-bold text-violet-900">
-                  Signal recorded successfully
-                </p>
-                <p class="text-xs text-violet-700 mt-1">
-                  ID: {{ recordFeedbackResult.id }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── User Rating ── -->
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-yellow-600"
-                >star</span
-              >
-              Rate Your Experience
-            </h3>
-            <span class="text-xs text-slate-500">User satisfaction rating</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Rating (1-5 stars)</label
-              >
-              <div class="mt-1 flex items-center gap-2">
-                <input
-                  type="number"
-                  [(ngModel)]="userRatingValue"
-                  min="1"
-                  max="5"
-                  class="w-20 rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-                />
-                <div class="flex gap-1">
-                  <span
-                    *ngFor="let i of [1, 2, 3, 4, 5]"
-                    class="material-symbols-outlined text-2xl cursor-pointer transition-colors"
-                    [ngClass]="
-                      i <= userRatingValue
-                        ? 'text-yellow-500'
-                        : 'text-slate-300'
-                    "
-                    (click)="userRatingValue = i"
-                    >star</span
-                  >
-                </div>
-              </div>
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >What is this about?</label
-              >
-              <input
-                type="text"
-                [(ngModel)]="userRatingContext"
-                placeholder="e.g., Question quality, Interface feedback"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Metadata (JSON optional)</label
-              >
-              <input
-                type="text"
-                [(ngModel)]="userRatingMetadata"
-                placeholder='{"feature": "value"}'
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 mb-3">
-            <button
-              (click)="recordUserRating()"
-              [disabled]="userRatingLoading"
-              class="px-4 py-2 rounded-lg bg-yellow-600 text-white text-sm font-bold hover:bg-yellow-700 disabled:opacity-60"
-            >
-              {{ userRatingLoading ? "Submitting rating..." : "Submit Rating" }}
-            </button>
-            <span *ngIf="userRatingError" class="text-xs text-red-600">
-              {{ userRatingError }}
-            </span>
-          </div>
-
-          <div
-            *ngIf="userRatingResult"
-            class="rounded-xl border border-yellow-200 bg-yellow-50 p-4"
-          >
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-green-600 text-2xl"
-                >check_circle</span
-              >
-              <div>
-                <p class="text-sm font-bold text-yellow-900">
-                  Thank you for your feedback!
-                </p>
-                <p class="text-xs text-yellow-700 mt-1">
-                  ID: {{ userRatingResult.id }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── AI Improvement Recommendations ── -->
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-indigo-600"
-                >lightbulb</span
-              >
-              AI Tuning Recommendations
-            </h3>
-            <span class="text-xs text-slate-500"
-              >Recommandations d'amélioration IA</span
-            >
-          </div>
-
-          <div class="flex items-center gap-3 mb-4">
-            <button
-              (click)="loadFeedbackRecommendations()"
-              [disabled]="feedbackRecommendationsLoading"
-              class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60"
-            >
-              {{
-                feedbackRecommendationsLoading
-                  ? "Loading recommendations..."
-                  : "Load Recommendations"
-              }}
-            </button>
-            <span
-              *ngIf="feedbackRecommendationsError"
-              class="text-xs text-red-600"
-            >
-              {{ feedbackRecommendationsError }}
-            </span>
-          </div>
-
-          <div *ngIf="feedbackRecommendationsResult" class="space-y-4">
-            <div class="text-xs text-slate-500 mb-3">
-              Generated:
-              {{ feedbackRecommendationsResult.generated_at | date: "medium" }}
-            </div>
-
-            <div
-              *ngIf="
-                (feedbackRecommendationsResult?.recommendations?.length || 0) >
-                0
-              "
-            >
-              <p class="text-xs font-bold text-slate-600 mb-3">
-                Recommendations
-              </p>
-              <div class="space-y-2">
-                <div
-                  *ngFor="
-                    let rec of feedbackRecommendationsResult?.recommendations ||
-                      []
-                  "
-                  [ngClass]="
-                    'rounded-lg border p-3 ' +
-                    getRecommendationPriorityClass(rec.priority)
-                  "
-                >
-                  <div class="flex items-start gap-3">
-                    <span
-                      class="material-symbols-outlined text-lg flex-shrink-0 mt-0.5"
-                      [ngClass]="{
-                        'text-red-600': rec.priority === 'high',
-                        'text-orange-600': rec.priority === 'medium',
-                        'text-blue-600': rec.priority === 'low',
-                      }"
-                    >
-                      {{
-                        rec.priority === "high"
-                          ? "priority_high"
-                          : rec.priority === "medium"
-                            ? "priority_medium"
-                            : "priority_low"
-                      }}
-                    </span>
-                    <div>
-                      <p class="text-xs font-bold capitalize mb-1">
-                        {{ rec.area }} ({{ rec.priority }})
-                      </p>
-                      <p class="text-xs leading-relaxed">
-                        {{ rec.recommendation }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              *ngIf="feedbackRecommendationsResult.signal_summary"
-              class="mt-6 pt-6 border-t border-slate-200"
-            >
-              <p class="text-xs font-bold text-slate-600 mb-3">
-                Signal Summary
-              </p>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div class="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                  <p class="text-slate-600 font-bold mb-1">Question Quality</p>
-                  <p class="text-slate-900 font-black">
-                    {{
-                      feedbackRecommendationsResult.signal_summary[
-                        "question_quality"
-                      ]?.mean || "N/A"
-                    }}
-                  </p>
-                </div>
-                <div class="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                  <p class="text-slate-600 font-bold mb-1">Answer Accuracy</p>
-                  <p class="text-slate-900 font-black">
-                    {{
-                      (feedbackRecommendationsResult.signal_summary[
-                        "answer_accuracy"
-                      ]?.mean || 0) * 100 | number: "1.0-0"
-                    }}%
-                  </p>
-                </div>
-                <div class="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                  <p class="text-slate-600 font-bold mb-1">Avg Latency</p>
-                  <p class="text-slate-900 font-black">
-                    {{
-                      feedbackRecommendationsResult.signal_summary[
-                        "response_latency"
-                      ]?.mean || "N/A"
-                    }}s
-                  </p>
+                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">AI Recommended</span>
+                  <button
+                    class="text-primary material-symbols-outlined hover:scale-110 transition-transform">arrow_forward_ios</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ── Feedback Stats By Signal Type ── -->
+        <!-- Skill Mastery (static mock) -->
         <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-cyan-600"
-                >monitoring</span
-              >
-              Feedback Signal Stats
-            </h3>
-            <span class="text-xs text-slate-500">Stats par type de signal</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Signal Type</label
-              >
-              <select
-                [(ngModel)]="feedbackStatsSignalType"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none bg-white"
-              >
-                <option value="question_quality">question_quality</option>
-                <option value="answer_accuracy">answer_accuracy</option>
-                <option value="response_latency">response_latency</option>
-                <option value="user_rating">user_rating</option>
-                <option value="difficulty_mismatch">difficulty_mismatch</option>
-                <option value="hallucination">hallucination</option>
-              </select>
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Last N Samples</label
-              >
-              <input
-                type="number"
-                [(ngModel)]="feedbackStatsLastN"
-                min="1"
-                max="5000"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-              />
-            </div>
-            <div class="flex items-end">
-              <button
-                (click)="loadFeedbackSignalStats()"
-                [disabled]="feedbackStatsLoading"
-                class="px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-bold hover:bg-cyan-700 disabled:opacity-60"
-              >
-                {{ feedbackStatsLoading ? "Loading stats..." : "Load Stats" }}
-              </button>
+          class="col-span-12 lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+          <h3 class="text-lg font-bold mb-4">Skill Mastery</h3>
+          <div class="relative flex items-center justify-center py-6">
+            <svg class="w-40 h-40 opacity-90" viewBox="0 0 100 100">
+              <polygon class="text-slate-300 dark:text-slate-700" fill="none" points="50,10 90,40 75,90 25,90 10,40"
+                stroke="currentColor" stroke-width="0.5"></polygon>
+              <polygon class="text-slate-300 dark:text-slate-700" fill="none" points="50,30 70,50 65,75 35,75 25,50"
+                stroke="currentColor" stroke-width="0.5"></polygon>
+              <polygon class="text-primary" fill="rgba(17, 82, 212, 0.2)" points="50,20 80,45 65,85 30,80 20,40"
+                stroke="currentColor" stroke-width="2"></polygon>
+            </svg>
+            <div
+              class="absolute inset-0 flex flex-col justify-between text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
+              <div class="text-center">Logic</div>
+              <div class="flex justify-between px-2"><span>Creative</span><span>Coding</span></div>
+              <div class="flex justify-around px-4"><span>Theory</span><span>Applied</span></div>
             </div>
           </div>
-
-          <span *ngIf="feedbackStatsError" class="text-xs text-red-600">
-            {{ feedbackStatsError }}
-          </span>
-
-          <div
-            *ngIf="feedbackStatsResult"
-            class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Count
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ feedbackStatsResult.count ?? 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Mean
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ feedbackStatsResult.mean ?? 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Median
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ feedbackStatsResult.median ?? 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Min
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ feedbackStatsResult.min ?? 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Max
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ feedbackStatsResult.max ?? 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Std
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ feedbackStatsResult.std ?? 0 }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Global Health Monitor ── -->
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-emerald-600"
-                >health_and_safety</span
-              >
-              Global Health
-            </h3>
+          <div class="mt-4 space-y-2">
             <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-500">Santé globale</span>
-              <button
-                (click)="loadMonitorHealth()"
-                [disabled]="monitorHealthLoading"
-                class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {{ monitorHealthLoading ? "Loading..." : "Refresh" }}
-              </button>
+              <div class="w-2 h-2 rounded-full bg-primary"></div>
+              <span class="text-xs font-medium">Coding Proficiency: Expert</span>
             </div>
-          </div>
-
-          <span *ngIf="monitorHealthError" class="text-xs text-red-600">
-            {{ monitorHealthError }}
-          </span>
-
-          <div
-            *ngIf="monitorHealthResult"
-            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <div class="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <p class="text-xs text-slate-500 uppercase font-bold">
-                  Overall
-                </p>
-                <p
-                  class="text-lg font-black capitalize"
-                  [ngClass]="{
-                    'text-emerald-700':
-                      monitorHealthResult.overall === 'healthy',
-                    'text-amber-700': monitorHealthResult.overall === 'slow',
-                    'text-red-700': monitorHealthResult.overall === 'degraded',
-                    'text-slate-700':
-                      monitorHealthResult.overall !== 'healthy' &&
-                      monitorHealthResult.overall !== 'slow' &&
-                      monitorHealthResult.overall !== 'degraded',
-                  }"
-                >
-                  {{ monitorHealthResult.overall || "unknown" }}
-                </p>
-              </div>
-              <div class="text-right">
-                <p class="text-xs text-slate-500 uppercase font-bold">
-                  Checked at
-                </p>
-                <p class="text-xs text-slate-700">
-                  {{ monitorHealthResult.checked_at | date: "medium" }}
-                </p>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-              <div class="p-3 rounded-lg border border-slate-200 bg-white">
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  15m Requests
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{
-                    monitorHealthResult.api_performance_15m?.total_requests ?? 0
-                  }}
-                </p>
-              </div>
-              <div class="p-3 rounded-lg border border-slate-200 bg-white">
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  15m Success rate
-                </p>
-                <p class="text-lg font-black text-emerald-700">
-                  {{
-                    (monitorHealthResult.api_performance_15m?.success_rate ??
-                      0) * 100 | number: "1.0-1"
-                  }}%
-                </p>
-              </div>
-              <div class="p-3 rounded-lg border border-slate-200 bg-white">
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  15m Median latency
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{
-                    monitorHealthResult.api_performance_15m?.median_latency ??
-                      0
-                  }}s
-                </p>
-              </div>
-              <div class="p-3 rounded-lg border border-slate-200 bg-white">
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  RAG Status
-                </p>
-                <p class="text-lg font-black text-slate-900 capitalize">
-                  {{ monitorHealthResult.components?.["status"] || "unknown" }}
-                </p>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap gap-2">
-              <span
-                class="px-2.5 py-1 rounded-full text-xs font-semibold border"
-                [ngClass]="
-                  monitorHealthResult.checks?.api_success_rate_ok
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                    : 'bg-red-50 text-red-700 border-red-100'
-                "
-              >
-                API success rate check:
-                {{
-                  monitorHealthResult.checks?.api_success_rate_ok
-                    ? "OK"
-                    : "FAIL"
-                }}
-              </span>
-              <span
-                class="px-2.5 py-1 rounded-full text-xs font-semibold border"
-                [ngClass]="
-                  monitorHealthResult.checks?.api_latency_ok
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                    : 'bg-red-50 text-red-700 border-red-100'
-                "
-              >
-                API latency check:
-                {{ monitorHealthResult.checks?.api_latency_ok ? "OK" : "FAIL" }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Recent API Errors ── -->
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-rose-600">error</span>
-              Recent API Errors
-            </h3>
             <div class="flex items-center gap-2">
-              <input
-                type="number"
-                [(ngModel)]="monitorErrorsLastN"
-                min="1"
-                max="500"
-                class="w-24 rounded-lg border border-slate-200 p-2 text-xs focus:ring-2 focus:ring-primary/40 focus:outline-none"
-              />
-              <button
-                (click)="loadMonitorErrors()"
-                [disabled]="monitorErrorsLoading"
-                class="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 disabled:opacity-60"
-              >
-                {{ monitorErrorsLoading ? "Loading..." : "Refresh" }}
-              </button>
+              <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+              <span class="text-xs font-medium">Applied Skills: Advanced</span>
             </div>
           </div>
-
-          <span *ngIf="monitorErrorsError" class="text-xs text-red-600">
-            {{ monitorErrorsError }}
-          </span>
-
-          <div
-            *ngIf="monitorErrorsResult"
-            class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <p class="text-xs text-slate-600 font-bold mb-3">
-              Total recent errors: {{ monitorErrorsResult.count ?? 0 }}
-            </p>
-
-            <div
-              *ngIf="(monitorErrorsResult.errors?.length || 0) === 0"
-              class="text-xs text-slate-500"
-            >
-              No recent API errors found.
-            </div>
-
-            <div
-              *ngIf="(monitorErrorsResult.errors?.length || 0) > 0"
-              class="space-y-2 max-h-72 overflow-auto pr-1"
-            >
-              <div
-                *ngFor="let err of monitorErrorsResult.errors || []"
-                class="rounded-lg border border-rose-200 bg-white p-3"
-              >
-                <div class="flex items-center justify-between gap-2">
-                  <p class="text-xs font-bold text-rose-700 break-all">
-                    {{ err.endpoint || "unknown-endpoint" }}
-                  </p>
-                  <p class="text-[11px] text-slate-500">
-                    {{ err.timestamp | date: "short" }}
-                  </p>
-                </div>
-                <p class="text-[11px] text-slate-600 mt-1">
-                  latency: {{ err.latency ?? 0 }}s
-                </p>
-                <p class="text-[11px] text-slate-500 mt-1 break-all">
-                  metadata: {{ err.metadata | json }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── API Throughput ── -->
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-sky-600"
-                >timeline</span
-              >
-              API Throughput
-            </h3>
-            <span class="text-xs text-slate-500">Débit</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Window (minutes)</label
-              >
-              <input
-                type="number"
-                [(ngModel)]="monitorThroughputMinutes"
-                min="1"
-                max="1440"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-              />
-            </div>
-            <div class="md:col-span-2 flex items-end">
-              <button
-                (click)="loadMonitorThroughput()"
-                [disabled]="monitorThroughputLoading"
-                class="px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-bold hover:bg-sky-700 disabled:opacity-60"
-              >
-                {{
-                  monitorThroughputLoading
-                    ? "Loading throughput..."
-                    : "Load Throughput"
-                }}
-              </button>
-            </div>
-          </div>
-
-          <span *ngIf="monitorThroughputError" class="text-xs text-red-600">
-            {{ monitorThroughputError }}
-          </span>
-
-          <div
-            *ngIf="monitorThroughputResult"
-            class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div class="p-3 rounded-lg border border-slate-200 bg-white">
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Window
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ monitorThroughputResult.window_minutes ?? 0 }} min
-                </p>
-              </div>
-              <div class="p-3 rounded-lg border border-slate-200 bg-white">
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Total requests
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ monitorThroughputResult.total_requests ?? 0 }}
-                </p>
-              </div>
-              <div class="p-3 rounded-lg border border-slate-200 bg-white">
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Requests / min
-                </p>
-                <p class="text-lg font-black text-sky-700">
-                  {{ monitorThroughputResult.requests_per_minute ?? 0 }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── API Performance Monitor ── -->
-        <div
-          *ngIf="canSeeInternalOpsPanels"
-          class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-teal-600">speed</span>
-              API Performance Monitor
-            </h3>
-            <span class="text-xs text-slate-500">GET /monitor/stats</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label
-                class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                >Window (minutes)</label
-              >
-              <input
-                type="number"
-                [(ngModel)]="monitorStatsMinutes"
-                min="1"
-                max="1440"
-                class="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-primary/40 focus:outline-none"
-              />
-            </div>
-            <div class="md:col-span-2 flex items-end">
-              <button
-                (click)="loadMonitorStats()"
-                [disabled]="monitorStatsLoading"
-                class="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-bold hover:bg-teal-700 disabled:opacity-60"
-              >
-                {{
-                  monitorStatsLoading
-                    ? "Loading performance..."
-                    : "Load API Performance"
-                }}
-              </button>
-            </div>
-          </div>
-
-          <span *ngIf="monitorStatsError" class="text-xs text-red-600">
-            {{ monitorStatsError }}
-          </span>
-
-          <div
-            *ngIf="monitorStatsResult"
-            class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
-          >
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Requests
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ monitorStatsResult.total_requests ?? 0 }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Success rate
-                </p>
-                <p class="text-lg font-black text-emerald-700">
-                  {{
-                    (monitorStatsResult.success_rate ?? 0) * 100
-                      | number: "1.0-1"
-                  }}%
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Mean latency
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ monitorStatsResult.mean_latency ?? 0 }}s
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  Median latency
-                </p>
-                <p class="text-lg font-black text-slate-900">
-                  {{ monitorStatsResult.median_latency ?? 0 }}s
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-slate-500 uppercase font-bold">
-                  P95 latency
-                </p>
-                <p class="text-lg font-black text-orange-700">
-                  {{ monitorStatsResult.p95_latency ?? 0 }}s
-                </p>
-              </div>
-            </div>
-
-            <div
-              *ngIf="monitorStatsResult.per_endpoint | keyvalue as endpoints"
-            >
-              <p class="text-xs font-bold text-slate-600 mb-2">
-                Per-endpoint stats
-              </p>
-              <div class="space-y-2 max-h-64 overflow-auto pr-1">
-                <div
-                  *ngFor="let ep of endpoints"
-                  class="rounded-lg border border-slate-200 bg-white p-3"
-                >
-                  <div class="flex items-center justify-between gap-2">
-                    <p class="text-xs font-bold text-slate-700 break-all">
-                      {{ ep.key }}
-                    </p>
-                    <span class="text-[11px] text-slate-500"
-                      >{{ ep.value.count ?? 0 }} req</span
-                    >
-                  </div>
-                  <p class="text-[11px] text-slate-500 mt-1">
-                    mean: {{ ep.value.mean_latency ?? 0 }}s · median:
-                    {{ ep.value.median_latency ?? 0 }}s · p95:
-                    {{ ep.value.p95_latency ?? 0 }}s · max:
-                    {{ ep.value.max_latency ?? 0 }}s
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Progress Charts ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">Performance Analytics</h3>
-              <p class="text-sm text-slate-500">
-                Visual overview of your learning progress
-              </p>
-            </div>
-          </div>
-          <app-progress-charts
-            [performances]="performances"
-            [adaptiveProfile]="adaptiveProfile"
-            [studentId]="user?._id || user?.id"
-          >
-          </app-progress-charts>
-        </div>
-
-        <!-- ── Peer Comparison ── -->
-        <div class="col-span-12">
-          <app-peer-comparison
-            [studentId]="user?._id || user?.id"
-            [adaptiveProfile]="adaptiveProfile"
-          >
-          </app-peer-comparison>
-        </div>
-
-        <!-- ── Study Planner ── -->
-        <div class="col-span-12">
-          <app-study-planner [studentId]="user?._id || user?.id">
-          </app-study-planner>
-        </div>
-
-        <!-- ── Skill Mastery ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">Skill Mastery</h3>
-              <p class="text-sm text-slate-500">
-                Track your mastery level across learning topics
-              </p>
-            </div>
-          </div>
-          <app-skill-mastery
-            [studentId]="user?._id || user?.id"
-            [adaptiveProfile]="adaptiveProfile"
-          >
-          </app-skill-mastery>
-        </div>
-
-        <!-- ── Learning Path Visualization ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">Your Learning Path</h3>
-              <p class="text-sm text-slate-500">
-                Follow your personalized journey to your learning goal
-              </p>
-            </div>
-          </div>
-          <app-learning-path [studentId]="user?._id || user?.id">
-          </app-learning-path>
-        </div>
-        <!-- ── Performance History ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">Performance History</h3>
-              <p class="text-sm text-slate-500">All your completed exercises</p>
-            </div>
-          </div>
-          <app-performance-history [performances]="performances">
-          </app-performance-history>
         </div>
       </div>
     </div>
-
-    <div class="p-8 max-w-7xl mx-auto" *ngIf="isSubPageView()">
-      <router-outlet></router-outlet>
-    </div>
   </main>
-
-  <!-- ── AI Floating Button ── -->
-  <div class="fixed bottom-8 right-8 z-40" *ngIf="!isTakingLevelTest()">
-    <button
-      routerLink="/chat/ai"
-      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"
-    >
+  <!-- AI Quick-Access Floating Button -->
+  <div class="fixed bottom-8 right-8 z-40">
+    <button routerLink="/chat/ai"
+      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
       <span class="material-symbols-outlined text-3xl">psychology</span>
       <div
-        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity"
-      >
+        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">
         ASK EDU AI
       </div>
     </button>
   </div>
 </div>
 
-<!-- ── Profile Sidebar ── -->
+<!-- Profile Sidebar Overlay (Student) -->
 <div *ngIf="showProfileSidebar">
-  <div
-    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
-    (click)="closeProfileSidebar()"
-  ></div>
+  <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" (click)="closeProfileSidebar()"></div>
   <aside
-    class="fixed top-0 right-0 h-full w-96 bg-white z-50 shadow-2xl flex flex-col border-l border-slate-200"
-  >
-    <div
-      class="p-6 border-b border-slate-100 flex items-center justify-between"
-    >
+    class="fixed top-0 right-0 h-full w-96 bg-white dark:bg-slate-900 z-50 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
+    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
       <h2 class="font-bold text-lg">My Profile</h2>
-      <button
-        class="p-2 hover:bg-slate-100 rounded-full"
-        (click)="closeProfileSidebar()"
-      >
+      <button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full" (click)="closeProfileSidebar()">
         <span class="material-symbols-outlined text-slate-500">close</span>
       </button>
     </div>
@@ -2394,90 +322,84 @@
       <div class="p-8 flex flex-col items-center text-center">
         <div class="relative mb-4">
           <div
-            class="w-24 h-24 rounded-full border-4 border-primary/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl"
-          >
+            class="w-24 h-24 rounded-full border-4 border-primary/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
             {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
           </div>
           <div
-            class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"
-          ></div>
+            class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full">
+          </div>
         </div>
-        <h3 class="text-xl font-bold">
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight">
           {{ user?.first_name }} {{ user?.last_name }}
         </h3>
-        <p class="text-primary font-semibold text-sm capitalize">
-          {{ user?.role || "student" }}
-        </p>
-        <!-- Level badge in sidebar -->
-        <div
-          *ngIf="adaptiveProfile"
-          [class]="
-            'mt-3 px-4 py-1.5 rounded-full text-xs font-bold ' + getLevelColor()
-          "
-        >
-          {{ adaptiveProfile?.level | titlecase }} Level
-        </div>
+        <p class="text-primary font-semibold text-sm capitalize">{{ user?.role || 'student' }}</p>
       </div>
-
-      <div class="px-6 mb-6">
-        <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl">
+      <div class="px-6 mb-8">
+        <div class="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
           <div class="text-center">
-            <p class="text-xs text-slate-500 font-bold uppercase mb-1">Score</p>
-            <p class="text-lg font-black">{{ performance }}%</p>
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Study Hours</p>
+            <p class="text-lg font-black text-slate-900 dark:text-white">128.5h</p>
           </div>
-          <div class="border-x border-slate-200 text-center">
-            <p class="text-xs text-slate-500 font-bold uppercase mb-1">
-              Streak
-            </p>
-            <p class="text-lg font-black">{{ learningStreak }}🔥</p>
-          </div>
-          <div class="text-center">
-            <p class="text-xs text-slate-500 font-bold uppercase mb-1">Done</p>
-            <p class="text-lg font-black">{{ completedModules }}</p>
+          <div class="border-l border-slate-200 dark:border-slate-700 text-center">
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Courses</p>
+            <p class="text-lg font-black text-slate-900 dark:text-white">14</p>
           </div>
         </div>
       </div>
-
-      <div class="px-6 mb-6">
-        <h4
-          class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"
-        >
-          Personal Info
-        </h4>
+      <div class="px-6 mb-8">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">Personal Info</h4>
         <div class="space-y-4">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-4 px-2">
             <span class="material-symbols-outlined text-slate-400">mail</span>
             <div class="text-sm">
-              <p class="text-slate-500 text-[10px] font-bold uppercase">
-                Email
-              </p>
-              <p class="font-medium">{{ user?.email || "—" }}</p>
+              <p class="text-slate-500 text-[10px] font-bold uppercase">Email Address</p>
+              <p class="font-medium">{{ user?.email || '—' }}</p>
             </div>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-4 px-2">
             <span class="material-symbols-outlined text-slate-400">call</span>
             <div class="text-sm">
-              <p class="text-slate-500 text-[10px] font-bold uppercase">
-                Phone
-              </p>
-              <p class="font-medium">{{ user?.phone || "—" }}</p>
+              <p class="text-slate-500 text-[10px] font-bold uppercase">Phone Number</p>
+              <p class="font-medium">{{ user?.phone || '—' }}</p>
             </div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 mb-8">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">Preferences</h4>
+        <div class="space-y-1">
+          <button
+            class="flex items-center justify-between w-full p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800"
+            (click)="manageAccount()">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-slate-400">manage_accounts</span>
+              <span class="text-sm font-medium">Manage Account</span>
+            </div>
+            <span class="material-symbols-outlined text-slate-400 text-sm">chevron_right</span>
+          </button>
+          <div class="flex items-center justify-between p-2 rounded-xl">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-slate-400">dark_mode</span>
+              <span class="text-sm font-medium">Dark Mode</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input class="sr-only peer" type="checkbox">
+              <div
+                class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+              </div>
+            </label>
           </div>
         </div>
       </div>
     </div>
-    <div class="p-6 border-t border-slate-100 space-y-3">
-      <button
-        (click)="manageAccount()"
-        class="w-full py-3 bg-primary/5 text-primary border border-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/10"
-      >
+    <div class="p-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
+      <button (click)="manageAccount()"
+        class="w-full py-3 bg-primary/5 text-primary border border-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors">
         <span class="material-symbols-outlined">manage_accounts</span>
         Manage Account
       </button>
-      <button
-        (click)="logout()"
-        class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100"
-      >
+      <button (click)="logout()"
+        class="w-full py-3 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
         <span class="material-symbols-outlined">logout</span>
         Sign Out
       </button>
