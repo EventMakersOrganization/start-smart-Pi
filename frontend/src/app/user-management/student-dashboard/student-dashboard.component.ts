@@ -201,12 +201,18 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   // Topic scores pour les progress rings
   topicRings: any[] = [];
 
+  suggestedCourses: any[] = [
+    { title: 'Advanced Angular Patterns', image: 'assets/img/angular.png', level: 'Intermediate', duration: '4h 30m' },
+    { title: 'Machine Learning Basics', image: 'assets/img/ml.png', level: 'Beginner', duration: '6h 15m' },
+    { title: 'UI/UX Design Principles', image: 'assets/img/design.png', level: 'Beginner', duration: '3h 45m' }
+  ];
+
   constructor(
     private authService: AuthService,
     private router: Router,
     private http: HttpClient,
     private adaptiveService: AdaptiveLearningService,
-  ) {}
+  ) { }
 
   private collectRoles(): string[] {
     const normalized = new Set<string>();
@@ -309,7 +315,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         }
         this.ensureInternalOpsDataLoaded();
       },
-      error: () => {},
+      error: () => { },
     });
   }
 
@@ -419,7 +425,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           this.buildTopicRings();
         }
       },
-      error: () => {},
+      error: () => { },
     });
 
     // ── Charger recommandations ──
