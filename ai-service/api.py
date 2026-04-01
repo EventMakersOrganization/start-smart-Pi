@@ -321,7 +321,15 @@ class UserRatingRequest(BaseModel):
 
 class LevelTestStartRequest(BaseModel):
     student_id: str = Field(..., description="Unique student identifier")
-    subjects: list[str] | None = Field(default=None, description="Course IDs to test (None = all)")
+    subjects: list[str] | None = Field(
+        default=None,
+        description="Optional filter: course IDs and/or logical subject keys. "
+        "Omit to test all. Courses sharing the same MongoDB `subject` field count as ONE unit (5 MCQs per distinct subject).",
+    )
+    regenerate: bool = Field(
+        default=False,
+        description="If true, bypass in-memory cache and generate a fresh question pool.",
+    )
 
 
 class LevelTestSubmitRequest(BaseModel):
@@ -3619,7 +3627,11 @@ async def level_test_start(body: LevelTestStartRequest):
     """Start an adaptive level-test session for a student."""
     t0 = time.time()
     try:
-        result = adaptive_level_test.start_test(body.student_id, body.subjects)
+        result = adaptive_level_test.start_test(
+            body.student_id,
+            body.subjects,
+            regenerate=body.regenerate,
+        )
         ai_monitor.record_request("/level-test/start", time.time() - t0, True)
         return {"status": "success", **result}
     except Exception as e:

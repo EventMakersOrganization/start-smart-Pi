@@ -149,7 +149,9 @@ def generate_student_profile(session: dict) -> dict[str, Any]:
 
     for key, subj in subjects_state.items():
         m = compute_subject_mastery(subj)
-        m["course_id"] = key
+        m["subject_key"] = key
+        m["course_id"] = subj.get("course_id") or key
+        m["course_ids"] = subj.get("course_ids") or []
         m["title"] = subj.get("title", "")
         subject_results.append(m)
         mastery_scores.append(m["mastery_score"])

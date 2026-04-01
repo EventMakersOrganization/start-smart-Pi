@@ -10,6 +10,7 @@ export declare class Course {
     title: string;
     description: string;
     level: string;
+    subject?: string;
     instructorId: Types.ObjectId;
     modules: Module[];
     createdAt?: Date;

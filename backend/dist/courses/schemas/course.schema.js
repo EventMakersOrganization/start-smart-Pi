@@ -47,6 +47,10 @@ __decorate([
     __metadata("design:type", String)
 ], Course.prototype, "level", void 0);
 __decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Course.prototype, "subject", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: 'User' }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Course.prototype, "instructorId", void 0);

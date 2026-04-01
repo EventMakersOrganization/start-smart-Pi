@@ -203,6 +203,50 @@ class RAGService:
             logger.error("RAGService.get_context_for_query error: %s", e)
             return ""
 
+    def get_context_for_course_ids(
+        self,
+        query: str,
+        course_ids: list[str],
+        max_chunks: int = 14,
+    ) -> str:
+        """
+        Like get_context_for_query but only uses chunks whose metadata course_id
+        is in *course_ids* (filters after vector search — keeps RAG on-topic for
+        a multi-chapter subject group).
+        """
+        query = (query or "").strip()
+        if not query or not course_ids:
+            return self.get_context_for_query(query, max_chunks=max_chunks)
+        cid_set = {str(x) for x in course_ids if x}
+        try:
+            candidates = embeddings_pipeline_v2.search_chunks(
+                query,
+                n_results=max(max_chunks * 5, 30),
+                collection_name=self.chunk_collection_name,
+            )
+            chunks = [c for c in candidates if (c.get("course_id") or "") in cid_set]
+            _SIM_FLOOR = 0.28
+            chunks = [c for c in chunks if (c.get("similarity") or 0) >= _SIM_FLOOR]
+            chunks = chunks[:max_chunks]
+            if not chunks:
+                chunks = [c for c in candidates if (c.get("course_id") or "") in cid_set][
+                    :max_chunks
+                ]
+
+            parts = []
+            for c in chunks:
+                meta = c.get("metadata") or {}
+                course_title = meta.get("course_title") or meta.get("module_name") or ""
+                label = meta.get("chunk_type", "chunk")
+                if course_title:
+                    label = f"{course_title} - {label}"
+                text = c.get("chunk_text") or ""
+                parts.append(f"[{label}]\n{text}")
+            return "\n\n---\n\n".join(parts)
+        except Exception as e:  # noqa: BLE001
+            logger.error("RAGService.get_context_for_course_ids error: %s", e)
+            return self.get_context_for_query(query, max_chunks=max_chunks)
+
     def answer_question_with_rag(self, question: str, max_chunks: int = 5) -> dict:
         """
         1. Searches for relevant chunks

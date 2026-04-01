@@ -28,6 +28,10 @@ export class Course {
     @Prop({ required: true })
     level: string;
 
+    /** Optional curriculum subject name — groups multiple chapter courses for level tests / analytics */
+    @Prop()
+    subject?: string;
+
     @Prop({ type: Types.ObjectId, ref: 'User' })
     instructorId: Types.ObjectId;
 
