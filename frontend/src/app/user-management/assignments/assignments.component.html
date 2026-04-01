@@ -1,0 +1,183 @@
+<div class="p-8 space-y-8 max-w-7xl mx-auto">
+  <section>
+    <h2
+      class="text-3xl font-black tracking-tight text-slate-900 dark:text-white"
+    >
+      Assignments Dashboard
+    </h2>
+    <p class="text-slate-500 mt-1">
+      Manage your coursework and track your learning progress.
+    </p>
+  </section>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div
+      class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4"
+    >
+      <div
+        class="w-12 h-12 bg-amber-50 dark:bg-amber-500/10 text-amber-600 flex items-center justify-center rounded-xl"
+      >
+        <span class="material-symbols-outlined text-3xl">pending_actions</span>
+      </div>
+      <div>
+        <p class="text-3xl font-black">{{ stats.pending }}</p>
+        <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">
+          Pending
+        </p>
+      </div>
+    </div>
+
+    <div
+      class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4"
+    >
+      <div
+        class="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 flex items-center justify-center rounded-xl"
+      >
+        <span class="material-symbols-outlined text-3xl">check_circle</span>
+      </div>
+      <div>
+        <p class="text-3xl font-black">{{ stats.completed }}</p>
+        <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">
+          Completed
+        </p>
+      </div>
+    </div>
+
+    <div
+      class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4"
+    >
+      <div
+        class="w-12 h-12 bg-red-50 dark:bg-red-500/10 text-red-600 flex items-center justify-center rounded-xl"
+      >
+        <span class="material-symbols-outlined text-3xl">error</span>
+      </div>
+      <div>
+        <p class="text-3xl font-black">{{ stats.overdue }}</p>
+        <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">
+          Overdue
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="flex flex-col md:flex-row gap-4 items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4"
+  >
+    <div class="flex gap-2">
+      <button
+        (click)="selectTab('upcoming')"
+        [class]="
+          activeTab === 'upcoming'
+            ? 'px-4 py-2 bg-white dark:bg-slate-800 border border-primary text-primary rounded-lg text-sm font-bold'
+            : 'px-4 py-2 bg-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-sm font-bold transition-colors'
+        "
+      >
+        Upcoming
+      </button>
+      <button
+        (click)="selectTab('submitted')"
+        [class]="
+          activeTab === 'submitted'
+            ? 'px-4 py-2 bg-white dark:bg-slate-800 border border-primary text-primary rounded-lg text-sm font-bold'
+            : 'px-4 py-2 bg-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-sm font-bold transition-colors'
+        "
+      >
+        Submitted
+      </button>
+      <button
+        (click)="selectTab('graded')"
+        [class]="
+          activeTab === 'graded'
+            ? 'px-4 py-2 bg-white dark:bg-slate-800 border border-primary text-primary rounded-lg text-sm font-bold'
+            : 'px-4 py-2 bg-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-sm font-bold transition-colors'
+        "
+      >
+        Graded
+      </button>
+    </div>
+
+    <div class="flex gap-4">
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-bold text-slate-400 uppercase"
+          >Sort By:</label
+        >
+        <select
+          class="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-medium rounded-lg focus:ring-primary"
+        >
+          <option>Most Urgent</option>
+          <option>Newest</option>
+          <option>Difficulty</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-bold text-slate-400 uppercase"
+          >Subject:</label
+        >
+        <select
+          class="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm font-medium rounded-lg focus:ring-primary"
+        >
+          <option>All Subjects</option>
+          <option>Computer Science</option>
+          <option>Mathematics</option>
+          <option>Psychology</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div
+      *ngFor="let assignment of assignments"
+      class="bg-white dark:bg-slate-900 rounded-2xl border-2 overflow-hidden shadow-sm hover:shadow-md transition-all group"
+      [ngClass]="assignment.accentColor"
+    >
+      <div class="p-6">
+        <div class="flex justify-between items-start mb-4">
+          <span
+            [class]="
+              'px-3 py-1 text-[10px] font-black uppercase rounded-full tracking-widest ' +
+              assignment.statusColor
+            "
+          >
+            {{ assignment.status }}
+          </span>
+          <div class="flex items-center gap-1 text-slate-400">
+            <span class="material-symbols-outlined text-sm">stars</span>
+            <span class="text-xs font-bold"
+              >AI Level: {{ assignment.aiLevel }}</span
+            >
+          </div>
+        </div>
+
+        <h3
+          class="text-lg font-bold mb-1 group-hover:text-primary transition-colors"
+        >
+          {{ assignment.title }}
+        </h3>
+        <p class="text-sm text-slate-500 mb-4">{{ assignment.subtitle }}</p>
+
+        <div class="space-y-3 mb-6">
+          <div
+            class="flex items-center gap-2 text-slate-500"
+            [class.text-red-600]="assignment.status === 'Urgent'"
+            [class.dark:text-red-400]="assignment.status === 'Urgent'"
+          >
+            <span class="material-symbols-outlined text-sm">event</span>
+            <span class="text-xs font-bold">{{ assignment.dueText }}</span>
+          </div>
+          <div class="flex items-center gap-2 text-slate-500">
+            <span class="material-symbols-outlined text-sm">book</span>
+            <span class="text-xs font-medium">{{ assignment.subject }}</span>
+          </div>
+        </div>
+
+        <button
+          (click)="openSubmission()"
+          class="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-primary/20"
+        >
+          {{ assignment.actionLabel }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

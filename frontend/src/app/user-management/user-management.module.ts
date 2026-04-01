@@ -32,6 +32,8 @@ import { PeerComparisonComponent } from './peer-comparison/peer-comparison.compo
 import { StudyPlannerComponent } from './study-planner/study-planner.component';
 import { MyCoursesComponent } from './my-courses/my-courses.component';
 import { ContinueLearningComponent } from './continue-learning/continue-learning.component';
+import { AssignmentsComponent } from './assignments/assignments.component';
+import { AssignmentSubmissionComponent } from './assignment-submission/assignment-submission.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -105,6 +107,18 @@ const routes: Routes = [
       {
         path: 'learning-path',
         component: LearningPathComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'assignments',
+        component: AssignmentsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'assignments/submission',
+        component: AssignmentSubmissionComponent,
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['student'] },
       },
@@ -183,6 +197,8 @@ const routes: Routes = [
     StudyPlannerComponent,
     MyCoursesComponent,
     ContinueLearningComponent,
+    AssignmentsComponent,
+    AssignmentSubmissionComponent,
   ],
   imports: [
     CommonModule,

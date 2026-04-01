@@ -3733,10 +3733,19 @@ export class AdaptiveLearningService {
   }
 
   async findLevelTestByStudent(studentId: string): Promise<any> {
-    const test = await this.levelTestModel
-      .findOne({ studentId })
-      .sort({ createdAt: -1 })
+    // Prefer the last completed test so sidebar can open the last result page.
+    let test = await this.levelTestModel
+      .findOne({ studentId, status: "completed" })
+      .sort({ completedAt: -1, createdAt: -1 })
       .exec();
+
+    // Fallback to latest test (usually in-progress) if no completed test exists.
+    if (!test) {
+      test = await this.levelTestModel
+        .findOne({ studentId })
+        .sort({ createdAt: -1 })
+        .exec();
+    }
 
     if (!test) return null;
 

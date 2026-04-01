@@ -46,7 +46,7 @@
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
         (click)="openLevelTestFromSidebar()"
       >
-        <span class="material-symbols-outlined">quiz</span> Level Test
+        <span class="material-symbols-outlined">quiz</span> Level Test Result
       </a>
       <a
         (click)="activeNav = 'performance'"
@@ -69,6 +69,17 @@
         "
       >
         <span class="material-symbols-outlined">route</span> Learning Path
+      </a>
+      <a
+        (click)="activeNav = 'assignments'"
+        routerLink="/student-dashboard/assignments"
+        [class]="
+          activeNav === 'assignments'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
+      >
+        <span class="material-symbols-outlined">assignment</span> Assignments
       </a>
       <a
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"

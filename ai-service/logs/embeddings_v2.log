@@ -535,3 +535,23 @@
 2026-04-01 17:04:42,689 - INFO - store_chunks_in_chromadb: stored 7 chunks
 2026-04-01 17:04:42,689 - INFO - process_and_embed_course_chunks: course_id=69cd42167b56a86c62c861bb stored=7
 2026-04-01 17:08:47,513 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-01 17:09:04,330 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-01 19:27:39,306 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-01 19:28:26,226 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-01 19:28:26,326 - INFO - store_chunks_in_chromadb: stored 8 chunks
+2026-04-01 19:28:26,326 - INFO - process_and_embed_course_chunks: course_id=69cd63c96cb2a07e68e39fb0 stored=8
+2026-04-01 19:28:26,358 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-01 19:28:26,358 - INFO - process_and_embed_course_chunks: course_id=69cd63c96cb2a07e68e39fbb stored=4
+2026-04-01 19:28:26,391 - INFO - store_chunks_in_chromadb: stored 5 chunks
+2026-04-01 19:28:26,392 - INFO - process_and_embed_course_chunks: course_id=69cd63c96cb2a07e68e39fc6 stored=5
+2026-04-01 19:28:27,625 - INFO - store_chunks_in_chromadb: stored 6 chunks
+2026-04-01 19:28:27,626 - INFO - process_and_embed_course_chunks: course_id=69cd63c96cb2a07e68e39fde stored=6
+2026-04-01 19:28:27,673 - INFO - store_chunks_in_chromadb: stored 8 chunks
+2026-04-01 19:28:27,674 - INFO - process_and_embed_course_chunks: course_id=69cd63c96cb2a07e68e39ff7 stored=8
+2026-04-01 19:28:27,729 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-01 19:28:27,730 - INFO - process_and_embed_course_chunks: course_id=69cd63c96cb2a07e68e3a001 stored=4
+2026-04-01 19:28:27,780 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-01 19:28:27,780 - INFO - process_and_embed_course_chunks: course_id=69cd63ca6cb2a07e68e3a002 stored=4
+2026-04-01 19:28:27,849 - INFO - store_chunks_in_chromadb: stored 7 chunks
+2026-04-01 19:28:27,849 - INFO - process_and_embed_course_chunks: course_id=69cd63ca6cb2a07e68e3a003 stored=7
+2026-04-01 19:50:12,390 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)

@@ -362,6 +362,7 @@ export class StudentDashboardComponent implements OnInit {
       this.router.url.includes('/student-dashboard/my-courses') ||
       this.router.url.includes('/student-dashboard/performance') ||
       this.router.url.includes('/student-dashboard/learning-path') ||
+      this.router.url.includes('/student-dashboard/assignments') ||
       this.router.url.includes('/student-dashboard/continue-learning')
     );
   }
