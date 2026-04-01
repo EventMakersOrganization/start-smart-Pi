@@ -31,7 +31,7 @@ _explain_llm_instance = None
 _fast_llm_instance = None
 _fast_model_checked = False
 _model_instances = {}
-# After Ollama 500 / runner crash on OLLAMA_LEVEL_TEST_MODEL, skip it and use OLLAMA_MODEL for remaining calls.
+# After repeated Ollama 500 / runner crash on OLLAMA_LEVEL_TEST_MODEL, skip it for this process.
 _level_test_primary_failed: bool = False
 
 
@@ -236,22 +236,16 @@ def _get_llm_for_model(model_name: str):
     if not key:
         return get_ollama_llm()
     if key not in _model_instances:
-        kl = key.lower()
         lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
         fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "") or "").strip()
-        # Level-test primary/fallback + large code models: use env-tuned limits (4GB VRAM safe)
-        if lt and key == lt:
-            num_ctx = getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048)
-            num_predict = getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)
-        elif fb and key == fb:
-            num_ctx = getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048)
-            num_predict = getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)
-        elif "deepseek" in kl or "coder-v2" in kl:
+
+        if (lt and key == lt) or (fb and key == fb):
             num_ctx = getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048)
             num_predict = getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)
         else:
             num_ctx = 4096
             num_predict = 1200
+
         _model_instances[key] = Ollama(
             model=key,
             base_url=config.OLLAMA_BASE_URL,
@@ -272,7 +266,6 @@ def generate_with_model(prompt: str, model_name: str) -> str:
     global _level_test_primary_failed, _model_instances
     lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
     mn = (model_name or "").strip()
-    # Avoid repeated 500s: once level-test primary crashes, use default model for this process
     if lt and _level_test_primary_failed and mn == lt:
         print(
             "[langchain_ollama] Level-test model skipped (previous failure); "
@@ -291,10 +284,6 @@ def generate_with_model(prompt: str, model_name: str) -> str:
         if lt and mn == lt:
             _level_test_primary_failed = True
             _model_instances.pop(mn, None)
-            print(
-                "[langchain_ollama] Disabling level-test primary model for this process; "
-                "next calls use OLLAMA_MODEL. Fix GPU/VRAM or set OLLAMA_LEVEL_TEST_MODEL=mistral in .env."
-            )
         return ""
 
 

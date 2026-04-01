@@ -323,8 +323,7 @@ class LevelTestStartRequest(BaseModel):
     student_id: str = Field(..., description="Unique student identifier")
     subjects: list[str] | None = Field(
         default=None,
-        description="Optional filter: course IDs and/or logical subject keys. "
-        "Omit to test all. Courses sharing the same MongoDB `subject` field count as ONE unit (5 MCQs per distinct subject).",
+        description="Optional filter: course IDs and/or logical subject keys. Omit to test all.",
     )
     regenerate: bool = Field(
         default=False,

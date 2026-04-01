@@ -1,24 +1,9 @@
 """
-Adaptive level-test engine (v2 — high-performance).
+Adaptive level-test engine (v2 — logical subject grouping).
 
-Key speed improvements over v1:
-  * On ``start_test``, ALL questions for ALL subjects are pre-generated
-    in PARALLEL via ``batch_question_generator`` (one LLM call per subject,
-    subjects processed concurrently).
-  * ``submit_answer`` is instant — no LLM call, just picks the next
-    pre-generated question and adjusts difficulty.
-  * Questions are cached so identical test configs skip the LLM entirely.
-
-Logical "subjects":
-  Courses with the same MongoDB ``subject`` field are ONE test unit
-  (e.g. 8 chapters under "Programmation C" → 5 MCQs total for that subject).
-  Courses without ``subject`` fall back to one group per course (legacy).
-
-State machine:
-  START at MEDIUM → correct ⇒ go UP, wrong ⇒ go DOWN
-  After N questions per subject → compute per-module mastery.
-
-All state is persisted in MongoDB ``level_test_sessions``.
+- Courses that share the same MongoDB `subject` field are treated as ONE logical subject.
+- One logical subject gets a pool of QUESTIONS_PER_SUBJECT MCQs, sampled across its chapters/modules.
+- Questions are pre-generated in parallel on start_test; submit_answer is instant.
 """
 from __future__ import annotations
 
@@ -59,10 +44,6 @@ def _now_iso() -> str:
 
 
 def _subject_group_key_and_title(course: dict) -> tuple[str, str]:
-    """
-    Group key for level-test "subject" + human-readable title.
-    If ``subject`` is missing/empty → one group per course (legacy).
-    """
     cid = str(course.get("id", "") or "")
     raw = course.get("subject")
     chapter_title = (course.get("title") or "").strip() or "Course"
@@ -79,29 +60,12 @@ def _subject_group_key_and_title(course: dict) -> tuple[str, str]:
     return s.lower(), s
 
 
-def _topics_from_modules(modules: list[dict], count: int) -> list[str]:
-    """Up to *count* unique module titles; pad by cycling if needed."""
-    seen: list[str] = []
-    for m in modules:
-        if not isinstance(m, dict):
-            continue
-        t = (m.get("title") or "").strip()
-        if t and t not in seen:
-            seen.append(t)
-    topics = seen[:count]
-    while len(topics) < count:
-        topics.append(
-            topics[len(topics) % max(len(topics), 1)] if topics else "general"
-        )
-    return topics
-
-
-def _topic_course_specs_from_modules(modules: list[dict], count: int) -> list[dict[str, str]]:
-    """
-    Build topic specs with course_id distribution:
-    - Prefer one question per distinct course until exhausted.
-    - Then cycle remaining courses/topics if count > distinct courses.
-    """
+def _topic_course_specs_from_modules(
+    modules: list[dict],
+    count: int,
+    *,
+    seed: str = "",
+) -> list[dict[str, str]]:
     by_course: dict[str, list[str]] = {}
     for m in modules:
         if not isinstance(m, dict):
@@ -114,16 +78,12 @@ def _topic_course_specs_from_modules(modules: list[dict], count: int) -> list[di
         if t not in by_course[cid]:
             by_course[cid].append(t)
 
-    # IMPORTANT: a "subject" can contain many courses, and each course has many modules.
-    # We must not always pick the first module of each course; instead, sample across modules
-    # while still spreading questions across different courses.
     ordered_courses = list(by_course.keys())
     specs: list[dict[str, str]] = []
     if ordered_courses:
-        # Stable per-course rotation offset so we don't always start from module #0.
-        # (Keeps deterministic behavior without needing randomness or extra session state.)
+        # Use a per-session seed so module sampling changes between API calls/students.
         offsets: dict[str, int] = {
-            cid: (abs(hash(cid)) % max(len(by_course.get(cid) or []), 1))
+            cid: (abs(hash(f"{seed}|{cid}")) % max(len(by_course.get(cid) or []), 1))
             for cid in ordered_courses
         }
         i = 0
@@ -131,7 +91,6 @@ def _topic_course_specs_from_modules(modules: list[dict], count: int) -> list[di
             cid = ordered_courses[i % len(ordered_courses)]
             topics = by_course.get(cid) or ["general"]
             off = offsets.get(cid, 0)
-            # Round-robin across courses, and within each course walk its module list.
             local_k = (i // len(ordered_courses)) % max(len(topics), 1)
             topic = topics[(off + local_k) % max(len(topics), 1)]
             specs.append({"course_id": cid, "topic": topic})
@@ -143,10 +102,6 @@ def _topic_course_specs_from_modules(modules: list[dict], count: int) -> list[di
 
 
 def _build_logical_subject_map() -> dict[str, dict[str, Any]]:
-    """
-    Group courses by ``subject`` field. Same subject string → one group
-    (5 questions for the whole track). No subject → one group per course.
-    """
     courses = get_all_courses()
     courses = sorted(courses, key=lambda c: (c.get("title") or ""))
 
@@ -155,14 +110,7 @@ def _build_logical_subject_map() -> dict[str, dict[str, Any]]:
         gkey, display_title = _subject_group_key_and_title(c)
         cid = str(c.get("id", "") or "")
         chapter_title = (c.get("title") or "").strip()
-
-        if gkey not in subject_map:
-            subject_map[gkey] = {
-                "course_ids": [],
-                "title": display_title,
-                "modules": [],
-            }
-
+        subject_map.setdefault(gkey, {"course_ids": [], "title": display_title, "modules": []})
         info = subject_map[gkey]
         info["course_ids"].append(cid)
         raw_subj = c.get("subject")
@@ -181,23 +129,16 @@ def _build_logical_subject_map() -> dict[str, dict[str, Any]]:
                             "course_id": cid,
                         }
                     )
-
     return subject_map
 
 
-def _resolve_selected_groups(
-    selected: list[str] | None,
-    subject_map: dict[str, dict],
-) -> list[str]:
-    """Map optional course IDs (or group keys) to logical group keys."""
+def _resolve_selected_groups(selected: list[str] | None, subject_map: dict[str, dict]) -> list[str]:
     if not selected:
         return list(subject_map.keys())
-
     course_to_group: dict[str, str] = {}
     for gkey, info in subject_map.items():
         for cid in info.get("course_ids") or []:
             course_to_group[str(cid)] = gkey
-
     out: list[str] = []
     seen: set[str] = set()
     for s in selected:
@@ -208,7 +149,6 @@ def _resolve_selected_groups(
         if gkey and gkey not in seen:
             seen.add(gkey)
             out.append(gkey)
-
     return out if out else list(subject_map.keys())
 
 
@@ -233,7 +173,7 @@ class AdaptiveLevelTest:
         """
         Initialise a test session.
 
-        All questions for every logical subject are pre-generated in parallel
+        All questions for every subject are pre-generated in parallel
         during this call — subsequent ``submit_answer`` calls are instant.
         """
         from .batch_question_generator import generate_all_subjects_parallel
@@ -241,11 +181,18 @@ class AdaptiveLevelTest:
         subject_map = _build_logical_subject_map()
         selected_groups = _resolve_selected_groups(selected_subjects, subject_map)
 
+        # Per-session seed to reduce repeats across students / repeated starts.
+        session_seed = str(uuid.uuid4())
+
         batch_input: list[dict] = []
         for gkey in selected_groups:
             info = subject_map[gkey]
             modules = info["modules"]
-            topic_specs = _topic_course_specs_from_modules(modules, QUESTIONS_PER_SUBJECT)
+            topic_specs = _topic_course_specs_from_modules(
+                modules,
+                QUESTIONS_PER_SUBJECT,
+                seed=session_seed,
+            )
             topics = [s.get("topic") or "general" for s in topic_specs]
             question_course_ids = [s.get("course_id") or "" for s in topic_specs]
             diffs = self._initial_difficulty_sequence()
@@ -258,6 +205,7 @@ class AdaptiveLevelTest:
                     "count": QUESTIONS_PER_SUBJECT,
                     "course_ids": list(info.get("course_ids") or []),
                     "question_course_ids": question_course_ids,
+                    "diversity_seed": session_seed,
                 }
             )
 
@@ -354,9 +302,7 @@ class AdaptiveLevelTest:
         current_q["is_correct"] = is_correct
         current_q["answered"] = True
         current_q["answered_at"] = _now_iso()
-        rt = self._response_time_sec(
-            current_q.get("generated_at"), current_q.get("answered_at")
-        )
+        rt = self._response_time_sec(current_q.get("generated_at"), current_q.get("answered_at"))
         if rt is not None:
             current_q["response_time_sec"] = rt
 
@@ -410,19 +356,20 @@ class AdaptiveLevelTest:
                     "finished": False,
                     "next_question": next_q,
                 }
-            profile = self.complete_test(session_id)
-            return {
-                "correct": is_correct,
-                "correct_answer": correct_answer,
-                "explanation": explanation,
-                "next_difficulty": None,
-                "difficulty_policy": policy,
-                "intervention": intervention,
-                "progress": {"answered": total_asked, "total": total_total},
-                "subject_completed": subj_key,
-                "finished": True,
-                "profile": profile,
-            }
+            else:
+                profile = self.complete_test(session_id)
+                return {
+                    "correct": is_correct,
+                    "correct_answer": correct_answer,
+                    "explanation": explanation,
+                    "next_difficulty": None,
+                    "difficulty_policy": policy,
+                    "intervention": intervention,
+                    "progress": {"answered": total_asked, "total": total_total},
+                    "subject_completed": subj_key,
+                    "finished": True,
+                    "profile": profile,
+                }
 
         session = _col().find_one({"session_id": session_id})
         next_q = self._serve_next_question(session, target_difficulty=new_diff)
@@ -473,9 +420,7 @@ class AdaptiveLevelTest:
     # INTERNALS — no LLM calls after start_test
     # ------------------------------------------------------------------
 
-    def _serve_next_question(
-        self, session: dict, target_difficulty: str | None = None
-    ) -> dict[str, Any]:
+    def _serve_next_question(self, session: dict, target_difficulty: str | None = None) -> dict[str, Any]:
         """Pick the next pre-generated question from the pool (instant)."""
         subj_key = session["subject_order"][session["current_subject_idx"]]
         subj = session["subjects"][subj_key]
@@ -494,14 +439,10 @@ class AdaptiveLevelTest:
             if question is None:
                 question = pool[q_num]
         if question is None:
-            question = self._fallback_question(
-                subj["title"],
-                "general",
-                target_difficulty or subj["current_difficulty"],
-            )
+            question = self._fallback_question(subj["title"], "general", target_difficulty or subj["current_difficulty"])
 
         difficulty = question.get("difficulty", subj["current_difficulty"])
-        topic = question.get("topic") or "general"
+        topic = question.get("topic", "general")
 
         answer_entry = {
             "question_index": q_num,
@@ -517,12 +458,10 @@ class AdaptiveLevelTest:
 
         _col().update_one(
             {"session_id": session["session_id"]},
-            {
-                "$set": {
-                    f"subjects.{subj_key}.answers": subj["answers"],
-                    f"subjects.{subj_key}.questions_asked": subj["questions_asked"],
-                }
-            },
+            {"$set": {
+                f"subjects.{subj_key}.answers": subj["answers"],
+                f"subjects.{subj_key}.questions_asked": subj["questions_asked"],
+            }},
         )
 
         total_asked = sum(s["questions_asked"] for s in session["subjects"].values())
@@ -533,7 +472,6 @@ class AdaptiveLevelTest:
             "options": question.get("options", []),
             "difficulty": difficulty,
             "topic": topic,
-            "course_id": question.get("course_id"),
             "subject": subj["title"],
             "question_index": q_num,
             "progress": {"answered": total_asked - 1, "total": total_total},
@@ -541,7 +479,8 @@ class AdaptiveLevelTest:
 
     @staticmethod
     def _initial_difficulty_sequence() -> list[str]:
-        """Starting difficulties for the 5 questions per subject."""
+        """Starting difficulties for the 5 questions per subject.
+        Start medium, cover all levels so scoring has differentiated weights."""
         return ["medium", "medium", "easy", "hard", "medium"]
 
     @staticmethod
