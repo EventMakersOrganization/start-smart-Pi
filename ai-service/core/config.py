@@ -43,6 +43,20 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 OLLAMA_FAST_MODEL = os.getenv("OLLAMA_FAST_MODEL", "")
 
+# Level-test / MCQ generation (small instruct model that fits low VRAM)
+OLLAMA_LEVEL_TEST_MODEL = os.getenv("OLLAMA_LEVEL_TEST_MODEL", "qwen2.5:3b")
+OLLAMA_LEVEL_TEST_MODEL_FALLBACK = os.getenv("OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "qwen2.5:3b")
+
+def _int_env(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)).strip())
+    except (TypeError, ValueError):
+        return default
+
+OLLAMA_LEVEL_TEST_NUM_CTX = _int_env("OLLAMA_LEVEL_TEST_NUM_CTX", 2048)
+OLLAMA_LEVEL_TEST_NUM_PREDICT = _int_env("OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)
+OLLAMA_LEVEL_TEST_TEMPERATURE = float(os.getenv("OLLAMA_LEVEL_TEST_TEMPERATURE", "0.4").strip() or "0.4")
+
 # Redis (optional, used for API response caching in production)
 REDIS_URL = os.getenv("REDIS_URL", "")
 REDIS_CACHE_PREFIX = os.getenv("REDIS_CACHE_PREFIX", "startsmart:resp")
@@ -56,6 +70,11 @@ config = {
     "OLLAMA_BASE_URL": OLLAMA_BASE_URL,
     "OLLAMA_EMBED_MODEL": OLLAMA_EMBED_MODEL,
     "OLLAMA_FAST_MODEL": OLLAMA_FAST_MODEL,
+    "OLLAMA_LEVEL_TEST_MODEL": OLLAMA_LEVEL_TEST_MODEL,
+    "OLLAMA_LEVEL_TEST_MODEL_FALLBACK": OLLAMA_LEVEL_TEST_MODEL_FALLBACK,
+    "OLLAMA_LEVEL_TEST_NUM_CTX": str(OLLAMA_LEVEL_TEST_NUM_CTX),
+    "OLLAMA_LEVEL_TEST_NUM_PREDICT": str(OLLAMA_LEVEL_TEST_NUM_PREDICT),
+    "OLLAMA_LEVEL_TEST_TEMPERATURE": str(OLLAMA_LEVEL_TEST_TEMPERATURE),
     "REDIS_URL": REDIS_URL,
     "REDIS_CACHE_PREFIX": REDIS_CACHE_PREFIX,
 }
@@ -83,6 +102,11 @@ if __name__ != "__main__":
     print(f"  CHROMA_PERSIST_DIRECTORY: {CHROMA_PERSIST_DIRECTORY}")
     print(f"  OLLAMA_MODEL: {OLLAMA_MODEL}")
     print(f"  OLLAMA_FAST_MODEL: {OLLAMA_FAST_MODEL or '(not set, using OLLAMA_MODEL)'}")
+    print(f"  OLLAMA_LEVEL_TEST_MODEL: {OLLAMA_LEVEL_TEST_MODEL}")
+    print(f"  OLLAMA_LEVEL_TEST_MODEL_FALLBACK: {OLLAMA_LEVEL_TEST_MODEL_FALLBACK or '(not set, using OLLAMA_MODEL)'}")
+    print(f"  OLLAMA_LEVEL_TEST_NUM_CTX: {OLLAMA_LEVEL_TEST_NUM_CTX}")
+    print(f"  OLLAMA_LEVEL_TEST_NUM_PREDICT: {OLLAMA_LEVEL_TEST_NUM_PREDICT}")
+    print(f"  OLLAMA_LEVEL_TEST_TEMPERATURE: {OLLAMA_LEVEL_TEST_TEMPERATURE}")
     print(f"  OLLAMA_EMBED_MODEL: {OLLAMA_EMBED_MODEL}")
     print(f"  OLLAMA_BASE_URL: {OLLAMA_BASE_URL}")
     print(f"  REDIS_URL: {'(set)' if REDIS_URL else '(not set)'}")

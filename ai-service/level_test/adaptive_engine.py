@@ -1,27 +1,15 @@
 """
-Adaptive level-test engine (v2 — high-performance).
+Adaptive level-test engine (v2 — logical subject grouping).
 
-Key speed improvements over v1:
-  * On ``start_test``, ALL questions for ALL subjects are pre-generated
-    in PARALLEL via ``batch_question_generator`` (one LLM call per subject,
-    subjects processed concurrently). This turns 40 sequential LLM calls
-    into ~8 parallel calls.
-  * ``submit_answer`` is instant — no LLM call, just picks the next
-    pre-generated question and adjusts difficulty.
-  * Questions are cached so identical test configs skip the LLM entirely.
-
-State machine:
-  START at MEDIUM → correct ⇒ go UP, wrong ⇒ go DOWN
-  After N questions per subject → compute per-module mastery.
-
-All state is persisted in MongoDB ``level_test_sessions``.
+- Courses that share the same MongoDB `subject` field are treated as ONE logical subject.
+- One logical subject gets a pool of QUESTIONS_PER_SUBJECT MCQs, sampled across its chapters/modules.
+- Questions are pre-generated in parallel on start_test; submit_answer is instant.
 """
 from __future__ import annotations
 
 import logging
 import sys
 import uuid
-import random
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -55,28 +43,113 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _build_subject_map() -> dict[str, dict]:
-    """Map each course (chapter) to its modules for topic selection."""
+def _subject_group_key_and_title(course: dict) -> tuple[str, str]:
+    cid = str(course.get("id", "") or "")
+    raw = course.get("subject")
+    chapter_title = (course.get("title") or "").strip() or "Course"
+    if raw is None:
+        return f"course:{cid}", chapter_title
+    if isinstance(raw, str):
+        s = raw.strip()
+        if not s:
+            return f"course:{cid}", chapter_title
+        return s.lower(), s
+    s = str(raw).strip()
+    if not s:
+        return f"course:{cid}", chapter_title
+    return s.lower(), s
+
+
+def _topic_course_specs_from_modules(
+    modules: list[dict],
+    count: int,
+    *,
+    seed: str = "",
+) -> list[dict[str, str]]:
+    by_course: dict[str, list[str]] = {}
+    for m in modules:
+        if not isinstance(m, dict):
+            continue
+        cid = str(m.get("course_id") or "").strip()
+        t = (m.get("title") or "").strip()
+        if not cid or not t:
+            continue
+        by_course.setdefault(cid, [])
+        if t not in by_course[cid]:
+            by_course[cid].append(t)
+
+    ordered_courses = list(by_course.keys())
+    specs: list[dict[str, str]] = []
+    if ordered_courses:
+        # Use a per-session seed so module sampling changes between API calls/students.
+        offsets: dict[str, int] = {
+            cid: (abs(hash(f"{seed}|{cid}")) % max(len(by_course.get(cid) or []), 1))
+            for cid in ordered_courses
+        }
+        i = 0
+        while len(specs) < count:
+            cid = ordered_courses[i % len(ordered_courses)]
+            topics = by_course.get(cid) or ["general"]
+            off = offsets.get(cid, 0)
+            local_k = (i // len(ordered_courses)) % max(len(topics), 1)
+            topic = topics[(off + local_k) % max(len(topics), 1)]
+            specs.append({"course_id": cid, "topic": topic})
+            i += 1
+
+    while len(specs) < count:
+        specs.append({"course_id": "", "topic": "general"})
+    return specs[:count]
+
+
+def _build_logical_subject_map() -> dict[str, dict[str, Any]]:
     courses = get_all_courses()
-    subject_map: dict[str, dict] = {}
+    courses = sorted(courses, key=lambda c: (c.get("title") or ""))
+
+    subject_map: dict[str, dict[str, Any]] = {}
     for c in courses:
-        cid = c.get("id", "")
-        title = c.get("title", "")
+        gkey, display_title = _subject_group_key_and_title(c)
+        cid = str(c.get("id", "") or "")
+        chapter_title = (c.get("title") or "").strip()
+        subject_map.setdefault(gkey, {"course_ids": [], "title": display_title, "modules": []})
+        info = subject_map[gkey]
+        info["course_ids"].append(cid)
+        raw_subj = c.get("subject")
+        if isinstance(raw_subj, str) and raw_subj.strip():
+            info["title"] = raw_subj.strip()
+
         modules = c.get("modules", [])
-        mod_list = []
         if isinstance(modules, list):
             for m in modules:
                 if isinstance(m, dict):
-                    mod_list.append({
-                        "title": m.get("title", ""),
-                        "description": (m.get("description") or "")[:200],
-                    })
-        subject_map[cid] = {
-            "course_id": cid,
-            "title": title,
-            "modules": mod_list,
-        }
+                    info["modules"].append(
+                        {
+                            "title": m.get("title", ""),
+                            "description": (m.get("description") or "")[:200],
+                            "chapter_title": chapter_title,
+                            "course_id": cid,
+                        }
+                    )
     return subject_map
+
+
+def _resolve_selected_groups(selected: list[str] | None, subject_map: dict[str, dict]) -> list[str]:
+    if not selected:
+        return list(subject_map.keys())
+    course_to_group: dict[str, str] = {}
+    for gkey, info in subject_map.items():
+        for cid in info.get("course_ids") or []:
+            course_to_group[str(cid)] = gkey
+    out: list[str] = []
+    seen: set[str] = set()
+    for s in selected:
+        s = str(s).strip()
+        if not s:
+            continue
+        gkey = s if s in subject_map else course_to_group.get(s)
+        if gkey and gkey not in seen:
+            seen.add(gkey)
+            out.append(gkey)
+    return out if out else list(subject_map.keys())
 
 
 class AdaptiveLevelTest:
@@ -95,83 +168,67 @@ class AdaptiveLevelTest:
         self,
         student_id: str,
         selected_subjects: list[str] | None = None,
+        regenerate: bool = False,
     ) -> dict[str, Any]:
         """
         Initialise a test session.
 
-        All questions for every subject are loaded from real imported exercises
-        in parallel during this call — subsequent ``submit_answer`` calls are instant.
+        All questions for every subject are pre-generated in parallel
+        during this call — subsequent ``submit_answer`` calls are instant.
         """
-        from .batch_question_generator import generate_all_subjects_parallel_from_real_exercises
+        from .batch_question_generator import generate_all_subjects_parallel
 
-        subject_map = _build_subject_map()
+        subject_map = _build_logical_subject_map()
+        selected_groups = _resolve_selected_groups(selected_subjects, subject_map)
 
-        if not subject_map:
-            raise ValueError(
-                "No courses found in MongoDB collection 'courses'. Ingest your existing ai-service courses first."
+        # Per-session seed to reduce repeats across students / repeated starts.
+        session_seed = str(uuid.uuid4())
+
+        batch_input: list[dict] = []
+        for gkey in selected_groups:
+            info = subject_map[gkey]
+            modules = info["modules"]
+            topic_specs = _topic_course_specs_from_modules(
+                modules,
+                QUESTIONS_PER_SUBJECT,
+                seed=session_seed,
+            )
+            topics = [s.get("topic") or "general" for s in topic_specs]
+            question_course_ids = [s.get("course_id") or "" for s in topic_specs]
+            diffs = self._initial_difficulty_sequence()
+            batch_input.append(
+                {
+                    "key": gkey,
+                    "title": info["title"],
+                    "topics": topics,
+                    "difficulties": diffs,
+                    "count": QUESTIONS_PER_SUBJECT,
+                    "course_ids": list(info.get("course_ids") or []),
+                    "question_course_ids": question_course_ids,
+                    "diversity_seed": session_seed,
+                }
             )
 
         logger.info(
-            "Using %d existing course(s) from MongoDB for level test: %s",
-            len(subject_map),
-            ", ".join([v.get("title", "") for v in subject_map.values()]),
+            "Pre-generating questions for %d logical subject(s) in parallel...",
+            len(batch_input),
         )
-        if not selected_subjects:
-            selected_subjects = list(subject_map.keys())
-        else:
-            selected_subjects = [s for s in selected_subjects if s in subject_map]
-            if not selected_subjects:
-                selected_subjects = list(subject_map.keys())
-
-        batch_input: list[dict] = []
-        for sid in selected_subjects:
-            info = subject_map[sid]
-            modules = info["modules"]
-            topics = [m["title"] for m in modules[:QUESTIONS_PER_SUBJECT]]
-            while len(topics) < QUESTIONS_PER_SUBJECT:
-                topics.append(topics[len(topics) % max(len(topics), 1)])
-            diffs = self._initial_difficulty_sequence()
-            batch_input.append({
-                "key": sid,
-                "title": info["title"],
-                "topics": topics,
-                "difficulties": diffs,
-                "count": QUESTIONS_PER_SUBJECT,
-            })
-
-        logger.info("Loading real exercises for %d subjects in parallel...", len(batch_input))
-        all_questions = generate_all_subjects_parallel_from_real_exercises(batch_input)
-
-        def _qid(q: dict) -> str:
-            oid = str((q or {}).get("original_id") or "").strip()
-            if oid:
-                return f"id:{oid}"
-            return f"txt:{str((q or {}).get('question', '')).strip().lower()}"
-
-        def _dedupe_pool(pool: list[dict]) -> list[dict]:
-            out: list[dict] = []
-            seen: set[str] = set()
-            for q in pool or []:
-                key = _qid(q)
-                if not key or key in seen:
-                    continue
-                seen.add(key)
-                out.append(q)
-            return out
+        all_questions = generate_all_subjects_parallel(
+            batch_input,
+            self.rag_service,
+            use_cache=not regenerate,
+        )
 
         session_id = str(uuid.uuid4())
         subjects_state: dict[str, dict] = {}
-        for sid in selected_subjects:
-            info = subject_map[sid]
-            questions_pool = _dedupe_pool(all_questions.get(sid, []))
-            if len(questions_pool) < QUESTIONS_PER_SUBJECT:
-                raise ValueError(
-                    f"Not enough unique real questions for chapter '{info['title']}' "
-                    f"({len(questions_pool)}/{QUESTIONS_PER_SUBJECT}). "
-                    "Add more real exercises for this chapter."
-                )
-            subjects_state[sid] = {
-                "course_id": sid,
+        for gkey in selected_groups:
+            info = subject_map[gkey]
+            questions_pool = all_questions.get(gkey, [])
+            cids = info.get("course_ids") or []
+            subjects_state[gkey] = {
+                "group_key": gkey,
+                "course_id": cids[0] if cids else gkey,
+                "course_ids": cids,
                 "title": info["title"],
                 "modules": info["modules"],
                 "current_difficulty": "medium",
@@ -185,24 +242,33 @@ class AdaptiveLevelTest:
             "session_id": session_id,
             "student_id": student_id,
             "subjects": subjects_state,
-            "subject_order": selected_subjects,
+            "subject_order": selected_groups,
             "current_subject_idx": 0,
             "status": "in_progress",
             "started_at": _now_iso(),
             "completed_at": None,
         }
         _col().insert_one(session)
-        logger.info("Level test started: session=%s student=%s subjects=%d",
-                     session_id, student_id, len(selected_subjects))
+        logger.info(
+            "Level test started: session=%s student=%s logical_subjects=%d",
+            session_id,
+            student_id,
+            len(selected_groups),
+        )
 
         first_q = self._serve_next_question(session)
         return {
             "session_id": session_id,
             "subjects": [
-                {"course_id": s, "title": subject_map[s]["title"]}
-                for s in selected_subjects
+                {
+                    "subject_key": gkey,
+                    "course_id": (subject_map[gkey].get("course_ids") or [gkey])[0],
+                    "course_ids": subject_map[gkey].get("course_ids") or [],
+                    "title": subject_map[gkey]["title"],
+                }
+                for gkey in selected_groups
             ],
-            "total_questions": len(selected_subjects) * QUESTIONS_PER_SUBJECT,
+            "total_questions": len(selected_groups) * QUESTIONS_PER_SUBJECT,
             "first_question": first_q,
         }
 
@@ -360,65 +426,26 @@ class AdaptiveLevelTest:
         subj = session["subjects"][subj_key]
         q_num = subj["questions_asked"]
         pool = subj.get("question_pool", [])
-
-        # Session-wide already asked keys (across all subjects) to avoid repeats.
-        asked_keys: set[str] = set()
-        for sk in session.get("subject_order", []):
-            sstate = session.get("subjects", {}).get(sk, {})
-            for a in sstate.get("answers", []) or []:
-                qd = a.get("question") or {}
-                key = self._question_key(qd)
-                if key:
-                    asked_keys.add(key)
-
-        used_indices = {
-            a.get("pool_index")
-            for a in subj.get("answers", [])
-            if a.get("pool_index") is not None
-        }
-        if not used_indices:
-            used_indices = {a.get("question_index") for a in subj.get("answers", [])}
-
         question = None
-        selected_pool_index: int | None = None
-
-        def _candidate_ok(i: int, cand: dict) -> bool:
-            if i in used_indices:
-                return False
-            key = self._question_key(cand)
-            if key and key in asked_keys:
-                return False
-            return self._is_complete_question_dict(cand)
-
-        if target_difficulty:
-            for i, cand in enumerate(pool):
-                if not _candidate_ok(i, cand):
-                    continue
-                if str(cand.get("difficulty", "")).lower() == target_difficulty.lower():
-                    question = cand
-                    selected_pool_index = i
-                    break
-
+        if q_num < len(pool):
+            if target_difficulty:
+                used_indices = {a.get("question_index") for a in subj.get("answers", [])}
+                for i, cand in enumerate(pool):
+                    if i in used_indices:
+                        continue
+                    if str(cand.get("difficulty", "")).lower() == target_difficulty.lower():
+                        question = cand
+                        break
+            if question is None:
+                question = pool[q_num]
         if question is None:
-            for i, cand in enumerate(pool):
-                if not _candidate_ok(i, cand):
-                    continue
-                question = cand
-                selected_pool_index = i
-                break
-
-        if question is None:
-            raise ValueError(
-                f"No more unique real questions available for chapter '{subj['title']}'. "
-                "Fallback is disabled by configuration."
-            )
+            question = self._fallback_question(subj["title"], "general", target_difficulty or subj["current_difficulty"])
 
         difficulty = question.get("difficulty", subj["current_difficulty"])
         topic = question.get("topic", "general")
 
         answer_entry = {
             "question_index": q_num,
-            "pool_index": selected_pool_index,
             "question": question,
             "difficulty": difficulty,
             "topic": topic,
@@ -466,165 +493,21 @@ class AdaptiveLevelTest:
         return DIFFICULTIES[idx]
 
     @staticmethod
-    def _coherent_static_fallback(subject_title: str, difficulty: str) -> dict:
-        bank = [
-            {
-                "question": "In C, what does #include <stdio.h> provide?",
-                "options": [
-                    "A. Input/output functions like printf and scanf",
-                    "B. Dynamic memory allocation only",
-                    "C. Math functions only",
-                    "D. Thread scheduling APIs",
-                ],
-                "correct_answer": "A. Input/output functions like printf and scanf",
-                "topic": "C programming basics",
-            },
-            {
-                "question": "What is the primary purpose of a variable in programming?",
-                "options": [
-                    "A. To store and update values",
-                    "B. To compile source code",
-                    "C. To define the operating system",
-                    "D. To replace all functions",
-                ],
-                "correct_answer": "A. To store and update values",
-                "topic": "Programming fundamentals",
-            },
-            {
-                "question": "What does an if statement do?",
-                "options": [
-                    "A. Executes code conditionally",
-                    "B. Declares a new data type",
-                    "C. Compiles the project",
-                    "D. Creates a database table",
-                ],
-                "correct_answer": "A. Executes code conditionally",
-                "topic": "Control flow",
-            },
-        ]
-        q = random.choice(bank).copy()
-        q.update({
-            "explanation": f"Fallback coherent MCQ for {subject_title}.",
+    def _fallback_question(subject: str, topic: str, difficulty: str) -> dict:
+        return {
+            "question": f"What is an important concept related to '{topic}' in {subject}?",
+            "options": [
+                f"Concept A about {topic}",
+                f"Concept B about {topic}",
+                f"Concept C about {topic}",
+                f"Concept D about {topic}",
+            ],
+            "correct_answer": f"Concept A about {topic}",
+            "explanation": f"This is a fallback question about {topic}.",
             "difficulty": difficulty,
+            "topic": topic,
             "type": "MCQ",
-        })
-        return q
-
-    @staticmethod
-    def _question_key(question: dict) -> str:
-        oid = str((question or {}).get("original_id") or "").strip()
-        if oid:
-            return f"id:{oid}"
-        stem = str((question or {}).get("question", "")).strip().lower()
-        return f"txt:{stem}" if stem else ""
-
-    @staticmethod
-    def _is_complete_question_dict(question: dict) -> bool:
-        stem = str((question or {}).get("question", "")).strip()
-        options = (question or {}).get("options") or []
-        if not stem or len(options) < 2:
-            return False
-
-        low = stem.lower()
-        if low == "quelle est la sortie ?":
-            return False
-
-        asks_output = any(
-            marker in low
-            for marker in [
-                "quelle est la sortie",
-                "que va-t-il s'afficher",
-                "que va-t-il s’afficher",
-                "what is the output",
-            ]
-        )
-        if asks_output:
-            has_output_call = any(token in low for token in ["printf", "cout", "system.out", "print"])
-            if not has_output_call:
-                return False
-
-        asks_code_context = any(
-            marker in low
-            for marker in [
-                "soit le code suivant",
-                "considérez le code suivant",
-                "considerez le code suivant",
-                "given the following code",
-                "following code",
-            ]
-        )
-        if asks_code_context:
-            has_code_context = any(
-                token in low
-                for token in ["\n", ";", " if ", " for ", " while ", "switch", " case ", "return "]
-            )
-            if not has_code_context:
-                return False
-
-        return True
-
-    @classmethod
-    def _fallback_question(
-        cls,
-        subject_key: str,
-        subject_title: str,
-        difficulty: str,
-        excluded_keys: set[str] | None = None,
-    ) -> dict:
-        """Avoid generic placeholders by preferring real exercises first.
-        Never return duplicate questions (even fallback statics)."""
-        excluded = excluded_keys or set()
-        tried_fallback_keys: set[str] = set()
-        
-        try:
-            from level_test.real_exercise_loader import get_level_test_questions
-
-            # Prefer same-course real question.
-            local_q = get_level_test_questions(
-                course_id=subject_key,
-                num_questions=8,
-                difficulty="mixed",
-            )
-            for cand in local_q or []:
-                key = cls._question_key(cand)
-                if key and key in excluded:
-                    continue
-                if not cls._is_complete_question_dict(cand):
-                    continue
-                q = dict(cand)
-                q["difficulty"] = difficulty
-                return q
-
-            # Then use any real imported question globally.
-            global_q = get_level_test_questions(
-                course_id=None,
-                num_questions=12,
-                difficulty="mixed",
-            )
-            for cand in global_q or []:
-                key = cls._question_key(cand)
-                if key and key in excluded:
-                    continue
-                if not cls._is_complete_question_dict(cand):
-                    continue
-                q = dict(cand)
-                q["difficulty"] = difficulty
-                return q
-        except Exception:
-            pass
-
-        # Final safety net: coherent static MCQ (never placeholder text).
-        # Try up to 10 times to get a non-duplicate fallback
-        for _ in range(10):
-            q = cls._coherent_static_fallback(subject_title, difficulty)
-            key = cls._question_key(q)
-            if key and (key in excluded or key in tried_fallback_keys):
-                continue
-            tried_fallback_keys.add(key)
-            return q
-
-        # If all attempts produced duplicates, still return (shouldn't happen with 3 uniques in bank)
-        return cls._coherent_static_fallback(subject_title, difficulty)
+        }
 
     @staticmethod
     def _response_time_sec(started_iso: str | None, ended_iso: str | None) -> float | None:

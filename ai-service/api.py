@@ -321,7 +321,14 @@ class UserRatingRequest(BaseModel):
 
 class LevelTestStartRequest(BaseModel):
     student_id: str = Field(..., description="Unique student identifier")
-    subjects: list[str] | None = Field(default=None, description="Course IDs to test (None = all)")
+    subjects: list[str] | None = Field(
+        default=None,
+        description="Optional filter: course IDs and/or logical subject keys. Omit to test all.",
+    )
+    regenerate: bool = Field(
+        default=False,
+        description="If true, bypass in-memory cache and generate a fresh question pool.",
+    )
 
 
 class LevelTestSubmitRequest(BaseModel):
@@ -2222,38 +2229,22 @@ async def batch_embed_courses():
 
 @app.post("/generate-level-test")
 async def generate_level_test(body: LevelTestRequest):
-    """Generates level test questions using real imported exercises."""
+    """Generates level test questions and saves to database."""
     try:
-        from level_test.real_exercise_loader import get_level_test_questions
-        
-        # Load real questions from imported courses
-        questions = get_level_test_questions(
-            course_id=body.course_id,
+        question_ids = question_generator.generate_and_save_level_test(
+            subject=body.subject,
             num_questions=body.num_questions,
-            difficulty=body.difficulty or "mixed"
+            course_id=body.course_id,
         )
-        
-        if not questions:
-            logger.warning(f"No real exercises found for course {body.course_id}, falling back to AI generation")
-            # Fallback: generate via AI if no real exercises found
-            question_ids = question_generator.generate_and_save_level_test(
-                subject=body.subject,
-                num_questions=body.num_questions,
-                course_id=body.course_id,
-            )
-            questions = [{"id": qid} for qid in question_ids]
-            source = "generated"
-        else:
-            source = "real_exercises"
-        
+        questions = []
+        for qid in question_ids:
+            questions.append({"id": qid})
         return {
             "status": "success",
             "questions": questions,
-            "count": len(questions),
-            "source": source,
+            "question_ids": question_ids,
         }
     except Exception as e:
-        logger.error(f"Error in /generate-level-test: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3635,7 +3626,11 @@ async def level_test_start(body: LevelTestStartRequest):
     """Start an adaptive level-test session for a student."""
     t0 = time.time()
     try:
-        result = adaptive_level_test.start_test(body.student_id, body.subjects)
+        result = adaptive_level_test.start_test(
+            body.student_id,
+            body.subjects,
+            regenerate=body.regenerate,
+        )
         ai_monitor.record_request("/level-test/start", time.time() - t0, True)
         return {"status": "success", **result}
     except Exception as e:

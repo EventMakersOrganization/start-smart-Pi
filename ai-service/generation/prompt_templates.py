@@ -3,28 +3,119 @@ Prompt templates for level test and adaptive questions (LangChain PromptTemplate
 """
 from langchain_core.prompts import PromptTemplate
 
-# --- Template definitions ---
+# ---------------------------------------------------------------------------
+# Level test — rubric + JSON contract (single + batch)
+# ---------------------------------------------------------------------------
+
+LEVEL_TEST_ASSESSMENT_RUBRIC = """
+You are an expert assessment designer.
+
+Generate multiple-choice questions (MCQs) using ONLY the reference material in this prompt
+(course content from the knowledge base). Do not rely on outside facts.
+
+General principles:
+- Each question tests one clear idea: definitions, distinctions, applying a rule, reading code,
+  predicting behaviour, or spotting errors — not memorizing document structure or labels.
+- Do NOT ask which step is first, second, or Nth in a procedure or workflow (e.g. “première étape”,
+  “first step”, “quel est le deuxième pas”). That only tests memorized order. Instead ask what a
+  phase means, why it matters, or how two phases differ.
+- Every statement you assert (including in options and in the explanation) must be faithful to the
+  reference and internally consistent.
+- For programming (C, control flow, types): double-check semantics before output JSON.
+- Avoid trivial “identify the symbol” items (e.g. “quel opérateur est / ?”). Prefer behaviour questions
+  (ex: division entière vs réelle selon le type, précédence, effet de `break`, portée d’une variable, etc.).
+- Same language as the reference (French or English). If the reference is French, write EVERYTHING in French.
+- Exactly 4 options; exactly 1 correct; short explanation (1–3 sentences).
+- No catch-all options (“none/all of the above”, or equivalent).
+- Each row lists a topic string. The question MUST address that topic.
+- If the question compares two constructs (e.g. while vs do-while, if vs switch), make each option explicit
+  about WHICH construct it refers to (avoid vague options that could apply to either).
+""".strip()
+
+LEVEL_TEST_QUALITY_RULES = """
+Checklist before output:
+- `correct_answer` is character-for-character identical to one of the four `options`.
+- The question matches the given topic; the explanation justifies the chosen option.
+""".strip()
+
+LEVEL_TEST_JSON_OUTPUT_CONTRACT = """
+OUTPUT (machine-readable JSON — required for the API):
+Return STRICT JSON only (no markdown fences). One object with keys:
+  - "question" (string)
+  - "options" (array of exactly 4 strings)
+  - "correct_answer" (string, must match one element of "options" exactly)
+  - "difficulty" (string: "easy" | "medium" | "hard")
+  - "explanation" (string, 1–3 sentences)
+  - "topic" (string)
+""".strip()
 
 LEVEL_TEST_QUESTION_TEMPLATE = PromptTemplate(
     input_variables=["subject", "difficulty", "topic"],
-    template="""Generate one educational multiple-choice question for first-year students.
+    template="""You are an expert assessment designer.
+
+Generate exactly ONE level-test multiple-choice question.
 
 Subject: {subject}
 Difficulty level: {difficulty}
-Topic to test: {topic}
+Topic / concept to target: {topic}
 
-Instructions:
-- Generate exactly one question that tests {topic} in {subject}.
-- The difficulty should match {difficulty}.
-- Return your response in JSON format with these keys:
-  - question (string): the question text
-  - options (array of 4 strings): four answer choices
-  - correct_answer (string): the correct option text
-  - explanation (string): brief explanation of the correct answer
-- Make it suitable for first-year students.
-
-JSON response:""",
+The course content will follow in a section labelled COURSE CONTENT. Base the question ONLY on that content.
+""",
 )
+
+LEVEL_TEST_BATCH_JSON_SCHEMA = """
+JSON OUTPUT (strict):
+Reply with ONLY a JSON array of {count} objects. Each object must include:
+  - "question" (string)
+  - "options" (array of exactly 4 strings)
+  - "correct_answer" (string, must exactly equal one of the four options)
+  - "difficulty" ("easy" | "medium" | "hard")
+  - "explanation" (string, 1–3 sentences)
+  - "topic" (string)
+
+You may use short keys instead: "q", "o", "a", "d", "t", "e" (e = explanation).
+""".strip()
+
+
+def get_level_test_prompt(subject, difficulty, topic):
+    base = LEVEL_TEST_QUESTION_TEMPLATE.format(subject=subject, difficulty=difficulty, topic=topic)
+    return "\n".join(
+        [
+            base,
+            "",
+            LEVEL_TEST_ASSESSMENT_RUBRIC,
+            "",
+            LEVEL_TEST_QUALITY_RULES,
+            "",
+            LEVEL_TEST_JSON_OUTPUT_CONTRACT,
+        ]
+    )
+
+
+def build_level_test_batch_prompt(
+    subject: str,
+    topic_difficulty_specs: str,
+    reference_material: str,
+    count: int,
+    diversity_seed: str | None = None,
+    max_ref_chars: int = 2800,
+) -> str:
+    ref = (reference_material or "").strip()
+    if len(ref) > max_ref_chars:
+        ref = ref[:max_ref_chars]
+    seed_line = f"DIVERSITY SEED: {diversity_seed}\n\n" if diversity_seed else ""
+    return (
+        f"{LEVEL_TEST_ASSESSMENT_RUBRIC}\n\n"
+        f"{LEVEL_TEST_QUALITY_RULES}\n\n"
+        f"Subject: {subject}\n\n"
+        f"Generate exactly {count} MCQs. One row per item:\n{topic_difficulty_specs}\n\n"
+        "Coverage: each row lists topic and difficulty — question i MUST address topic i only.\n\n"
+        f"{seed_line}"
+        f"REFERENCE MATERIAL (only source of truth — from course database / RAG):\n{ref}\n\n"
+        f"{LEVEL_TEST_BATCH_JSON_SCHEMA.format(count=count)}\n"
+        "JSON:"
+    )
+
 
 MULTIPLE_QUESTIONS_TEMPLATE = PromptTemplate(
     input_variables=["subject", "difficulty", "number_of_questions", "topics"],
@@ -66,19 +157,6 @@ Instructions:
 
 JSON response:""",
 )
-
-# --- Helper functions ---
-
-
-def get_level_test_prompt(subject, difficulty, topic):
-    """
-    Returns a formatted prompt string using LEVEL_TEST_QUESTION_TEMPLATE.
-    """
-    return LEVEL_TEST_QUESTION_TEMPLATE.format(
-        subject=subject,
-        difficulty=difficulty,
-        topic=topic,
-    )
 
 
 def get_multiple_questions_prompt(subject, difficulty, num_questions, topics):
