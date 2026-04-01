@@ -55,6 +55,11 @@ export class AdaptiveLearningController {
     return this.adaptiveService.findAllPerformances();
   }
 
+  @Get("performances/:id")
+  findPerformanceById(@Param("id") id: string) {
+    return this.adaptiveService.findPerformanceById(id);
+  }
+
   @Get("performances/student/:studentId")
   findPerformanceByStudent(@Param("studentId") studentId: string) {
     return this.adaptiveService.findPerformanceByStudent(studentId);
@@ -68,6 +73,11 @@ export class AdaptiveLearningController {
   @Delete("performances/:id")
   deletePerformance(@Param("id") id: string) {
     return this.adaptiveService.deletePerformance(id);
+  }
+
+  @Patch("performances/:id")
+  updatePerformance(@Param("id") id: string, @Body() updateData: any) {
+    return this.adaptiveService.updatePerformance(id, updateData);
   }
 
   // ── Difficulty Adaptation ───────────
@@ -154,6 +164,16 @@ export class AdaptiveLearningController {
     return this.adaptiveService.createRecommendation(dto);
   }
 
+  @Get("recommendations")
+  findAllRecommendations() {
+    return this.adaptiveService.findAllRecommendations();
+  }
+
+  @Get("recommendations/:id")
+  findRecommendationById(@Param("id") id: string) {
+    return this.adaptiveService.findRecommendationById(id);
+  }
+
   @Get("recommendations/student/:studentId")
   findRecommendationsByStudent(@Param("studentId") studentId: string) {
     return this.adaptiveService.findRecommendationsByStudent(studentId);
@@ -162,6 +182,11 @@ export class AdaptiveLearningController {
   @Patch("recommendations/:id/viewed")
   markViewed(@Param("id") id: string) {
     return this.adaptiveService.markRecommendationViewed(id);
+  }
+
+  @Patch("recommendations/:id")
+  updateRecommendation(@Param("id") id: string, @Body() updateData: any) {
+    return this.adaptiveService.updateRecommendation(id, updateData);
   }
 
   @Delete("recommendations/:id")

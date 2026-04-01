@@ -1,15 +1,26 @@
-import { Component, OnInit, Input } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Input,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
+import { AuthService } from '../auth.service';
+import { AdaptiveLearningService } from '../adaptive-learning.service';
 
 @Component({
   selector: 'app-performance-history',
   templateUrl: './performance-history.component.html',
-  styleUrls: ['./performance-history.component.css']
+  styleUrls: ['./performance-history.component.css'],
 })
 export class PerformanceHistoryComponent implements OnInit {
-
   @Input() performances: any[] = [];
-  
-  Math = Math; 
+  @Input() adaptiveProfile: any = null;
+  @Input() studentId: string = '';
+
+  loading = false;
+
+  Math = Math;
 
   // Filtres
   selectedTopic = 'all';
@@ -22,16 +33,65 @@ export class PerformanceHistoryComponent implements OnInit {
 
   topics: string[] = [];
 
+  constructor(
+    private authService: AuthService,
+    private adaptiveService: AdaptiveLearningService,
+  ) {}
+
   ngOnInit(): void {
+    if (!this.performances || this.performances.length === 0) {
+      this.loadStandaloneData();
+      return;
+    }
+
     this.extractTopics();
   }
 
-  ngOnChanges(): void {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['performances'] && this.performances) {
+      this.currentPage = 1;
+    }
     this.extractTopics();
+  }
+
+  private loadStandaloneData(): void {
+    const user = this.authService.getUser();
+    const resolvedStudentId = this.studentId || user?._id || user?.id;
+
+    if (!resolvedStudentId) {
+      this.performances = [];
+      this.extractTopics();
+      return;
+    }
+
+    this.studentId = resolvedStudentId;
+    this.loading = true;
+
+    if (!this.adaptiveProfile) {
+      this.adaptiveService.getProfile(resolvedStudentId).subscribe({
+        next: (data) => {
+          this.adaptiveProfile = data;
+        },
+        error: () => {},
+      });
+    }
+
+    this.adaptiveService.getPerformances(resolvedStudentId).subscribe({
+      next: (data) => {
+        this.performances = data || [];
+        this.extractTopics();
+        this.loading = false;
+      },
+      error: () => {
+        this.performances = [];
+        this.extractTopics();
+        this.loading = false;
+      },
+    });
   }
 
   extractTopics(): void {
-    const all = this.performances.map(p => p.topic || 'general');
+    const all = this.performances.map((p) => p.topic || 'general');
     this.topics = ['all', ...new Set(all)];
   }
 
@@ -40,30 +100,28 @@ export class PerformanceHistoryComponent implements OnInit {
 
     // Filtre topic
     if (this.selectedTopic !== 'all') {
-      data = data.filter(p =>
-        (p.topic || 'general') === this.selectedTopic
-      );
+      data = data.filter((p) => (p.topic || 'general') === this.selectedTopic);
     }
 
     // Filtre difficulty
     if (this.selectedDifficulty !== 'all') {
-      data = data.filter(p =>
-        (p.difficulty || 'beginner') === this.selectedDifficulty
+      data = data.filter(
+        (p) => (p.difficulty || 'beginner') === this.selectedDifficulty,
       );
     }
 
     // Sort
     data.sort((a, b) => {
       if (this.sortBy === 'date_desc')
-        return new Date(b.attemptDate).getTime() -
-               new Date(a.attemptDate).getTime();
+        return (
+          new Date(b.attemptDate).getTime() - new Date(a.attemptDate).getTime()
+        );
       if (this.sortBy === 'date_asc')
-        return new Date(a.attemptDate).getTime() -
-               new Date(b.attemptDate).getTime();
-      if (this.sortBy === 'score_desc')
-        return b.score - a.score;
-      if (this.sortBy === 'score_asc')
-        return a.score - b.score;
+        return (
+          new Date(a.attemptDate).getTime() - new Date(b.attemptDate).getTime()
+        );
+      if (this.sortBy === 'score_desc') return b.score - a.score;
+      if (this.sortBy === 'score_asc') return a.score - b.score;
       return 0;
     });
 
@@ -96,16 +154,16 @@ export class PerformanceHistoryComponent implements OnInit {
   }
 
   getDifficultyColor(difficulty: string): string {
-    if (difficulty === 'advanced')
-      return 'text-green-700 bg-green-100';
-    if (difficulty === 'intermediate')
-      return 'text-blue-700 bg-blue-100';
+    if (difficulty === 'advanced') return 'text-green-700 bg-green-100';
+    if (difficulty === 'intermediate') return 'text-blue-700 bg-blue-100';
     return 'text-orange-700 bg-orange-100';
   }
 
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric'
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
     });
   }
 

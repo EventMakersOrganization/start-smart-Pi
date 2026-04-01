@@ -1581,7 +1581,3 @@ async def recommendations_personalized(body: PersonalizedRecommendationsRequest)
         ai_monitor.record_request("/recommendations/personalized", time.time() - t0, False, {"error": str(e)})
         logger.exception("recommendations/personalized error")
         raise HTTPException(status_code=500, detail=f"Personalized recommendations failed: {e}")
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)

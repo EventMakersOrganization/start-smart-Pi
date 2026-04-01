@@ -30,6 +30,8 @@ import { GoalSettingComponent } from './goal-setting/goal-setting.component';
 import { BadgeDisplayComponent } from './badge-display/badge-display.component';
 import { PeerComparisonComponent } from './peer-comparison/peer-comparison.component';
 import { StudyPlannerComponent } from './study-planner/study-planner.component';
+import { MyCoursesComponent } from './my-courses/my-courses.component';
+import { ContinueLearningComponent } from './continue-learning/continue-learning.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -88,6 +90,30 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['student'] },
       },
+      {
+        path: 'my-courses',
+        component: MyCoursesComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'performance',
+        component: PerformanceHistoryComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'learning-path',
+        component: LearningPathComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'continue-learning/:courseId',
+        component: ContinueLearningComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
     ],
   },
   {
@@ -125,6 +151,11 @@ const routes: Routes = [
     redirectTo: 'student-dashboard/badges',
     pathMatch: 'full',
   },
+  {
+    path: 'my-courses',
+    redirectTo: 'student-dashboard/my-courses',
+    pathMatch: 'full',
+  },
 ];
 
 @NgModule({
@@ -150,6 +181,8 @@ const routes: Routes = [
     BadgeDisplayComponent,
     PeerComparisonComponent,
     StudyPlannerComponent,
+    MyCoursesComponent,
+    ContinueLearningComponent,
   ],
   imports: [
     CommonModule,

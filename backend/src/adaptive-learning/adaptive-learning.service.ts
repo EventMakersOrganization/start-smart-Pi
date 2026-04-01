@@ -110,6 +110,13 @@ export class AdaptiveLearningService {
     return this.performanceModel.find().exec();
   }
 
+  async findPerformanceById(id: string): Promise<StudentPerformance> {
+    const performance = await this.performanceModel.findById(id).exec();
+    if (!performance)
+      throw new NotFoundException(`Performance ${id} not found`);
+    return performance;
+  }
+
   async findPerformanceByStudent(
     studentId: string,
   ): Promise<StudentPerformance[]> {
@@ -121,6 +128,17 @@ export class AdaptiveLearningService {
 
   async deletePerformance(id: string): Promise<void> {
     await this.performanceModel.findByIdAndDelete(id).exec();
+  }
+
+  async updatePerformance(
+    id: string,
+    updateData: Partial<StudentPerformance>,
+  ): Promise<StudentPerformance> {
+    const updated = await this.performanceModel
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .exec();
+    if (!updated) throw new NotFoundException(`Performance ${id} not found`);
+    return updated;
   }
 
   async getAverageScore(studentId: string): Promise<number> {
@@ -3267,12 +3285,34 @@ export class AdaptiveLearningService {
       .exec();
   }
 
+  async findAllRecommendations(): Promise<Recommendation[]> {
+    return this.recommendationModel.find().sort({ generatedAt: -1 }).exec();
+  }
+
+  async findRecommendationById(id: string): Promise<Recommendation> {
+    const recommendation = await this.recommendationModel.findById(id).exec();
+    if (!recommendation)
+      throw new NotFoundException(`Recommendation ${id} not found`);
+    return recommendation;
+  }
+
   async markRecommendationViewed(id: string): Promise<Recommendation> {
     const rec = await this.recommendationModel
       .findByIdAndUpdate(id, { isViewed: true }, { new: true })
       .exec();
     if (!rec) throw new NotFoundException(`Recommendation ${id} not found`);
     return rec;
+  }
+
+  async updateRecommendation(
+    id: string,
+    updateData: Partial<Recommendation>,
+  ): Promise<Recommendation> {
+    const updated = await this.recommendationModel
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .exec();
+    if (!updated) throw new NotFoundException(`Recommendation ${id} not found`);
+    return updated;
   }
 
   async deleteRecommendation(id: string): Promise<void> {

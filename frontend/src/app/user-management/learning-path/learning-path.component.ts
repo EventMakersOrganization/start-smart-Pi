@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
+import { AuthService } from '../auth.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -32,11 +33,22 @@ export class LearningPathComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private adaptiveLearningService: AdaptiveLearningService) {}
+  constructor(
+    private adaptiveLearningService: AdaptiveLearningService,
+    private authService: AuthService,
+  ) {}
 
   ngOnInit(): void {
+    if (!this.studentId) {
+      const user = this.authService.getUser();
+      this.studentId = user?._id || user?.id || '';
+    }
+
     if (this.studentId) {
       this.loadLearningPath();
+    } else {
+      this.loading = false;
+      this.error = 'Student not found';
     }
   }
 

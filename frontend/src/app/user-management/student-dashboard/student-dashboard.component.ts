@@ -358,7 +358,11 @@ export class StudentDashboardComponent implements OnInit {
       this.router.url.includes('/student-dashboard/level-test') ||
       this.router.url.includes('/student-dashboard/level-test-result') ||
       this.router.url.includes('/student-dashboard/goal-setting') ||
-      this.router.url.includes('/student-dashboard/badges')
+      this.router.url.includes('/student-dashboard/badges') ||
+      this.router.url.includes('/student-dashboard/my-courses') ||
+      this.router.url.includes('/student-dashboard/performance') ||
+      this.router.url.includes('/student-dashboard/learning-path') ||
+      this.router.url.includes('/student-dashboard/continue-learning')
     );
   }
 

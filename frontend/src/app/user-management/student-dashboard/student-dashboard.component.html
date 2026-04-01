@@ -32,7 +32,13 @@
         <span class="material-symbols-outlined">dashboard</span> Dashboard
       </a>
       <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        (click)="activeNav = 'my-courses'"
+        routerLink="/student-dashboard/my-courses"
+        [class]="
+          activeNav === 'my-courses'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
       >
         <span class="material-symbols-outlined">book_4</span> My Courses
       </a>
@@ -43,12 +49,24 @@
         <span class="material-symbols-outlined">quiz</span> Level Test
       </a>
       <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        (click)="activeNav = 'performance'"
+        routerLink="/student-dashboard/performance"
+        [class]="
+          activeNav === 'performance'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
       >
         <span class="material-symbols-outlined">analytics</span> Performance
       </a>
       <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        (click)="activeNav = 'learning-path'"
+        routerLink="/student-dashboard/learning-path"
+        [class]="
+          activeNav === 'learning-path'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
       >
         <span class="material-symbols-outlined">route</span> Learning Path
       </a>
@@ -633,24 +651,6 @@
           </p>
         </div>
 
-        <!-- ── Progress Charts ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">Performance Analytics</h3>
-              <p class="text-sm text-slate-500">
-                Visual overview of your learning progress
-              </p>
-            </div>
-          </div>
-          <app-progress-charts
-            [performances]="performances"
-            [adaptiveProfile]="adaptiveProfile"
-            [studentId]="user?._id || user?.id"
-          >
-          </app-progress-charts>
-        </div>
-
         <!-- ── Peer Comparison ── -->
         <div class="col-span-12">
           <app-peer-comparison
@@ -681,31 +681,6 @@
             [adaptiveProfile]="adaptiveProfile"
           >
           </app-skill-mastery>
-        </div>
-
-        <!-- ── Learning Path Visualization ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">Your Learning Path</h3>
-              <p class="text-sm text-slate-500">
-                Follow your personalized journey to your learning goal
-              </p>
-            </div>
-          </div>
-          <app-learning-path [studentId]="user?._id || user?.id">
-          </app-learning-path>
-        </div>
-        <!-- ── Performance History ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">Performance History</h3>
-              <p class="text-sm text-slate-500">All your completed exercises</p>
-            </div>
-          </div>
-          <app-performance-history [performances]="performances">
-          </app-performance-history>
         </div>
       </div>
     </div>
