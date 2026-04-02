@@ -52,6 +52,14 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       })
     );
+
+    this.subs.push(
+      this.chatSocketService.onMessageDeleted().subscribe((data: any) => {
+        if (this.currentSessionId) {
+          this.messages = this.messages.filter(m => m._id !== data.messageId);
+        }
+      })
+    );
   }
 
   ngOnDestroy() {
@@ -116,6 +124,33 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatSocketService.sendMessage('ChatAi', this.currentSessionId, this.newMessage);
     this.isAiTyping = true; // Show AI thinking since we know it's AI chat
     this.newMessage = '';
+  }
+
+  deleteMessage(messageId: string) {
+    if (confirm('Are you sure you want to delete this message?')) {
+      this.chatSocketService.deleteMessage(messageId, this.currentSessionId!);
+    }
+  }
+
+  deleteSession(event: Event, sessionId: string) {
+    event.stopPropagation(); // Prevent loading the session when clicking delete
+    if (confirm('Are you sure you want to delete this Entire conversation? This action cannot be undone.')) {
+      this.chatApiService.deleteAiSession(sessionId).subscribe({
+        next: () => {
+          this.sessions = this.sessions.filter(s => s._id !== sessionId);
+          if (this.currentSessionId === sessionId) {
+            this.currentSessionId = null;
+            this.currentSessionTitle = '';
+            this.messages = [];
+            // Optionally load the next session if it exists
+            if (this.sessions.length > 0) {
+              this.loadSession(this.sessions[0]._id, this.sessions[0].title);
+            }
+          }
+        },
+        error: (err) => console.error('Error deleting session', err)
+      });
+    }
   }
 
   getDashboardRoute(): string {

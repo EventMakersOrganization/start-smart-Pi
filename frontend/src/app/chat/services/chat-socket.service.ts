@@ -60,4 +60,14 @@ export class ChatSocketService {
       this.socket?.on('userStatus', (data) => observer.next(data));
     });
   }
+
+  deleteMessage(messageId: string, sessionId: string) {
+    this.socket?.emit('deleteMessage', { messageId, sessionId });
+  }
+
+  onMessageDeleted(): Observable<any> {
+    return new Observable(observer => {
+      this.socket?.on('messageDeleted', (data) => observer.next(data));
+    });
+  }
 }

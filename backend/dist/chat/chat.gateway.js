@@ -127,6 +127,16 @@ let ChatGateway = class ChatGateway {
             });
         }
     }
+    async handleDeleteMessage(client, payload) {
+        const userId = client.data.user.id;
+        try {
+            await this.chatService.deleteMessage(payload.messageId, userId);
+            this.server.to(payload.sessionId).emit('messageDeleted', { messageId: payload.messageId });
+        }
+        catch (e) {
+            this.logger.error(`Failed to delete message: ${e.message}`);
+        }
+    }
 };
 exports.ChatGateway = ChatGateway;
 __decorate([
@@ -169,6 +179,15 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
     __metadata("design:returntype", Promise)
 ], ChatGateway.prototype, "handleTyping", null);
+__decorate([
+    (0, common_1.UseGuards)(ws_jwt_guard_1.WsJwtGuard),
+    (0, websockets_1.SubscribeMessage)('deleteMessage'),
+    __param(0, (0, websockets_1.ConnectedSocket)()),
+    __param(1, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
+    __metadata("design:returntype", Promise)
+], ChatGateway.prototype, "handleDeleteMessage", null);
 exports.ChatGateway = ChatGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({ cors: { origin: '*' } }),
     __metadata("design:paramtypes", [chat_service_1.ChatService,

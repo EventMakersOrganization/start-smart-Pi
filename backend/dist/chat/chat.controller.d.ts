@@ -33,4 +33,6 @@ export declare class ChatController {
     }): Promise<import("mongoose").Document<unknown, {}, import("./schemas/chat-message.schema").ChatMessageDocument> & import("./schemas/chat-message.schema").ChatMessage & import("mongoose").Document<any, any, any> & {
         _id: import("mongoose").Types.ObjectId;
     }>;
+    deleteMessage(req: any, messageId: string): Promise<any>;
+    deleteAiSession(req: any, sessionId: string): Promise<any>;
 }

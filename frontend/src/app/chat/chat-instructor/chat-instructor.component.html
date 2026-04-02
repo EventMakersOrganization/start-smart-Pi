@@ -71,10 +71,14 @@
               <div class="size-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-xs overflow-hidden">
                 <span class="material-symbols-outlined text-sm">person</span>
               </div>
-              <div class="space-y-2 text-right">
+              <div class="space-y-2 text-right relative group">
                 <div class="bg-primary p-5 rounded-2xl rounded-tr-none shadow-lg shadow-primary/20 text-white inline-block">
                   <p class="text-sm leading-relaxed text-left" [innerHTML]="msg.content"></p>
                 </div>
+                <!-- Delete Button -->
+                <button (click)="deleteMessage(msg._id)" class="absolute -left-10 top-1/2 -translate-y-1/2 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-100 shadow-sm" title="Delete message">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                </button>
                 <div class="flex justify-end items-center gap-1.5 mr-1">
                   <span class="text-[10px] text-slate-400 font-medium">YOU • {{ msg.createdAt | date:'shortTime' }}</span>
                   <span class="material-symbols-outlined text-xs text-primary">done_all</span>

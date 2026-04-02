@@ -145,6 +145,27 @@ let ChatService = class ChatService {
             return false;
         }
     }
+    async deleteMessage(messageId, userId) {
+        const message = await this.chatMessageModel.findById(messageId);
+        if (!message) {
+            throw new common_1.NotFoundException('Message not found');
+        }
+        if (message.sender.toString() !== userId) {
+            throw new common_1.UnauthorizedException('You can only delete your own messages');
+        }
+        return this.chatMessageModel.findByIdAndDelete(messageId);
+    }
+    async deleteAiSession(sessionId, userId) {
+        const session = await this.chatAiModel.findById(sessionId);
+        if (!session) {
+            throw new common_1.NotFoundException('AI Session not found');
+        }
+        if (session.student.toString() !== userId) {
+            throw new common_1.UnauthorizedException('You can only delete your own AI sessions');
+        }
+        await this.chatMessageModel.deleteMany({ sessionType: 'ChatAi', sessionId });
+        return this.chatAiModel.findByIdAndDelete(sessionId);
+    }
 };
 exports.ChatService = ChatService;
 exports.ChatService = ChatService = __decorate([

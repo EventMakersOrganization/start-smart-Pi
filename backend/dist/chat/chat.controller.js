@@ -50,6 +50,12 @@ let ChatController = class ChatController {
             content: body.content,
         });
     }
+    async deleteMessage(req, messageId) {
+        return this.chatService.deleteMessage(messageId, req.user.id);
+    }
+    async deleteAiSession(req, sessionId) {
+        return this.chatService.deleteAiSession(sessionId, req.user.id);
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -100,6 +106,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "sendMessage", null);
+__decorate([
+    (0, common_1.Delete)('message/:id'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "deleteMessage", null);
+__decorate([
+    (0, common_1.Delete)('ai/session/:id'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "deleteAiSession", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('chat'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

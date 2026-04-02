@@ -34,4 +34,8 @@ export class ChatApiService {
     const t = new Date().getTime();
     return this.http.get(`http://localhost:3000/api/user?role=${role}&t=${t}`);
   }
+
+  deleteAiSession(sessionId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/ai/session/${sessionId}`);
+  }
 }

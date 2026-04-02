@@ -38,4 +38,6 @@ export declare class ChatService {
         _id: import("mongoose").Types.ObjectId;
     }>;
     isParticipant(sessionType: string, sessionId: string, userId: string): Promise<boolean>;
+    deleteMessage(messageId: string, userId: string): Promise<any>;
+    deleteAiSession(sessionId: string, userId: string): Promise<any>;
 }

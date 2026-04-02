@@ -148,13 +148,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleTyping(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionId: string, sessionType: string, isTyping: boolean }) {
     const userId = client.data.user.id;
     const isAllowed = await this.chatService.isParticipant(payload.sessionType, payload.sessionId, userId);
-    
+
     if (isAllowed) {
       client.broadcast.to(payload.sessionId).emit('userTyping', {
         sessionId: payload.sessionId,
         sender: userId,
         isTyping: payload.isTyping
       });
+    }
+  }
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('deleteMessage')
+  async handleDeleteMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { messageId: string, sessionId: string }) {
+    const userId = client.data.user.id;
+    try {
+      await this.chatService.deleteMessage(payload.messageId, userId);
+      // Notify all clients in the room that a message was deleted
+      this.server.to(payload.sessionId).emit('messageDeleted', { messageId: payload.messageId });
+    } catch (e) {
+      this.logger.error(`Failed to delete message: ${e.message}`);
     }
   }
 }

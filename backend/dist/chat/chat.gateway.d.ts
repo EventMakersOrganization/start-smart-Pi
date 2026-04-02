@@ -28,4 +28,8 @@ export declare class ChatGateway implements OnGatewayConnection, OnGatewayDiscon
         sessionType: string;
         isTyping: boolean;
     }): Promise<void>;
+    handleDeleteMessage(client: Socket, payload: {
+        messageId: string;
+        sessionId: string;
+    }): Promise<void>;
 }
