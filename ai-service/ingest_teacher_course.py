@@ -37,7 +37,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger("ingest")
 
-TEACHER_ROOT = Path(r"C:\Users\kmarb\Downloads\pi\Support_Cours_Préparation")
+TEACHER_ROOT = Path(r"C:\Users\oussa.LAPTOP-THCQB19P\Downloads\Support_Cours_Préparation\Support_Cours_Préparation")
 
 # ── Chapter metadata extracted from fiche module ─────────────────────────
 # folder_num -> (title, description/objectives)
