@@ -3,6 +3,7 @@ import {
   OnInit,
   OnDestroy,
   Input,
+  HostListener,
   OnChanges,
   SimpleChanges,
   ChangeDetectionStrategy,
@@ -77,7 +78,13 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
 
       this.buildCharts();
       this.cdr.markForCheck();
-    }, 150);
+    }, 220);
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    if (!this.hasAnalyticsData()) return;
+    this.rebuildCharts();
   }
 
   private loadTracking(): void {
@@ -112,22 +119,28 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   buildCharts(): void {
-    const builders = [
-      this.buildScoreLineChart,
-      this.buildTopicBarChart,
-      this.buildDifficultyDoughnut,
-      this.buildTimeSpentChart,
-      this.buildRadarChart,
-      this.buildCumulativeLineChart,
-    ];
+    // Ensure DOM is updated before building charts
+    setTimeout(() => {
+      const builders = [
+        this.buildScoreLineChart,
+        this.buildTopicBarChart,
+        this.buildDifficultyDoughnut,
+        this.buildTimeSpentChart,
+        this.buildRadarChart,
+        this.buildCumulativeLineChart,
+      ];
 
-    builders.forEach((builder) => {
-      try {
-        builder.call(this);
-      } catch (error) {
-        console.error('Chart render error:', error);
-      }
-    });
+      builders.forEach((builder) => {
+        try {
+          builder.call(this);
+        } catch (error) {
+          console.error('Chart render error:', error);
+        }
+      });
+
+      // Force Chart.js to recalculate layout
+      this.cdr.markForCheck();
+    }, 50);
   }
 
   // ── 1. Score Evolution (Line Chart) ──────────
@@ -141,8 +154,11 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     if (existingChart) existingChart.destroy();
 
     const source = this.getRecentScorePoints();
+    if (source.length === 0) return;
+
+    // Add padding for visual balance with few data points
     const labels = source.map((p, i) =>
-      p.topic ? `${p.topic} #${i + 1}` : `Exercise ${i + 1}`,
+      p.topic ? `${p.topic}` : `Exercise ${i + 1}`,
     );
     const scores = source.map((p) => p.score);
 
@@ -158,20 +174,27 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             backgroundColor: 'rgba(17, 82, 212, 0.08)',
             borderWidth: 2.5,
             pointBackgroundColor: '#1152D4',
-            pointRadius: 5,
-            pointHoverRadius: 7,
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
             fill: true,
-            tension: 0.4,
+            tension: 0.3,
           },
         ],
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            padding: 12,
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
             callbacks: {
-              label: (ctx) => ` Score: ${ctx.parsed.y}%`,
+              label: (ctx: any) => ` Score: ${ctx.parsed.y}%`,
             },
           },
         },
@@ -180,14 +203,19 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             min: 0,
             max: 100,
             ticks: {
-              callback: (val) => `${val}%`,
+              callback: (val: any) => `${val}%`,
               stepSize: 20,
+              padding: 8,
+              font: { size: 11 },
             },
-            grid: { color: 'rgba(0,0,0,0.05)' },
+            grid: { color: 'rgba(0,0,0,0.05)', display: true },
           },
           x: {
             grid: { display: false },
-            ticks: { maxRotation: 30 },
+            ticks: {
+              padding: 8,
+              font: { size: 11 },
+            },
           },
         },
       },
@@ -220,24 +248,31 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     const chart = new Chart(canvas, {
       type: 'bar',
       data: {
-        labels: topics,
+        labels: topics.map((t) => this.shortenLabel(t)),
         datasets: [
           {
-            label: 'Avg Score',
+            label: 'Average Score',
             data: averages,
             backgroundColor: colors,
             borderRadius: 8,
             borderSkipped: false,
+            borderWidth: 0,
+            hoverBackgroundColor: colors.map((c) => c.replace('0.8', '1')),
           },
         ],
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            padding: 12,
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
             callbacks: {
-              label: (ctx) => ` Average: ${ctx.parsed.y}%`,
+              label: (ctx: any) => ` Score: ${ctx.parsed.y}%`,
             },
           },
         },
@@ -245,15 +280,31 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
           y: {
             min: 0,
             max: 100,
-            ticks: { callback: (val) => `${val}%` },
-            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: {
+              callback: (val: any) => `${val}%`,
+              padding: 8,
+              font: { size: 11 },
+            },
+            grid: { color: 'rgba(0,0,0,0.05)', display: true },
           },
-          x: { grid: { display: false } },
+          x: {
+            grid: { display: false },
+            ticks: {
+              padding: 8,
+              font: { size: 11, weight: 'bold' },
+            },
+          },
         },
       },
     });
 
     this.charts.push(chart);
+  }
+
+  private shortenLabel(label: string): string {
+    const maxLength = 15;
+    if (label.length <= maxLength) return label;
+    return label.substring(0, maxLength) + '...';
   }
 
   // ── 3. Difficulty Distribution (Doughnut) ────
@@ -287,6 +338,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         cutout: '70%',
         plugins: {
           legend: {
@@ -332,19 +384,20 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         indexAxis: 'y',
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx) => ` ${ctx.parsed.x} min`,
+              label: (ctx: any) => ` ${ctx.parsed.x} min`,
             },
           },
         },
         scales: {
           x: {
             ticks: {
-              callback: (val) => `${val} min`,
+              callback: (val: any) => `${val} min`,
             },
             grid: { color: 'rgba(0,0,0,0.05)' },
           },
@@ -370,7 +423,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     const topicsData = this.getTimeSpentByTopic();
     if (topicsData.length === 0) return;
 
-    const topics = topicsData.map((item) => item.topic);
+    const topics = topicsData.map((item) => this.shortenLabel(item.topic));
     const minutes = topicsData.map((item) => Math.round(item.minutes));
 
     const maxIndex = Math.max(topicsData.length - 1, 1);
@@ -385,31 +438,41 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         labels: topics,
         datasets: [
           {
-            label: 'Minutes',
+            label: 'Time Spent',
             data: minutes,
             backgroundColor: barColors,
             borderRadius: 8,
             borderSkipped: false,
+            borderWidth: 0,
+            hoverBackgroundColor: barColors.map((c) =>
+              c.replace(/[\d.]+\)$/, (match) => {
+                const alpha = parseFloat(match.slice(0, -1));
+                return Math.min(alpha + 0.15, 1).toFixed(2) + ')';
+              }),
+            ),
           },
         ],
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         indexAxis: 'y',
         plugins: {
           legend: { display: false },
-          title: {
-            display: true,
-            text: 'Time Spent per Topic',
-            font: { size: 14, weight: 'bold' },
-            padding: { bottom: 12 },
-          },
           tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            padding: 12,
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
             callbacks: {
-              label: (ctx) => {
-                const topic = String(ctx.label || 'topic');
+              label: (ctx: any) => {
                 const value = Number(ctx.parsed.x || 0);
-                return `${value} minutes spent on ${topic}`;
+                const hours = Math.floor(value / 60);
+                const remainingMins = value % 60;
+                if (hours > 0) {
+                  return ` ${hours}h ${remainingMins}min`;
+                }
+                return ` ${value} minutes`;
               },
             },
           },
@@ -419,14 +482,21 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             title: {
               display: true,
               text: 'Minutes',
+              font: { size: 12, weight: 'bold' },
             },
             ticks: {
-              callback: (val) => `${val} min`,
+              callback: (val: any) => `${val}m`,
+              padding: 8,
+              font: { size: 11 },
             },
-            grid: { color: 'rgba(0,0,0,0.05)' },
+            grid: { color: 'rgba(0,0,0,0.05)', display: true },
           },
           y: {
             grid: { display: false },
+            ticks: {
+              padding: 8,
+              font: { size: 11, weight: 'bold' },
+            },
           },
         },
       },
@@ -722,6 +792,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             position: 'top',
@@ -729,7 +800,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
           },
           tooltip: {
             callbacks: {
-              label: (ctx) => ` ${ctx.parsed.r}%`,
+              label: (ctx: any) => ` ${ctx.parsed.r}%`,
             },
           },
         },
@@ -740,7 +811,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             max: 100,
             ticks: {
               stepSize: 20,
-              callback: (val) => `${val}%`,
+              callback: (val: any) => `${val}%`,
               font: { size: 10 },
             },
             grid: { color: 'rgba(0, 0, 0, 0.08)' },
@@ -768,7 +839,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     const points = this.getRecentScorePoints();
     if (points.length === 0) return;
 
-    const labels = points.map((_, i) => `#${i + 1}`);
+    const labels = points.map((_, i) => `Attempt #${i + 1}`);
     const scores = points.map((p) => p.score);
 
     // Calculate cumulative average
@@ -779,7 +850,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
       cumulativeAvg.push(Math.round((cumulative / (index + 1)) * 100) / 100);
     });
 
-    // Calculate 3-point moving average
+    // Calculate 3-point moving average (only if we have at least 3 points)
     const movingAvg3: (number | null)[] = scores.map((_, index) => {
       if (index < 2) return null;
       const window = scores.slice(index - 2, index + 1);
@@ -789,60 +860,81 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
       );
     });
 
+    const datasets = [
+      {
+        label: 'Score',
+        data: scores,
+        borderColor: 'rgba(17, 82, 212, 0.8)',
+        backgroundColor: 'rgba(17, 82, 212, 0.08)',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointBackgroundColor: 'rgba(17, 82, 212, 1)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        fill: true,
+        tension: 0.2,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Cumulative Avg',
+        data: cumulativeAvg,
+        borderColor: 'rgba(16, 185, 129, 0.8)',
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        fill: false,
+        tension: 0.3,
+        yAxisID: 'y',
+      },
+    ];
+
+    // Only add moving average if we have enough data points
+    if (scores.length >= 3) {
+      datasets.push({
+        label: '3-Point Moving Avg',
+        data: movingAvg3 as number[],
+        borderColor: 'rgba(249, 115, 22, 0.8)',
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointBackgroundColor: 'rgba(249, 115, 22, 1)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        fill: false,
+        tension: 0.3,
+        yAxisID: 'y',
+      });
+    }
+
     const chart = new Chart(canvas, {
       type: 'line',
       data: {
         labels,
-        datasets: [
-          {
-            label: 'Exercise Score',
-            data: scores,
-            borderColor: 'rgba(17, 82, 212, 0.6)',
-            backgroundColor: 'rgba(17, 82, 212, 0.05)',
-            borderWidth: 1.5,
-            pointRadius: 4,
-            pointBackgroundColor: 'rgba(17, 82, 212, 0.8)',
-            fill: false,
-            tension: 0.2,
-            yAxisID: 'y',
-          },
-          {
-            label: 'Cumulative Average',
-            data: cumulativeAvg,
-            borderColor: 'rgba(16, 185, 129, 0.8)',
-            backgroundColor: 'transparent',
-            borderWidth: 2.5,
-            pointRadius: 4,
-            pointBackgroundColor: 'rgba(16, 185, 129, 1)',
-            fill: false,
-            tension: 0.3,
-            yAxisID: 'y',
-          },
-          {
-            label: '3-Point Moving Avg',
-            data: movingAvg3,
-            borderColor: 'rgba(249, 115, 22, 0.8)',
-            backgroundColor: 'transparent',
-            borderWidth: 2.5,
-            borderDash: [5, 5],
-            pointRadius: 4,
-            pointBackgroundColor: 'rgba(249, 115, 22, 1)',
-            fill: false,
-            tension: 0.3,
-            yAxisID: 'y',
-          },
-        ],
+        datasets,
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             position: 'top',
-            labels: { padding: 12, font: { size: 11 } },
+            labels: {
+              padding: 15,
+              font: { size: 11, weight: 'bold' },
+              usePointStyle: true,
+              pointStyle: 'circle',
+            },
           },
           tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            padding: 12,
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
             callbacks: {
-              label: (ctx) => {
+              label: (ctx: any) => {
                 const datasetLabel = ctx.dataset.label || '';
                 const yValue = ctx.parsed.y ?? 0;
                 return ` ${datasetLabel}: ${yValue.toFixed(1)}%`;
@@ -858,12 +950,18 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             min: 0,
             max: 100,
             ticks: {
-              callback: (val) => `${val}%`,
+              callback: (val: any) => `${val}%`,
+              padding: 8,
+              font: { size: 11 },
             },
-            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+            grid: { color: 'rgba(0, 0, 0, 0.05)', display: true },
           },
           x: {
             grid: { display: false },
+            ticks: {
+              padding: 8,
+              font: { size: 11 },
+            },
           },
         },
       },

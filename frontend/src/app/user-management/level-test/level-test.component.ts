@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
 import { AuthService } from '../auth.service';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-level-test',
@@ -19,6 +20,8 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   currentQuestionIndex = 0;
   loadedQuestionsCount = 0;
   sessionId: string | null = null;
+  loadingNextQuestion = false;
+  nextErrorMessage = '';
   private submittedQuestionIndexes = new Set<number>();
 
   // Format matching backend expectations
@@ -51,7 +54,6 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       `${this.user.first_name || ''} ${this.user.last_name || ''}`.trim() ||
       'Student';
     this.initializeTest();
-    this.startTimer();
   }
 
   ngOnDestroy() {
@@ -70,6 +72,9 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   setupTestFromSession(response: any) {
     const firstQuestion = this.mapQuestion(response?.first_question);
     const totalQuestions = response?.total_questions || 0;
+    const isAiGenerated = !!(
+      response?.isAiGenerated ?? response?.is_ai_generated
+    );
 
     this.sessionId = response?.session_id || null;
     this.loadedQuestionsCount = firstQuestion ? 1 : 0;
@@ -77,6 +82,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
     this.testData = {
       session_id: this.sessionId,
+      isAiGenerated,
       total_questions: totalQuestions,
       questions: Array.from({ length: totalQuestions }).map((_, i) =>
         i === 0 && firstQuestion
@@ -101,6 +107,24 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
     this.loading = false;
     this.questionStartTime = Date.now();
+
+    // Pre-fetch next questions if AI-generated (background load)
+    if (this.testData?.isAiGenerated && this.testData?.session_id) {
+      this.prefetchNextQuestions();
+    }
+
+    // START TIMER ONLY AFTER TEST IS LOADED
+    this.startTimer();
+  }
+
+  private questionsCache: Map<number, any> = new Map();
+  private aiSubmittedQuestions: Set<number> = new Set<number>();
+
+  prefetchNextQuestions() {
+    // Pre-cache the first question we already have
+    if (this.testData?.questions?.[0]) {
+      this.questionsCache.set(0, this.testData.questions[0]);
+    }
   }
 
   private mapQuestion(question: any): any {
@@ -116,11 +140,71 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   }
 
   get currentQuestion() {
-    if (!this.testData || !this.testData.questions) return null;
-    return this.testData.questions[this.currentQuestionIndex];
+    if (!this.testData) return null;
+
+    // For AI-generated tests, questions are loaded dynamically
+    const questions = this.testData.questions || [];
+
+    if (this.currentQuestionIndex < questions.length) {
+      const q = questions[this.currentQuestionIndex];
+      // Return null if it's a placeholder (loading state)
+      if (q && q.options && q.options.length > 0) {
+        return q;
+      }
+      if (q && q.question && q.question !== 'Loading next question...') {
+        return q;
+      }
+    }
+
+    // If question not loaded yet, return null (template will show loading or nothing)
+    return null;
+  }
+
+  formatQuestionText(question: any): string {
+    const raw = (question?.questionText || question?.question || '')
+      .toString()
+      .trim();
+    if (!raw) return '';
+
+    // Remove noisy heading lines such as: "Quiz 1 : ..."
+    const lines = raw
+      .split('\n')
+      .map((l: string) => l.trim())
+      .filter((l: string) => !!l);
+
+    if (lines.length > 1 && /^quiz\s*\d+/i.test(lines[0])) {
+      return lines.slice(1).join(' ');
+    }
+    return lines.join(' ');
+  }
+
+  formatOptionText(option: any): string {
+    const raw = (option || '').toString().trim();
+    if (!raw) return '';
+
+    // Remove duplicated prefixes like "A. ...", "B) ..."
+    return raw.replace(/^\s*[A-Ea-e]\s*[\.)]\s*/, '').trim();
+  }
+
+  injectLoadedQuestion(questionIndex: number, question: any) {
+    if (
+      this.testData &&
+      this.testData.questions &&
+      questionIndex < this.testData.questions.length
+    ) {
+      this.testData.questions[questionIndex] = question;
+    }
   }
 
   selectAnswer(answer: string) {
+    this.nextErrorMessage = '';
+    if (
+      this.testData?.isAiGenerated &&
+      this.aiSubmittedQuestions.has(this.currentQuestionIndex)
+    ) {
+      return;
+    }
+
     const timeSpentOnQuestion = Math.round(
       (Date.now() - this.questionStartTime) / 1000,
     );
@@ -147,6 +231,24 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     this.submitCurrentAnswerAndFetchNext();
   }
 
+  canGoNext(): boolean {
+    if (!this.testData?.questions?.length) return false;
+    if (this.loadingNextQuestion) return false;
+    if (this.currentQuestionIndex >= this.testData.questions.length - 1) {
+      return false;
+    }
+
+    if (this.testData?.isAiGenerated && this.testData?.session_id) {
+      const selected =
+        this.answers?.[this.currentQuestionIndex]?.selectedAnswer
+          ?.toString()
+          .trim() || '';
+      return !!selected;
+    }
+
+    return true;
+  }
+
   previousQuestion() {
     if (this.currentQuestionIndex > 0) {
       this.updateTimeSpent();
@@ -160,6 +262,18 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       this.updateTimeSpent();
       this.currentQuestionIndex = index;
       this.questionStartTime = Date.now();
+
+      // Pre-load question if AI-generated
+      if (this.testData?.isAiGenerated && this.testData?.session_id) {
+        this.loadQuestionAtIndex(index);
+      }
+    }
+  }
+
+  private loadQuestionAtIndex(index: number): void {
+    const cached = this.questionsCache.get(index);
+    if (cached) {
+      this.injectLoadedQuestion(index, cached);
     }
   }
 

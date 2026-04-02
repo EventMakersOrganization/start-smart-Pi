@@ -16,6 +16,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   errorMessage: string = '';
   showPassword = false;
+  isSubmitting = false; // Prevent duplicate submissions
 
   constructor(
     private fb: FormBuilder,
@@ -77,6 +78,7 @@ export class LoginComponent {
     const idToken = response?.credential;
     if (!idToken) return;
 
+    this.isSubmitting = true;
     this.authService.loginWithGoogle(idToken).subscribe({
       next: (res) => {
         const user = this.authService.getUser();
@@ -105,12 +107,16 @@ export class LoginComponent {
       },
       error: () => {
         this.errorMessage = 'Google login failed.';
+        this.isSubmitting = false;
       },
     });
   }
 
   onSubmit() {
-    if (this.loginForm.valid) {
+    if (this.loginForm.valid && !this.isSubmitting) {
+      this.isSubmitting = true;
+      this.errorMessage = '';
+
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
           const user = this.authService.getUser();
@@ -133,9 +139,19 @@ export class LoginComponent {
           } else {
             this.router.navigate(['/profile']);
           }
+          // isSubmitting flag will be reset on navigation
         },
         error: (error) => {
-          this.errorMessage = 'Login failed. Please check your credentials.';
+          // Handle specific HTTP errors
+          if (error.status === 429) {
+            this.errorMessage =
+              'Too many login attempts. Please wait a moment and try again.';
+          } else if (error.status === 401 || error.status === 400) {
+            this.errorMessage = 'Invalid email or password.';
+          } else {
+            this.errorMessage = 'Login failed. Please check your credentials.';
+          }
+          this.isSubmitting = false;
         },
       });
     }

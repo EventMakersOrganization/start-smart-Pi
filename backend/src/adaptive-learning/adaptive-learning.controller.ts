@@ -55,14 +55,14 @@ export class AdaptiveLearningController {
     return this.adaptiveService.findAllPerformances();
   }
 
-  @Get("performances/:id")
-  findPerformanceById(@Param("id") id: string) {
-    return this.adaptiveService.findPerformanceById(id);
-  }
-
   @Get("performances/student/:studentId")
   findPerformanceByStudent(@Param("studentId") studentId: string) {
     return this.adaptiveService.findPerformanceByStudent(studentId);
+  }
+
+  @Get("performances/:id")
+  findPerformanceById(@Param("id") id: string) {
+    return this.adaptiveService.findPerformanceById(id);
   }
 
   @Get("performances/student/:studentId/average")
@@ -169,14 +169,14 @@ export class AdaptiveLearningController {
     return this.adaptiveService.findAllRecommendations();
   }
 
-  @Get("recommendations/:id")
-  findRecommendationById(@Param("id") id: string) {
-    return this.adaptiveService.findRecommendationById(id);
-  }
-
   @Get("recommendations/student/:studentId")
   findRecommendationsByStudent(@Param("studentId") studentId: string) {
     return this.adaptiveService.findRecommendationsByStudent(studentId);
+  }
+
+  @Get("recommendations/:id")
+  findRecommendationById(@Param("id") id: string) {
+    return this.adaptiveService.findRecommendationById(id);
   }
 
   @Patch("recommendations/:id/viewed")
@@ -219,5 +219,12 @@ export class AdaptiveLearningController {
   @Get("level-test/student/:studentId")
   findLevelTest(@Param("studentId") studentId: string) {
     return this.adaptiveService.findLevelTestByStudent(studentId);
+  }
+
+  @Get("level-test/student/:studentId/latest-completed")
+  findLatestCompletedLevelTest(@Param("studentId") studentId: string) {
+    return this.adaptiveService.findLatestCompletedLevelTestByStudent(
+      studentId,
+    );
   }
 }

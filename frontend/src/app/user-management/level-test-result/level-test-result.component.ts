@@ -12,6 +12,7 @@ export class LevelTestResultComponent implements OnInit {
   totalTimeSeconds = 0;
   recommendations: any[] = [];
   loadingRecs = true;
+  aiPersonalizedRecommendations: any[] = [];
 
   // Stats par topic calculées depuis les réponses
   topicStats: {
@@ -33,6 +34,10 @@ export class LevelTestResultComponent implements OnInit {
     const nav = this.router.getCurrentNavigation?.()?.extras?.state as any;
     this.result =
       nav?.['result'] || (history.state && history.state['result']) || null;
+    this.aiPersonalizedRecommendations =
+      nav?.['aiPersonalizedRecommendations'] ||
+      (history.state && history.state['aiPersonalizedRecommendations']) ||
+      [];
 
     if (!this.result) {
       this.router.navigate(['/student-dashboard']);
@@ -51,9 +56,18 @@ export class LevelTestResultComponent implements OnInit {
     // Génère explication AI
     this.generateAIExplanation();
 
-    // Charge recommandations depuis MongoDB
-    if (this.result.studentId) {
+    // Prefer AI personalized recommendations if already available from level-test completion.
+    if (
+      Array.isArray(this.aiPersonalizedRecommendations) &&
+      this.aiPersonalizedRecommendations.length > 0
+    ) {
+      this.recommendations = this.aiPersonalizedRecommendations;
+      this.loadingRecs = false;
+    } else if (this.result.studentId) {
+      // Otherwise fallback to stored recommendations from backend.
       this.loadRecommendations(this.result.studentId);
+    } else {
+      this.loadingRecs = false;
     }
   }
 

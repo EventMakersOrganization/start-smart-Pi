@@ -1,20 +1,9 @@
 """
-Adaptive level-test engine (v2 — high-performance).
+Adaptive level-test engine (v2 — logical subject grouping).
 
-Key speed improvements over v1:
-  * On ``start_test``, ALL questions for ALL subjects are pre-generated
-    in PARALLEL via ``batch_question_generator`` (one LLM call per subject,
-    subjects processed concurrently). This turns 40 sequential LLM calls
-    into ~8 parallel calls.
-  * ``submit_answer`` is instant — no LLM call, just picks the next
-    pre-generated question and adjusts difficulty.
-  * Questions are cached so identical test configs skip the LLM entirely.
-
-State machine:
-  START at MEDIUM → correct ⇒ go UP, wrong ⇒ go DOWN
-  After N questions per subject → compute per-module mastery.
-
-All state is persisted in MongoDB ``level_test_sessions``.
+- Courses that share the same MongoDB `subject` field are treated as ONE logical subject.
+- One logical subject gets a pool of QUESTIONS_PER_SUBJECT MCQs, sampled across its chapters/modules.
+- Questions are pre-generated in parallel on start_test; submit_answer is instant.
 """
 from __future__ import annotations
 
@@ -54,28 +43,113 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _build_subject_map() -> dict[str, dict]:
-    """Map each course (chapter) to its modules for topic selection."""
+def _subject_group_key_and_title(course: dict) -> tuple[str, str]:
+    cid = str(course.get("id", "") or "")
+    raw = course.get("subject")
+    chapter_title = (course.get("title") or "").strip() or "Course"
+    if raw is None:
+        return f"course:{cid}", chapter_title
+    if isinstance(raw, str):
+        s = raw.strip()
+        if not s:
+            return f"course:{cid}", chapter_title
+        return s.lower(), s
+    s = str(raw).strip()
+    if not s:
+        return f"course:{cid}", chapter_title
+    return s.lower(), s
+
+
+def _topic_course_specs_from_modules(
+    modules: list[dict],
+    count: int,
+    *,
+    seed: str = "",
+) -> list[dict[str, str]]:
+    by_course: dict[str, list[str]] = {}
+    for m in modules:
+        if not isinstance(m, dict):
+            continue
+        cid = str(m.get("course_id") or "").strip()
+        t = (m.get("title") or "").strip()
+        if not cid or not t:
+            continue
+        by_course.setdefault(cid, [])
+        if t not in by_course[cid]:
+            by_course[cid].append(t)
+
+    ordered_courses = list(by_course.keys())
+    specs: list[dict[str, str]] = []
+    if ordered_courses:
+        # Use a per-session seed so module sampling changes between API calls/students.
+        offsets: dict[str, int] = {
+            cid: (abs(hash(f"{seed}|{cid}")) % max(len(by_course.get(cid) or []), 1))
+            for cid in ordered_courses
+        }
+        i = 0
+        while len(specs) < count:
+            cid = ordered_courses[i % len(ordered_courses)]
+            topics = by_course.get(cid) or ["general"]
+            off = offsets.get(cid, 0)
+            local_k = (i // len(ordered_courses)) % max(len(topics), 1)
+            topic = topics[(off + local_k) % max(len(topics), 1)]
+            specs.append({"course_id": cid, "topic": topic})
+            i += 1
+
+    while len(specs) < count:
+        specs.append({"course_id": "", "topic": "general"})
+    return specs[:count]
+
+
+def _build_logical_subject_map() -> dict[str, dict[str, Any]]:
     courses = get_all_courses()
-    subject_map: dict[str, dict] = {}
+    courses = sorted(courses, key=lambda c: (c.get("title") or ""))
+
+    subject_map: dict[str, dict[str, Any]] = {}
     for c in courses:
-        cid = c.get("id", "")
-        title = c.get("title", "")
+        gkey, display_title = _subject_group_key_and_title(c)
+        cid = str(c.get("id", "") or "")
+        chapter_title = (c.get("title") or "").strip()
+        subject_map.setdefault(gkey, {"course_ids": [], "title": display_title, "modules": []})
+        info = subject_map[gkey]
+        info["course_ids"].append(cid)
+        raw_subj = c.get("subject")
+        if isinstance(raw_subj, str) and raw_subj.strip():
+            info["title"] = raw_subj.strip()
+
         modules = c.get("modules", [])
-        mod_list = []
         if isinstance(modules, list):
             for m in modules:
                 if isinstance(m, dict):
-                    mod_list.append({
-                        "title": m.get("title", ""),
-                        "description": (m.get("description") or "")[:200],
-                    })
-        subject_map[cid] = {
-            "course_id": cid,
-            "title": title,
-            "modules": mod_list,
-        }
+                    info["modules"].append(
+                        {
+                            "title": m.get("title", ""),
+                            "description": (m.get("description") or "")[:200],
+                            "chapter_title": chapter_title,
+                            "course_id": cid,
+                        }
+                    )
     return subject_map
+
+
+def _resolve_selected_groups(selected: list[str] | None, subject_map: dict[str, dict]) -> list[str]:
+    if not selected:
+        return list(subject_map.keys())
+    course_to_group: dict[str, str] = {}
+    for gkey, info in subject_map.items():
+        for cid in info.get("course_ids") or []:
+            course_to_group[str(cid)] = gkey
+    out: list[str] = []
+    seen: set[str] = set()
+    for s in selected:
+        s = str(s).strip()
+        if not s:
+            continue
+        gkey = s if s in subject_map else course_to_group.get(s)
+        if gkey and gkey not in seen:
+            seen.add(gkey)
+            out.append(gkey)
+    return out if out else list(subject_map.keys())
 
 
 class AdaptiveLevelTest:
@@ -94,6 +168,7 @@ class AdaptiveLevelTest:
         self,
         student_id: str,
         selected_subjects: list[str] | None = None,
+        regenerate: bool = False,
     ) -> dict[str, Any]:
         """
         Initialise a test session.
@@ -103,40 +178,57 @@ class AdaptiveLevelTest:
         """
         from .batch_question_generator import generate_all_subjects_parallel
 
-        subject_map = _build_subject_map()
-        if not selected_subjects:
-            selected_subjects = list(subject_map.keys())
-        else:
-            selected_subjects = [s for s in selected_subjects if s in subject_map]
-            if not selected_subjects:
-                selected_subjects = list(subject_map.keys())
+        subject_map = _build_logical_subject_map()
+        selected_groups = _resolve_selected_groups(selected_subjects, subject_map)
+
+        # Per-session seed to reduce repeats across students / repeated starts.
+        session_seed = str(uuid.uuid4())
 
         batch_input: list[dict] = []
-        for sid in selected_subjects:
-            info = subject_map[sid]
+        for gkey in selected_groups:
+            info = subject_map[gkey]
             modules = info["modules"]
-            topics = [m["title"] for m in modules[:QUESTIONS_PER_SUBJECT]]
-            while len(topics) < QUESTIONS_PER_SUBJECT:
-                topics.append(topics[len(topics) % max(len(topics), 1)])
+            topic_specs = _topic_course_specs_from_modules(
+                modules,
+                QUESTIONS_PER_SUBJECT,
+                seed=session_seed,
+            )
+            topics = [s.get("topic") or "general" for s in topic_specs]
+            question_course_ids = [s.get("course_id") or "" for s in topic_specs]
             diffs = self._initial_difficulty_sequence()
-            batch_input.append({
-                "key": sid,
-                "title": info["title"],
-                "topics": topics,
-                "difficulties": diffs,
-                "count": QUESTIONS_PER_SUBJECT,
-            })
+            batch_input.append(
+                {
+                    "key": gkey,
+                    "title": info["title"],
+                    "topics": topics,
+                    "difficulties": diffs,
+                    "count": QUESTIONS_PER_SUBJECT,
+                    "course_ids": list(info.get("course_ids") or []),
+                    "question_course_ids": question_course_ids,
+                    "diversity_seed": session_seed,
+                }
+            )
 
-        logger.info("Pre-generating questions for %d subjects in parallel...", len(batch_input))
-        all_questions = generate_all_subjects_parallel(batch_input, self.rag_service)
+        logger.info(
+            "Pre-generating questions for %d logical subject(s) in parallel...",
+            len(batch_input),
+        )
+        all_questions = generate_all_subjects_parallel(
+            batch_input,
+            self.rag_service,
+            use_cache=not regenerate,
+        )
 
         session_id = str(uuid.uuid4())
         subjects_state: dict[str, dict] = {}
-        for sid in selected_subjects:
-            info = subject_map[sid]
-            questions_pool = all_questions.get(sid, [])
-            subjects_state[sid] = {
-                "course_id": sid,
+        for gkey in selected_groups:
+            info = subject_map[gkey]
+            questions_pool = all_questions.get(gkey, [])
+            cids = info.get("course_ids") or []
+            subjects_state[gkey] = {
+                "group_key": gkey,
+                "course_id": cids[0] if cids else gkey,
+                "course_ids": cids,
                 "title": info["title"],
                 "modules": info["modules"],
                 "current_difficulty": "medium",
@@ -150,24 +242,33 @@ class AdaptiveLevelTest:
             "session_id": session_id,
             "student_id": student_id,
             "subjects": subjects_state,
-            "subject_order": selected_subjects,
+            "subject_order": selected_groups,
             "current_subject_idx": 0,
             "status": "in_progress",
             "started_at": _now_iso(),
             "completed_at": None,
         }
         _col().insert_one(session)
-        logger.info("Level test started: session=%s student=%s subjects=%d",
-                     session_id, student_id, len(selected_subjects))
+        logger.info(
+            "Level test started: session=%s student=%s logical_subjects=%d",
+            session_id,
+            student_id,
+            len(selected_groups),
+        )
 
         first_q = self._serve_next_question(session)
         return {
             "session_id": session_id,
             "subjects": [
-                {"course_id": s, "title": subject_map[s]["title"]}
-                for s in selected_subjects
+                {
+                    "subject_key": gkey,
+                    "course_id": (subject_map[gkey].get("course_ids") or [gkey])[0],
+                    "course_ids": subject_map[gkey].get("course_ids") or [],
+                    "title": subject_map[gkey]["title"],
+                }
+                for gkey in selected_groups
             ],
-            "total_questions": len(selected_subjects) * QUESTIONS_PER_SUBJECT,
+            "total_questions": len(selected_groups) * QUESTIONS_PER_SUBJECT,
             "first_question": first_q,
         }
 

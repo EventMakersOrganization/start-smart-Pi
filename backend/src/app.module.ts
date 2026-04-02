@@ -7,6 +7,7 @@ import { ActivityModule } from './activity/activity.module';
 import { AppController } from './app.controller';
 import { AdaptiveLearningModule } from './adaptive-learning/adaptive-learning.module';
 import { ChatModule } from './chat/chat.module';
+import { BrainrushModule } from './brainrush/brainrush.module';
 
 @Module({
   imports: [
@@ -26,8 +27,9 @@ import { ChatModule } from './chat/chat.module';
     ActivityModule,
     AdaptiveLearningModule,
     ChatModule,
+    BrainrushModule,
   ],
   controllers: [AppController],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }

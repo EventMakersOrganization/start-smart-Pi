@@ -65,10 +65,13 @@
   </ng-container>
 
   <!-- Main Layout -->
-  <div class="flex flex-1 overflow-hidden" *ngIf="!loading && currentQuestion">
+  <div class="flex flex-1 overflow-hidden" *ngIf="!loading">
     <!-- Left Content: Assessment -->
     <main class="flex-1 overflow-y-auto p-8 lg:p-12">
-      <div class="max-w-3xl mx-auto space-y-8">
+      <div
+        class="max-w-3xl mx-auto space-y-8"
+        *ngIf="currentQuestion; else questionLoadingState"
+      >
         <!-- Progress Stats -->
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -94,7 +97,7 @@
           <h2
             class="text-2xl font-semibold leading-relaxed text-slate-800 dark:text-slate-100"
           >
-            {{ currentQuestion.questionText }}
+            {{ formatQuestionText(currentQuestion) }}
           </h2>
         </div>
 
@@ -102,7 +105,7 @@
         <div class="grid grid-cols-1 gap-4">
           <div
             *ngFor="let option of currentQuestion.options; let i = index"
-            (click)="selectAnswer(option)"
+            (click)="!loadingNextQuestion && selectAnswer(option)"
             [class.border-primary]="
               answers[currentQuestionIndex].selectedAnswer === option
             "
@@ -115,6 +118,8 @@
             [class.dark:bg-opacity-10]="
               answers[currentQuestionIndex].selectedAnswer === option
             "
+            [class.pointer-events-none]="loadingNextQuestion"
+            [class.opacity-70]="loadingNextQuestion"
             class="group relative flex items-center p-5 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all"
           >
             <div
@@ -155,7 +160,7 @@
                 answers[currentQuestionIndex].selectedAnswer !== option
               "
             >
-              {{ option }}
+              {{ formatOptionText(option) }}
             </p>
 
             <span
@@ -171,6 +176,24 @@
           </div>
         </div>
       </div>
+
+      <ng-template #questionLoadingState>
+        <div class="max-w-3xl mx-auto h-full flex items-center justify-center">
+          <div class="text-center">
+            <span
+              class="material-symbols-outlined text-primary text-5xl animate-spin"
+              >refresh</span
+            >
+            <p class="mt-4 text-slate-500 text-sm font-semibold">
+              {{
+                loadingNextQuestion
+                  ? "Loading next question..."
+                  : "Preparing question..."
+              }}
+            </p>
+          </div>
+        </div>
+      </ng-template>
     </main>
 
     <!-- Sidebar: Navigation List -->
@@ -302,17 +325,20 @@
 
     <button
       (click)="nextQuestion()"
-      [disabled]="currentQuestionIndex === testData?.questions?.length - 1"
-      [class.opacity-50]="
-        currentQuestionIndex === testData?.questions?.length - 1
-      "
-      [class.cursor-not-allowed]="
-        currentQuestionIndex === testData?.questions?.length - 1
-      "
+      [disabled]="!canGoNext()"
+      [class.opacity-50]="!canGoNext()"
+      [class.cursor-not-allowed]="!canGoNext()"
       class="flex items-center gap-2 px-8 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
     >
-      Next
+      {{ loadingNextQuestion ? "Loading..." : "Next" }}
       <span class="material-symbols-outlined">arrow_forward</span>
     </button>
   </footer>
+
+  <div
+    *ngIf="nextErrorMessage"
+    class="px-12 pb-4 text-sm text-red-600 dark:text-red-400"
+  >
+    {{ nextErrorMessage }}
+  </div>
 </div>

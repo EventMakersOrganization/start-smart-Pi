@@ -30,6 +30,9 @@ _llm_instance = None
 _explain_llm_instance = None
 _fast_llm_instance = None
 _fast_model_checked = False
+_model_instances = {}
+# After repeated Ollama 500 / runner crash on OLLAMA_LEVEL_TEST_MODEL, skip it for this process.
+_level_test_primary_failed: bool = False
 
 
 def get_ollama_llm():
@@ -221,6 +224,66 @@ def generate_fast(prompt: str) -> str:
         return text.strip()
     except Exception as e:
         print(f"[langchain_ollama] generate_fast error: {e}")
+        return ""
+
+
+def _get_llm_for_model(model_name: str):
+    """Create/reuse an LLM client bound to a specific Ollama model."""
+    global _model_instances
+    if Ollama is None:
+        raise ImportError("langchain_community is required")
+    key = (model_name or "").strip()
+    if not key:
+        return get_ollama_llm()
+    if key not in _model_instances:
+        lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
+        fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "") or "").strip()
+
+        if (lt and key == lt) or (fb and key == fb):
+            num_ctx = getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048)
+            num_predict = getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)
+        else:
+            num_ctx = 4096
+            num_predict = 1200
+
+        _model_instances[key] = Ollama(
+            model=key,
+            base_url=config.OLLAMA_BASE_URL,
+            temperature=0.25,
+            num_ctx=num_ctx,
+            num_predict=num_predict,
+        )
+        print(
+            f"[langchain_ollama] Model LLM initialized: model={key}, num_ctx={num_ctx}, num_predict={num_predict}"
+        )
+    return _model_instances[key]
+
+
+def generate_with_model(prompt: str, model_name: str) -> str:
+    """Generate response using an explicit model name."""
+    if not prompt or not str(prompt).strip():
+        return ""
+    global _level_test_primary_failed, _model_instances
+    lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
+    mn = (model_name or "").strip()
+    if lt and _level_test_primary_failed and mn == lt:
+        print(
+            "[langchain_ollama] Level-test model skipped (previous failure); "
+            f"using OLLAMA_MODEL={config.OLLAMA_MODEL}."
+        )
+        return generate_response(prompt)
+    try:
+        if Ollama is None:
+            return ""
+        llm = _get_llm_for_model(model_name)
+        response = llm.invoke(prompt)
+        text = response if isinstance(response, str) else getattr(response, "content", str(response))
+        return text.strip()
+    except Exception as e:
+        print(f"[langchain_ollama] generate_with_model error ({model_name}): {e}")
+        if lt and mn == lt:
+            _level_test_primary_failed = True
+            _model_instances.pop(mn, None)
         return ""
 
 

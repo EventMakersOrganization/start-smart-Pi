@@ -71,8 +71,52 @@ export class LearningPathComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Error loading learning path:', err);
-          this.error = 'Failed to load learning path';
-          this.loading = false;
+          // Fallback: build a minimal learning path from profile to keep UX usable.
+          this.adaptiveLearningService.getProfile(this.studentId).subscribe({
+            next: (profile) => {
+              const weaknesses = Array.isArray(profile?.weaknesses)
+                ? profile.weaknesses
+                : [];
+              const strengths = Array.isArray(profile?.strengths)
+                ? profile.strengths
+                : [];
+
+              const topics = [...weaknesses, ...strengths].slice(0, 6);
+              const inferredSteps = (topics.length ? topics : ['general']).map(
+                (topic: string, i: number) => ({
+                  order: i + 1,
+                  topic,
+                  action:
+                    i < weaknesses.length
+                      ? `Reinforce ${topic} with guided exercises and a quiz.`
+                      : `Consolidate ${topic} with mixed practice tasks.`,
+                  priority: (i < weaknesses.length ? 'high' : 'medium') as
+                    | 'high'
+                    | 'medium'
+                    | 'low',
+                  status: 'pending' as 'pending' | 'in-progress' | 'completed',
+                }),
+              );
+
+              this.learningPath = {
+                currentLevel: profile?.level || 'beginner',
+                targetLevel:
+                  profile?.level === 'beginner'
+                    ? 'intermediate'
+                    : profile?.level === 'intermediate'
+                      ? 'advanced'
+                      : 'advanced',
+                estimatedWeeks: Math.max(2, inferredSteps.length + 2),
+                steps: inferredSteps,
+              };
+              this.error = null;
+              this.loading = false;
+            },
+            error: () => {
+              this.error = 'Failed to load learning path';
+              this.loading = false;
+            },
+          });
         },
       });
   }
