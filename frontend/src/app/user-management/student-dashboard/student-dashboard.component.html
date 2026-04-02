@@ -20,8 +20,13 @@
     </div>
     <nav class="flex-1 px-4 py-4 space-y-1">
       <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold"
-        href="#"
+        (click)="activeNav = 'dashboard'"
+        routerLink="/student-dashboard"
+        [class]="
+          activeNav === 'dashboard'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
       >
         <span class="material-symbols-outlined">dashboard</span>
         Dashboard
@@ -212,7 +217,7 @@
       </div>
     </header>
 
-    <div class="p-8 space-y-8 max-w-7xl mx-auto">
+    <div class="p-8 space-y-8 max-w-7xl mx-auto" *ngIf="!isSubPageView()">
       <!-- Welcome Header -->
       <section class="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -443,7 +448,7 @@
             <div
               class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800"
             >
-              <p class="text-sm font-medium italic text-slate-500 italic">
+              <p class="text-sm font-medium italic text-slate-500">
                 "Consistency is the key to mastery. Keep it up!"
               </p>
             </div>
@@ -585,6 +590,10 @@
           </app-skill-mastery>
         </div>
       </div>
+    </div>
+
+    <div class="p-8 max-w-7xl mx-auto" *ngIf="isSubPageView()">
+      <router-outlet></router-outlet>
     </div>
   </main>
   <!-- AI Quick-Access Floating Button -->
