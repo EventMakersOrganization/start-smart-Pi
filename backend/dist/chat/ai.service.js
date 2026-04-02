@@ -105,9 +105,13 @@ let AiService = AiService_1 = class AiService {
     }
     async startLevelTest(studentId, subjects) {
         try {
+<<<<<<< HEAD
             const { data } = await this.timedAiCall('/level-test/start', async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/start`, { student_id: studentId, subjects: subjects || null }, { timeout: 120_000 }));
             });
+=======
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/start`, { student_id: studentId, subjects: subjects || null }, { timeout: 120_000 }));
+>>>>>>> kmar-branch
             return data;
         }
         catch (error) {
@@ -117,9 +121,13 @@ let AiService = AiService_1 = class AiService {
     }
     async submitAnswer(sessionId, answer) {
         try {
+<<<<<<< HEAD
             const { data } = await this.timedAiCall('/level-test/submit-answer', async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/submit-answer`, { session_id: sessionId, answer }, { timeout: 120_000 }));
             });
+=======
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/submit-answer`, { session_id: sessionId, answer }, { timeout: 120_000 }));
+>>>>>>> kmar-branch
             return data;
         }
         catch (error) {
@@ -129,9 +137,13 @@ let AiService = AiService_1 = class AiService {
     }
     async completeLevelTest(sessionId) {
         try {
+<<<<<<< HEAD
             const { data } = await this.timedAiCall('/level-test/complete', async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/complete`, { session_id: sessionId }, { timeout: 60_000 }));
             });
+=======
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/level-test/complete`, { session_id: sessionId }, { timeout: 60_000 }));
+>>>>>>> kmar-branch
             return data;
         }
         catch (error) {
@@ -141,9 +153,13 @@ let AiService = AiService_1 = class AiService {
     }
     async getLevelTestSession(sessionId) {
         try {
+<<<<<<< HEAD
             const { data } = await this.timedAiCall('/level-test/session', async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.get(`${this.aiBaseUrl}/level-test/session/${sessionId}`, { timeout: 10_000 }));
             });
+=======
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.get(`${this.aiBaseUrl}/level-test/session/${sessionId}`, { timeout: 10_000 }));
+>>>>>>> kmar-branch
             return data;
         }
         catch (error) {
@@ -153,9 +169,13 @@ let AiService = AiService_1 = class AiService {
     }
     async getPersonalizedRecommendations(studentProfile, nResults = 5) {
         try {
+<<<<<<< HEAD
             const { data } = await this.timedAiCall('/recommendations/personalized', async () => {
                 return await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/recommendations/personalized`, { student_profile: studentProfile, n_results: nResults }, { timeout: 30_000 }));
             });
+=======
+            const { data } = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.aiBaseUrl}/recommendations/personalized`, { student_profile: studentProfile, n_results: nResults }, { timeout: 30_000 }));
+>>>>>>> kmar-branch
             return data;
         }
         catch (error) {

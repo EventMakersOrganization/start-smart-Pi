@@ -59,9 +59,12 @@ let ChatController = class ChatController {
     async aiHealth() {
         return this.aiService.healthCheck();
     }
+<<<<<<< HEAD
     async aiLatencyStats() {
         return { status: 'success', stats: this.aiService.getAiLatencyStats() };
     }
+=======
+>>>>>>> kmar-branch
     async levelTestStart(req, body) {
         return this.aiService.startLevelTest(req.user.id, body.subjects);
     }
@@ -142,12 +145,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "aiHealth", null);
 __decorate([
+<<<<<<< HEAD
     (0, common_1.Get)('ai/latency'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "aiLatencyStats", null);
 __decorate([
+=======
+>>>>>>> kmar-branch
     (0, common_1.Post)('ai/level-test/start'),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),

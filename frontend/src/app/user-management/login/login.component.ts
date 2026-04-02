@@ -2,6 +2,7 @@ import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
+import { AdaptiveLearningService } from '../adaptive-learning.service';
 import { environment } from '../../../environments/environment';
 
 declare const google: any;
@@ -9,7 +10,7 @@ declare const google: any;
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  styleUrls: ['./login.component.css'],
 })
 export class LoginComponent {
   loginForm: FormGroup;
@@ -19,11 +20,12 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private adaptiveService: AdaptiveLearningService,
+    private router: Router,
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]]
+      password: ['', [Validators.required]],
     });
   }
 
@@ -42,7 +44,12 @@ export class LoginComponent {
       const googleGlobal = (window as any).google;
       const buttonElement = document.getElementById('googleButton');
 
-      if (!googleGlobal || !googleGlobal.accounts || !googleGlobal.accounts.id || !buttonElement) {
+      if (
+        !googleGlobal ||
+        !googleGlobal.accounts ||
+        !googleGlobal.accounts.id ||
+        !buttonElement
+      ) {
         // Try again shortly if the script or element is not ready yet
         setTimeout(renderGoogleButton, 500);
         return;
@@ -53,10 +60,10 @@ export class LoginComponent {
         callback: (response: any) => this.handleCredentialResponse(response),
       });
 
-      googleGlobal.accounts.id.renderButton(
-        buttonElement,
-        { theme: 'outline', size: 'large' }
-      );
+      googleGlobal.accounts.id.renderButton(buttonElement, {
+        theme: 'outline',
+        size: 'large',
+      });
     };
 
     renderGoogleButton();
@@ -74,7 +81,20 @@ export class LoginComponent {
       next: (res) => {
         const user = this.authService.getUser();
         if (user?.role === 'student') {
-          this.router.navigate(['/student-dashboard']);
+          const userId = user._id || user.id;
+          this.adaptiveService.getProfile(userId).subscribe({
+            next: (profile) => {
+              if (!profile || !profile.level) {
+                this.router.navigate(['/level-test']);
+              } else {
+                this.router.navigate(['/student-dashboard']);
+              }
+            },
+            error: () => {
+              // If profile not found or error, redirect to level test
+              this.router.navigate(['/level-test']);
+            },
+          });
         } else if (user?.role === 'instructor') {
           this.router.navigate(['/instructor/dashboard']);
         } else if (user?.role === 'admin') {
@@ -85,7 +105,7 @@ export class LoginComponent {
       },
       error: () => {
         this.errorMessage = 'Google login failed.';
-      }
+      },
     });
   }
 
@@ -95,7 +115,17 @@ export class LoginComponent {
         next: (response) => {
           const user = this.authService.getUser();
           if (user.role === 'student') {
-            this.router.navigate(['/student-dashboard']);
+            const userId = user._id || user.id;
+            this.adaptiveService.getProfile(userId).subscribe({
+              next: (profile) => {
+                if (!profile || !profile.level) {
+                  this.router.navigate(['/level-test']);
+                } else {
+                  this.router.navigate(['/student-dashboard']);
+                }
+              },
+              error: () => this.router.navigate(['/level-test']),
+            });
           } else if (user.role === 'instructor') {
             this.router.navigate(['/instructor/dashboard']);
           } else if (user.role === 'admin') {
@@ -106,7 +136,7 @@ export class LoginComponent {
         },
         error: (error) => {
           this.errorMessage = 'Login failed. Please check your credentials.';
-        }
+        },
       });
     }
   }

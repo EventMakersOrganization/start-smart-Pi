@@ -42,10 +42,13 @@ export declare class ChatController {
         status: string;
         model?: string;
     }>;
+<<<<<<< HEAD
     aiLatencyStats(): Promise<{
         status: string;
         stats: Record<string, any>;
     }>;
+=======
+>>>>>>> kmar-branch
     levelTestStart(req: any, body: {
         subjects?: string[];
     }): Promise<any>;

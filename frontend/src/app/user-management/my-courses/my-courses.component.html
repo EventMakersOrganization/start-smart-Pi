@@ -1,0 +1,358 @@
+<!-- Profile Drawer Overlay -->
+<div
+  class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity"
+  [class.hidden]="!profileDrawerOpen"
+  (click)="closeProfileDrawer()"
+></div>
+
+<!-- Profile Drawer Sidebar -->
+<aside
+  [class]="
+    'fixed top-0 right-0 h-screen w-80 bg-white dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 flex flex-col ' +
+    (profileDrawerOpen ? 'translate-x-0' : 'translate-x-full')
+  "
+>
+  <div
+    class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"
+  >
+    <h2 class="font-bold text-lg">My Profile</h2>
+    <button
+      (click)="closeProfileDrawer()"
+      class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full cursor-pointer"
+    >
+      <span class="material-symbols-outlined text-slate-500">close</span>
+    </button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto">
+    <div class="p-8 flex flex-col items-center text-center">
+      <div class="relative mb-4">
+        <img
+          *ngIf="user?.avatar"
+          [src]="user.avatar"
+          [alt]="user.name + ' Profile'"
+          class="w-24 h-24 rounded-full border-4 border-primary/10 object-cover"
+        />
+        <div>
+          <img
+            *ngIf="!user?.avatar"
+            src="https://api.dicebear.com/7.x/avataaars/svg?seed=default"
+            alt="Default Avatar"
+            class="w-24 h-24 rounded-full border-4 border-primary/10 object-cover"
+          />
+        </div>
+        <div
+          class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full"
+        ></div>
+      </div>
+      <h3
+        class="text-xl font-bold text-slate-900 dark:text-white leading-tight"
+      >
+        {{ user?.name || "Student" }}
+      </h3>
+      <p class="text-primary font-semibold text-sm">
+        {{ user?.role === "student" ? "Student" : "User" }}
+      </p>
+    </div>
+
+    <div class="px-6 mb-8">
+      <div
+        class="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl"
+      >
+        <div class="text-center">
+          <p
+            class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1"
+          >
+            Total Courses
+          </p>
+          <p class="text-lg font-black text-slate-900 dark:text-white">
+            {{ courses.length }}
+          </p>
+        </div>
+        <div
+          class="border-l border-slate-200 dark:border-slate-700 text-center"
+        >
+          <p
+            class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1"
+          >
+            In Progress
+          </p>
+          <p class="text-lg font-black text-slate-900 dark:text-white">
+            {{ inProgressCount }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 mb-8">
+      <h4
+        class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2"
+      >
+        Personal Info
+      </h4>
+      <div class="space-y-4">
+        <div class="flex items-center gap-4 px-2">
+          <span class="material-symbols-outlined text-slate-400">mail</span>
+          <div class="text-sm">
+            <p class="text-slate-500 text-[10px] font-bold uppercase">
+              Email Address
+            </p>
+            <p class="font-medium">{{ user?.email || "N/A" }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 mb-8">
+      <h4
+        class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2"
+      >
+        Preferences
+      </h4>
+      <div class="space-y-1">
+        <div
+          class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800"
+        >
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-slate-400"
+              >dark_mode</span
+            >
+            <span class="text-sm font-medium">Dark Mode</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              [checked]="darkMode"
+              (change)="toggleDarkMode()"
+              class="sr-only peer"
+            />
+            <div
+              class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"
+            ></div>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="p-6 border-t border-slate-100 dark:border-slate-800">
+    <button
+      (click)="logout()"
+      class="w-full py-3 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+    >
+      <span class="material-symbols-outlined">logout</span>
+      Sign Out
+    </button>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<div class="flex-1 min-h-screen">
+  <!-- Page Content -->
+  <div class="p-8 space-y-8 max-w-7xl mx-auto">
+    <!-- Hero Section -->
+    <section class="flex flex-col gap-6">
+      <div>
+        <h2
+          class="text-3xl font-black tracking-tight text-slate-900 dark:text-white"
+        >
+          My Learning Journey
+        </h2>
+        <p class="text-slate-500 mt-1">
+          Pick up right where you left off and achieve your goals.
+        </p>
+      </div>
+
+      <div
+        class="relative bg-gradient-to-r from-primary to-indigo-600 rounded-2xl p-6 text-white overflow-hidden group"
+      >
+        <div
+          class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6"
+        >
+          <div class="max-w-md">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="material-symbols-outlined text-sm"
+                >auto_awesome</span
+              >
+              <span
+                class="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded"
+                >Recommended for You</span
+              >
+            </div>
+            <h3 class="text-xl font-bold mb-2">
+              Advanced Generative AI Architectures
+            </h3>
+            <p class="text-white/80 text-sm mb-4">
+              Based on your recent progress. We think you'll love this module.
+            </p>
+            <button
+              class="px-6 py-2.5 bg-white text-primary font-bold rounded-lg text-sm hover:bg-slate-50 transition-colors shadow-lg"
+            >
+              Start Next Best Step
+            </button>
+          </div>
+          <div class="hidden md:block">
+            <img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCp4AoPBDuiJtA0RvmyBhWHY-FBworuJqpd-hdYzFSAX9F4JvXZq0UtHdwWrntAr_8CeNacWuX_agSdHa-2uW9dU1mAnsyg5rnTGcwYb1SpgYs54ZEwWUnQwZchaVKSyAZcdkb_-HQ8pTLB8MdPaZT6hXi-TkrXoWmFrnTdlrSCxLANaJfa09y8EYLMFi5ENNagA0neWoW40aNJyU0yNLiag-sR8tC6x_mZVJJG_TvCr2C4alaKOGb9SL806GHLlF7HIlgAO27nLDm7"
+              alt="Course Recommendation"
+              class="w-48 h-32 object-cover rounded-xl shadow-2xl transform group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        </div>
+        <div
+          class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"
+        ></div>
+        <div
+          class="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-2xl"
+        ></div>
+      </div>
+    </section>
+
+    <!-- Filters Section -->
+    <section
+      class="flex flex-col md:flex-row md:items-center justify-between gap-4"
+    >
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          (click)="filterByCategory('all')"
+          [class]="
+            activeFilter === 'all'
+              ? 'px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-sm'
+              : 'px-4 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors border border-slate-200 dark:border-slate-700'
+          "
+        >
+          All Courses
+        </button>
+        <button
+          *ngFor="let category of categoryFilters"
+          (click)="filterByCategory(category)"
+          [class]="
+            activeFilter.toLowerCase() === category.toLowerCase()
+              ? 'px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-sm'
+              : 'px-4 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors border border-slate-200 dark:border-slate-700'
+          "
+        >
+          {{ category }}
+        </button>
+      </div>
+
+      <div class="relative w-full md:w-64">
+        <span
+          class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl"
+          >tune</span
+        >
+        <select
+          (change)="sortCourses($event)"
+          class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm font-medium focus:ring-primary/20 appearance-none"
+        >
+          <option value="recent">Sort by: Recent</option>
+          <option value="progress">Sort by: Progress</option>
+          <option value="title">Sort by: Title</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Courses Grid -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
+      <div
+        *ngFor="let course of filteredCourses"
+        class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all group flex flex-col h-full"
+      >
+        <div class="relative h-48 overflow-hidden">
+          <img
+            [src]="course.thumbnail"
+            [alt]="course.title"
+            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+          <div class="absolute top-4 left-4">
+            <span
+              [class]="
+                'text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ' +
+                course.categoryColor
+              "
+            >
+              {{ course.category }}
+            </span>
+          </div>
+        </div>
+
+        <div class="p-6 flex-1 flex flex-col">
+          <h4
+            class="font-bold text-lg text-slate-900 dark:text-white mb-2 leading-tight"
+          >
+            {{ course.title }}
+          </h4>
+          <p class="text-xs text-slate-500 mb-6 font-medium">
+            Instructor: {{ course.instructor }}
+          </p>
+
+          <div class="mt-auto space-y-4">
+            <div>
+              <div class="flex justify-between items-center text-xs mb-2">
+                <span
+                  [class]="
+                    'font-bold uppercase tracking-wider ' +
+                    (course.progressColor === 'bg-primary'
+                      ? 'text-primary'
+                      : course.progressColor === 'bg-emerald-500'
+                        ? 'text-emerald-500'
+                        : 'text-purple-500')
+                  "
+                >
+                  {{ course.completionLabel }}
+                </span>
+                <span class="text-slate-400">{{ course.lastViewed }}</span>
+              </div>
+              <div
+                class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"
+              >
+                <div
+                  [class]="course.progressColor + ' h-full rounded-full'"
+                  [style.width.%]="course.progress"
+                ></div>
+              </div>
+            </div>
+
+            <button
+              (click)="continueLearning(course.id)"
+              class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+            >
+              <span class="material-symbols-outlined text-lg">play_circle</span>
+              Continue Learning
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div
+        *ngIf="filteredCourses.length === 0"
+        class="col-span-full text-center py-12"
+      >
+        <span
+          class="material-symbols-outlined text-6xl text-slate-300 mb-4 block"
+        >
+          book_4
+        </span>
+        <h3 class="text-xl font-bold text-slate-600 dark:text-slate-400 mb-2">
+          No courses found
+        </h3>
+        <p class="text-slate-500">Try adjusting your filters</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- AI Chat Button (floating) -->
+<div class="fixed bottom-8 right-8 z-30">
+  <button
+    class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"
+  >
+    <span class="material-symbols-outlined text-3xl">psychology</span>
+    <div
+      class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity"
+    >
+      ASK EDU AI
+    </div>
+  </button>
+</div>

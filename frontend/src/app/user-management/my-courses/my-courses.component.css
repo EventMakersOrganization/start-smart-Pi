@@ -1,0 +1,7 @@
+/* My Courses Component Styles */
+
+:host {
+  display: block;
+}
+
+/* Additional styles can be added here if needed */
