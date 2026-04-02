@@ -1,0 +1,27 @@
+dist/
+__pycache__/
+*.pyc
+*.pkl
+*.sqlite3
+*.log
+*.tsbuildinfo
+*.bin
+*.map
+
+# Environment secrets
+.env
+ai-service/.env
+
+# Python (recursive)
+**/__pycache__/
+*/.py[cod]
+*/.pyd
+
+# AI-service caches/artifacts
+ai-service/embedding_query_cache/
+ai-service/embedding_query_cache/**/*.pkl
+ai-service/embedding_query_cache/**/*.json
+ai-service/logs/
+ai-service/response_cache/
+ai-service/chroma_db/
+backend/dist/

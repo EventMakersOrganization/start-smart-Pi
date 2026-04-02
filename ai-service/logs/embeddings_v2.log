@@ -573,3 +573,39 @@
 2026-04-02 09:57:09,660 - INFO - process_and_embed_course_chunks: course_id=69ce2f61c6bb7e725b47b632 stored=4
 2026-04-02 09:57:10,107 - INFO - store_chunks_in_chromadb: stored 7 chunks
 2026-04-02 09:57:10,108 - INFO - process_and_embed_course_chunks: course_id=69ce2f61c6bb7e725b47b633 stored=7
+2026-04-02 10:55:32,270 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-02 10:56:25,119 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-02 10:56:25,345 - INFO - store_chunks_in_chromadb: stored 8 chunks
+2026-04-02 10:56:25,346 - INFO - process_and_embed_course_chunks: course_id=69ce3d3d33ded5a2a13ebe75 stored=8
+2026-04-02 10:56:25,511 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-02 10:56:25,512 - INFO - process_and_embed_course_chunks: course_id=69ce3d3d33ded5a2a13ebe80 stored=4
+2026-04-02 10:56:25,662 - INFO - store_chunks_in_chromadb: stored 5 chunks
+2026-04-02 10:56:25,662 - INFO - process_and_embed_course_chunks: course_id=69ce3d4133ded5a2a13ebe8b stored=5
+2026-04-02 10:56:27,532 - INFO - store_chunks_in_chromadb: stored 6 chunks
+2026-04-02 10:56:27,533 - INFO - process_and_embed_course_chunks: course_id=69ce3d4433ded5a2a13ebea3 stored=6
+2026-04-02 10:56:27,742 - INFO - store_chunks_in_chromadb: stored 8 chunks
+2026-04-02 10:56:27,743 - INFO - process_and_embed_course_chunks: course_id=69ce3d4833ded5a2a13ebebc stored=8
+2026-04-02 10:56:27,876 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-02 10:56:27,877 - INFO - process_and_embed_course_chunks: course_id=69ce3d4833ded5a2a13ebec6 stored=4
+2026-04-02 10:56:28,075 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-02 10:56:28,076 - INFO - process_and_embed_course_chunks: course_id=69ce3d4833ded5a2a13ebec7 stored=4
+2026-04-02 10:56:28,257 - INFO - store_chunks_in_chromadb: stored 7 chunks
+2026-04-02 10:56:28,258 - INFO - process_and_embed_course_chunks: course_id=69ce3d4833ded5a2a13ebec8 stored=7
+2026-04-02 13:52:50,782 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-02 13:53:02,098 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-02 13:53:02,217 - INFO - store_chunks_in_chromadb: stored 8 chunks
+2026-04-02 13:53:02,218 - INFO - process_and_embed_course_chunks: course_id=69ce66a58112671190e83bb0 stored=8
+2026-04-02 13:53:02,320 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-02 13:53:02,320 - INFO - process_and_embed_course_chunks: course_id=69ce66a58112671190e83bbb stored=4
+2026-04-02 13:53:02,406 - INFO - store_chunks_in_chromadb: stored 5 chunks
+2026-04-02 13:53:02,407 - INFO - process_and_embed_course_chunks: course_id=69ce66a88112671190e83bc6 stored=5
+2026-04-02 13:53:04,378 - INFO - store_chunks_in_chromadb: stored 6 chunks
+2026-04-02 13:53:04,379 - INFO - process_and_embed_course_chunks: course_id=69ce66ab8112671190e83bde stored=6
+2026-04-02 13:53:04,779 - INFO - store_chunks_in_chromadb: stored 8 chunks
+2026-04-02 13:53:04,780 - INFO - process_and_embed_course_chunks: course_id=69ce66ad8112671190e83bf7 stored=8
+2026-04-02 13:53:05,533 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-02 13:53:05,543 - INFO - process_and_embed_course_chunks: course_id=69ce66ad8112671190e83c01 stored=4
+2026-04-02 13:53:05,976 - INFO - store_chunks_in_chromadb: stored 4 chunks
+2026-04-02 13:53:05,982 - INFO - process_and_embed_course_chunks: course_id=69ce66ad8112671190e83c02 stored=4
+2026-04-02 13:53:06,416 - INFO - store_chunks_in_chromadb: stored 7 chunks
+2026-04-02 13:53:06,418 - INFO - process_and_embed_course_chunks: course_id=69ce66ad8112671190e83c03 stored=7
