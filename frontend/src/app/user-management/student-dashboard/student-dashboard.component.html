@@ -43,8 +43,12 @@
         <span class="material-symbols-outlined">book_4</span> My Courses
       </a>
       <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-        (click)="openLevelTestFromSidebar()"
+        (click)="activeNav = 'level-test-result'; openLevelTestFromSidebar()"
+        [class]="
+          activeNav === 'level-test-result'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
       >
         <span class="material-symbols-outlined">quiz</span> Level Test Result
       </a>
@@ -82,14 +86,24 @@
         <span class="material-symbols-outlined">assignment</span> Assignments
       </a>
       <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        (click)="activeNav = 'goal-setting'"
         routerLink="/student-dashboard/goal-setting"
+        [class]="
+          activeNav === 'goal-setting'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
       >
         <span class="material-symbols-outlined">flag</span> Goal Setting
       </a>
       <a
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        (click)="activeNav = 'badges'"
         routerLink="/student-dashboard/badges"
+        [class]="
+          activeNav === 'badges'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
       >
         <span class="material-symbols-outlined">military_tech</span> Badges
       </a>

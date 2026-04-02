@@ -39,11 +39,13 @@
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
-      <p class="text-xs font-bold text-slate-500 uppercase mb-1">Study Time</p>
-      <p class="text-2xl font-black text-blue-600">
-        {{ getTotalStudyTime() }} min
+      <p class="text-xs font-bold text-slate-500 uppercase mb-1">
+        Exercises Attempted
       </p>
-      <p class="text-xs text-slate-500 mt-1">total tracked time</p>
+      <p class="text-2xl font-black text-blue-600">
+        {{ getTotalExercisesAttempted() }}
+      </p>
+      <p class="text-xs text-slate-500 mt-1">total submissions</p>
     </div>
   </div>
 
@@ -239,21 +241,23 @@
     </div>
 
     <!-- Activity Heatmap -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-6">
+    <div
+      class="bg-white rounded-2xl border border-slate-200 p-6 overflow-hidden"
+    >
       <div class="flex items-center justify-between mb-4">
-        <div>
+        <div class="min-w-0 pr-4">
           <h3 class="text-lg font-bold">Activity Heatmap</h3>
           <p class="text-xs text-slate-500">Last 28 days of activity</p>
         </div>
         <div
-          class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center"
+          class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0"
         >
           <span class="material-symbols-outlined text-red-600 text-sm"
-            >calendar_heat_map</span
+            >calendar_month</span
           >
         </div>
       </div>
-      <div class="flex flex-col gap-3 overflow-x-auto">
+      <div class="flex flex-col gap-3 overflow-x-auto pb-1">
         <!-- Header Row -->
         <div class="flex gap-2 pl-12">
           <div

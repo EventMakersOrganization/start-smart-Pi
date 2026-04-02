@@ -1,15 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AuthService } from '../auth.service';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
+import { Subscription, filter } from 'rxjs';
 
 @Component({
   selector: 'app-student-dashboard',
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.css'],
 })
-export class StudentDashboardComponent implements OnInit {
+export class StudentDashboardComponent implements OnInit, OnDestroy {
   user: any;
   profileData: any = null;
 
@@ -36,6 +37,7 @@ export class StudentDashboardComponent implements OnInit {
   alerts: any[] = [];
   showProfileSidebar = false;
   activeNav = 'dashboard';
+  private routerEventsSubscription?: Subscription;
 
   // Topic scores pour les progress rings
   topicRings: any[] = [];
@@ -49,11 +51,23 @@ export class StudentDashboardComponent implements OnInit {
 
   ngOnInit() {
     this.user = this.authService.getUser();
+    this.syncActiveNavFromUrl();
+    this.routerEventsSubscription = this.router.events
+      .pipe(
+        filter(
+          (event): event is NavigationEnd => event instanceof NavigationEnd,
+        ),
+      )
+      .subscribe((event) => this.syncActiveNavFromUrl(event.urlAfterRedirects));
     this.loadProfile();
     if (this.user) {
       this.loadUserInfo();
       this.loadAdaptiveData();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.routerEventsSubscription?.unsubscribe();
   }
 
   loadUserInfo(): void {
@@ -282,6 +296,7 @@ export class StudentDashboardComponent implements OnInit {
   openLevelTestFromSidebar(): void {
     const userId = this.user?._id || this.user?.id;
     if (!userId) {
+      this.activeNav = 'level-test';
       this.router.navigate(['/student-dashboard/level-test']);
       return;
     }
@@ -289,15 +304,18 @@ export class StudentDashboardComponent implements OnInit {
     this.adaptiveService.getLevelTest(userId).subscribe({
       next: (test) => {
         if (test && test.status === 'completed') {
+          this.activeNav = 'level-test-result';
           this.router.navigate(['/student-dashboard/level-test-result'], {
             state: { result: test },
           });
           return;
         }
 
+        this.activeNav = 'level-test';
         this.router.navigate(['/student-dashboard/level-test']);
       },
       error: () => {
+        this.activeNav = 'level-test';
         this.router.navigate(['/student-dashboard/level-test']);
       },
     });
@@ -365,6 +383,50 @@ export class StudentDashboardComponent implements OnInit {
       this.router.url.includes('/student-dashboard/assignments') ||
       this.router.url.includes('/student-dashboard/continue-learning')
     );
+  }
+
+  private syncActiveNavFromUrl(url: string = this.router.url): void {
+    if (url.includes('/student-dashboard/goal-setting')) {
+      this.activeNav = 'goal-setting';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/badges')) {
+      this.activeNav = 'badges';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/level-test-result')) {
+      this.activeNav = 'level-test-result';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/level-test')) {
+      this.activeNav = 'level-test';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/my-courses')) {
+      this.activeNav = 'my-courses';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/performance')) {
+      this.activeNav = 'performance';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/learning-path')) {
+      this.activeNav = 'learning-path';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/assignments')) {
+      this.activeNav = 'assignments';
+      return;
+    }
+
+    this.activeNav = 'dashboard';
   }
 
   logout() {
