@@ -538,3 +538,25 @@
 2026-03-28 19:40:30,680 - ERROR - search_chunks: could not embed query
 2026-03-28 19:40:31,730 - ERROR - search_chunks: could not embed query
 2026-03-28 19:40:36,814 - ERROR - search_chunks: could not embed query
+2026-04-03 23:48:09,490 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-03 23:50:06,773 - INFO - get_or_create_chunked_collection: 'course_chunks' ready (cached)
+2026-04-03 23:50:06,790 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-04-03 23:50:06,790 - INFO - process_and_embed_course_chunks: course_id=69d04401e80f2ab99526965e stored=0
+2026-04-03 23:50:17,220 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-04-03 23:50:17,220 - INFO - process_and_embed_course_chunks: course_id=69d04401e80f2ab995269669 stored=0
+2026-04-03 23:50:31,341 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-04-03 23:50:31,341 - INFO - process_and_embed_course_chunks: course_id=69d04401e80f2ab995269674 stored=0
+2026-04-03 23:50:54,622 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-04-03 23:50:54,622 - INFO - process_and_embed_course_chunks: course_id=69d04402e80f2ab99526968c stored=0
+2026-04-03 23:51:21,316 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-04-03 23:51:21,316 - INFO - process_and_embed_course_chunks: course_id=69d04402e80f2ab9952696a5 stored=0
+2026-04-03 23:51:31,575 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-04-03 23:51:31,576 - INFO - process_and_embed_course_chunks: course_id=69d04402e80f2ab9952696af stored=0
+2026-04-03 23:51:41,770 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-04-03 23:51:41,770 - INFO - process_and_embed_course_chunks: course_id=69d04402e80f2ab9952696b0 stored=0
+2026-04-03 23:51:59,043 - INFO - store_chunks_in_chromadb: no new chunks to add (all skipped)
+2026-04-03 23:51:59,043 - INFO - process_and_embed_course_chunks: course_id=69d04403e80f2ab9952696b1 stored=0
+2026-04-03 23:53:30,460 - ERROR - search_chunks: could not embed query
+2026-04-03 23:53:39,261 - ERROR - search_chunks: could not embed query
+2026-04-03 23:53:40,766 - ERROR - search_chunks: could not embed query
+2026-04-03 23:53:44,589 - ERROR - search_chunks: could not embed query
