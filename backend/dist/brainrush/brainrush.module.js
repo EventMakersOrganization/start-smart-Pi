@@ -18,10 +18,12 @@ const scoring_service_1 = require("./services/scoring.service");
 const leaderboard_service_1 = require("./services/leaderboard.service");
 const room_service_1 = require("./services/room.service");
 const brainrush_gateway_1 = require("./gateways/brainrush.gateway");
+const multiplayer_game_service_1 = require("./services/multiplayer-game.service");
 const game_session_schema_1 = require("./schemas/game-session.schema");
 const player_session_schema_1 = require("./schemas/player-session.schema");
 const question_instance_schema_1 = require("./schemas/question-instance.schema");
 const score_schema_1 = require("./schemas/score.schema");
+const player_answer_schema_1 = require("./schemas/player-answer.schema");
 let BrainrushModule = class BrainrushModule {
 };
 exports.BrainrushModule = BrainrushModule;
@@ -33,6 +35,7 @@ exports.BrainrushModule = BrainrushModule = __decorate([
                 { name: player_session_schema_1.PlayerSession.name, schema: player_session_schema_1.PlayerSessionSchema },
                 { name: question_instance_schema_1.QuestionInstance.name, schema: question_instance_schema_1.QuestionInstanceSchema },
                 { name: score_schema_1.Score.name, schema: score_schema_1.ScoreSchema },
+                { name: player_answer_schema_1.PlayerAnswer.name, schema: player_answer_schema_1.PlayerAnswerSchema },
             ]),
             axios_1.HttpModule,
         ],
@@ -44,6 +47,7 @@ exports.BrainrushModule = BrainrushModule = __decorate([
             scoring_service_1.ScoringService,
             leaderboard_service_1.LeaderboardService,
             room_service_1.RoomService,
+            multiplayer_game_service_1.MultiplayerGameService,
             brainrush_gateway_1.BrainrushGateway,
         ],
         exports: [brainrush_service_1.BrainrushService],

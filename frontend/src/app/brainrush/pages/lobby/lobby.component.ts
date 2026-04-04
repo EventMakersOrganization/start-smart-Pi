@@ -7,11 +7,13 @@ import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { BrainrushService } from '../../services/brainrush.service';
 import { SocketService } from '../../services/socket.service';
+import { AudioService } from '../../services/audio.service';
 
 // ─── LOBBY HEADER ──────────────────────────────────────────────────────────
 @Component({
   selector: 'app-lobby-header',
   standalone: true,
+  imports: [RouterModule],
   template: `
     <div class="flex flex-col items-center justify-center text-center space-y-4 mb-12">
       <div class="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg border border-white/20 text-white">
@@ -19,6 +21,13 @@ import { SocketService } from '../../services/socket.service';
       </div>
       <h1 class="text-6xl font-black text-white drop-shadow-lg tracking-tight">BrainRush</h1>
       <p class="text-xl text-white/90 font-medium max-w-md">Adaptive AI Quiz Game — Learn While You Play!</p>
+      <div class="pt-4">
+        <button routerLink="/brainrush/dashboard" 
+          class="px-6 py-2 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 rounded-full font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:-translate-y-1 flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">insights</span>
+          View Solo Stats
+        </button>
+      </div>
     </div>
   `
 })
@@ -235,8 +244,21 @@ export class SoloConfigComponent implements OnInit {
           </div>
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-2">Your Username</label>
-            <input [(ngModel)]="createUsername" maxlength="20" type="text" placeholder="Enter your name"
+            <input [(ngModel)]="createUsername" maxlength="20" type="text" (focus)="playClick()" placeholder="Enter your name"
               class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-cyan-400 transition-all">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Choose Avatar</label>
+            <div class="flex flex-wrap gap-2">
+              <button *ngFor="let av of avatars"
+                (click)="selectedAvatar = av; playClick()"
+                [class.ring-4]="selectedAvatar === av"
+                [class.ring-cyan-400]="selectedAvatar === av"
+                [class.bg-white]="selectedAvatar === av"
+                class="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 text-xl hover:bg-gray-200 transition-all shadow-sm">
+                {{ av }}
+              </button>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-2">Topic</label>
@@ -286,8 +308,21 @@ export class SoloConfigComponent implements OnInit {
           </div>
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-2">Your Username</label>
-            <input [(ngModel)]="joinUsername" maxlength="20" type="text" placeholder="Enter your name"
+            <input [(ngModel)]="joinUsername" maxlength="20" type="text" (focus)="playClick()" placeholder="Enter your name"
               class="w-full bg-white border border-gray-200 text-gray-800 rounded-xl px-4 py-3 font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Choose Avatar</label>
+            <div class="flex flex-wrap gap-2">
+              <button *ngFor="let av of avatars"
+                (click)="selectedAvatar = av; playClick()"
+                [class.ring-4]="selectedAvatar === av"
+                [class.ring-blue-500]="selectedAvatar === av"
+                [class.bg-gray-50]="selectedAvatar === av"
+                class="w-10 h-10 flex items-center justify-center rounded-lg bg-white text-xl hover:bg-gray-100 transition-all shadow-sm border border-gray-100">
+                {{ av }}
+              </button>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-2">Room Code</label>
@@ -317,8 +352,16 @@ export class SoloConfigComponent implements OnInit {
   `
 })
 export class TeamConfigComponent implements OnDestroy {
-  @Output() create = new EventEmitter<{ username: string; topic: string; difficulty: string }>();
-  @Output() join = new EventEmitter<{ roomCode: string; username: string }>();
+  @Output() create = new EventEmitter<{ username: string; avatar: string; topic: string; difficulty: string }>();
+  @Output() join = new EventEmitter<{ roomCode: string; username: string; avatar: string }>();
+
+  avatars = ['🎮', '🚀', '🧠', '⚡', '🦉', '🦊', '🐼', '🐱', '🐶', '👻', '👾', '🔥'];
+  selectedAvatar = '🎮';
+
+  constructor(private audio: AudioService) { }
+
+  playClick() { this.audio.playSFX('click'); }
+
 
   // Create fields
   createUsername = '';
@@ -339,9 +382,10 @@ export class TeamConfigComponent implements OnDestroy {
       return;
     }
     this.createError = '';
-    this.creating = true;
+    this.audio.playSFX('click');
     this.create.emit({
       username: this.createUsername.trim(),
+      avatar: this.selectedAvatar,
       topic: this.createTopic,
       difficulty: this.createDifficulty,
     });
@@ -356,9 +400,12 @@ export class TeamConfigComponent implements OnDestroy {
       this.joinError = 'Enter a valid 6-character room code';
       return;
     }
-    this.joinError = '';
-    this.joining = true;
-    this.join.emit({ roomCode: this.roomCode, username: this.joinUsername.trim() });
+    this.audio.playSFX('click');
+    this.join.emit({
+      roomCode: this.roomCode,
+      username: this.joinUsername.trim(),
+      avatar: this.selectedAvatar
+    });
   }
 
   /** Reset loading states (called from parent on error) */
@@ -402,6 +449,12 @@ export class TeamConfigComponent implements OnDestroy {
 
       <div *ngIf="errorMsg" class="error-toast">⚠️ {{ errorMsg }}</div>
 
+      <div class="fixed top-5 right-5 flex gap-2 z-50">
+        <button (click)="audio.toggleMusic()" class="w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white text-xl">
+          {{ audio.isMusicEnabled ? '🎶' : '🔇' }}
+        </button>
+      </div>
+
       <app-lobby-header></app-lobby-header>
 
       <app-mode-selector
@@ -439,14 +492,20 @@ export class LobbyComponent implements OnDestroy {
     private service: BrainrushService,
     private socketService: SocketService,
     private router: Router,
+    public audio: AudioService
   ) { }
+
+  ngOnInit() {
+    this.audio.startMusic('lobby');
+  }
+
 
   // ── Solo mode ────────────────────────────────────────────────────────────
 
   startSolo(config?: { topic: string; difficulty: string }) {
     const topic = config?.topic || 'data_structures';
     const difficulty = config?.difficulty || 'medium';
-    this.service.createRoom('solo').subscribe({
+    this.service.createRoom('solo', topic, difficulty).subscribe({
       next: (res: any) => {
         this.router.navigate(
           ['/brainrush/game', res._id, 'solo'],
@@ -464,7 +523,8 @@ export class LobbyComponent implements OnDestroy {
 
   // ── Team mode ────────────────────────────────────────────────────────────
 
-  createTeam(payload: { username: string; topic: string; difficulty: string }) {
+  createTeam(payload: { username: string; avatar: string; topic: string; difficulty: string }) {
+
     // Connect socket (no auth token required at this level)
     this.socketService.connect();
 
@@ -480,9 +540,11 @@ export class LobbyComponent implements OnDestroy {
               players: room.players,
               isHost: true,
               username: payload.username,
+              avatar: payload.avatar,
               topic: payload.topic,
               difficulty: payload.difficulty,
             }
+
           }
         );
       }
@@ -495,10 +557,11 @@ export class LobbyComponent implements OnDestroy {
     });
 
     this.subs.push(sub, errSub);
-    this.socketService.createRoom(payload.username);
+    this.socketService.createRoom(payload.username, payload.avatar);
   }
 
-  joinTeam(payload: { roomCode: string; username: string }) {
+  joinTeam(payload: { roomCode: string; username: string, avatar: string }) {
+
     this.socketService.connect();
 
     // Listen for room joined confirmation
@@ -513,7 +576,9 @@ export class LobbyComponent implements OnDestroy {
               players: room.players,
               isHost: false,
               username: payload.username,
+              avatar: payload.avatar,
             }
+
           }
         );
       }
@@ -526,7 +591,7 @@ export class LobbyComponent implements OnDestroy {
     });
 
     this.subs.push(sub, errSub);
-    this.socketService.joinRoom(payload.roomCode, payload.username);
+    this.socketService.joinRoom(payload.roomCode, payload.username, payload.avatar);
   }
 
   private showError(msg: string) {
@@ -536,5 +601,6 @@ export class LobbyComponent implements OnDestroy {
 
   ngOnDestroy() {
     this.subs.forEach(s => s.unsubscribe());
+    this.audio.stopMusic();
   }
 }

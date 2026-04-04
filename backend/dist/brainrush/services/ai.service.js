@@ -20,6 +20,29 @@ let AiService = AiService_1 = class AiService {
         this.logger = new common_1.Logger(AiService_1.name);
         this.AI_SERVICE_URL = process.env['AI_SERVICE_URL'] || 'http://localhost:8000';
     }
+    async generateSession(subject, difficulty, numQuestions = 5) {
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.AI_SERVICE_URL}/brainrush/generate-session`, {
+                subject,
+                difficulty,
+                num_questions: numQuestions,
+            }));
+            const qs = response.data.questions || [];
+            return qs.map((q, idx) => ({
+                id: `q-${idx}-${Date.now()}`,
+                text: q.question,
+                options: q.options,
+                correctAnswer: q.correct_answer,
+                explanation: q.explanation || 'Study hard!',
+                timeLimit: q.time_limit || 20,
+                points: q.points || 20
+            }));
+        }
+        catch (error) {
+            this.logger.error('Failed to generate session from AI service', error);
+            return Array(numQuestions).fill(0).map((_, i) => this.getFallbackQuestion(difficulty, i));
+        }
+    }
     async generateQuestion(subject, difficulty) {
         try {
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(`${this.AI_SERVICE_URL}/brainrush/generate-question`, {
@@ -37,7 +60,12 @@ let AiService = AiService_1 = class AiService {
         }
         catch (error) {
             this.logger.error('Failed to call Python AI Service, using fallback', error);
-            return this.getFallbackQuestion(difficulty);
+            const fallback = this.getFallbackQuestion(difficulty);
+            return {
+                questionText: fallback.text,
+                options: fallback.options,
+                correctAnswer: fallback.correctAnswer
+            };
         }
     }
     async generateFeedback(strengths, weaknesses) {
@@ -53,11 +81,21 @@ let AiService = AiService_1 = class AiService {
             return 'Super effort ! Continue de t\'entraîner pour monter en niveau.';
         }
     }
-    getFallbackQuestion(difficulty) {
+    getFallbackQuestion(difficulty, index = 0) {
+        const fallbacks = [
+            { q: 'What is the capital of France?', options: ['Paris', 'Lyon', 'Marseille'], ans: 'Paris' },
+            { q: 'What is 10 + 10?', options: ['15', '20', '25'], ans: '20' },
+            { q: 'Which language is used for Web?', options: ['C++', 'HTML', 'Cobol'], ans: 'HTML' }
+        ];
+        const picked = fallbacks[index % fallbacks.length];
         return {
-            questionText: 'What is the capital of France? (Fallback)',
-            options: ['London', 'Berlin', 'Paris', 'Madrid'],
-            correctAnswer: 'Paris',
+            id: `fallback-${index}-${Date.now()}`,
+            text: picked.q,
+            options: picked.options,
+            correctAnswer: picked.ans,
+            explanation: 'General knowledge.',
+            timeLimit: 20,
+            points: 20
         };
     }
 };

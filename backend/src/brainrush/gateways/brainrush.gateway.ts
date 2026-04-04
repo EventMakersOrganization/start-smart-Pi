@@ -11,27 +11,39 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { LeaderboardService } from '../services/leaderboard.service';
 import { RoomService } from '../services/room.service';
+import { MultiplayerGameService } from '../services/multiplayer-game.service';
 
 // ── Payload interfaces ──────────────────────────────────────────────────────
 
 interface CreateRoomPayload {
   username: string;
+  avatar: string;
   userId?: string;
 }
 
 interface JoinRoomPayload {
   roomCode: string;
   username: string;
+  avatar: string;
   userId?: string;
 }
 
 interface StartGamePayload {
   roomCode: string;
+  subject: string;
+  difficulty: string;
+}
+
+interface SubmitAnswerPayload {
+  roomCode: string;
+  answer: string;
+  responseTime: number;
 }
 
 interface SubmitFinalScorePayload {
   roomCode: string;
   username: string;
+  avatar: string;
   score: number;
   difficulty: string;
 }
@@ -50,13 +62,18 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   private readonly logger = new Logger('BrainrushGateway');
 
-  // roomCode → Map<socketId, { username, score, difficulty }>
-  private finalScores = new Map<string, Map<string, { username: string; score: number; difficulty: string }>>();
+  // roomCode → Map<socketId, { username, avatar, score, difficulty }>
+  private finalScores = new Map<string, Map<string, { username: string; avatar: string; score: number; difficulty: string }>>();
 
   constructor(
     private readonly leaderboardService: LeaderboardService,
     private readonly roomService: RoomService,
+    private readonly gameService: MultiplayerGameService,
   ) { }
+
+  afterInit() {
+    this.gameService.setServer(this.server);
+  }
 
   // ── Connection lifecycle ──────────────────────────────────────────────────
 
@@ -73,6 +90,10 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
 
     if (!room) {
       // Room was deleted (was empty)
+      if (roomCode) {
+        this.gameService.cleanupRoom(roomCode);
+        this.logger.log(`Resources for room ${roomCode} cleaned up.`);
+      }
       return;
     }
 
@@ -94,14 +115,14 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const { username, userId } = payload;
+      const { username, avatar, userId } = payload;
 
       if (!username || username.trim().length === 0) {
         client.emit('roomError', { message: 'Username is required' });
         return;
       }
 
-      const room = this.roomService.createRoom(client.id, username.trim(), userId);
+      const room = this.roomService.createRoom(client.id, username.trim(), avatar || '👤', userId);
 
       // Join the socket.io room channel
       await client.join(room.roomCode);
@@ -132,7 +153,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const { roomCode, username, userId } = payload;
+      const { roomCode, username, avatar, userId } = payload;
 
       if (!roomCode || roomCode.trim().length !== 6) {
         client.emit('roomError', { message: 'Invalid room code' });
@@ -154,6 +175,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
         roomCode.trim().toUpperCase(),
         client.id,
         username.trim(),
+        avatar || '👤',
         userId,
       );
 
@@ -179,7 +201,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
       // Notify ALL in room (including the joiner) of updated player list
       this.server.to(room.roomCode).emit('playerJoined', {
         players: room.players,
-        newPlayer: { socketId: client.id, username: username.trim() },
+        newPlayer: { socketId: client.id, username: username.trim(), avatar: avatar || '👤' },
       });
 
       this.logger.log(`${username} joined room ${room.roomCode}`);
@@ -192,12 +214,12 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
   // ── Start Game ────────────────────────────────────────────────────────────
 
   @SubscribeMessage('startGame')
-  handleStartGame(
+  async handleStartGame(
     @MessageBody() payload: StartGamePayload,
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const { roomCode } = payload;
+      const { roomCode, subject, difficulty } = payload;
       const { room, error } = this.roomService.startGame(roomCode, client.id);
 
       if (error) {
@@ -205,17 +227,23 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
         return;
       }
 
-      // Emit gameStarted to ALL players in the room
-      this.server.to(room.roomCode).emit('gameStarted', {
-        roomCode: room.roomCode,
-        players: room.players,
-      });
+      // Initialize the authoritative game loop
+      await this.gameService.startGame(roomCode, subject || 'Programming', difficulty || 'medium');
 
       this.logger.log(`Game started in room ${roomCode}`);
     } catch (err) {
       this.logger.error('startGame error', err);
       client.emit('roomError', { message: 'Failed to start game' });
     }
+  }
+
+  @SubscribeMessage('submitAnswer')
+  handleSubmitAnswer(
+    @MessageBody() payload: SubmitAnswerPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { roomCode, answer, responseTime } = payload;
+    this.gameService.submitAnswer(roomCode, client.id, answer, responseTime);
   }
 
   // ── Legacy: joinGameRoom (for quiz score updates) ─────────────────────────
@@ -245,7 +273,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
     @MessageBody() payload: SubmitFinalScorePayload,
     @ConnectedSocket() client: Socket,
   ) {
-    const { roomCode, username, score, difficulty } = payload;
+    const { roomCode, username, avatar, score, difficulty } = payload;
     const room = this.roomService.getRoom(roomCode);
 
     // Init score map for this room
@@ -253,7 +281,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
       this.finalScores.set(roomCode, new Map());
     }
     const roomScores = this.finalScores.get(roomCode);
-    roomScores.set(client.id, { username, score, difficulty });
+    roomScores.set(client.id, { username, avatar, score, difficulty });
 
     // Build sorted leaderboard
     const scoresArray = Array.from(roomScores.entries())

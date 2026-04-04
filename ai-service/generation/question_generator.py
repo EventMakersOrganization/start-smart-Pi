@@ -114,7 +114,7 @@ def generate_multiple_questions(subject, difficulty="medium", num_questions=5, t
     prompt = prompt_templates.get_multiple_questions_prompt(subject, difficulty, num_questions, topics_str)
     try:
         print(f"[question_generator] generate_multiple_questions: subject={subject}, n={num_questions}")
-        response = langchain_ollama.generate_response(prompt)
+        response = langchain_ollama.generate_fast(prompt)
         if not response:
             return []
         data = parse_json_response(response)

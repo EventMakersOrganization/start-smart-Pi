@@ -119,8 +119,8 @@ CHAT_HARD_BUDGET = 95.0
 CHAT_LLM_HARD_BUDGET = 120.0
 # Max thread wait for one Ollama invoke.
 CHAT_LLM_MAX_WAIT_SEC = 120.0
-BRAINRUSH_SOFT_BUDGET = 2.5
-BRAINRUSH_HARD_BUDGET = 5.0
+BRAINRUSH_SOFT_BUDGET = 5.0
+BRAINRUSH_HARD_BUDGET = 30.0
 CACHE_SCHEMA_VERSION = "chat_v21_adaptive_tutor_format"
 
 # CORS: allow all origins for development (NestJS backend can call this API)

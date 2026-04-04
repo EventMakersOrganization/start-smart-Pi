@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { SocketService, RoomPlayer, RoomData } from '../../services/socket.service';
+import { AudioService } from '../../services/audio.service';
 
 @Component({
   selector: 'app-waiting-room',
@@ -109,6 +110,20 @@ import { SocketService, RoomPlayer, RoomData } from '../../services/socket.servi
         {{ errorMsg }}
       </div>
 
+      <!-- Sync Countdown Overlay -->
+      <div *ngIf="countdownActive"
+        class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-indigo-950/80 backdrop-blur-xl">
+        <div class="text-white/40 text-sm font-black uppercase tracking-[0.3em] mb-4">Game Starting In</div>
+        <div class="text-[12rem] font-black text-white leading-none drop-shadow-[0_0_60px_rgba(255,255,255,0.3)] bounce-in">
+          {{ countdownSeconds }}
+        </div>
+        <div class="mt-8 flex gap-3">
+          <div *ngFor="let p of players" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl grayscale-[0.5]">
+            {{ p.avatar }}
+          </div>
+        </div>
+      </div>
+
       <!-- Main Card -->
       <div class="relative z-10 w-full max-w-2xl fade-in-up">
 
@@ -159,10 +174,8 @@ import { SocketService, RoomPlayer, RoomData } from '../../services/socket.servi
               [style.animation-delay]="i * 0.07 + 's'">
 
               <!-- Avatar -->
-              <div class="avatar"
-                [style.background]="avatarColor(player.username)"
-                [style.color]="'white'">
-                {{ player.username.charAt(0).toUpperCase() }}
+              <div class="avatar bg-white/10 text-2xl shadow-inner border border-white/10">
+                {{ player.avatar || '👤' }}
               </div>
 
               <!-- Name + badge -->
@@ -235,15 +248,21 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
   isHost = false;
   mySocketId = '';
   myUsername = 'Player';
+  myAvatar = '🎮';
   copied = false;
-  gameStarting = false;
   errorMsg = '';
+  countdownSeconds = 0;
+  countdownActive = false;
+  gameStarting = false;
+  selectedTopic = 'Programming';
+  selectedDifficulty = 'medium';
 
   private subs: Subscription[] = [];
 
   constructor(
     private socketService: SocketService,
     private router: Router,
+    private audio: AudioService
   ) { }
 
   ngOnInit(): void {
@@ -255,10 +274,12 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
     this.players = state?.players ?? [];
     this.isHost = state?.isHost ?? false;
     this.mySocketId = this.socketService.socketId;
-    // Resolve own username: prefer explicit state.username, then look up by socketId
-    this.myUsername = state?.username
-      ?? this.players.find((p: RoomPlayer) => p.socketId === this.mySocketId)?.username
-      ?? 'Player';
+    // Resolve own credentials
+    const me = this.players.find((p: RoomPlayer) => p.socketId === this.mySocketId);
+    this.myUsername = state?.username ?? me?.username ?? 'Player';
+    this.myAvatar = state?.avatar ?? me?.avatar ?? '🎮';
+    this.selectedTopic = state?.topic ?? 'Programming';
+    this.selectedDifficulty = state?.difficulty ?? 'medium';
 
     if (!this.roomCode) {
       this.router.navigate(['/brainrush/lobby']);
@@ -279,6 +300,7 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.socketService.onPlayerJoined().subscribe(({ players }) => {
         this.players = players;
+        this.audio.playSFX('join');
       })
     );
 
@@ -292,18 +314,30 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Game started — redirect everyone
+    // Pre-game countdown for everyone
     this.subs.push(
-      this.socketService.onGameStarted().subscribe(({ roomCode, players }) => {
+      this.socketService.onGameCountdown().subscribe(({ seconds }) => {
+        this.countdownSeconds = seconds;
+        this.countdownActive = true;
+        this.gameStarting = true;
+        if (seconds > 0) this.audio.playSFX('click');
+      })
+    );
+
+    // Question 1 received - Start the game!
+    this.subs.push(
+      this.socketService.onNextQuestion().subscribe(({ question, index, total }) => {
         this.router.navigate(
-          ['/brainrush/game', 'multiplayer', roomCode],
+          ['/brainrush/game', 'multiplayer', this.roomCode],
           {
             state: {
-              roomCode,
-              players,
+              roomCode: this.roomCode,
+              players: this.players,
               username: this.myUsername,
-              topic: 'data_structures',
-              difficulty: 'medium'
+              avatar: this.myAvatar,
+              firstQuestion: question,
+              totalQuestions: total,
+              initialIndex: index
             }
           }
         );
@@ -324,7 +358,7 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
   startGame(): void {
     if (!this.isHost || this.gameStarting) return;
     this.gameStarting = true;
-    this.socketService.startGame(this.roomCode);
+    this.socketService.startGame(this.roomCode, this.selectedTopic, this.selectedDifficulty);
   }
 
   leaveRoom(): void {

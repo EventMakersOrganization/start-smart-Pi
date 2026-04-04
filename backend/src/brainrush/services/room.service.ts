@@ -3,17 +3,40 @@ import { Injectable, Logger } from '@nestjs/common';
 export interface RoomPlayer {
     socketId: string;
     username: string;
+    avatar: string;
     userId?: string;
     isHost: boolean;
     joinedAt: Date;
+    score: number;
+    hasAnswered: boolean;
+    lastAnswerCorrect?: boolean;
+    lastResponseTime?: number;
+}
+
+export interface MultiplayerQuestion {
+    id: string;
+    text: string;
+    options: string[];
+    correctAnswer: string;
+    explanation: string;
+    timeLimit: number;
+    points: number;
+}
+
+export interface MultiplayerGameState {
+    status: 'countdown' | 'playing' | 'question_ended' | 'finished';
+    questions: MultiplayerQuestion[];
+    currentQuestionIndex: number;
+    timeLeft: number;
 }
 
 export interface Room {
     roomCode: string;
-    hostId: string;       // socketId of host
+    hostId: string;
     players: RoomPlayer[];
-    status: 'waiting' | 'playing';
+    status: 'waiting' | 'playing' | 'finished';
     createdAt: Date;
+    gameState?: MultiplayerGameState;
 }
 
 @Injectable()
@@ -37,7 +60,7 @@ export class RoomService {
     // ──────────────────────────────────────────
     // Create Room
     // ──────────────────────────────────────────
-    createRoom(socketId: string, username: string, userId?: string): Room {
+    createRoom(socketId: string, username: string, avatar: string, userId?: string): Room {
         // Ensure unique code
         let roomCode: string;
         do {
@@ -47,9 +70,12 @@ export class RoomService {
         const host: RoomPlayer = {
             socketId,
             username,
+            avatar,
             userId,
             isHost: true,
             joinedAt: new Date(),
+            score: 0,
+            hasAnswered: false,
         };
 
         const room: Room = {
@@ -73,6 +99,7 @@ export class RoomService {
         roomCode: string,
         socketId: string,
         username: string,
+        avatar: string,
         userId?: string,
     ): { room: Room; error?: string } {
         const room = this.rooms.get(roomCode);
@@ -86,9 +113,12 @@ export class RoomService {
         const player: RoomPlayer = {
             socketId,
             username,
+            avatar,
             userId,
             isHost: false,
             joinedAt: new Date(),
+            score: 0,
+            hasAnswered: false,
         };
 
         room.players.push(player);

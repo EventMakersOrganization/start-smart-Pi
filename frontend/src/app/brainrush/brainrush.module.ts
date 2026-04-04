@@ -16,6 +16,7 @@ import {
 
 import { FinalPodiumComponent } from './pages/final-podium/final-podium.component';
 import { WaitingRoomComponent } from './pages/waiting-room/waiting-room.component';
+import { SoloDashboardComponent } from './pages/solo-dashboard/solo-dashboard.component';
 import { TimerBarComponent } from './components/timer-bar/timer-bar.component';
 import { ScoreBoardComponent } from './components/score-board/score-board.component';
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
@@ -27,6 +28,7 @@ const routes: Routes = [
   { path: 'waiting-room', component: WaitingRoomComponent },
   { path: 'game/:sessionId/:roomCode', component: GamePlayComponent },
   { path: 'podium', component: FinalPodiumComponent },
+  { path: 'dashboard', component: SoloDashboardComponent },
   { path: '', redirectTo: 'lobby', pathMatch: 'full' }
 ];
 
@@ -54,7 +56,8 @@ const routes: Routes = [
     PowerUpComponent,
     AnswerOptionComponent,
     WaitingRoomComponent,
-    FinalPodiumComponent,      // now standalone
+    FinalPodiumComponent,
+    SoloDashboardComponent,
     RouterModule.forChild(routes)
   ]
 })

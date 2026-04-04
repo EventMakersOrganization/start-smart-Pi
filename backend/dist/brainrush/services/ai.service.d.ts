@@ -4,6 +4,7 @@ export declare class AiService {
     private readonly logger;
     private readonly AI_SERVICE_URL;
     constructor(httpService: HttpService);
+    generateSession(subject: string, difficulty: string, numQuestions?: number): Promise<any[]>;
     generateQuestion(subject: string, difficulty: string): Promise<any>;
     generateFeedback(strengths: string[], weaknesses: string[]): Promise<string>;
     private getFallbackQuestion;

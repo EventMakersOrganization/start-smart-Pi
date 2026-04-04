@@ -29,19 +29,25 @@ let BrainrushController = class BrainrushController {
         this.leaderboardService = leaderboardService;
     }
     createRoom(dto, req) {
-        return this.brainrushService.createRoom(dto, req.user._id);
+        return this.brainrushService.createRoom(dto, req.user.id || req.user._id);
     }
     joinRoom(dto, req) {
-        return this.brainrushService.joinRoom(dto, req.user._id);
+        return this.brainrushService.joinRoom(dto, req.user.id || req.user._id);
+    }
+    initializeSolo(sessionId, body, req) {
+        return this.brainrushService.generateSoloSession(sessionId, req.user.id || req.user._id, body.topic, body.difficulty);
     }
     getNextQuestion(sessionId, req) {
-        return this.brainrushService.getNextQuestion(sessionId, req.user._id);
+        return this.brainrushService.getNextQuestion(sessionId, req.user.id || req.user._id);
     }
     submitAnswer(sessionId, dto, req) {
-        return this.brainrushService.submitAnswer(sessionId, req.user._id, dto);
+        return this.brainrushService.submitAnswer(sessionId, req.user.id || req.user._id, dto);
     }
     finishGame(sessionId, req) {
-        return this.brainrushService.finishGame(sessionId, req.user._id);
+        return this.brainrushService.finishGame(sessionId, req.user.id || req.user._id);
+    }
+    getSoloStats(req) {
+        return this.brainrushService.getSoloStats(req.user.id || req.user._id);
     }
     getLeaderboard(sessionId) {
         return this.leaderboardService.getLeaderboard(sessionId);
@@ -64,6 +70,15 @@ __decorate([
     __metadata("design:paramtypes", [join_room_dto_1.JoinRoomDto, Object]),
     __metadata("design:returntype", void 0)
 ], BrainrushController.prototype, "joinRoom", null);
+__decorate([
+    (0, common_1.Post)(':sessionId/initialize-solo'),
+    __param(0, (0, common_1.Param)('sessionId')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], BrainrushController.prototype, "initializeSolo", null);
 __decorate([
     (0, common_1.Get)(':sessionId/next-question'),
     __param(0, (0, common_1.Param)('sessionId')),
@@ -89,6 +104,13 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], BrainrushController.prototype, "finishGame", null);
+__decorate([
+    (0, common_1.Get)('stats/solo'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], BrainrushController.prototype, "getSoloStats", null);
 __decorate([
     (0, common_1.Get)(':sessionId/leaderboard'),
     __param(0, (0, common_1.Param)('sessionId')),

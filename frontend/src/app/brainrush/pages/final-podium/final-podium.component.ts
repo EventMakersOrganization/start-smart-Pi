@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { SocketService } from '../../services/socket.service';
+import { AudioService } from '../../services/audio.service';
 
 interface PlayerScore {
   socketId: string;
   username: string;
+  avatar: string;
   score: number;
   difficulty: string;
   rank?: number;
@@ -137,9 +139,8 @@ interface PlayerScore {
             <!-- 2nd place -->
             <div *ngIf="top3[1]" class="flex flex-col items-center flex-1 max-w-[140px]">
               <div class="text-3xl mb-1">🥈</div>
-              <div class="w-12 h-12 rounded-full flex items-center justify-center font-black text-white text-lg mb-2 shadow-lg"
-                [style.background]="avatarColor(top3[1].username)">
-                {{ top3[1].username.charAt(0).toUpperCase() }}
+              <div class="w-12 h-12 rounded-full flex items-center justify-center font-black text-white text-3xl mb-2 shadow-lg bg-white/10 border border-white/20">
+                {{ top3[1].avatar || '🥈' }}
               </div>
               <p class="text-white font-bold text-sm truncate w-full text-center">{{ top3[1].username }}</p>
               <p class="text-white/60 text-xs font-semibold mb-2">{{ top3[1].score | number }} pts</p>
@@ -151,9 +152,8 @@ interface PlayerScore {
             <!-- 1st place -->
             <div *ngIf="top3[0]" class="flex flex-col items-center flex-1 max-w-[160px]">
               <div class="text-4xl mb-1 sparkle">👑</div>
-              <div class="w-16 h-16 rounded-full flex items-center justify-center font-black text-white text-xl mb-2 shadow-2xl pulse-gold ring-4 ring-yellow-400"
-                [style.background]="avatarColor(top3[0].username)">
-                {{ top3[0].username.charAt(0).toUpperCase() }}
+              <div class="w-16 h-16 rounded-full flex items-center justify-center font-black text-white text-4xl mb-2 shadow-2xl pulse-gold ring-4 ring-yellow-400 bg-white/10 border border-white/30">
+                {{ top3[0].avatar || '🥇' }}
               </div>
               <p class="text-yellow-300 font-black truncate w-full text-center">{{ top3[0].username }}</p>
               <p class="text-yellow-400/80 text-sm font-black mb-2">{{ top3[0].score | number }} pts</p>
@@ -165,9 +165,8 @@ interface PlayerScore {
             <!-- 3rd place -->
             <div *ngIf="top3[2]" class="flex flex-col items-center flex-1 max-w-[140px]">
               <div class="text-3xl mb-1">🥉</div>
-              <div class="w-12 h-12 rounded-full flex items-center justify-center font-black text-white text-lg mb-2 shadow-lg"
-                [style.background]="avatarColor(top3[2].username)">
-                {{ top3[2].username.charAt(0).toUpperCase() }}
+              <div class="w-12 h-12 rounded-full flex items-center justify-center font-black text-white text-3xl mb-2 shadow-lg bg-white/10 border border-white/20">
+                {{ top3[2].avatar || '🥉' }}
               </div>
               <p class="text-white font-bold text-sm truncate w-full text-center">{{ top3[2].username }}</p>
               <p class="text-white/60 text-xs font-semibold mb-2">{{ top3[2].score | number }} pts</p>
@@ -202,9 +201,8 @@ interface PlayerScore {
                 </div>
 
                 <!-- Avatar -->
-                <div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-white text-sm flex-shrink-0"
-                  [style.background]="avatarColor(s.username)">
-                  {{ s.username.charAt(0).toUpperCase() }}
+                <div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-white text-xl flex-shrink-0 bg-white/10 border border-white/10">
+                  {{ s.avatar || '👤' }}
                 </div>
 
                 <!-- Name + difficulty -->
@@ -296,7 +294,9 @@ export class FinalPodiumComponent implements OnInit, OnDestroy {
   isMultiplayer = false;
   roomCode = '';
   myUsername = '';
+  myAvatar = '🎮';
   myScore: number | null = null;
+
   myDifficulty = '';
   scores: PlayerScore[] = [];
   submitted = 0;
@@ -310,6 +310,7 @@ export class FinalPodiumComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private socketService: SocketService,
+    private audio: AudioService
   ) {
     const navigation = this.router.getCurrentNavigation();
     const state = navigation?.extras.state ?? history.state;
@@ -317,8 +318,17 @@ export class FinalPodiumComponent implements OnInit, OnDestroy {
     this.isMultiplayer = state?.isMultiplayer === true;
     this.roomCode = state?.roomCode ?? '';
     this.myUsername = state?.myUsername ?? '';
+    this.myAvatar = state?.myAvatar ?? '🎮';
     this.myScore = state?.myScore ?? null;
     this.myDifficulty = state?.myDifficulty ?? 'medium';
+
+    // Multiplayer: Handle pre-passed ranking
+    if (state?.finalRanking) {
+      this.scores = state.finalRanking;
+      this.submitted = state.finalRanking.length;
+      this.total = state.finalRanking.length;
+      this.allScoresIn = true;
+    }
 
     // Solo result
     this.result = state?.result;
@@ -330,15 +340,17 @@ export class FinalPodiumComponent implements OnInit, OnDestroy {
       this.listenForScores();
 
       // Seed with own score immediately so it shows up
-      if (this.myScore !== null && this.myUsername) {
+      if (this.myScore !== null && this.myUsername && !this.allScoresIn) {
         this.scores = [{
           socketId: 'me',
           username: this.myUsername,
+          avatar: this.myAvatar,
           score: this.myScore,
           difficulty: this.myDifficulty,
         }];
         this.submitted = 1;
       }
+      this.audio.playSFX('victory');
     }
   }
 
@@ -349,13 +361,25 @@ export class FinalPodiumComponent implements OnInit, OnDestroy {
   // ── Socket listener ─────────────────────────────────────────────────────
 
   private listenForScores(): void {
-    const sub = this.socketService.onFinalScores().subscribe(({ scores, submitted, total }) => {
-      this.scores = scores;
-      this.submitted = submitted;
-      this.total = total;
-      this.allScoresIn = submitted >= total && total > 0;
-    });
-    this.subs.push(sub);
+    // Legacy support
+    this.subs.push(
+      this.socketService.onFinalScores().subscribe(({ scores, submitted, total }) => {
+        this.scores = scores;
+        this.submitted = submitted;
+        this.total = total;
+        this.allScoresIn = submitted >= total && total > 0;
+      })
+    );
+
+    // New authoritative results
+    this.subs.push(
+      this.socketService.onFinalResults().subscribe(({ ranking }) => {
+        this.scores = ranking;
+        this.submitted = ranking.length;
+        this.total = ranking.length;
+        this.allScoresIn = true;
+      })
+    );
   }
 
   // ── Computed helpers ────────────────────────────────────────────────────

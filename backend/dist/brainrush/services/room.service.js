@@ -23,7 +23,7 @@ let RoomService = RoomService_1 = class RoomService {
         }
         return code;
     }
-    createRoom(socketId, username, userId) {
+    createRoom(socketId, username, avatar, userId) {
         let roomCode;
         do {
             roomCode = this.generateCode();
@@ -31,9 +31,12 @@ let RoomService = RoomService_1 = class RoomService {
         const host = {
             socketId,
             username,
+            avatar,
             userId,
             isHost: true,
             joinedAt: new Date(),
+            score: 0,
+            hasAnswered: false,
         };
         const room = {
             roomCode,
@@ -47,7 +50,7 @@ let RoomService = RoomService_1 = class RoomService {
         this.logger.log(`Room created: ${roomCode} by ${username} (${socketId})`);
         return room;
     }
-    joinRoom(roomCode, socketId, username, userId) {
+    joinRoom(roomCode, socketId, username, avatar, userId) {
         const room = this.rooms.get(roomCode);
         if (!room)
             return { room: null, error: 'Room not found' };
@@ -59,9 +62,12 @@ let RoomService = RoomService_1 = class RoomService {
         const player = {
             socketId,
             username,
+            avatar,
             userId,
             isHost: false,
             joinedAt: new Date(),
+            score: 0,
+            hasAnswered: false,
         };
         room.players.push(player);
         this.socketToRoom.set(socketId, roomCode);

@@ -6,14 +6,14 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class BrainrushService {
-  private nestUrl = 'http://localhost:3000/brainrush';
+  private nestUrl = 'http://localhost:3000/api/brainrush';
   private aiUrl = 'http://localhost:8000';
 
   constructor(private http: HttpClient) { }
 
   // ── NestJS backend ────────────────────────
-  createRoom(mode: string): Observable<any> {
-    return this.http.post(`${this.nestUrl}/create-room`, { mode });
+  createRoom(mode: string, topic: string, difficulty: string): Observable<any> {
+    return this.http.post(`${this.nestUrl}/create-room`, { mode, topic, difficulty });
   }
 
   joinRoom(roomCode: string): Observable<any> {
@@ -30,6 +30,10 @@ export class BrainrushService {
 
   finishGame(sessionId: string): Observable<any> {
     return this.http.post(`${this.nestUrl}/${sessionId}/finish`, {});
+  }
+
+  initializeSoloSession(sessionId: string, topic: string, difficulty: string): Observable<any> {
+    return this.http.post(`${this.nestUrl}/${sessionId}/initialize-solo`, { topic, difficulty });
   }
 
   // ── AI Service (FastAPI port 8000) ────────
