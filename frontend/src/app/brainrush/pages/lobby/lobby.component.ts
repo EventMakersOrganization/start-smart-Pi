@@ -1,13 +1,19 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import {
+  Component, EventEmitter, Input, OnInit, OnDestroy, Output
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { BrainrushService } from '../../services/brainrush.service';
+import { SocketService } from '../../services/socket.service';
+import { AudioService } from '../../services/audio.service';
 
 // ─── LOBBY HEADER ──────────────────────────────────────────────────────────
 @Component({
   selector: 'app-lobby-header',
   standalone: true,
+  imports: [RouterModule],
   template: `
     <div class="flex flex-col items-center justify-center text-center space-y-4 mb-12">
       <div class="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg border border-white/20 text-white">
@@ -15,6 +21,13 @@ import { BrainrushService } from '../../services/brainrush.service';
       </div>
       <h1 class="text-6xl font-black text-white drop-shadow-lg tracking-tight">BrainRush</h1>
       <p class="text-xl text-white/90 font-medium max-w-md">Adaptive AI Quiz Game — Learn While You Play!</p>
+      <div class="pt-4">
+        <button routerLink="/brainrush/dashboard" 
+          class="px-6 py-2 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 rounded-full font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:-translate-y-1 flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">insights</span>
+          View Solo Stats
+        </button>
+      </div>
     </div>
   `
 })
@@ -166,7 +179,6 @@ export class SoloConfigComponent implements OnInit {
 
   loadTopics() {
     this.loadingTopics = true;
-    // We use a generic subject 'General' to fetch all available topics from RAG
     this.service.getAiTopics('Programming').subscribe({
       next: (res: any) => {
         if (res.topics && res.topics.length > 0) {
@@ -214,13 +226,15 @@ export class SoloConfigComponent implements OnInit {
       to   { opacity: 1; transform: translateY(0); }
     }
     .fade-in-up { animation: fadeInUp 0.35s ease-out forwards; }
+    .spinner { animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   `],
   template: `
     <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-5xl mx-auto mb-12 fade-in-up overflow-hidden">
       <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
 
         <!-- CREATE ROOM -->
-        <div class="p-10 space-y-6">
+        <div class="p-10 space-y-5">
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-2xl">🏆</div>
             <div>
@@ -229,30 +243,62 @@ export class SoloConfigComponent implements OnInit {
             </div>
           </div>
           <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Your Username</label>
+            <input [(ngModel)]="createUsername" maxlength="20" type="text" (focus)="playClick()" placeholder="Enter your name"
+              class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-cyan-400 transition-all">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Choose Avatar</label>
+            <div class="flex flex-wrap gap-2">
+              <button *ngFor="let av of avatars"
+                (click)="selectedAvatar = av; playClick()"
+                [class.ring-4]="selectedAvatar === av"
+                [class.ring-cyan-400]="selectedAvatar === av"
+                [class.bg-white]="selectedAvatar === av"
+                class="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 text-xl hover:bg-gray-200 transition-all shadow-sm">
+                {{ av }}
+              </button>
+            </div>
+          </div>
+          <div>
             <label class="block text-sm font-bold text-gray-700 mb-2">Topic</label>
-            <select class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-cyan-400">
-              <option>Data Structures</option>
-              <option>Algorithms</option>
-              <option>OOP</option>
-              <option>Web Development</option>
+            <select [(ngModel)]="createTopic"
+              class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-cyan-400">
+              <option value="data_structures">Data Structures</option>
+              <option value="algorithms">Algorithms</option>
+              <option value="oop">OOP</option>
+              <option value="web_dev">Web Development</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-2">Difficulty</label>
-            <select class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-cyan-400">
-              <option>Medium</option>
-              <option>Hard</option>
-              <option>Adaptive (AI)</option>
+            <select [(ngModel)]="createDifficulty"
+              class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-cyan-400">
+              <option value="medium">Medium</option>
+              <option value="easy">Easy</option>
+              <option value="hard">Hard</option>
+              <option value="adaptive">Adaptive (AI)</option>
             </select>
           </div>
-          <button (click)="create.emit()"
-            class="w-full py-4 bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 text-white rounded-xl text-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2">
-            Generate Room Code <span class="material-symbols-outlined">magic_button</span>
+
+          <!-- Error -->
+          <p *ngIf="createError" class="text-red-500 text-sm font-semibold">{{ createError }}</p>
+
+          <button id="generate-room-code-btn"
+            [disabled]="!createUsername.trim() || creating"
+            (click)="onCreate()"
+            class="w-full py-4 bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2">
+            <svg *ngIf="creating" class="spinner w-5 h-5" fill="none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="white" stroke-width="4" stroke-dasharray="31 31" stroke-linecap="round"/>
+            </svg>
+            <span *ngIf="!creating">Generate Room Code</span>
+            <span *ngIf="creating">Creating…</span>
+            <span *ngIf="!creating" class="material-symbols-outlined">magic_button</span>
           </button>
         </div>
 
         <!-- JOIN ROOM -->
-        <div class="p-10 space-y-6 bg-gray-50/50">
+        <div class="p-10 space-y-5 bg-gray-50/50">
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-2xl">👥</div>
             <div>
@@ -261,33 +307,114 @@ export class SoloConfigComponent implements OnInit {
             </div>
           </div>
           <div>
-            <label class="block text-sm font-bold text-gray-700 mb-2">Room Code</label>
-            <input [(ngModel)]="roomCode" maxlength="6" type="text" placeholder="XXXXXX"
-              class="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl px-4 py-4 font-black uppercase text-center text-3xl tracking-widest outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-gray-300">
+            <label class="block text-sm font-bold text-gray-700 mb-2">Your Username</label>
+            <input [(ngModel)]="joinUsername" maxlength="20" type="text" (focus)="playClick()" placeholder="Enter your name"
+              class="w-full bg-white border border-gray-200 text-gray-800 rounded-xl px-4 py-3 font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
           </div>
-          <button [disabled]="roomCode.length !== 6" (click)="join.emit(roomCode)"
-            class="w-full py-4 bg-blue-600 disabled:bg-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl text-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2">
-            Join Battle <span class="material-symbols-outlined">login</span>
-          </button>
-          <div class="pt-4 border-t border-gray-200">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Recent Rooms</p>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Choose Avatar</label>
             <div class="flex flex-wrap gap-2">
-              <button (click)="roomCode = 'A91F2B'"
-                class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors">A91F2B</button>
-              <button (click)="roomCode = 'X82C0M'"
-                class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors">X82C0M</button>
+              <button *ngFor="let av of avatars"
+                (click)="selectedAvatar = av; playClick()"
+                [class.ring-4]="selectedAvatar === av"
+                [class.ring-blue-500]="selectedAvatar === av"
+                [class.bg-gray-50]="selectedAvatar === av"
+                class="w-10 h-10 flex items-center justify-center rounded-lg bg-white text-xl hover:bg-gray-100 transition-all shadow-sm border border-gray-100">
+                {{ av }}
+              </button>
             </div>
           </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Room Code</label>
+            <input [(ngModel)]="roomCode" maxlength="6" type="text" placeholder="XXXXXX"
+              (input)="roomCode = roomCode.toUpperCase()"
+              class="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl px-4 py-4 font-black uppercase text-center text-3xl tracking-widest outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-gray-300">
+          </div>
+
+          <!-- Error -->
+          <p *ngIf="joinError" class="text-red-500 text-sm font-semibold">{{ joinError }}</p>
+
+          <button id="join-battle-btn"
+            [disabled]="roomCode.length !== 6 || !joinUsername.trim() || joining"
+            (click)="onJoin()"
+            class="w-full py-4 bg-blue-600 disabled:bg-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl text-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2">
+            <svg *ngIf="joining" class="spinner w-5 h-5" fill="none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="white" stroke-width="4" stroke-dasharray="31 31" stroke-linecap="round"/>
+            </svg>
+            <span *ngIf="!joining">Join Battle</span>
+            <span *ngIf="joining">Joining…</span>
+            <span *ngIf="!joining" class="material-symbols-outlined">login</span>
+          </button>
         </div>
 
       </div>
     </div>
   `
 })
-export class TeamConfigComponent {
-  @Output() create = new EventEmitter<void>();
-  @Output() join = new EventEmitter<string>();
+export class TeamConfigComponent implements OnDestroy {
+  @Output() create = new EventEmitter<{ username: string; avatar: string; topic: string; difficulty: string }>();
+  @Output() join = new EventEmitter<{ roomCode: string; username: string; avatar: string }>();
+
+  avatars = ['🎮', '🚀', '🧠', '⚡', '🦉', '🦊', '🐼', '🐱', '🐶', '👻', '👾', '🔥'];
+  selectedAvatar = '🎮';
+
+  constructor(private audio: AudioService) { }
+
+  playClick() { this.audio.playSFX('click'); }
+
+
+  // Create fields
+  createUsername = '';
+  createTopic = 'data_structures';
+  createDifficulty = 'medium';
+  creating = false;
+  createError = '';
+
+  // Join fields
+  joinUsername = '';
   roomCode = '';
+  joining = false;
+  joinError = '';
+
+  onCreate() {
+    if (!this.createUsername.trim()) {
+      this.createError = 'Please enter your username';
+      return;
+    }
+    this.createError = '';
+    this.audio.playSFX('click');
+    this.create.emit({
+      username: this.createUsername.trim(),
+      avatar: this.selectedAvatar,
+      topic: this.createTopic,
+      difficulty: this.createDifficulty,
+    });
+  }
+
+  onJoin() {
+    if (!this.joinUsername.trim()) {
+      this.joinError = 'Please enter your username';
+      return;
+    }
+    if (this.roomCode.length !== 6) {
+      this.joinError = 'Enter a valid 6-character room code';
+      return;
+    }
+    this.audio.playSFX('click');
+    this.join.emit({
+      roomCode: this.roomCode,
+      username: this.joinUsername.trim(),
+      avatar: this.selectedAvatar
+    });
+  }
+
+  /** Reset loading states (called from parent on error) */
+  resetLoading() {
+    this.creating = false;
+    this.joining = false;
+  }
+
+  ngOnDestroy() { }
 }
 
 // ─── LOBBY (main) ─────────────────────────────────────────────────────────
@@ -297,13 +424,36 @@ export class TeamConfigComponent {
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     LobbyHeaderComponent,
     ModeSelectorComponent,
     SoloConfigComponent,
     TeamConfigComponent
   ],
+  styles: [`
+    .error-toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 999; padding: 12px 24px;
+      background: rgba(239,68,68,0.9); color: white; font-weight: 700;
+      border-radius: 14px; border: 1px solid rgba(248,113,113,0.5);
+      backdrop-filter: blur(8px);
+      animation: fadeInDown 0.3s ease-out;
+    }
+    @keyframes fadeInDown {
+      from { opacity:0; transform: translateX(-50%) translateY(-12px); }
+      to   { opacity:1; transform: translateX(-50%) translateY(0); }
+    }
+  `],
   template: `
     <div class="min-h-screen bg-gradient-to-br from-purple-900 via-pink-700 to-orange-500 p-6 flex flex-col items-center pt-16">
+
+      <div *ngIf="errorMsg" class="error-toast">⚠️ {{ errorMsg }}</div>
+
+      <div class="fixed top-5 right-5 flex gap-2 z-50">
+        <button (click)="audio.toggleMusic()" class="w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white text-xl">
+          {{ audio.isMusicEnabled ? '🎶' : '🔇' }}
+        </button>
+      </div>
 
       <app-lobby-header></app-lobby-header>
 
@@ -318,8 +468,9 @@ export class TeamConfigComponent {
       </app-solo-config>
 
       <app-team-config
+        #teamConfig
         *ngIf="selectedMode === 'team'"
-        (create)="createTeam()"
+        (create)="createTeam($event)"
         (join)="joinTeam($event)">
       </app-team-config>
 
@@ -331,15 +482,30 @@ export class TeamConfigComponent {
     </div>
   `
 })
-export class LobbyComponent {
+export class LobbyComponent implements OnDestroy {
   selectedMode: 'solo' | 'team' | null = null;
+  errorMsg = '';
 
-  constructor(private service: BrainrushService, private router: Router) { }
+  private subs: Subscription[] = [];
+
+  constructor(
+    private service: BrainrushService,
+    private socketService: SocketService,
+    private router: Router,
+    public audio: AudioService
+  ) { }
+
+  ngOnInit() {
+    this.audio.startMusic('lobby');
+  }
+
+
+  // ── Solo mode ────────────────────────────────────────────────────────────
 
   startSolo(config?: { topic: string; difficulty: string }) {
     const topic = config?.topic || 'data_structures';
     const difficulty = config?.difficulty || 'medium';
-    this.service.createRoom('solo').subscribe({
+    this.service.createRoom('solo', topic, difficulty).subscribe({
       next: (res: any) => {
         this.router.navigate(
           ['/brainrush/game', res._id, 'solo'],
@@ -347,7 +513,6 @@ export class LobbyComponent {
         );
       },
       error: () => {
-        // Fallback to demo mode: pass topic+difficulty via router state
         this.router.navigate(
           ['/brainrush/game', 'demo', 'solo'],
           { state: { topic, difficulty } }
@@ -356,27 +521,86 @@ export class LobbyComponent {
     });
   }
 
-  createTeam() {
-    this.service.createRoom('multiplayer').subscribe({
-      next: (res: any) => {
-        this.router.navigate(['/brainrush/game', res._id, res.roomCode]);
-      },
-      error: () => {
-        this.router.navigate(['/brainrush/game', 'demo', 'multiplayer']);
+  // ── Team mode ────────────────────────────────────────────────────────────
+
+  createTeam(payload: { username: string; avatar: string; topic: string; difficulty: string }) {
+
+    // Connect socket (no auth token required at this level)
+    this.socketService.connect();
+
+    // Listen for room created confirmation
+    const sub = this.socketService.onRoomCreated().subscribe({
+      next: ({ roomCode, room }) => {
+        sub.unsubscribe();
+        this.router.navigate(
+          ['/brainrush/waiting-room'],
+          {
+            state: {
+              roomCode,
+              players: room.players,
+              isHost: true,
+              username: payload.username,
+              avatar: payload.avatar,
+              topic: payload.topic,
+              difficulty: payload.difficulty,
+            }
+
+          }
+        );
       }
     });
+
+    // Listen for errors
+    const errSub = this.socketService.onRoomError().subscribe(({ message }) => {
+      errSub.unsubscribe();
+      this.showError(message);
+    });
+
+    this.subs.push(sub, errSub);
+    this.socketService.createRoom(payload.username, payload.avatar);
   }
 
-  joinTeam(code: string) {
-    if (code.length === 6) {
-      this.service.joinRoom(code).subscribe({
-        next: (res: any) => {
-          this.router.navigate(['/brainrush/game', res._id, res.roomCode]);
-        },
-        error: () => {
-          this.router.navigate(['/brainrush/game', 'demo', code]);
-        }
-      });
-    }
+  joinTeam(payload: { roomCode: string; username: string, avatar: string }) {
+
+    this.socketService.connect();
+
+    // Listen for room joined confirmation
+    const sub = this.socketService.onRoomJoined().subscribe({
+      next: ({ roomCode, room }) => {
+        sub.unsubscribe();
+        this.router.navigate(
+          ['/brainrush/waiting-room'],
+          {
+            state: {
+              roomCode,
+              players: room.players,
+              isHost: false,
+              username: payload.username,
+              avatar: payload.avatar,
+            }
+
+          }
+        );
+      }
+    });
+
+    // Listen for errors
+    const errSub = this.socketService.onRoomError().subscribe(({ message }) => {
+      errSub.unsubscribe();
+      this.showError(message);
+    });
+
+    this.subs.push(sub, errSub);
+    this.socketService.joinRoom(payload.roomCode, payload.username, payload.avatar);
+  }
+
+  private showError(msg: string) {
+    this.errorMsg = msg;
+    setTimeout(() => (this.errorMsg = ''), 4000);
+  }
+
+  ngOnDestroy() {
+    this.subs.forEach(s => s.unsubscribe());
+    this.audio.stopMusic();
   }
 }

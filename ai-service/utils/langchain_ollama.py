@@ -207,7 +207,12 @@ def generate_response(prompt, timeout=DEFAULT_TIMEOUT):
         text = response if isinstance(response, str) else getattr(response, "content", str(response))
         return text.strip()
     except Exception as e:
-        print(f"[langchain_ollama] generate_response error: {e}")
+        err = str(e)
+        if "requires more system memory" in err or "llama runner process has terminated" in err:
+            print(f"[langchain_ollama] FATAL MEMORY ERROR: {err}")
+            print("[langchain_ollama] SUGGESTION: Your RAM is limited. "
+                  "Please use a smaller model in .env, e.g. llama3.2:1b or qwen2.5:0.5b")
+        print(f"[langchain_ollama] generate_response error: {err}")
         return ""
 
 
@@ -223,7 +228,12 @@ def generate_fast(prompt: str) -> str:
         text = response if isinstance(response, str) else getattr(response, "content", str(response))
         return text.strip()
     except Exception as e:
-        print(f"[langchain_ollama] generate_fast error: {e}")
+        err = str(e)
+        if "requires more system memory" in err or "llama runner process has terminated" in err:
+            print(f"[langchain_ollama] FATAL MEMORY ERROR (fast): {err}")
+            print("[langchain_ollama] SUGGESTION: Your RAM is limited. "
+                  "Please use a smaller fast model in .env, e.g. llama3.2:1b or qwen2.5:0.5b")
+        print(f"[langchain_ollama] generate_fast error: {err}")
         return ""
 
 
