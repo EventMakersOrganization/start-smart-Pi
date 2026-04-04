@@ -68,7 +68,6 @@ export class AiService {
       });
     }
   }
-
   async generateFeedback(strengths: string[], weaknesses: string[]): Promise<string> {
     try {
       // Use the Chatbot endpoint with a specific instruction for feedback
