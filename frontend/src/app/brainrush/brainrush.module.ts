@@ -15,6 +15,7 @@ import {
 } from './pages/game-play/game-play.component';
 
 import { FinalPodiumComponent } from './pages/final-podium/final-podium.component';
+import { WaitingRoomComponent } from './pages/waiting-room/waiting-room.component';
 import { TimerBarComponent } from './components/timer-bar/timer-bar.component';
 import { ScoreBoardComponent } from './components/score-board/score-board.component';
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
@@ -23,6 +24,7 @@ import { FinalFeedbackComponent } from './components/final-feedback/final-feedba
 
 const routes: Routes = [
   { path: 'lobby', component: LobbyComponent },
+  { path: 'waiting-room', component: WaitingRoomComponent },
   { path: 'game/:sessionId/:roomCode', component: GamePlayComponent },
   { path: 'podium', component: FinalPodiumComponent },
   { path: '', redirectTo: 'lobby', pathMatch: 'full' }
@@ -31,7 +33,6 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     // Non-standalone components
-    FinalPodiumComponent,
     TimerBarComponent,
     ScoreBoardComponent,
     LeaderboardComponent,
@@ -52,6 +53,8 @@ const routes: Routes = [
     GameTimerComponent,
     PowerUpComponent,
     AnswerOptionComponent,
+    WaitingRoomComponent,
+    FinalPodiumComponent,      // now standalone
     RouterModule.forChild(routes)
   ]
 })

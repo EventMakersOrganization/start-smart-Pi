@@ -270,6 +270,7 @@ export class GamePlayComponent implements OnInit, OnDestroy {
 
   sessionId = '';
   roomCode = '';
+  username = 'Player';          // set from router state
   score = 0;
   combo = 1;
   timeLeft = 20;
@@ -324,8 +325,10 @@ export class GamePlayComponent implements OnInit, OnDestroy {
 
     this.currentTopic = state?.topic || 'data_structures';
     this.difficulty = state?.difficulty || 'medium';
+    this.username = state?.username || 'Player';
 
-    if (this.roomCode === 'solo' || this.sessionId === 'demo') {
+    // solo, demo, or multiplayer → use AI questions
+    if (this.roomCode === 'solo' || this.sessionId === 'demo' || this.sessionId === 'multiplayer') {
       this.fetchAiQuestions();
     } else {
       this.loadNextQuestion();
@@ -453,7 +456,31 @@ export class GamePlayComponent implements OnInit, OnDestroy {
 
   endGame() {
     this.finished = true;
-    if (this.sessionId !== 'demo') {
+    this.stopTimer();
+
+    const isMultiplayer = this.sessionId === 'multiplayer';
+
+    if (isMultiplayer) {
+      // Emit final score to all room members
+      this.socketService.submitFinalScore(
+        this.roomCode,
+        this.username,
+        this.score,
+        this.difficulty
+      );
+
+      // Navigate to podium — scores will be aggregated there via socket
+      this.router.navigate(['/brainrush/podium'], {
+        state: {
+          isMultiplayer: true,
+          roomCode: this.roomCode,
+          myScore: this.score,
+          myUsername: this.username,
+          myDifficulty: this.difficulty,
+        }
+      });
+
+    } else if (this.sessionId !== 'demo') {
       this.service.finishGame(this.sessionId).subscribe((res: any) => {
         this.router.navigate(['/brainrush/podium'], { state: { result: res } });
       });

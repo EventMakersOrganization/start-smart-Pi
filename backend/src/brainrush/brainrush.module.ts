@@ -7,6 +7,7 @@ import { AiService } from './services/ai.service';
 import { AdaptationService } from './services/adaptation.service';
 import { ScoringService } from './services/scoring.service';
 import { LeaderboardService } from './services/leaderboard.service';
+import { RoomService } from './services/room.service';
 import { BrainrushGateway } from './gateways/brainrush.gateway';
 import { GameSession, GameSessionSchema } from './schemas/game-session.schema';
 import { PlayerSession, PlayerSessionSchema } from './schemas/player-session.schema';
@@ -30,8 +31,9 @@ import { Score, ScoreSchema } from './schemas/score.schema';
     AdaptationService,
     ScoringService,
     LeaderboardService,
+    RoomService,
     BrainrushGateway,
   ],
   exports: [BrainrushService],
 })
-export class BrainrushModule {}
+export class BrainrushModule { }

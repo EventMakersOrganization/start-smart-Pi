@@ -16,6 +16,7 @@ const ai_service_1 = require("./services/ai.service");
 const adaptation_service_1 = require("./services/adaptation.service");
 const scoring_service_1 = require("./services/scoring.service");
 const leaderboard_service_1 = require("./services/leaderboard.service");
+const room_service_1 = require("./services/room.service");
 const brainrush_gateway_1 = require("./gateways/brainrush.gateway");
 const game_session_schema_1 = require("./schemas/game-session.schema");
 const player_session_schema_1 = require("./schemas/player-session.schema");
@@ -42,6 +43,7 @@ exports.BrainrushModule = BrainrushModule = __decorate([
             adaptation_service_1.AdaptationService,
             scoring_service_1.ScoringService,
             leaderboard_service_1.LeaderboardService,
+            room_service_1.RoomService,
             brainrush_gateway_1.BrainrushGateway,
         ],
         exports: [brainrush_service_1.BrainrushService],
