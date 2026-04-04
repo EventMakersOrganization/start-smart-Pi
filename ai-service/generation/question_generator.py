@@ -419,11 +419,12 @@ def generate_level_test_question(
         else:
             c_guidance = "Pour le sujet C: évite les questions génériques; utilise des règles/syntaxes concrètes."
 
+    c_text = f"C guidance: {c_guidance}\n" if c_guidance else ""
     prompt = (
         f"{base_prompt}\n\n"
         f"COURSE CONTENT (from ChromaDB / course database via RAG):\n{course_content}\n\n"
         f"Return STRICT JSON only (no markdown fences).\n"
-        f"{'C guidance: ' + c_guidance + '\\n' if c_guidance else ''}"
+        f"{c_text}"
     )
 
     invalid_json_count = 0
