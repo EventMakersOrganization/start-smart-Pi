@@ -68,7 +68,7 @@ def _cache_key(
     question_course_ids: list[str] | None = None,
     diversity_seed: str | None = None,
 ) -> str:
-    version = "v13_restore_full_level_test_generator"
+    version = "v14_topic_shuffle_session_diversity"
     cid = "|".join(sorted(course_ids)) if course_ids else ""
     qcid = "|".join(question_course_ids or [])
     seed = (diversity_seed or "").strip()
@@ -103,9 +103,10 @@ def _extract_json_array(text: str) -> list[dict]:
 
     parsed = parse_json_value(text)
     if parsed is None:
-        parsed = repair_to_strict_json(
-            text, model_name=getattr(config, "OLLAMA_LEVEL_TEST_MODEL", None)
+        _lt = langchain_ollama.resolve_ollama_model_name(
+            (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip() or config.OLLAMA_MODEL
         )
+        parsed = repair_to_strict_json(text, model_name=_lt)
     if isinstance(parsed, list):
         normed = [_normalise_question(q) for q in parsed if isinstance(q, dict)]
         normed = [q for q in normed if q]
@@ -163,18 +164,38 @@ def _build_batch_prompt(
     )
 
 
-def _generate_level_test_llm(prompt: str) -> str:
+def _generate_level_test_llm(prompt: str, *, output_questions: int = 1) -> str:
+    """
+    Call Ollama for level-test generation. For batch (output_questions > 1), scale num_predict
+    so JSON is not truncated at 1024 — that caused parsed 1/5 and many single-question fallbacks.
+    """
+
     def _gen(model_name: str) -> str:
         mn = (model_name or "").strip()
         if not mn:
             return ""
+        base_ctx = int(getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048))
+        base_pred = int(getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024))
+        if output_questions > 1:
+            num_ctx = min(16384, max(base_ctx, 4096))
+            num_predict = min(8192, max(base_pred, 280 * output_questions + 400))
+        else:
+            num_ctx = base_ctx
+            num_predict = base_pred
         if _ollama is not None:
             try:
+                logger.info(
+                    "[level_test] ollama.generate model=%s num_ctx=%s num_predict=%s (batch_n=%s)",
+                    mn,
+                    num_ctx,
+                    num_predict,
+                    output_questions,
+                )
                 opts = {
                     "temperature": float(getattr(config, "OLLAMA_LEVEL_TEST_TEMPERATURE", 0.4)),
                     "top_p": 0.9,
-                    "num_ctx": int(getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048)),
-                    "num_predict": int(getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)),
+                    "num_ctx": num_ctx,
+                    "num_predict": num_predict,
                 }
                 resp = _ollama.generate(model=mn, prompt=str(prompt), options=opts)
                 if isinstance(resp, dict):
@@ -195,12 +216,18 @@ def _generate_level_test_llm(prompt: str) -> str:
         )
 
     primary = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip() or config.OLLAMA_MODEL
+    primary = langchain_ollama.resolve_ollama_model_name(primary)
+    logger.info(
+        "[level_test] batch/single LLM primary=%s (resolved) output_questions=%s",
+        primary,
+        output_questions,
+    )
     text = _gen(primary)
     if text:
         return text
     fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", None) or "").strip()
     if fb:
-        text = _gen(fb)
+        text = _gen(langchain_ollama.resolve_ollama_model_name(fb))
         if text:
             return text
     return _gen(config.OLLAMA_MODEL)
@@ -321,7 +348,7 @@ def generate_batch_for_subject(
 
     questions: list[dict] = []
     try:
-        raw = _generate_level_test_llm(prompt)
+        raw = _generate_level_test_llm(prompt, output_questions=count)
         questions = _extract_json_array(raw)
         logger.info(
             "Batch LLM for %s: parsed %d/%d questions in %.1fs",
