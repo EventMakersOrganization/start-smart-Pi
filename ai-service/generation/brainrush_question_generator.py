@@ -1063,44 +1063,10 @@ class BrainRushQuestionGenerator:
         use_gamified: bool = True,
     ) -> dict[str, Any]:
         try:
-<<<<<<< HEAD
-            prompt = self.prompt_builder.build_question_generation_prompt(
-                subject, difficulty, topic, question_type="MCQ"
-            )
-            prompt = self.hallucination_guard.add_hallucination_prevention_instructions(prompt)
-            logger.info("brainrush generate_mcq: subject=%s topic=%s", subject, topic)
-            response = langchain_ollama.generate_fast(prompt)
-            data = self._extract_and_validate_json(response)
-            context = self.rag_service.get_context_for_query(f"{subject} {topic}", max_chunks=3)
-            val_dict = dict(data)
-            if "correct_answer" not in val_dict and "correct_pairs" in val_dict:
-                pairs = val_dict.get("correct_pairs") or {}
-                val_dict["correct_answer"] = " ".join(str(v) for v in pairs.values())[:200]
-            validation = self.hallucination_guard.verify_question_validity(val_dict, context)
-            if not validation["is_valid"]:
-                logger.warning("brainrush generate_mcq validation issues: %s", validation.get("issues"))
-            q = {
-                "type": "MCQ",
-                "question": data.get("question", ""),
-                "options": data.get("options", ["A", "B", "C", "D"]),
-                "correct_answer": data.get("correct_answer", ""),
-                "explanation": data.get("explanation", ""),
-                "difficulty": difficulty,
-                "topic": topic,
-                "points": self._calculate_points(difficulty),
-                "time_limit": self._calculate_time_limit(difficulty, "MCQ"),
-                "validation_confidence": validation.get("confidence", 0.0),
-                "is_fallback": False,
-            }
-            if not q["question"] or not q["correct_answer"]:
-                raise ValueError("Missing required question or correct_answer")
-            return q
-=======
             course_content = _fetch_brainrush_context(self.rag_service, subject, topic, course_id_hint)
             if len(course_content.strip()) < MIN_BRAINRUSH_CONTEXT_CHARS:
-                raise BrainRushGroundingError(
-                    "Insufficient retrieved course content for BrainRush MCQ; widen subject or re-embed materials."
-                )
+                # Relaxed Mode: If no RAG content is found, use LLM knowledge for this question.
+                course_content = f"(Aucun support de cours trouvé. Utilise tes connaissances générales sur {subject}/{topic} pour générer cette question.)"
 
             if use_gamified:
                 for attempt in range(_MAX_MCQ_ATTEMPTS):
@@ -1200,7 +1166,6 @@ class BrainRushQuestionGenerator:
             raise BrainRushGroundingError("MCQ validation failed after all attempts.")
         except BrainRushGroundingError:
             raise
->>>>>>> 2efe4ddd0fa51a08ef15d5039a5ec03ab5e98b14
         except Exception as e:
             logger.exception("brainrush generate_mcq error: %s", e)
             raise BrainRushGroundingError(str(e)) from e
@@ -1216,44 +1181,10 @@ class BrainRushQuestionGenerator:
         use_gamified: bool = True,
     ) -> dict[str, Any]:
         try:
-<<<<<<< HEAD
-            prompt = self.prompt_builder.build_question_generation_prompt(
-                subject, difficulty, topic, question_type="True/False"
-            )
-            prompt = self.hallucination_guard.add_hallucination_prevention_instructions(prompt)
-            logger.info("brainrush generate_true_false: subject=%s topic=%s", subject, topic)
-            response = langchain_ollama.generate_fast(prompt)
-            data = self._extract_and_validate_json(response)
-            context = self.rag_service.get_context_for_query(f"{subject} {topic}", max_chunks=3)
-            val_dict = dict(data)
-            if "correct_answer" not in val_dict and "correct_pairs" in val_dict:
-                pairs = val_dict.get("correct_pairs") or {}
-                val_dict["correct_answer"] = " ".join(str(v) for v in pairs.values())[:200]
-            validation = self.hallucination_guard.verify_question_validity(val_dict, context)
-            if not validation["is_valid"]:
-                logger.warning("brainrush generate_true_false validation issues: %s", validation.get("issues"))
-            q = {
-                "type": "TrueFalse",
-                "question": data.get("question", ""),
-                "options": ["True", "False"],
-                "correct_answer": data.get("correct_answer", "True"),
-                "explanation": data.get("explanation", ""),
-                "difficulty": difficulty,
-                "topic": topic,
-                "points": self._calculate_points(difficulty),
-                "time_limit": self._calculate_time_limit(difficulty, "TrueFalse"),
-                "validation_confidence": validation.get("confidence", 0.0),
-                "is_fallback": False,
-            }
-            if not q["question"] or not q["correct_answer"]:
-                raise ValueError("Missing required question or correct_answer")
-            return q
-=======
             course_content = _fetch_brainrush_context(self.rag_service, subject, topic, course_id_hint)
             if len(course_content.strip()) < MIN_BRAINRUSH_CONTEXT_CHARS:
-                raise BrainRushGroundingError(
-                    "Insufficient retrieved course content for BrainRush True/False; widen subject or re-embed materials."
-                )
+                # Relaxed Mode: If no RAG content is found, use LLM knowledge for this question.
+                course_content = f"(Aucun support de cours trouvé. Utilise tes connaissances générales sur {subject}/{topic} pour générer cette question.)"
 
             if use_gamified:
                 for attempt in range(_MAX_TF_ATTEMPTS):
@@ -1377,7 +1308,6 @@ class BrainRushQuestionGenerator:
             raise BrainRushGroundingError("True/False validation failed after all attempts.")
         except BrainRushGroundingError:
             raise
->>>>>>> 2efe4ddd0fa51a08ef15d5039a5ec03ab5e98b14
         except Exception as e:
             logger.exception("brainrush generate_true_false error: %s", e)
             raise BrainRushGroundingError(str(e)) from e
@@ -1391,46 +1321,10 @@ class BrainRushQuestionGenerator:
         course_id_hint: str | None = None,
     ) -> dict[str, Any]:
         try:
-<<<<<<< HEAD
-            prompt = self.prompt_builder.build_question_generation_prompt(
-                subject, difficulty, topic, question_type="Drag&Drop"
-            )
-            prompt = self.hallucination_guard.add_hallucination_prevention_instructions(prompt)
-            logger.info("brainrush generate_drag_drop: subject=%s topic=%s", subject, topic)
-            response = langchain_ollama.generate_fast(prompt)
-            data = self._extract_and_validate_json(response, allow_correct_pairs=True)
-            context = self.rag_service.get_context_for_query(f"{subject} {topic}", max_chunks=3)
-            val_dict = dict(data)
-            if "correct_answer" not in val_dict and "correct_pairs" in val_dict:
-                pairs = val_dict.get("correct_pairs") or {}
-                val_dict["correct_answer"] = " ".join(str(v) for v in pairs.values())[:200]
-            validation = self.hallucination_guard.verify_question_validity(val_dict, context)
-            if not validation["is_valid"]:
-                logger.warning("brainrush generate_drag_drop validation issues: %s", validation.get("issues"))
-            base_points = self._calculate_points(difficulty)
-            q = {
-                "type": "DragDrop",
-                "question": data.get("question", ""),
-                "items": data.get("items", []),
-                "matches": data.get("matches", []),
-                "correct_pairs": data.get("correct_pairs", {}),
-                "explanation": data.get("explanation", ""),
-                "difficulty": difficulty,
-                "topic": topic,
-                "points": base_points + 5,
-                "time_limit": self._calculate_time_limit(difficulty, "DragDrop"),
-                "validation_confidence": validation.get("confidence", 0.0),
-                "is_fallback": False,
-            }
-            if not q["question"] or not q.get("correct_pairs"):
-                raise ValueError("Missing required question or correct_pairs")
-            return q
-=======
             course_content = _fetch_brainrush_context(self.rag_service, subject, topic, course_id_hint)
             if len(course_content.strip()) < MIN_BRAINRUSH_CONTEXT_CHARS:
-                raise BrainRushGroundingError(
-                    "Insufficient retrieved course content for BrainRush DragDrop; widen subject or re-embed materials."
-                )
+                # Relaxed Mode: If no RAG content is found, use LLM knowledge for this question.
+                course_content = f"(Aucun support de cours trouvé. Utilise tes connaissances générales sur {subject}/{topic} pour générer cette question.)"
 
             for attempt in range(_MAX_DD_ATTEMPTS):
                 prompt = _build_gamified_dd_prompt(
@@ -1478,7 +1372,6 @@ class BrainRushQuestionGenerator:
             raise BrainRushGroundingError("DragDrop validation failed after all attempts.")
         except BrainRushGroundingError:
             raise
->>>>>>> 2efe4ddd0fa51a08ef15d5039a5ec03ab5e98b14
         except Exception as e:
             logger.exception("brainrush generate_drag_drop error: %s", e)
             raise BrainRushGroundingError(str(e)) from e

@@ -9,7 +9,9 @@ import sys
 import time
 import unicodedata
 import uuid
+from datetime import datetime, timezone
 import hashlib
+from functools import partial
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
@@ -22,7 +24,7 @@ if str(_SERVICE_ROOT) not in sys.path:
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core import chroma_setup, config, db_connection
 from core.rag_service import RAGService
@@ -31,7 +33,14 @@ from embeddings.batch_embedding_processor import BatchEmbeddingProcessor
 from embeddings.embedding_cache import EmbeddingCache
 from embeddings.embedding_optimizer import EmbeddingOptimizer, estimate_embedding_time
 from generation import question_generator
-from generation.brainrush_question_generator import BrainRushQuestionGenerator
+from generation.brainrush_errors import BrainRushGroundingError
+from generation.brainrush_question_generator import (
+    BrainRushQuestionGenerator,
+    brainrush_session_question_ok,
+    calculate_estimated_time_seconds,
+    generate_brainrush_session,
+    resolve_brainrush_subjects,
+)
 from rag import document_chunker
 from rag.context_relevance_scorer import ContextRelevanceScorer
 from rag.hallucination_guard import HallucinationGuard
@@ -119,8 +128,11 @@ CHAT_HARD_BUDGET = 95.0
 CHAT_LLM_HARD_BUDGET = 120.0
 # Max thread wait for one Ollama invoke.
 CHAT_LLM_MAX_WAIT_SEC = 120.0
-BRAINRUSH_SOFT_BUDGET = 5.0
-BRAINRUSH_HARD_BUDGET = 30.0
+BRAINRUSH_SOFT_BUDGET = 2.5
+BRAINRUSH_HARD_BUDGET = 5.0
+# Full BrainRush session (10–20 LLM calls); separate from single-question budget.
+# Sequential LLM calls (10–20 questions); local Ollama often needs >120s total.
+BRAINRUSH_SESSION_BUDGET = 240.0
 CACHE_SCHEMA_VERSION = "chat_v21_adaptive_tutor_format"
 
 # CORS: allow all origins for development (NestJS backend can call this API)
@@ -213,10 +225,46 @@ class BrainRushQuestionRequest(BaseModel):
 
 
 class BrainRushSessionRequest(BaseModel):
-    subject: str = Field(..., description="Subject area")
-    difficulty: str = Field(default="medium", description="easy | medium | hard")
-    num_questions: int = Field(default=10, ge=5, le=50, description="Number of questions")
-    student_id: str | None = Field(default=None, description="Optional student for adaptive difficulty")
+    subject: str | None = Field(
+        default=None,
+        description="Optional single logical subject; omit to sample across all available course groups (multi-subject).",
+    )
+    difficulty: str = Field(
+        default="medium",
+        description="Base difficulty for adaptive policy when student_id is set (easy | medium | hard).",
+    )
+    difficulty_preference: str = Field(
+        default="adaptive",
+        description="Per-question difficulty: adaptive (curves for 10/15/20) or fixed easy | medium | hard.",
+    )
+    num_questions: int = Field(default=10, description="Must be exactly 10, 15, or 20.")
+    student_id: str | None = Field(
+        default=None,
+        description="Optional; used for adaptive policy and analytics (recommended for multi-subject sessions).",
+    )
+    subject_filter: list[str] | None = Field(
+        default=None,
+        description="Optional course titles, subject names, or course ids to restrict which groups are included.",
+    )
+    mixed_question_types: bool = Field(
+        default=False,
+        description="If true, mix MCQ / TrueFalse / DragDrop (~60/30/10); if false, MCQ-only (faster).",
+    )
+
+    @field_validator("num_questions")
+    @classmethod
+    def _validate_brainrush_session_count(cls, v: int) -> int:
+        if v not in (10, 15, 20):
+            raise ValueError("num_questions must be 10, 15, or 20")
+        return v
+
+    @field_validator("difficulty_preference")
+    @classmethod
+    def _validate_difficulty_preference(cls, v: str) -> str:
+        vv = (v or "adaptive").strip().lower()
+        if vv not in ("adaptive", "easy", "medium", "hard"):
+            raise ValueError("difficulty_preference must be adaptive, easy, medium, or hard")
+        return vv
 
 
 class ChatbotRequest(BaseModel):
@@ -2057,7 +2105,9 @@ async def root():
             "POST /rag/recommendations": "Course recommendations using RAG and student profile",
             "GET /rag/health": "Health check for RAG components (Mongo, Chroma, LLM)",
             "POST /brainrush/generate-question": "Generate BrainRush question (MCQ/TrueFalse/DragDrop)",
-            "POST /brainrush/generate-session": "Generate mixed BrainRush question set",
+            "POST /brainrush/generate-session": "BrainRush game session (10/15/20 Q, gamified RAG, level-test LLM)",
+            "POST /brainrush/create-session": "Alias of generate-session",
+            "GET /brainrush/preview-session": "Preview session (no response cache; query params)",
             "GET /brainrush/topics/{subject}": "Get available topics for a subject from RAG",
             "POST /chatbot/ask": "Chatbot Q&A with RAG and hallucination guard",
             "POST /chatbot/direct": "Tutor answer without retrieval (single-turn, num_predict)",
@@ -2601,6 +2651,167 @@ async def rag_health():
 # --- BrainRush Sprint 4 endpoints ---
 
 
+async def _brainrush_session_core(body: BrainRushSessionRequest, *, preview: bool) -> dict[str, Any]:
+    """BrainRush session: 10/15/20 questions, gamified RAG, level-test LLM stack."""
+    t0 = time.time()
+    route = "/brainrush/generate-session"
+
+    chosen_preference = body.difficulty_preference
+    policy = None
+    sid = body.student_id or ""
+    if sid and sid != "__preview__":
+        state = student_state_store.get_state(sid)
+        conf = float((state or {}).get("confidence_score", 0.5))
+        recent_scores = list((state or {}).get("recent_scores", []))[-3:]
+        pseudo_recent = [{"is_correct": (float(s) >= 50), "response_time_sec": 15} for s in recent_scores]
+        policy = policy_engine.decide_next_difficulty(
+            current_difficulty=body.difficulty,
+            recent_answers=pseudo_recent,
+            confidence_score=conf,
+            hint_used=False,
+        )
+        if chosen_preference != "adaptive":
+            chosen_preference = policy["target_difficulty"]
+
+    # Do not cache full BrainRush sessions: each game must get a new session_seed and new
+    # questions. Identical POST bodies would otherwise return stale JSON instantly (no LLM).
+
+    student_for_session = body.student_id or "anonymous"
+    if preview:
+        student_for_session = "__preview__"
+
+    subjects_resolved = resolve_brainrush_subjects(body.subject_filter, body.subject)
+    if not subjects_resolved:
+        raise HTTPException(
+            status_code=400,
+            detail="No subjects found for BrainRush. Ensure MongoDB has courses and subject/subject_filter match your data.",
+        )
+
+    _gen_session = partial(
+        generate_brainrush_session,
+        brainrush_generator,
+        student_id=student_for_session,
+        num_questions=body.num_questions,
+        difficulty_preference=chosen_preference,
+        subject_filter=body.subject_filter,
+        single_subject=body.subject,
+        mixed_question_types=body.mixed_question_types,
+        subjects_payload=subjects_resolved,
+    )
+    try:
+        session_dict, timed_out = run_with_timeout(
+            _gen_session,
+            BRAINRUSH_SESSION_BUDGET,
+            reraise=(BrainRushGroundingError,),
+        )
+    except BrainRushGroundingError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=str(e)
+            or "Insufficient grounded content for BrainRush; widen subject or re-embed materials.",
+        ) from e
+
+    tier_used = "compact"
+    fallback_used = False
+    llm_called = True
+
+    if timed_out or session_dict is None or not (session_dict.get("questions") if session_dict else []):
+        raise HTTPException(
+            status_code=503,
+            detail="BrainRush session could not be generated in time or returned no grounded questions. "
+            "Widen subject or re-embed materials.",
+        )
+
+    questions = list(session_dict.get("questions") or [])
+
+    cleaned: list[Any] = []
+    for q in questions:
+        if brainrush_session_question_ok(q):
+            cleaned.append(q)
+        else:
+            logger.warning("brainrush session: skipping invalid question: %s", str(q.get("question", ""))[:60])
+    questions = cleaned
+    if not questions:
+        raise HTTPException(
+            status_code=503,
+            detail="BrainRush session produced no valid questions. Try again or adjust course materials.",
+        )
+
+    session_dict = dict(session_dict or {})
+    session_dict["questions"] = questions
+    session_dict["total_questions"] = len(questions)
+    session_dict["total_points"] = sum(int(q.get("points", 0)) for q in questions)
+    session_dict["estimated_time"] = calculate_estimated_time_seconds(questions)
+
+    total_points = int(session_dict["total_points"])
+    avg_q_conf = 0.0
+    if questions:
+        conf_vals = [float((q or {}).get("validation_confidence", 0.0)) for q in questions]
+        avg_q_conf = sum(conf_vals) / max(len(conf_vals), 1)
+
+    ai_feedback_loop.record_signal(
+        "question_quality",
+        max(0.0, min(100.0, avg_q_conf * 100.0)),
+        {
+            "subject": body.subject or "multi",
+            "difficulty": chosen_preference,
+            "count": len(questions),
+            "question_type": "brainrush_session",
+        },
+    )
+    logger.info(
+        "brainrush session: subject=%s num=%s total_pts=%s preview=%s",
+        body.subject,
+        len(questions),
+        total_points,
+        preview,
+    )
+
+    session_info = {
+        "total_points": total_points,
+        "avg_difficulty": chosen_preference,
+        "session_id": session_dict.get("session_id"),
+        "estimated_time": session_dict.get("estimated_time"),
+        "subjects_covered": session_dict.get("subjects_covered", []),
+    }
+
+    result = {
+        "status": "success",
+        "questions": questions,
+        "session": session_dict,
+        "session_info": session_info,
+        "difficulty_policy": policy,
+        "cache_hit": False,
+        "tier_used": tier_used,
+        "preview": preview,
+    }
+
+    ai_monitor.record_request(
+        route,
+        time.time() - t0,
+        True,
+        {
+            "cache_hit": False,
+            "tier_used": tier_used,
+            "llm_called": llm_called,
+            "fallback_used": fallback_used,
+            "timed_out": timed_out,
+            "preview": preview,
+        },
+    )
+    ai_feedback_loop.record_response_latency(
+        route,
+        time.time() - t0,
+        {
+            "cache_hit": False,
+            "tier_used": tier_used,
+            "subject": body.subject or "",
+            "difficulty": chosen_preference,
+        },
+    )
+    return result
+
+
 @app.post("/brainrush/generate-question")
 async def brainrush_generate_question(body: BrainRushQuestionRequest):
     """Generate a BrainRush question (MCQ, TrueFalse, or DragDrop)."""
@@ -2653,23 +2864,34 @@ async def brainrush_generate_question(body: BrainRushQuestionRequest):
                 return brainrush_generator.generate_true_false(body.subject, chosen_difficulty, body.topic)
             return brainrush_generator.generate_mcq(body.subject, chosen_difficulty, body.topic)
 
-        question, timed_out = run_with_timeout(_generate_compact, BRAINRUSH_HARD_BUDGET)
+        try:
+            question, timed_out = run_with_timeout(
+                _generate_compact,
+                BRAINRUSH_HARD_BUDGET,
+                reraise=(BrainRushGroundingError,),
+            )
+        except BrainRushGroundingError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=str(e)
+                or "Insufficient grounded content for BrainRush; widen subject or re-embed materials.",
+            ) from e
+
         tier_used = "compact"
         fallback_used = False
         llm_called = True
         if timed_out or not question:
-            tier_used = "fallback"
-            fallback_used = True
-            llm_called = False
-            question = question_guardrails.fallback_question(body.subject, body.topic, chosen_difficulty)
+            raise HTTPException(
+                status_code=503,
+                detail="BrainRush question could not be generated in time or with sufficient grounded content.",
+            )
 
         q_check = question_guardrails.validate_question(question)
         if not q_check["is_valid"]:
-            tier_used = "fallback"
-            fallback_used = True
-            question = question_guardrails.fallback_question(body.subject, body.topic, chosen_difficulty)
-            question["quality_issues"] = q_check["issues"]
-            question["validation_confidence"] = q_check["confidence"]
+            raise HTTPException(
+                status_code=503,
+                detail="Generated question failed guardrails: " + "; ".join(q_check.get("issues") or []),
+            )
         conf = question.get("validation_confidence", 0.0)
         ai_feedback_loop.record_question_feedback(
             {
@@ -2702,23 +2924,6 @@ async def brainrush_generate_question(body: BrainRushQuestionRequest):
                 "tier_used": tier_used,
             },
         )
-        if tier_used == "fallback":
-            def _refresh_brainrush_q():
-                q2 = _generate_compact()
-                qc2 = question_guardrails.validate_question(q2 or {})
-                if not qc2["is_valid"]:
-                    q2 = question_guardrails.fallback_question(body.subject, body.topic, chosen_difficulty)
-                response_cache.set(
-                    ckey,
-                    {
-                        "question": q2,
-                        "validation_confidence": q2.get("validation_confidence", 0.0),
-                        "difficulty_policy": policy,
-                        "selected_difficulty": chosen_difficulty,
-                        "tier_used": "compact",
-                    },
-                )
-            submit_refresh(_refresh_brainrush_q)
         ai_monitor.record_request(
             "/brainrush/generate-question",
             time.time() - t0,
@@ -2743,6 +2948,8 @@ async def brainrush_generate_question(body: BrainRushQuestionRequest):
             },
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:  # noqa: BLE001
         ai_monitor.record_request(
             "/brainrush/generate-question",
@@ -2755,149 +2962,16 @@ async def brainrush_generate_question(body: BrainRushQuestionRequest):
 
 
 @app.post("/brainrush/generate-session")
+@app.post("/brainrush/create-session")
 async def brainrush_generate_session(body: BrainRushSessionRequest):
-    """Generate a mixed BrainRush question set."""
+    """Generate a BrainRush session (10/15/20 questions, gamified RAG, level-test LLM)."""
     t0 = time.time()
     try:
-        cache_payload = {
-            "student_id": body.student_id or "",
-            "subject": body.subject,
-            "difficulty": body.difficulty,
-            "num_questions": body.num_questions,
-        }
-        ckey = _cache_key("/brainrush/generate-session", cache_payload)
-        cached, cache_age_ms = response_cache.get(ckey)
-        if cached is not None:
-            elapsed_cached = time.time() - t0
-            ai_feedback_loop.record_response_latency(
-                "/brainrush/generate-session",
-                elapsed_cached,
-                {"cache_hit": True, "tier_used": "cache", "subject": body.subject},
-            )
-            ai_monitor.record_request(
-                "/brainrush/generate-session",
-                elapsed_cached,
-                True,
-                {"cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache", "llm_called": False, "fallback_used": False},
-            )
-            return {"status": "success", **cached, "cache_hit": True, "cache_age_ms": cache_age_ms, "tier_used": "cache"}
-
-        chosen_difficulty = body.difficulty
-        policy = None
-        if body.student_id:
-            state = student_state_store.get_state(body.student_id)
-            conf = float((state or {}).get("confidence_score", 0.5))
-            recent_scores = list((state or {}).get("recent_scores", []))[-3:]
-            pseudo_recent = [{"is_correct": (float(s) >= 50), "response_time_sec": 15} for s in recent_scores]
-            policy = policy_engine.decide_next_difficulty(
-                current_difficulty=body.difficulty,
-                recent_answers=pseudo_recent,
-                confidence_score=conf,
-                hint_used=False,
-            )
-            chosen_difficulty = policy["target_difficulty"]
-        questions, timed_out = run_with_timeout(
-            brainrush_generator.generate_mixed_question_set,
-            BRAINRUSH_HARD_BUDGET,
-            body.subject,
-            chosen_difficulty,
-            body.num_questions,
-        )
-        tier_used = "compact"
-        fallback_used = False
-        llm_called = True
-        if timed_out or not questions:
-            tier_used = "fallback"
-            fallback_used = True
-            llm_called = False
-            questions = [
-                question_guardrails.fallback_question(body.subject, "general", chosen_difficulty)
-                for _ in range(body.num_questions)
-            ]
-        cleaned = []
-        for q in questions:
-            qc = question_guardrails.validate_question(q)
-            if qc["is_valid"]:
-                cleaned.append(q)
-            else:
-                tier_used = "fallback"
-                fallback_used = True
-                cleaned.append(question_guardrails.fallback_question(body.subject, q.get("topic", "general"), chosen_difficulty))
-        questions = cleaned
-        total_points = sum(q.get("points", 0) for q in questions)
-        avg_q_conf = 0.0
-        if questions:
-            conf_vals = [float((q or {}).get("validation_confidence", 0.0)) for q in questions]
-            avg_q_conf = sum(conf_vals) / max(len(conf_vals), 1)
-        ai_feedback_loop.record_signal(
-            "question_quality",
-            max(0.0, min(100.0, avg_q_conf * 100.0)),
-            {
-                "subject": body.subject,
-                "difficulty": chosen_difficulty,
-                "count": len(questions),
-                "question_type": "mixed",
-            },
-        )
-        logger.info("brainrush generate-session: subject=%s num=%s total_pts=%s",
-                    body.subject, len(questions), total_points)
-        result = {
-            "status": "success",
-            "questions": questions,
-            "session_info": {"total_points": total_points, "avg_difficulty": chosen_difficulty},
-            "difficulty_policy": policy,
-            "cache_hit": False,
-            "tier_used": tier_used,
-        }
-        response_cache.set(
-            ckey,
-            {
-                "questions": questions,
-                "session_info": {"total_points": total_points, "avg_difficulty": chosen_difficulty},
-                "difficulty_policy": policy,
-                "tier_used": tier_used,
-            },
-        )
-        if tier_used == "fallback":
-            def _refresh_brainrush_session():
-                qset = brainrush_generator.generate_mixed_question_set(body.subject, chosen_difficulty, body.num_questions)
-                cleaned2 = []
-                for q in qset:
-                    qc = question_guardrails.validate_question(q)
-                    cleaned2.append(q if qc["is_valid"] else question_guardrails.fallback_question(body.subject, q.get("topic", "general"), chosen_difficulty))
-                response_cache.set(
-                    ckey,
-                    {
-                        "questions": cleaned2,
-                        "session_info": {"total_points": sum(q.get("points", 0) for q in cleaned2), "avg_difficulty": chosen_difficulty},
-                        "difficulty_policy": policy,
-                        "tier_used": "compact",
-                    },
-                )
-            submit_refresh(_refresh_brainrush_session)
-        ai_monitor.record_request(
-            "/brainrush/generate-session",
-            time.time() - t0,
-            True,
-            {
-                "cache_hit": False,
-                "tier_used": tier_used,
-                "llm_called": llm_called,
-                "fallback_used": fallback_used,
-                "timed_out": timed_out,
-            },
-        )
-        ai_feedback_loop.record_response_latency(
-            "/brainrush/generate-session",
-            time.time() - t0,
-            {
-                "cache_hit": False,
-                "tier_used": tier_used,
-                "subject": body.subject,
-                "difficulty": chosen_difficulty,
-            },
-        )
-        return result
+        return await _brainrush_session_core(body, preview=False)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:  # noqa: BLE001
         ai_monitor.record_request(
             "/brainrush/generate-session",
@@ -2906,7 +2980,67 @@ async def brainrush_generate_session(body: BrainRushSessionRequest):
             {"error": str(e), "cache_hit": False},
         )
         logger.exception("brainrush generate-session error")
-        raise HTTPException(status_code=500, detail=f"BrainRush session generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"BrainRush session generation failed: {e}") from e
+
+
+@app.get("/brainrush/preview-session")
+async def brainrush_preview_session(
+    num_questions: int = Query(10, description="Must be 10, 15, or 20"),
+    subject: str | None = Query(None, description="Optional single subject; omit for multi-subject preview"),
+    difficulty: str = Query("medium", description="Base difficulty for policy (easy | medium | hard)"),
+    difficulty_preference: str = Query("adaptive", description="adaptive | easy | medium | hard"),
+    mixed_question_types: bool = Query(False),
+    subject_filter: str | None = Query(None, description="Comma-separated course/subject filters"),
+):
+    """Preview session shape without caching (uses internal preview student id)."""
+    t0 = time.time()
+    if num_questions not in (10, 15, 20):
+        raise HTTPException(status_code=400, detail="num_questions must be 10, 15, or 20")
+    filt: list[str] | None = None
+    if subject_filter and subject_filter.strip():
+        filt = [s.strip() for s in subject_filter.split(",") if s.strip()]
+    try:
+        body = BrainRushSessionRequest(
+            subject=subject,
+            difficulty=difficulty,
+            difficulty_preference=difficulty_preference,
+            num_questions=num_questions,
+            student_id="__preview__",
+            subject_filter=filt,
+            mixed_question_types=mixed_question_types,
+        )
+        return await _brainrush_session_core(body, preview=True)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
+    except Exception as e:  # noqa: BLE001
+        ai_monitor.record_request(
+            "/brainrush/preview-session",
+            time.time() - t0,
+            False,
+            {"error": str(e), "cache_hit": False},
+        )
+        logger.exception("brainrush preview-session error")
+        raise HTTPException(status_code=500, detail=f"BrainRush preview session failed: {e}") from e
+
+
+@app.get("/brainrush/subjects")
+async def brainrush_subjects():
+    """Return distinct subject names from the course database for the lobby topic picker."""
+    try:
+        courses = db_connection.get_all_courses()
+        seen: set[str] = set()
+        subjects: list[str] = []
+        for c in courses:
+            s = (c.get("subject") or "").strip()
+            if s and s.lower() not in seen:
+                seen.add(s.lower())
+                subjects.append(s)
+        return {"status": "success", "subjects": subjects}
+    except Exception as e:  # noqa: BLE001
+        logger.exception("brainrush subjects error")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch subjects: {e}")
 
 
 @app.get("/brainrush/topics/{subject}")
@@ -3738,7 +3872,7 @@ async def get_learning_state(student_id: str):
     try:
         state = student_state_store.get_state(student_id)
         if not state:
-            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+            return {"status": "success", "learning_state": {}}
         return {"status": "success", "learning_state": state}
     except HTTPException:
         raise
@@ -3841,7 +3975,13 @@ async def analytics_learning(student_id: str):
     try:
         state = student_state_store.get_state(student_id)
         if not state:
-            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+            return {
+                "status": "success",
+                "daily_progress": [],
+                "concepts": {"strengths": [], "weaknesses": []},
+                "pace": {"current": "steady", "trend": []},
+                "predicted_success": 0.0
+            }
         recs = continuous_recommender.recommend(state, n_results=5)
         return {
             "status": "success",
@@ -3863,7 +4003,7 @@ async def analytics_pace(student_id: str):
     try:
         state = student_state_store.get_state(student_id)
         if not state:
-            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+            return {"status": "success", "current": "steady", "trend": []}
         return {"status": "success", **learning_analytics_service.pace_trend(state)}
     except HTTPException:
         raise
@@ -3878,7 +4018,7 @@ async def analytics_concepts(student_id: str):
     try:
         state = student_state_store.get_state(student_id)
         if not state:
-            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+            return {"status": "success", "strengths": [], "weaknesses": []}
         return {"status": "success", **learning_analytics_service.concept_strengths_weaknesses(state)}
     except HTTPException:
         raise

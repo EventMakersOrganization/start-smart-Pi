@@ -37,7 +37,7 @@ export class MultiplayerGameService {
         this.cleanupRoom(roomCode);
 
         // Fetch questions
-        const questions = await this.aiService.generateSession(subject, difficulty, 5);
+        const questions = await this.aiService.generateSession(subject, difficulty, 10);
 
         // Initialize players for a fresh start
         room.players.forEach(p => {

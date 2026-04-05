@@ -9,8 +9,9 @@ export class AiService {
 
   constructor(private readonly httpService: HttpService) { }
 
-  async generateSession(subject: string, difficulty: string, numQuestions: number = 5): Promise<any[]> {
+  async generateSession(subject: string, difficulty: string, numQuestions: number = 10): Promise<any[]> {
     try {
+      this.logger.log(`Calling AI generator for subject: ${subject}, difficulty: ${difficulty}, numQuestions: ${numQuestions}`);
       const response = await firstValueFrom(
         this.httpService.post(`${this.AI_SERVICE_URL}/brainrush/generate-session`, {
           subject,
@@ -19,6 +20,7 @@ export class AiService {
         })
       );
 
+      this.logger.log(`AI response received. Status: ${response.status}`);
       const rawQuestions = response.data.questions || [];
       return rawQuestions.map((q: any, i: number) => ({
         id: q.id || `q-${i}-${Date.now()}`,

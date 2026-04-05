@@ -35,7 +35,7 @@ let MultiplayerGameService = MultiplayerGameService_1 = class MultiplayerGameSer
         }
         this.logger.log(`[START] Initializing game for Room ${roomCode}. Subject: ${subject}`);
         this.cleanupRoom(roomCode);
-        const questions = await this.aiService.generateSession(subject, difficulty, 5);
+        const questions = await this.aiService.generateSession(subject, difficulty, 10);
         room.players.forEach(p => {
             p.score = 0;
             p.hasAnswered = false;

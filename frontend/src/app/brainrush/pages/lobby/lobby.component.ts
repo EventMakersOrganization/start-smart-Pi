@@ -179,11 +179,7 @@ export class SoloConfigComponent implements OnInit {
 
   loadTopics() {
     this.loadingTopics = true;
-<<<<<<< HEAD
-    this.service.getAiTopics('Programming').subscribe({
-=======
     this.service.getSubjects().subscribe({
->>>>>>> 2efe4ddd0fa51a08ef15d5039a5ec03ab5e98b14
       next: (res: any) => {
         const subjects: string[] = res.subjects || [];
         if (subjects.length > 0) {

@@ -51,7 +51,7 @@ export class BrainrushService {
   }
 
   async generateSoloSession(gameSessionId: string, userId: string, topic: string, difficulty: string) {
-    const questions = await this.aiService.generateSession(topic, difficulty, 5);
+    const questions = await this.aiService.generateSession(topic, difficulty, 10);
     const savedQuestions = [];
 
     for (const q of questions) {
