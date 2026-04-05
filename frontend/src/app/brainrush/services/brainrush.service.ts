@@ -54,9 +54,9 @@ export class BrainrushService {
   }
 
   /**
-   * Get available topics for a subject.
+   * Get distinct subjects (e.g. "Programmation Procédurale 1") from the course database.
    */
-  getAiTopics(subject: string): Observable<any> {
-    return this.http.get(`${this.aiUrl}/brainrush/topics/${subject}`);
+  getSubjects(): Observable<any> {
+    return this.http.get(`${this.aiUrl}/brainrush/subjects`);
   }
 }

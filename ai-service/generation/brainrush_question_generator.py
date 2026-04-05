@@ -110,6 +110,18 @@ def _strip_accents_br(text: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
 
 
+def _clean_question_text(text: str) -> str:
+    """Strip leading/trailing ellipsis and whitespace that the model tends to add."""
+    t = str(text or "").strip()
+    while t.startswith("..."):
+        t = t[3:].strip()
+    while t.endswith("..."):
+        t = t[:-3].strip()
+    while t.startswith("."):
+        t = t[1:].strip()
+    return t
+
+
 def _looks_like_french_ref(text: str) -> bool:
     if not isinstance(text, str) or not text.strip():
         return False
@@ -141,7 +153,9 @@ _BRAINRUSH_TF_META_RE = re.compile(
 
 _BRAINRUSH_MCQ_META_RE = re.compile(
     r"(illustre le mieux le thème|parmi les propositions suivantes.*thème|"
-    r"thème «[^»]+»\s+dans\s+«|est abordé dans le cours «)",
+    r"thème «[^»]+»\s+dans\s+«|est abordé dans le cours «|"
+    r"premi[eè]re [ée]tape|derni[eè]re [ée]tape|quel(?:le)?\s+est\s+l[ae']\s*\d*\s*[ée]tape|"
+    r"dans quel(?:le)? ordre|quelle étape précède|quelle étape suit)",
     re.IGNORECASE,
 )
 
@@ -909,42 +923,41 @@ def _build_gamified_mcq_prompt(
         else ""
     )
     lang_hint = "Write EVERYTHING in French (question, options, explanation)." if _looks_like_french_ref(ref) else "Same language as the reference."
-    return f"""You are an expert assessment designer.
+    return f"""You are an expert C programming teacher writing a quiz question.
 
-Generate exactly ONE multiple-choice question using ONLY the reference material below.
-Do not rely on outside facts.
+Generate exactly ONE multiple-choice question. {lang_hint}
 
 Subject: {subject}
-Topic / concept to target: {topic}
+Topic: {topic}
 Difficulty: {difficulty}
 
-General principles:
-- Each question tests one clear idea: definitions, distinctions, applying a rule, reading code,
-  predicting behaviour, or spotting errors — not memorizing document structure or labels.
-- Do NOT ask which step is first, second, or Nth in a procedure or workflow. That only tests
-  memorized order. Instead ask what a phase means, why it matters, or how two phases differ.
-- Every statement you assert (including in options and in the explanation) must be faithful to the
-  reference and internally consistent.
-- For programming (C, control flow, types): double-check semantics before output JSON.
-- Avoid trivial "identify the symbol" items. Prefer behaviour questions (e.g. division entière
-  vs réelle selon le type, précédence, effet de break, portée d'une variable, etc.).
-- {lang_hint}
-- Exactly 4 options; exactly 1 correct; short explanation (1-3 sentences).
-- No catch-all options ("none/all of the above", or equivalent).
-- If the question compares two constructs, make each option explicit about WHICH construct.
+STRICT RULES — violating any rule makes the question INVALID:
 
-Checklist before output:
-- correct_answer is character-for-character identical to one of the four options.
-- The question matches the given topic; the explanation justifies the chosen option.
+1. QUESTION STYLE:
+   - Ask about CONCEPTS, BEHAVIOUR, or MEANING — e.g. "What does this code print?", "What is the difference between X and Y?", "Which statement about X is correct?"
+   - Do NOT ask step ordering ("première étape", "dernière étape", "quel est l'ordre").
+   - Do NOT copy a code block from the reference and ask "what is this?". Write your OWN short example if needed.
+   - Keep the question SHORT (1-2 sentences, under 150 characters if no code). If you include code, keep it under 3 lines.
 
-REFERENCE MATERIAL (only source of truth — from course database / RAG):
+2. OPTIONS:
+   - Exactly 4 options, exactly 1 correct. All 4 must be plausible and roughly the same length.
+   - Do NOT use full sentences as options when short phrases work. Keep each option under 80 characters.
+   - No catch-all ("toutes les réponses", "aucune de ces réponses").
+   - Each option must be clearly different from the others.
+
+3. CORRECTNESS:
+   - The correct_answer MUST be factually correct according to C language rules.
+   - If asking about code output, mentally execute the code step by step before answering.
+   - Common traps to avoid: int A[5]=={{1,2,3}} is VALID in C (remaining = 0). for loop CAN execute 0 times. main() IS required in C. scanf is in stdio.h not string.h.
+   - The explanation must justify WHY the correct answer is right and briefly say why the others are wrong.
+
+4. correct_answer must be character-for-character identical to one of the four options.
+
+REFERENCE MATERIAL (use as knowledge source, do NOT copy examples verbatim):
 {ref}
 {seed_line}
-OUTPUT (strict JSON only — no markdown fences, no extra text):
-Return one JSON object with keys:
-  "question" (string), "options" (array of 4 strings), "correct_answer" (string, must exactly equal one option),
-  "difficulty" ("{difficulty}"), "explanation" (string, 1-3 sentences), "topic" ("{topic}")
-You may use short keys: "q","o","a","d","t","e" (e=explanation).
+OUTPUT — strict JSON only, no markdown, no extra text before or after the JSON:
+{{"question":"Your question here","options":["option1","option2","option3","option4"],"correct_answer":"option1","explanation":"Your explanation here","difficulty":"{difficulty}","topic":"{topic}"}}
 JSON:"""
 
 
@@ -962,36 +975,33 @@ def _build_gamified_tf_prompt(
         else ""
     )
     lang_hint = "Write EVERYTHING in French (question, explanation)." if _looks_like_french_ref(ref) else "Same language as the reference."
-    return f"""You are an expert assessment designer.
+    return f"""You are an expert C programming teacher writing a True/False quiz question. {lang_hint}
 
-Generate exactly ONE True/False question using ONLY the reference material below.
-Do not rely on outside facts.
+Generate exactly ONE True/False statement about the topic below.
 
 Subject: {subject}
-Topic / concept to target: {topic}
+Topic: {topic}
 Difficulty: {difficulty}
 
-General principles:
-- The statement must be a concrete technical fact verifiable in the reference — about how something
-  works, what a function returns, how a construct behaves, etc.
-- Do NOT ask about document structure, step ordering, or which chapter covers a topic.
-- For programming (C, control flow, types): double-check semantics before output JSON.
-- Avoid trivial questions. Prefer behaviour or semantics (e.g. "int x=5/2; gives x=2" is True).
-- {lang_hint}
-- Options must be exactly ["Vrai", "Faux"]. correct_answer must be exactly "Vrai" or "Faux".
-- Explanation: 1-3 sentences justifying the answer using the reference.
+STRICT RULES:
 
-Checklist before output:
-- The statement is unambiguous and has exactly one correct truth value.
-- The explanation cites the relevant fact from the reference.
+1. The statement must be a clear, unambiguous technical fact about C programming — e.g. how a construct behaves, what a function does, what a type means.
+2. Do NOT ask about document structure, step ordering, or course organization.
+3. Do NOT write an empty or vague statement. Be specific and concrete.
+4. CORRECTNESS IS CRITICAL:
+   - for loop CAN execute 0 times (condition checked BEFORE first iteration). Only do-while always executes at least once.
+   - main() IS the mandatory entry point in standard C.
+   - scanf() is declared in stdio.h, NOT string.h.
+   - int A[5] = {{1,2,3}} is valid C: remaining elements are initialized to 0.
+   - Verify your statement against C language rules before answering.
+5. Options must be exactly ["Vrai", "Faux"]. correct_answer must be exactly "Vrai" or "Faux".
+6. Explanation: 1-2 sentences justifying the answer with a concrete reason.
 
-REFERENCE MATERIAL (only source of truth — from course database / RAG):
+REFERENCE MATERIAL (use as knowledge source):
 {ref}
 {seed}
-OUTPUT (strict JSON only — no markdown fences, no extra text):
-Return one JSON object with keys:
-  "question" (string), "options" (["Vrai","Faux"]), "correct_answer" ("Vrai" or "Faux"),
-  "difficulty" ("{difficulty}"), "explanation" (string), "topic" ("{topic}")
+OUTPUT — strict JSON only, no markdown, no extra text before or after the JSON:
+{{"question":"Your statement here","options":["Vrai","Faux"],"correct_answer":"Vrai","explanation":"Your explanation here","difficulty":"{difficulty}","topic":"{topic}"}}
 JSON:"""
 
 
@@ -1103,10 +1113,10 @@ class BrainRushQuestionGenerator:
                     ca_clean = ca_raw[:BRAINRUSH_MAX_OPTION_LEN] if len(ca_raw) > BRAINRUSH_MAX_OPTION_LEN else ca_raw
                     q = {
                         "type": "MCQ",
-                        "question": data.get("question", "")[:BRAINRUSH_MAX_QUESTION_LEN],
+                        "question": _clean_question_text(data.get("question", ""))[:BRAINRUSH_MAX_QUESTION_LEN],
                         "options": opts_clean,
                         "correct_answer": ca_clean,
-                        "explanation": data.get("explanation", ""),
+                        "explanation": _clean_question_text(data.get("explanation", "")),
                         "difficulty": difficulty,
                         "topic": topic,
                         "points": self._calculate_points(difficulty),
@@ -1230,10 +1240,10 @@ class BrainRushQuestionGenerator:
                             break
                     q = {
                         "type": "TrueFalse",
-                        "question": data.get("question", ""),
+                        "question": _clean_question_text(data.get("question", "")),
                         "options": olist,
                         "correct_answer": correct_display,
-                        "explanation": data.get("explanation", ""),
+                        "explanation": _clean_question_text(data.get("explanation", "")),
                         "difficulty": difficulty,
                         "topic": topic,
                         "points": self._calculate_points(difficulty),

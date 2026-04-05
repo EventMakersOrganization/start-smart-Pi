@@ -2729,11 +2729,13 @@ async def _brainrush_session_core(body: BrainRushSessionRequest, *, preview: boo
         if brainrush_session_question_ok(q):
             cleaned.append(q)
         else:
-            raise HTTPException(
-                status_code=503,
-                detail="BrainRush session validation failed after generation. Try again or adjust course materials.",
-            )
+            logger.warning("brainrush session: skipping invalid question: %s", str(q.get("question", ""))[:60])
     questions = cleaned
+    if not questions:
+        raise HTTPException(
+            status_code=503,
+            detail="BrainRush session produced no valid questions. Try again or adjust course materials.",
+        )
 
     session_dict = dict(session_dict or {})
     session_dict["questions"] = questions
@@ -3021,6 +3023,24 @@ async def brainrush_preview_session(
         )
         logger.exception("brainrush preview-session error")
         raise HTTPException(status_code=500, detail=f"BrainRush preview session failed: {e}") from e
+
+
+@app.get("/brainrush/subjects")
+async def brainrush_subjects():
+    """Return distinct subject names from the course database for the lobby topic picker."""
+    try:
+        courses = db_connection.get_all_courses()
+        seen: set[str] = set()
+        subjects: list[str] = []
+        for c in courses:
+            s = (c.get("subject") or "").strip()
+            if s and s.lower() not in seen:
+                seen.add(s.lower())
+                subjects.append(s)
+        return {"status": "success", "subjects": subjects}
+    except Exception as e:  # noqa: BLE001
+        logger.exception("brainrush subjects error")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch subjects: {e}")
 
 
 @app.get("/brainrush/topics/{subject}")

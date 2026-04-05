@@ -166,14 +166,14 @@ export class SoloConfigComponent implements OnInit {
 
   loadTopics() {
     this.loadingTopics = true;
-    // We use a generic subject 'General' to fetch all available topics from RAG
-    this.service.getAiTopics('Programming').subscribe({
+    this.service.getSubjects().subscribe({
       next: (res: any) => {
-        if (res.topics && res.topics.length > 0) {
-          this.topics = res.topics.map((t: string) => ({
-            label: t.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            value: t,
-            recommended: Math.random() > 0.7
+        const subjects: string[] = res.subjects || [];
+        if (subjects.length > 0) {
+          this.topics = subjects.map((s: string, i: number) => ({
+            label: s,
+            value: s,
+            recommended: i === 0
           }));
           this.selectedTopic = this.topics[0].value;
           this.loadingTopics = false;
@@ -187,12 +187,9 @@ export class SoloConfigComponent implements OnInit {
 
   useFallbackTopics() {
     this.topics = [
-      { label: 'Data Structures', value: 'data_structures', recommended: true },
-      { label: 'Algorithms', value: 'algorithms', recommended: false },
-      { label: 'OOP', value: 'oop', recommended: true },
-      { label: 'Web Dev', value: 'web_dev', recommended: false }
+      { label: 'Programmation Procédurale 1', value: 'Programmation Procédurale 1', recommended: true }
     ];
-    this.selectedTopic = 'data_structures';
+    this.selectedTopic = this.topics[0].value;
     this.loadingTopics = false;
   }
 
