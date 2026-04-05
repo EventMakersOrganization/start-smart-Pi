@@ -199,6 +199,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   showProfileSidebar = false;
   activeNav = 'dashboard';
   private routerEventsSubscription?: Subscription;
+  private recommendationsSubscription?: Subscription;
 
   // Topic scores pour les progress rings
   topicRings: any[] = [];
@@ -297,6 +298,15 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         ),
       )
       .subscribe((event) => this.syncActiveNavFromUrl(event.urlAfterRedirects));
+    this.recommendationsSubscription = this.adaptiveService
+      .getLearningRecommendationsStream()
+      .subscribe((recommendations) => {
+        if (Array.isArray(recommendations)) {
+          this.recommendations = recommendations;
+          this.suggestedCourses = this.mapRecommendationCards(recommendations);
+          this.updateAlerts();
+        }
+      });
     this.loadProfile();
     this.ensureInternalOpsDataLoaded();
     if (this.user) {
@@ -312,6 +322,31 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       this.relativeClockHandle = null;
     }
     this.routerEventsSubscription?.unsubscribe();
+    this.recommendationsSubscription?.unsubscribe();
+  }
+
+  private mapRecommendationCards(recommendations: any[]): any[] {
+    const fallbackImages = [
+      'assets/img/angular.png',
+      'assets/img/ml.png',
+      'assets/img/design.png',
+    ];
+
+    return (recommendations || []).slice(0, 3).map((rec, index) => ({
+      title: rec?.title || rec?.name || `Recommendation ${index + 1}`,
+      reason:
+        rec?.rationale ||
+        rec?.reason ||
+        rec?.description ||
+        'Updated from your latest progress.',
+      image: fallbackImages[index % fallbackImages.length],
+      level: rec?.type || rec?.category || 'Adaptive',
+      duration: rec?.estimated_effort_hours
+        ? `${rec.estimated_effort_hours}h effort`
+        : rec?.success_probability !== undefined
+          ? `${Math.round(Number(rec.success_probability) * 100)}% success`
+          : 'Live update',
+    }));
   }
 
   loadUserInfo(): void {
@@ -348,9 +383,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   loadAdaptiveData(forceAnalyticsRefresh = false): void {
     const userId = this.user._id || this.user.id;
 
-    this.loadLearningAnalytics('me', forceAnalyticsRefresh);
-    this.loadPaceAnalytics('me', forceAnalyticsRefresh);
-    this.loadConceptsAnalytics('me', forceAnalyticsRefresh);
+    this.loadLearningAnalytics(userId, forceAnalyticsRefresh);
+    this.loadPaceAnalytics(userId, forceAnalyticsRefresh);
+    this.loadConceptsAnalytics(userId, forceAnalyticsRefresh);
     this.loadInterventionsEffectivenessGlobal();
 
     // ── Charger état adaptatif courant (AI service) ──
@@ -458,6 +493,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.adaptiveService.getRecommendations(userId).subscribe({
       next: (data) => {
         this.recommendations = data;
+        this.suggestedCourses = this.mapRecommendationCards(data || []);
         this.updateAlerts();
       },
       error: () => {

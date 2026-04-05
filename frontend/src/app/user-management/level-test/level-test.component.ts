@@ -291,6 +291,8 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
     this.updateTimeSpent();
     this.submittingAnswer = true;
+    const currentQuestion =
+      this.testData?.questions?.[this.currentQuestionIndex];
 
     this.adaptiveService
       .submitLevelTestAnswer(this.sessionId, currentAnswer)
@@ -314,6 +316,20 @@ export class LevelTestComponent implements OnInit, OnDestroy {
             this.questionStartTime = Date.now();
           }
 
+          this.recordLearningEvent({
+            eventType: 'quiz',
+            score: result?.correct ? 100 : 0,
+            durationSec: Math.max(
+              0,
+              Math.round(
+                this.answers[this.currentQuestionIndex]?.timeSpent || 0,
+              ),
+            ),
+            concept:
+              currentQuestion?.topic || currentQuestion?.subject || 'general',
+            isCorrect: !!result?.correct,
+          });
+
           this.submittingAnswer = false;
           if (onDone) onDone();
         },
@@ -321,6 +337,37 @@ export class LevelTestComponent implements OnInit, OnDestroy {
           console.error('Error submitting answer', err);
           this.submittingAnswer = false;
         },
+      });
+  }
+
+  private recordLearningEvent(options: {
+    eventType: 'quiz' | 'exercise' | 'chat' | 'brainrush';
+    score?: number;
+    durationSec?: number;
+    concept?: string;
+    isCorrect?: boolean;
+  }): void {
+    const studentId = this.user?._id || this.user?.id;
+    if (!studentId) {
+      return;
+    }
+
+    this.adaptiveService
+      .recordLearningEvent({
+        student_id: studentId,
+        event_type: options.eventType,
+        score: options.score,
+        duration_sec: options.durationSec,
+        metadata: {
+          concept: options.concept,
+          topic: options.concept,
+          is_correct: options.isCorrect,
+          source: 'level-test',
+        },
+      })
+      .subscribe({
+        next: () => {},
+        error: () => {},
       });
   }
 
@@ -367,6 +414,16 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       this.adaptiveService.completeLevelTestStage(this.sessionId!).subscribe({
         next: (completeRes) => {
           const profile = completeRes?.profile || {};
+          this.recordLearningEvent({
+            eventType: 'quiz',
+            score: Math.round(profile?.overall_mastery || 0),
+            durationSec: this.answers.reduce(
+              (sum, answer) => sum + Number(answer?.timeSpent || 0),
+              0,
+            ),
+            concept: 'level-test',
+            isCorrect: true,
+          });
           const result = this.buildResultPayload(profile);
 
           this.router.navigate(['/student-dashboard/level-test-result'], {

@@ -156,10 +156,10 @@
         <h2
           class="text-3xl font-black tracking-tight text-slate-900 dark:text-white"
         >
-          My Learning Journey
+          Subjects
         </h2>
         <p class="text-slate-500 mt-1">
-          Pick up right where you left off and achieve your goals.
+          Browse your class subjects, open a chapter, then access its content.
         </p>
       </div>
 
@@ -179,17 +179,15 @@
                 >Recommended for You</span
               >
             </div>
-            <h3 class="text-xl font-bold mb-2">
-              Advanced Generative AI Architectures
-            </h3>
+            <h3 class="text-xl font-bold mb-2">Learning by Subject</h3>
             <p class="text-white/80 text-sm mb-4">
-              Based on your recent progress. We think you'll love this module.
+              Select a subject, explore chapters, then open PDFs, quizzes and
+              exercises.
             </p>
-            <button
-              class="px-6 py-2.5 bg-white text-primary font-bold rounded-lg text-sm hover:bg-slate-50 transition-colors shadow-lg"
+            <span
+              class="inline-block px-4 py-2 bg-white/20 text-white font-bold rounded-lg text-sm"
+              >Student View</span
             >
-              Start Next Best Step
-            </button>
           </div>
           <div class="hidden md:block">
             <img
@@ -208,136 +206,331 @@
       </div>
     </section>
 
-    <!-- Filters Section -->
     <section
-      class="flex flex-col md:flex-row md:items-center justify-between gap-4"
+      *ngIf="viewMode === 'subjects'"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12"
     >
-      <div class="flex flex-wrap items-center gap-2">
-        <button
-          (click)="filterByCategory('all')"
-          [class]="
-            activeFilter === 'all'
-              ? 'px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-sm'
-              : 'px-4 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors border border-slate-200 dark:border-slate-700'
-          "
-        >
-          All Courses
-        </button>
-        <button
-          *ngFor="let category of categoryFilters"
-          (click)="filterByCategory(category)"
-          [class]="
-            activeFilter.toLowerCase() === category.toLowerCase()
-              ? 'px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-sm'
-              : 'px-4 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors border border-slate-200 dark:border-slate-700'
-          "
-        >
-          {{ category }}
-        </button>
-      </div>
-
-      <div class="relative w-full md:w-64">
-        <span
-          class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl"
-          >tune</span
-        >
-        <select
-          (change)="sortCourses($event)"
-          class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm font-medium focus:ring-primary/20 appearance-none"
-        >
-          <option value="recent">Sort by: Recent</option>
-          <option value="progress">Sort by: Progress</option>
-          <option value="title">Sort by: Title</option>
-        </select>
-      </div>
-    </section>
-
-    <!-- Courses Grid -->
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
       <div
-        *ngFor="let course of filteredCourses"
-        class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all group flex flex-col h-full"
-      >
-        <div class="relative h-48 overflow-hidden">
-          <img
-            [src]="course.thumbnail"
-            [alt]="course.title"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
-          <div class="absolute top-4 left-4">
-            <span
-              [class]="
-                'text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ' +
-                course.categoryColor
-              "
-            >
-              {{ course.category }}
-            </span>
-          </div>
-        </div>
-
-        <div class="p-6 flex-1 flex flex-col">
-          <h4
-            class="font-bold text-lg text-slate-900 dark:text-white mb-2 leading-tight"
-          >
-            {{ course.title }}
-          </h4>
-          <p class="text-xs text-slate-500 mb-6 font-medium">
-            Instructor: {{ course.instructor }}
-          </p>
-
-          <div class="mt-auto space-y-4">
-            <div>
-              <div class="flex justify-between items-center text-xs mb-2">
-                <span
-                  [class]="
-                    'font-bold uppercase tracking-wider ' +
-                    (course.progressColor === 'bg-primary'
-                      ? 'text-primary'
-                      : course.progressColor === 'bg-emerald-500'
-                        ? 'text-emerald-500'
-                        : 'text-purple-500')
-                  "
-                >
-                  {{ course.completionLabel }}
-                </span>
-                <span class="text-slate-400">{{ course.lastViewed }}</span>
-              </div>
-              <div
-                class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"
-              >
-                <div
-                  [class]="course.progressColor + ' h-full rounded-full'"
-                  [style.width.%]="course.progress"
-                ></div>
-              </div>
-            </div>
-
-            <button
-              (click)="continueLearning(course.id)"
-              class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
-            >
-              <span class="material-symbols-outlined text-lg">play_circle</span>
-              Continue Learning
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div
-        *ngIf="filteredCourses.length === 0"
-        class="col-span-full text-center py-12"
+        *ngIf="subjectsLoading"
+        class="col-span-full text-center py-16 text-slate-500"
       >
         <span
           class="material-symbols-outlined text-6xl text-slate-300 mb-4 block"
+          >progress_activity</span
         >
-          book_4
-        </span>
-        <h3 class="text-xl font-bold text-slate-600 dark:text-slate-400 mb-2">
-          No courses found
+        <h3 class="text-xl font-bold text-slate-700 mb-2">
+          Loading subjects...
         </h3>
-        <p class="text-slate-500">Try adjusting your filters</p>
+      </div>
+
+      <div
+        *ngFor="let subject of subjects"
+        class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden hover:shadow-xl transition-shadow"
+      >
+        <div class="p-6">
+          <div
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r mb-4"
+            [ngClass]="subject.color"
+          >
+            <span class="material-symbols-outlined text-sm">school</span>
+            Subject
+          </div>
+          <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            {{ subject.name }}
+          </h3>
+          <p class="text-sm text-slate-500 mb-6">
+            {{ subject.count }} chapter{{ subject.count > 1 ? "s" : "" }}
+            available
+          </p>
+          <button
+            (click)="openSubject(subject)"
+            class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors"
+          >
+            Open Subject
+          </button>
+        </div>
+      </div>
+      <div
+        *ngIf="!subjectsLoading && subjects.length === 0"
+        class="col-span-full text-center py-16 text-slate-500"
+      >
+        <span
+          class="material-symbols-outlined text-6xl text-slate-300 mb-4 block"
+          >menu_book</span
+        >
+        <h3 class="text-xl font-bold text-slate-700 mb-2">No subjects found</h3>
+        <p>Courses are empty for now.</p>
+      </div>
+    </section>
+
+    <section
+      *ngIf="viewMode === 'courses' && selectedSubject"
+      class="space-y-6 pb-12"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400">
+            Subject
+          </p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+            {{ selectedSubject.name }}
+          </h3>
+        </div>
+        <button
+          (click)="backToSubjects()"
+          class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50"
+        >
+          Back to Subjects
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div
+          *ngIf="subjectCoursesLoading"
+          class="col-span-full text-center py-12 text-slate-500"
+        >
+          Loading chapters...
+        </div>
+
+        <div
+          *ngFor="let course of selectedSubject.courses"
+          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-xl transition-shadow"
+        >
+          <h4 class="font-bold text-lg text-slate-900 dark:text-white mb-2">
+            {{ course.title }}
+          </h4>
+          <p class="text-sm text-slate-500 line-clamp-2 mb-4">
+            {{ course.description || "No chapter description." }}
+          </p>
+          <p class="text-xs font-semibold text-slate-500 mb-6">
+            {{ course.moduleCount }} module{{
+              course.moduleCount > 1 ? "s" : ""
+            }}
+          </p>
+          <button
+            (click)="openCourse(course)"
+            class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors"
+          >
+            Open Chapter
+          </button>
+        </div>
+      </div>
+
+      <p
+        *ngIf="!subjectCoursesLoading && selectedSubject.courses.length === 0"
+        class="text-sm text-slate-500"
+      >
+        No chapters found for this subject.
+      </p>
+    </section>
+
+    <section
+      *ngIf="viewMode === 'content' && selectedCourse"
+      class="space-y-6 pb-12"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400">
+            Chapter
+          </p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+            {{ selectedCourse.title }}
+          </h3>
+          <p class="text-slate-500 text-sm mt-1">
+            {{ selectedCourse.description || "No description available." }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            (click)="openContinueLearning(selectedCourse.id)"
+            class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-blue-700"
+          >
+            Continue Learning
+          </button>
+          <button
+            (click)="backToCourses()"
+            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50"
+          >
+            Back to Chapters
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="courseLoading" class="text-sm text-slate-500">
+        Loading chapter content...
+      </div>
+
+      <div *ngIf="!courseLoading" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div
+          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
+        >
+          <h4
+            class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-red-500"
+              >picture_as_pdf</span
+            >
+            PDFs
+          </h4>
+          <div class="space-y-3">
+            <div
+              *ngFor="let item of courseResources"
+              class="p-3 rounded-lg bg-slate-50 text-sm"
+            >
+              <p class="font-semibold text-slate-800">{{ item.title }}</p>
+              <p class="text-xs text-slate-500 break-all">
+                {{ item.subtitle }}
+              </p>
+            </div>
+            <p
+              *ngIf="courseResources.length === 0"
+              class="text-sm text-slate-500"
+            >
+              No PDF resources found.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
+        >
+          <h4
+            class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-indigo-500">quiz</span>
+            Quizzes
+          </h4>
+          <div class="space-y-3">
+            <div
+              *ngFor="let quiz of courseQuizzes"
+              class="p-3 rounded-lg bg-slate-50 text-sm"
+            >
+              <p class="font-semibold text-slate-800 line-clamp-2">
+                {{ quiz?.content || "Quiz item" }}
+              </p>
+              <p class="text-xs text-slate-500">
+                Difficulty: {{ quiz?.difficulty || "N/A" }}
+              </p>
+            </div>
+            <p
+              *ngIf="courseQuizzes.length === 0"
+              class="text-sm text-slate-500"
+            >
+              No quizzes found.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
+        >
+          <h4
+            class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-emerald-500"
+              >exercise</span
+            >
+            Exercises
+          </h4>
+          <div class="space-y-3">
+            <div
+              *ngFor="let ex of courseExercises"
+              class="p-3 rounded-lg bg-slate-50 text-sm"
+            >
+              <p class="font-semibold text-slate-800 line-clamp-2">
+                {{ ex?.content || "Exercise item" }}
+              </p>
+              <p class="text-xs text-slate-500">
+                Difficulty: {{ ex?.difficulty || "N/A" }}
+              </p>
+            </div>
+            <p
+              *ngIf="courseExercises.length === 0"
+              class="text-sm text-slate-500"
+            >
+              No exercises found.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
+      >
+        <h4 class="font-bold text-slate-900 dark:text-white mb-4">
+          Sub-Chapters and Resources
+        </h4>
+        <div class="space-y-3">
+          <div
+            *ngFor="let module of subchapterContents"
+            class="p-4 rounded-xl border border-slate-200 bg-slate-50"
+          >
+            <p class="font-semibold text-slate-900">{{ module.title }}</p>
+            <p class="text-sm text-slate-600 mt-1">
+              {{ module.description || "No module description." }}
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-xs">
+              <div class="bg-white rounded-lg p-3 border border-slate-200">
+                <p class="font-semibold text-slate-700 mb-2">PDF files</p>
+                <p
+                  *ngFor="let item of module.pdfs"
+                  class="text-slate-600 break-all"
+                >
+                  {{ item.title }}
+                </p>
+                <p *ngIf="module.pdfs.length === 0" class="text-slate-400">
+                  No PDF file.
+                </p>
+              </div>
+
+              <div class="bg-white rounded-lg p-3 border border-slate-200">
+                <p class="font-semibold text-slate-700 mb-2">Word files</p>
+                <p
+                  *ngFor="let item of module.words"
+                  class="text-slate-600 break-all"
+                >
+                  {{ item.title }}
+                </p>
+                <p *ngIf="module.words.length === 0" class="text-slate-400">
+                  No Word file.
+                </p>
+              </div>
+
+              <div class="bg-white rounded-lg p-3 border border-slate-200">
+                <p class="font-semibold text-slate-700 mb-2">Quizzes</p>
+                <p
+                  *ngFor="let item of module.quizzes"
+                  class="text-slate-600 line-clamp-2"
+                >
+                  {{ item.subtitle }}
+                </p>
+                <p *ngIf="module.quizzes.length === 0" class="text-slate-400">
+                  No quiz found.
+                </p>
+              </div>
+
+              <div class="bg-white rounded-lg p-3 border border-slate-200">
+                <p class="font-semibold text-slate-700 mb-2">Exercises</p>
+                <p
+                  *ngFor="let item of module.exercises"
+                  class="text-slate-600 line-clamp-2"
+                >
+                  {{ item.subtitle }}
+                </p>
+                <p *ngIf="module.exercises.length === 0" class="text-slate-400">
+                  No exercise found.
+                </p>
+              </div>
+            </div>
+          </div>
+          <p
+            *ngIf="subchapterContents.length === 0"
+            class="text-sm text-slate-500"
+          >
+            No modules listed for this chapter.
+          </p>
+        </div>
       </div>
     </section>
   </div>

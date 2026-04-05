@@ -156,6 +156,12 @@ const routes: Routes = [
     data: { roles: ['instructor'] },
   },
   {
+    path: 'instructor/assignments',
+    component: AssignmentsComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['instructor'] },
+  },
+  {
     path: 'goal-setting',
     redirectTo: 'student-dashboard/goal-setting',
     pathMatch: 'full',

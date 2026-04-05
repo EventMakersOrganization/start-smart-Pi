@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, from, of } from 'rxjs';
+import { Observable, Subject, from, of } from 'rxjs';
 import {
   catchError,
   concatMap,
@@ -10,6 +10,7 @@ import {
   tap,
   timeout,
 } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 
 export type TargetLevel = 'beginner' | 'intermediate' | 'advanced';
 
@@ -68,6 +69,7 @@ export interface SpacedRepetitionResponse {
 }
 
 export interface LearningEventRequest {
+  student_id?: string;
   event_type: 'quiz' | 'exercise' | 'chat' | 'brainrush';
   score?: number;
   duration_sec?: number;
@@ -77,6 +79,34 @@ export interface LearningEventRequest {
     is_correct?: boolean;
     [key: string]: any;
   };
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatbotAskRequest {
+  question: string;
+  conversation_history?: ChatMessage[];
+  mode?: string;
+  student_id?: string;
+}
+
+export interface ChatbotAskResponse {
+  status: string;
+  answer?: string;
+  sources?: Array<{
+    course_id?: string;
+    course_title?: string;
+    chunk_text?: string;
+    similarity?: number;
+  }>;
+  validation?: Record<string, any>;
+  pedagogical_response?: Record<string, any>;
+  pace_decision?: Record<string, any>;
+  intervention?: Record<string, any>;
+  continuous_recommendations?: any[];
 }
 
 export interface LearningAnalyticsItem {
@@ -342,9 +372,16 @@ export interface MonitorThroughputResponse {
 export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
   private chatApiUrl = 'http://localhost:3000/api/chat/ai';
+  private aiServiceUrl = 'http://localhost:8000';
   private goalsStorageKey = 'adaptive_learning_goals_v1';
+  private readonly learningRecommendationsSubject = new Subject<any[]>();
+  readonly learningRecommendations$ =
+    this.learningRecommendationsSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+  ) {}
 
   getProfile(userId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/profiles/${userId}`);
@@ -444,27 +481,29 @@ export class AdaptiveLearningService {
   }
 
   startLevelTestStage(subjects?: string[]): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/ai/level-test/start`, {
+    const studentId = this.resolveCurrentStudentId();
+    return this.http.post(`${this.aiServiceUrl}/level-test/start`, {
+      student_id: studentId,
       subjects: subjects || [],
     });
   }
 
   submitLevelTestAnswer(sessionId: string, answer: string): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/ai/level-test/submit-answer`, {
+    return this.http.post(`${this.aiServiceUrl}/level-test/submit-answer`, {
       session_id: sessionId,
       answer,
     });
   }
 
   completeLevelTestStage(sessionId: string): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/ai/level-test/complete`, {
+    return this.http.post(`${this.aiServiceUrl}/level-test/complete`, {
       session_id: sessionId,
     });
   }
 
   getLevelTestSession(sessionId: string): Observable<any> {
     return this.http.get(
-      `${this.chatApiUrl}/ai/level-test/session/${sessionId}`,
+      `${this.aiServiceUrl}/level-test/session/${sessionId}`,
     );
   }
 
@@ -527,11 +566,43 @@ export class AdaptiveLearningService {
   }
 
   recordLearningEvent(payload: LearningEventRequest): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/adaptive/event`, payload);
+    const studentId = payload.student_id || this.resolveCurrentStudentId();
+    return this.http
+      .post(`${this.aiServiceUrl}/learning-state/event`, {
+        ...payload,
+        student_id: studentId,
+      })
+      .pipe(
+        tap((response: any) => {
+          const recommendations = Array.isArray(
+            response?.continuous_recommendations,
+          )
+            ? response.continuous_recommendations
+            : [];
+          this.learningRecommendationsSubject.next(recommendations);
+        }),
+      );
+  }
+
+  askChatbot(payload: ChatbotAskRequest): Observable<ChatbotAskResponse> {
+    const studentId = payload.student_id || this.resolveCurrentStudentId();
+    return this.http.post<ChatbotAskResponse>(
+      `${this.aiServiceUrl}/chatbot/ask`,
+      {
+        question: payload.question,
+        conversation_history: payload.conversation_history || [],
+        mode: payload.mode || null,
+        student_id: studentId,
+      },
+    );
+  }
+
+  getLearningRecommendationsStream(): Observable<any[]> {
+    return this.learningRecommendations$;
   }
 
   getAdaptiveLearningState(studentId: string): Observable<any> {
-    return this.http.get(`${this.chatApiUrl}/learning-state/${studentId}`);
+    return this.http.get(`${this.aiServiceUrl}/learning-state/${studentId}`);
   }
 
   getLearningAnalytics(
@@ -542,7 +613,7 @@ export class AdaptiveLearningService {
       ? new HttpParams().set('refresh', 'true')
       : undefined;
     return this.http.get<LearningAnalyticsResponse>(
-      `${this.chatApiUrl}/analytics/learning/${studentId}`,
+      `${this.aiServiceUrl}/analytics/learning/${studentId}`,
       { params },
     );
   }
@@ -555,7 +626,7 @@ export class AdaptiveLearningService {
       ? new HttpParams().set('refresh', 'true')
       : undefined;
     return this.http.get<PaceAnalyticsResponse>(
-      `${this.chatApiUrl}/analytics/pace/${studentId}`,
+      `${this.aiServiceUrl}/analytics/pace/${studentId}`,
       { params },
     );
   }
@@ -568,7 +639,7 @@ export class AdaptiveLearningService {
       ? new HttpParams().set('refresh', 'true')
       : undefined;
     return this.http.get<ConceptsAnalyticsResponse>(
-      `${this.chatApiUrl}/analytics/concepts/${studentId}`,
+      `${this.aiServiceUrl}/analytics/concepts/${studentId}`,
       { params },
     );
   }
@@ -577,13 +648,13 @@ export class AdaptiveLearningService {
     studentId: string,
   ): Observable<InterventionsEffectivenessResponse> {
     return this.http.get<InterventionsEffectivenessResponse>(
-      `${this.chatApiUrl}/interventions/effectiveness/${studentId}`,
+      `${this.aiServiceUrl}/interventions/effectiveness/${studentId}`,
     );
   }
 
   getInterventionsEffectivenessGlobal(): Observable<InterventionsEffectivenessGlobalResponse> {
     return this.http.get<InterventionsEffectivenessGlobalResponse>(
-      `${this.chatApiUrl}/interventions/effectiveness`,
+      `${this.aiServiceUrl}/interventions/effectiveness`,
     );
   }
 
@@ -673,6 +744,11 @@ export class AdaptiveLearningService {
     return this.http.get<MonitorHealthResponse>(
       `${this.chatApiUrl}/monitor/health`,
     );
+  }
+
+  private resolveCurrentStudentId(): string | undefined {
+    const user = this.authService.getUser();
+    return user?.id || user?._id || undefined;
   }
 
   getMonitorErrors(lastN = 50): Observable<MonitorErrorsResponse> {
