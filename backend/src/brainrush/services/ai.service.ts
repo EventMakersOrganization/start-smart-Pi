@@ -9,30 +9,40 @@ export class AiService {
 
   constructor(private readonly httpService: HttpService) { }
 
-  async generateSession(subject: string, difficulty: string, numQuestions = 5): Promise<any[]> {
+  async generateSession(subject: string, difficulty: string, numQuestions: number = 5): Promise<any[]> {
     try {
       const response = await firstValueFrom(
         this.httpService.post(`${this.AI_SERVICE_URL}/brainrush/generate-session`, {
           subject,
           difficulty,
-          num_questions: numQuestions,
-        }),
+          num_questions: numQuestions
+        })
       );
 
-      const qs = response.data.questions || [];
-      return qs.map((q: any, idx: number) => ({
-        id: `q-${idx}-${Date.now()}`,
-        text: q.question,
-        options: q.options,
-        correctAnswer: q.correct_answer,
-        explanation: q.explanation || 'Study hard!',
-        timeLimit: q.time_limit || 20,
-        points: q.points || 20
+      const rawQuestions = response.data.questions || [];
+      return rawQuestions.map((q: any, i: number) => ({
+        id: q.id || `q-${i}-${Date.now()}`,
+        text: q.question || q.text || q.questionText || 'Question',
+        options: q.options || [],
+        correctAnswer: q.correct_answer || q.correctAnswer || '',
+        explanation: q.explanation || '',
+        timeLimit: q.time_limit || q.timeLimit || 20,
+        points: q.points || 500
       }));
     } catch (error) {
-      this.logger.error('Failed to generate session from AI service', error);
-      // Fallback: generate multiple basic questions locally if needed
-      return Array(numQuestions).fill(0).map((_, i) => this.getFallbackQuestion(difficulty, i));
+      this.logger.error('Failed to call Python generate-session, using fallback', error);
+      return Array.from({ length: numQuestions }).map((_, i) => {
+        const fb = this.getFallbackQuestion(difficulty, i);
+        return {
+          id: fb.id,
+          text: fb.text,
+          options: fb.options,
+          correctAnswer: fb.correctAnswer,
+          explanation: fb.explanation,
+          timeLimit: fb.timeLimit,
+          points: fb.points
+        };
+      });
     }
   }
 
@@ -64,42 +74,6 @@ export class AiService {
     }
   }
 
-  async generateSession(subject: string, difficulty: string, numQuestions: number = 5): Promise<any[]> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.AI_SERVICE_URL}/brainrush/generate-session`, {
-          subject,
-          difficulty,
-          num_questions: numQuestions
-        })
-      );
-
-      const rawQuestions = response.data.questions || [];
-      return rawQuestions.map((q: any, i: number) => ({
-        id: q.id || `q-${i}-${Date.now()}`,
-        text: q.question || q.text || q.questionText || 'Question',
-        options: q.options || [],
-        correctAnswer: q.correct_answer || q.correctAnswer || '',
-        explanation: q.explanation || '',
-        timeLimit: q.time_limit || q.timeLimit || 20,
-        points: q.points || 500
-      }));
-    } catch (error) {
-      this.logger.error('Failed to call Python generate-session, using fallback', error);
-      return Array.from({ length: numQuestions }).map((_, i) => {
-        const fb = this.getFallbackQuestion(difficulty);
-        return {
-          id: `fb-${i}`,
-          text: fb.questionText,
-          options: fb.options,
-          correctAnswer: fb.correctAnswer,
-          explanation: 'Standard fallback explanation.',
-          timeLimit: 20,
-          points: 500
-        };
-      });
-    }
-  }
   async generateFeedback(strengths: string[], weaknesses: string[]): Promise<string> {
     try {
       const response = await firstValueFrom(
@@ -124,10 +98,10 @@ export class AiService {
     const picked = fallbacks[index % fallbacks.length];
     return {
       id: `fallback-${index}-${Date.now()}`,
-      text: picked.q,
+      text: picked.q + ' (Fallback)',
       options: picked.options,
       correctAnswer: picked.ans,
-      explanation: 'General knowledge.',
+      explanation: 'General knowledge fallback.',
       timeLimit: 20,
       points: 20
     };
