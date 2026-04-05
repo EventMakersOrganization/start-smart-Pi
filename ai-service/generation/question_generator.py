@@ -114,6 +114,7 @@ def _ollama_generate_text(*, prompt: str, model_name: str | None) -> str:
     Falls back to existing wrapper if `ollama` package is unavailable.
     """
     mn = (model_name or "").strip() or (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip() or config.OLLAMA_MODEL
+    mn = langchain_ollama.resolve_ollama_model_name(mn)
     if _ollama is None:
         # Fallback path: existing wrapper (kept for environments without python `ollama` installed)
         return langchain_ollama.generate_with_model(prompt, mn) if hasattr(langchain_ollama, "generate_with_model") else langchain_ollama.generate_response(prompt)
@@ -124,6 +125,10 @@ def _ollama_generate_text(*, prompt: str, model_name: str | None) -> str:
         "num_ctx": int(getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048)),
         "num_predict": int(getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)),
     }
+    print(
+        f"[question_generator] level_test LLM model={mn} "
+        f"num_ctx={opts['num_ctx']} num_predict={opts['num_predict']}"
+    )
     try:
         resp = _ollama.generate(model=mn, prompt=str(prompt), options=opts)
         if isinstance(resp, dict):
@@ -394,9 +399,10 @@ def generate_level_test_question(
     if diversity_seed:
         base_prompt = (
             base_prompt
-            + "\n\nDIVERSITY SEED: "
+            + "\n\nSESSION / DIVERSITY: "
             + str(diversity_seed).strip()
-            + "\nInstruction: produce a different question than typical ones; vary numbers/code identifiers/examples while staying faithful to the course content."
+            + "\nInstruction: this session must differ from other runs — vary scenario, numbers, and code "
+            "identifiers; do not reuse generic templates; stay faithful to the course content and topic."
         )
 
     subject_l = str(subject).lower()

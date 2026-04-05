@@ -103,13 +103,22 @@ def build_level_test_batch_prompt(
     ref = (reference_material or "").strip()
     if len(ref) > max_ref_chars:
         ref = ref[:max_ref_chars]
-    seed_line = f"DIVERSITY SEED: {diversity_seed}\n\n" if diversity_seed else ""
+    if diversity_seed:
+        seed_line = (
+            f"SESSION / DIVERSITY ID: {diversity_seed}\n"
+            "Each run MUST differ from any previous run: pick different angles, numbers, and code snippets "
+            "within the same topic rows; do not repeat the same question stem pattern.\n\n"
+        )
+    else:
+        seed_line = ""
     return (
         f"{LEVEL_TEST_ASSESSMENT_RUBRIC}\n\n"
         f"{LEVEL_TEST_QUALITY_RULES}\n\n"
         f"Subject: {subject}\n\n"
         f"Generate exactly {count} MCQs. One row per item:\n{topic_difficulty_specs}\n\n"
-        "Coverage: each row lists topic and difficulty — question i MUST address topic i only.\n\n"
+        "Coverage: each row lists topic and difficulty — question i MUST address topic i only.\n"
+        "Topic coverage: rows use different chapter/module topics where listed; spread across them "
+        "and avoid asking the same subtopic twice.\n\n"
         f"{seed_line}"
         f"REFERENCE MATERIAL (only source of truth — from course database / RAG):\n{ref}\n\n"
         f"{LEVEL_TEST_BATCH_JSON_SCHEMA.format(count=count)}\n"

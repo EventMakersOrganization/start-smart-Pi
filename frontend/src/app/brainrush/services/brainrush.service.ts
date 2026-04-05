@@ -37,7 +37,8 @@ export class BrainrushService {
    * Generate a full question set from the AI service.
    * Returns: { status, questions: [{type, question, options, correct_answer, difficulty, topic, points, time_limit}] }
    */
-  generateAiSession(subject: string, difficulty: string, numQuestions = 5, studentId?: string): Observable<any> {
+  /** `num_questions` must be 10, 15, or 20 (AI service contract). */
+  generateAiSession(subject: string, difficulty: string, numQuestions = 10, studentId?: string): Observable<any> {
     const body: any = { subject, difficulty, num_questions: numQuestions };
     if (studentId) body.student_id = studentId;
     return this.http.post(`${this.aiUrl}/brainrush/generate-session`, body);
@@ -53,9 +54,9 @@ export class BrainrushService {
   }
 
   /**
-   * Get available topics for a subject.
+   * Get distinct subjects (e.g. "Programmation Procédurale 1") from the course database.
    */
-  getAiTopics(subject: string): Observable<any> {
-    return this.http.get(`${this.aiUrl}/brainrush/topics/${subject}`);
+  getSubjects(): Observable<any> {
+    return this.http.get(`${this.aiUrl}/brainrush/subjects`);
   }
 }

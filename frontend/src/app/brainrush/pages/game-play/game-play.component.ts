@@ -333,7 +333,7 @@ export class GamePlayComponent implements OnInit, OnDestroy {
   }
 
   fetchAiQuestions() {
-    this.service.generateAiSession(this.currentTopic, this.difficulty, 5).subscribe({
+    this.service.generateAiSession(this.currentTopic, this.difficulty, 10).subscribe({
       next: (res: any) => {
         if (res.questions && res.questions.length > 0) {
           this.questions = res.questions.map((q: any) => ({

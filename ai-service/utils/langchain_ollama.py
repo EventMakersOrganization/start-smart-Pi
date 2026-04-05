@@ -31,8 +31,70 @@ _explain_llm_instance = None
 _fast_llm_instance = None
 _fast_model_checked = False
 _model_instances = {}
-# After repeated Ollama 500 / runner crash on OLLAMA_LEVEL_TEST_MODEL, skip it for this process.
+# After repeated Ollama 500 / runner crash on OLLAMA_LEVEL_TEST_MODEL, prefer fallback for this process.
 _level_test_primary_failed: bool = False
+
+_resolve_cache: dict[str, str] = {}
+
+
+def resolve_ollama_model_name(want: str) -> str:
+    """
+    Map a configured model name (e.g. from .env) to the exact tag Ollama lists locally.
+    Fixes mismatches like qwen2.5:3b vs qwen2.5:3b-instruct when only one is pulled.
+    """
+    want = (want or "").strip()
+    if not want:
+        return want
+    if want in _resolve_cache:
+        return _resolve_cache[want]
+    try:
+        import ollama as _ollama
+
+        resp = _ollama.list()
+        model_list = getattr(resp, "models", None) or (resp if isinstance(resp, list) else [])
+        names: list[str] = []
+        for m in model_list:
+            name = getattr(m, "model", "") if not isinstance(m, dict) else m.get("model", m.get("name", ""))
+            if name:
+                names.append(name)
+        wl = want.lower()
+        for n in names:
+            if n == want:
+                _resolve_cache[want] = n
+                return n
+        for n in names:
+            if n.lower() == wl:
+                _resolve_cache[want] = n
+                return n
+        base = want.split(":")[0].lower().strip()
+        candidates = [n for n in names if n.lower().startswith(base) or base == n.split(":")[0].lower()]
+        if len(candidates) == 1:
+            _resolve_cache[want] = candidates[0]
+            return candidates[0]
+        if len(candidates) > 1:
+            for n in candidates:
+                if n == want or n.endswith(want.split(":")[-1]) or want in n:
+                    _resolve_cache[want] = n
+                    return n
+            _resolve_cache[want] = candidates[0]
+            return candidates[0]
+    except Exception:
+        pass
+    _resolve_cache[want] = want
+    return want
+
+
+def _is_level_test_model_key(key: str) -> bool:
+    lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
+    fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "") or "").strip()
+    if not key or (not lt and not fb):
+        return False
+    rk = resolve_ollama_model_name(key)
+    if lt and resolve_ollama_model_name(lt) == rk:
+        return True
+    if fb and resolve_ollama_model_name(fb) == rk:
+        return True
+    return False
 
 
 def get_ollama_llm():
@@ -236,20 +298,19 @@ def _get_llm_for_model(model_name: str):
     if not key:
         return get_ollama_llm()
     if key not in _model_instances:
-        lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
-        fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "") or "").strip()
-
-        if (lt and key == lt) or (fb and key == fb):
+        if _is_level_test_model_key(key):
             num_ctx = getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048)
             num_predict = getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)
+            temperature = float(getattr(config, "OLLAMA_LEVEL_TEST_TEMPERATURE", 0.4))
         else:
             num_ctx = 4096
             num_predict = 1200
+            temperature = 0.25
 
         _model_instances[key] = Ollama(
             model=key,
             base_url=config.OLLAMA_BASE_URL,
-            temperature=0.25,
+            temperature=temperature,
             num_ctx=num_ctx,
             num_predict=num_predict,
         )
@@ -265,25 +326,39 @@ def generate_with_model(prompt: str, model_name: str) -> str:
         return ""
     global _level_test_primary_failed, _model_instances
     lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
-    mn = (model_name or "").strip()
-    if lt and _level_test_primary_failed and mn == lt:
+    lt_res = resolve_ollama_model_name(lt) if lt else ""
+    mn = resolve_ollama_model_name((model_name or "").strip())
+    fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "") or "").strip()
+    fb_res = resolve_ollama_model_name(fb) if fb else ""
+
+    if lt and _level_test_primary_failed and lt_res and mn == lt_res:
+        if fb_res and fb_res != lt_res:
+            print(
+                "[langchain_ollama] Level-test primary had errors; trying OLLAMA_LEVEL_TEST_MODEL_FALLBACK."
+            )
+            return generate_with_model(prompt, fb_res)
         print(
-            "[langchain_ollama] Level-test model skipped (previous failure); "
+            "[langchain_ollama] Level-test models unavailable; "
             f"using OLLAMA_MODEL={config.OLLAMA_MODEL}."
         )
         return generate_response(prompt)
     try:
         if Ollama is None:
             return ""
-        llm = _get_llm_for_model(model_name)
+        llm = _get_llm_for_model(mn)
         response = llm.invoke(prompt)
         text = response if isinstance(response, str) else getattr(response, "content", str(response))
         return text.strip()
     except Exception as e:
         print(f"[langchain_ollama] generate_with_model error ({model_name}): {e}")
-        if lt and mn == lt:
+        if lt_res and mn == lt_res:
             _level_test_primary_failed = True
             _model_instances.pop(mn, None)
+            if fb_res and fb_res != lt_res:
+                try:
+                    return generate_with_model(prompt, fb_res)
+                except Exception:
+                    pass
         return ""
 
 
