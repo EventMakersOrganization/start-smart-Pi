@@ -277,6 +277,12 @@
         </div>
 
         <div class="p-6 flex-1 flex flex-col">
+          <p
+            *ngIf="course.subject"
+            class="text-xs font-bold uppercase tracking-wide text-primary mb-1"
+          >
+            {{ course.subject }}
+          </p>
           <h4
             class="font-bold text-lg text-slate-900 dark:text-white mb-2 leading-tight"
           >

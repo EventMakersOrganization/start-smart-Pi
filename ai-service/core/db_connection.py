@@ -48,6 +48,9 @@ def get_all_courses():
     """
     Returns all documents from the 'courses' collection.
     Returns a list of dictionaries with ObjectId converted to string for JSON compatibility.
+
+    Each course may include MongoDB fields such as:
+    title, description, level, modules, subject (logical subject / programme name), etc.
     """
     try:
         if _courses is None:

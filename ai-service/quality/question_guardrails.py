@@ -17,7 +17,8 @@ class QuestionGuardrails:
         options = q.get("options", [])
         if isinstance(options, list) and len(options) < 2:
             issues.append("insufficient_options")
-        if isinstance(options, list) and len(set(str(o).strip().lower() for o in options)) != len(options):
+        # Case-sensitive uniqueness: case-only variants (e.g. "int" vs "Int") are acceptable for MCQ.
+        if isinstance(options, list) and len(set(str(o).strip() for o in options)) != len(options):
             issues.append("duplicate_options")
         text = str(q.get("question", ""))
         if len(text) < 12:
@@ -25,6 +26,9 @@ class QuestionGuardrails:
         return {"is_valid": len(issues) == 0, "issues": issues, "confidence": max(0.0, 1.0 - len(issues) * 0.2)}
 
     def fallback_question(self, subject: str, topic: str, difficulty: str) -> dict[str, Any]:
+        d = (difficulty or "medium").lower()
+        pts = {"easy": 10, "medium": 20, "hard": 30}.get(d, 20)
+        mult = {"easy": 1.0, "medium": 1.2, "hard": 1.5}.get(d, 1.2)
         return {
             "question": f"Which statement best describes {topic} in {subject}?",
             "options": ["Statement A", "Statement B", "Statement C", "Statement D"],
@@ -34,4 +38,6 @@ class QuestionGuardrails:
             "topic": topic,
             "type": "MCQ",
             "is_fallback": True,
+            "points": pts,
+            "time_limit": int(30 * mult),
         }

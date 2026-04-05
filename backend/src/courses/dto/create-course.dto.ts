@@ -35,6 +35,15 @@ export class CreateCourseDto {
     @IsNotEmpty()
     level: string;
 
+    @ApiPropertyOptional({
+        description:
+            'Logical subject title (groups multiple course chapters in MongoDB), e.g. Programmation Procédurale 1',
+        example: 'Programmation Procédurale 1',
+    })
+    @IsString()
+    @IsOptional()
+    subject?: string;
+
     @ApiPropertyOptional({ description: 'MongoDB ID of the instructor (User)' })
     @IsString()
     @IsOptional()
