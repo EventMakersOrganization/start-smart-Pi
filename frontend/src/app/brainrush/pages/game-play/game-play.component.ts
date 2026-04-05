@@ -482,6 +482,7 @@ export class GamePlayComponent implements OnInit, OnDestroy {
   }
 
   fetchAiQuestions() {
+<<<<<<< HEAD
     if (this.sessionId === 'demo') {
       this.questions = [...this.demoQuestions];
       this.totalQuestions = this.questions.length;
@@ -490,6 +491,9 @@ export class GamePlayComponent implements OnInit, OnDestroy {
     }
 
     this.service.initializeSoloSession(this.sessionId, this.currentTopic, this.difficulty).subscribe({
+=======
+    this.service.generateAiSession(this.currentTopic, this.difficulty, 10).subscribe({
+>>>>>>> 2efe4ddd0fa51a08ef15d5039a5ec03ab5e98b14
       next: (res: any) => {
         if (res.questions && res.questions.length > 0) {
           this.questions = res.questions.map((q: any) => ({

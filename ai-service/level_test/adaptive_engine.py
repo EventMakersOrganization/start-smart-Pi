@@ -7,7 +7,9 @@ Adaptive level-test engine (v2 — logical subject grouping).
 """
 from __future__ import annotations
 
+import hashlib
 import logging
+import random
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -66,6 +68,12 @@ def _topic_course_specs_from_modules(
     *,
     seed: str = "",
 ) -> list[dict[str, str]]:
+    """
+    Pick ``count`` (course_id, topic) pairs from all chapter/module titles.
+
+    Uses a **seeded shuffle** so each new session / regeneration gets a different mix
+    and prefers **distinct topics** across the pool (not a fixed consecutive slice).
+    """
     by_course: dict[str, list[str]] = {}
     for m in modules:
         if not isinstance(m, dict):
@@ -78,26 +86,26 @@ def _topic_course_specs_from_modules(
         if t not in by_course[cid]:
             by_course[cid].append(t)
 
-    ordered_courses = list(by_course.keys())
-    specs: list[dict[str, str]] = []
-    if ordered_courses:
-        # Use a per-session seed so module sampling changes between API calls/students.
-        offsets: dict[str, int] = {
-            cid: (abs(hash(f"{seed}|{cid}")) % max(len(by_course.get(cid) or []), 1))
-            for cid in ordered_courses
-        }
-        i = 0
-        while len(specs) < count:
-            cid = ordered_courses[i % len(ordered_courses)]
-            topics = by_course.get(cid) or ["general"]
-            off = offsets.get(cid, 0)
-            local_k = (i // len(ordered_courses)) % max(len(topics), 1)
-            topic = topics[(off + local_k) % max(len(topics), 1)]
-            specs.append({"course_id": cid, "topic": topic})
-            i += 1
+    pairs: list[dict[str, str]] = []
+    for cid, topics in by_course.items():
+        for t in topics:
+            pairs.append({"course_id": cid, "topic": t})
 
-    while len(specs) < count:
-        specs.append({"course_id": "", "topic": "general"})
+    if not pairs:
+        return [{"course_id": "", "topic": "general"} for _ in range(count)][:count]
+
+    seed_s = (seed or "default").strip()
+    h = hashlib.sha256(seed_s.encode("utf-8")).digest()
+    rng = random.Random(int.from_bytes(h[:8], "big"))
+    order = pairs[:]
+    rng.shuffle(order)
+
+    specs: list[dict[str, str]] = []
+    if len(order) >= count:
+        specs = [dict(p) for p in order[:count]]
+    else:
+        for i in range(count):
+            specs.append(dict(order[i % len(order)]))
     return specs[:count]
 
 

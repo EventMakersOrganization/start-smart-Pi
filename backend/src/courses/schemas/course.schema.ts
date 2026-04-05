@@ -28,6 +28,10 @@ export class Course {
     @Prop({ required: true })
     level: string;
 
+    /** Logical subject / programme (e.g. all chapters under "Programmation Procédurale 1"). Matches MongoDB `subject`. */
+    @Prop({ required: false })
+    subject?: string;
+
     @Prop({ type: Types.ObjectId, ref: 'User' })
     instructorId: Types.ObjectId;
 

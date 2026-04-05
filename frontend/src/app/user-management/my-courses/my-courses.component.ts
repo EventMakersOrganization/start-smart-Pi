@@ -7,6 +7,8 @@ import { AdaptiveLearningService } from '../adaptive-learning.service';
 interface CourseCard {
   id: string;
   title: string;
+  /** MongoDB `subject`: shared programme name across chapters (e.g. Programmation Procédurale 1). */
+  subject: string;
   instructor: string;
   category: string;
   categoryColor: string;
@@ -83,7 +85,8 @@ export class MyCoursesComponent implements OnInit {
           this.courses = (response?.data || []).map(
             (course: any, index: number) => {
               const progress = 0;
-              const category = this.extractChapterCategory(course?.title);
+              const subject = (course?.subject || '').trim();
+              const category = subject || this.extractChapterCategory(course?.title);
 
               if (!usedCategories.includes(category)) {
                 usedCategories.push(category);
@@ -92,6 +95,7 @@ export class MyCoursesComponent implements OnInit {
               return {
                 id: course?._id || course?.id || String(index + 1),
                 title: course?.title || `Course ${index + 1}`,
+                subject,
                 instructor:
                   course?.instructorId?.name ||
                   course?.instructor?.name ||
