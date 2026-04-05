@@ -56,3 +56,27 @@ def test_answer_question_with_rag_contract():
     assert "confidence" in out
     assert out["answer"] != ""
     assert 0.0 <= float(out["confidence"]) <= 1.0
+
+
+def test_get_context_for_course_ids_uses_filtered_search():
+    from core.rag_service import RAGService
+
+    fake_candidates = [
+        {
+            "chunk_text": "Only this course",
+            "similarity": 0.5,
+            "metadata": {"course_title": "C1", "chunk_type": "body"},
+        }
+    ]
+
+    def _fake_search(q, n_results=10, filter_metadata=None, collection_name=None):
+        assert filter_metadata == {"course_id": "cid-a"}
+        return fake_candidates
+
+    with patch("core.rag_service.chroma_setup.get_chroma_client"), \
+         patch("core.rag_service.embeddings_pipeline_v2.search_chunks", side_effect=_fake_search):
+        svc = RAGService()
+        out = svc.get_context_for_course_ids("boucles Python", ["cid-a"], max_chunks=5)
+
+    assert "Only this course" in out
+    assert "C1" in out

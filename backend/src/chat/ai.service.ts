@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
-import Redis from 'ioredis';
-import { createHash } from 'crypto';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { ConfigService } from "@nestjs/config";
+import { firstValueFrom } from "rxjs";
+import Redis from "ioredis";
+import { createHash } from "crypto";
 
 export interface AiChatResponse {
   answer: string;
@@ -40,12 +40,12 @@ export class AiService {
     private readonly configService: ConfigService,
   ) {
     this.aiBaseUrl = this.configService.get<string>(
-      'AI_SERVICE_URL',
-      'http://localhost:8000',
+      "AI_SERVICE_URL",
+      "http://localhost:8000",
     );
     this.redisPrefix = this.configService.get<string>(
-      'REDIS_CACHE_PREFIX',
-      'startsmart:backend:ai',
+      "REDIS_CACHE_PREFIX",
+      "startsmart:backend:ai",
     );
     this.tryInitRedis();
     this.logger.log(`AI Service URL: ${this.aiBaseUrl}`);
@@ -57,46 +57,51 @@ export class AiService {
     studentId?: string,
     mode?: string,
   ): Promise<AiChatResponse> {
-    const cacheKey = this.makeCacheKey('chatbot', {
+    const cacheKey = this.makeCacheKey("chatbot", {
       question: question.trim().toLowerCase(),
       historyTail: (conversationHistory || []).slice(-4),
-      studentId: studentId || '',
-      mode: mode || '',
+      studentId: studentId || "",
+      mode: mode || "",
     });
     const cached = await this.getFromCache<AiChatResponse>(cacheKey);
     if (cached) {
-      this.logger.debug(`Cache hit for chatbot: "${question.substring(0, 40)}..."`);
+      this.logger.debug(
+        `Cache hit for chatbot: "${question.substring(0, 40)}..."`,
+      );
       return cached;
     }
 
     try {
-      const { data } = await this.timedAiCall('/chatbot/ask', async () => {
+      const { data } = await this.timedAiCall("/chatbot/ask", async () => {
         return await firstValueFrom(
-          this.httpService.post(`${this.aiBaseUrl}/chatbot/ask`, {
-            question,
-            conversation_history: conversationHistory || [],
-            student_id: studentId || null,
-            mode: mode || null,
-          }, { timeout: 120_000 }),
+          this.httpService.post(
+            `${this.aiBaseUrl}/chatbot/ask`,
+            {
+              question,
+              conversation_history: conversationHistory || [],
+              student_id: studentId || null,
+              mode: mode || null,
+            },
+            { timeout: 120_000 },
+          ),
         );
       });
 
       const result: AiChatResponse = {
-        answer: data.answer || 'Sorry, I could not generate an answer.',
+        answer: data.answer || "Sorry, I could not generate an answer.",
         sources: data.sources || [],
         confidence: data.validation?.confidence ?? 0,
         is_valid: data.validation?.is_valid ?? false,
       };
 
-      console.log('RAW LLM RESPONSE:', result.answer);
+      console.log("RAW LLM RESPONSE:", result.answer);
 
       await this.setInCache(cacheKey, result);
       return result;
     } catch (error) {
       this.logger.error(`AI chatbot request failed: ${error.message}`);
       return {
-        answer:
-          'I am temporarily unavailable. Please try again in a moment.',
+        answer: "I am temporarily unavailable. Please try again in a moment.",
         sources: [],
         confidence: 0,
         is_valid: false,
@@ -108,7 +113,7 @@ export class AiService {
     query: string,
     nResults = 10,
   ): Promise<SemanticSearchResult[]> {
-    const cacheKey = this.makeCacheKey('semantic-search', {
+    const cacheKey = this.makeCacheKey("semantic-search", {
       query: query.trim().toLowerCase(),
       nResults,
     });
@@ -117,19 +122,23 @@ export class AiService {
       return cached;
     }
     try {
-      const { data } = await this.timedAiCall('/search-chunks', async () => {
+      const { data } = await this.timedAiCall("/search-chunks", async () => {
         return await firstValueFrom(
-          this.httpService.post(`${this.aiBaseUrl}/search-chunks`, {
-            query,
-            n_results: nResults,
-          }, { timeout: 30_000 }),
+          this.httpService.post(
+            `${this.aiBaseUrl}/search-chunks`,
+            {
+              query,
+              n_results: nResults,
+            },
+            { timeout: 30_000 },
+          ),
         );
       });
       const results = (data.results || []).map((r: any) => ({
-        chunk_id: r.chunk_id || '',
-        chunk_text: r.chunk_text || '',
-        course_id: r.course_id || '',
-        course_title: (r.metadata || {}).course_title || '',
+        chunk_id: r.chunk_id || "",
+        chunk_text: r.chunk_text || "",
+        course_id: r.course_id || "",
+        course_title: (r.metadata || {}).course_title || "",
         similarity: r.similarity || 0,
       }));
       await this.setInCache(cacheKey, results);
@@ -142,12 +151,9 @@ export class AiService {
 
   // ----- Sprint 7: Level-test proxies -----
 
-  async startLevelTest(
-    studentId: string,
-    subjects?: string[],
-  ): Promise<any> {
+  async startLevelTest(studentId: string, subjects?: string[]): Promise<any> {
     try {
-      const { data } = await this.timedAiCall('/level-test/start', async () => {
+      const { data } = await this.timedAiCall("/level-test/start", async () => {
         return await firstValueFrom(
           this.httpService.post(
             `${this.aiBaseUrl}/level-test/start`,
@@ -165,15 +171,18 @@ export class AiService {
 
   async submitAnswer(sessionId: string, answer: string): Promise<any> {
     try {
-      const { data } = await this.timedAiCall('/level-test/submit-answer', async () => {
-        return await firstValueFrom(
-          this.httpService.post(
-            `${this.aiBaseUrl}/level-test/submit-answer`,
-            { session_id: sessionId, answer },
-            { timeout: 120_000 },
-          ),
-        );
-      });
+      const { data } = await this.timedAiCall(
+        "/level-test/submit-answer",
+        async () => {
+          return await firstValueFrom(
+            this.httpService.post(
+              `${this.aiBaseUrl}/level-test/submit-answer`,
+              { session_id: sessionId, answer },
+              { timeout: 120_000 },
+            ),
+          );
+        },
+      );
       return data;
     } catch (error) {
       this.logger.error(`submitAnswer failed: ${error.message}`);
@@ -183,15 +192,18 @@ export class AiService {
 
   async completeLevelTest(sessionId: string): Promise<any> {
     try {
-      const { data } = await this.timedAiCall('/level-test/complete', async () => {
-        return await firstValueFrom(
-          this.httpService.post(
-            `${this.aiBaseUrl}/level-test/complete`,
-            { session_id: sessionId },
-            { timeout: 60_000 },
-          ),
-        );
-      });
+      const { data } = await this.timedAiCall(
+        "/level-test/complete",
+        async () => {
+          return await firstValueFrom(
+            this.httpService.post(
+              `${this.aiBaseUrl}/level-test/complete`,
+              { session_id: sessionId },
+              { timeout: 60_000 },
+            ),
+          );
+        },
+      );
       return data;
     } catch (error) {
       this.logger.error(`completeLevelTest failed: ${error.message}`);
@@ -201,14 +213,17 @@ export class AiService {
 
   async getLevelTestSession(sessionId: string): Promise<any> {
     try {
-      const { data } = await this.timedAiCall('/level-test/session', async () => {
-        return await firstValueFrom(
-          this.httpService.get(
-            `${this.aiBaseUrl}/level-test/session/${sessionId}`,
-            { timeout: 10_000 },
-          ),
-        );
-      });
+      const { data } = await this.timedAiCall(
+        "/level-test/session",
+        async () => {
+          return await firstValueFrom(
+            this.httpService.get(
+              `${this.aiBaseUrl}/level-test/session/${sessionId}`,
+              { timeout: 10_000 },
+            ),
+          );
+        },
+      );
       return data;
     } catch (error) {
       this.logger.error(`getLevelTestSession failed: ${error.message}`);
@@ -221,15 +236,18 @@ export class AiService {
     nResults = 5,
   ): Promise<any> {
     try {
-      const { data } = await this.timedAiCall('/recommendations/personalized', async () => {
-        return await firstValueFrom(
-          this.httpService.post(
-            `${this.aiBaseUrl}/recommendations/personalized`,
-            { student_profile: studentProfile, n_results: nResults },
-            { timeout: 30_000 },
-          ),
-        );
-      });
+      const { data } = await this.timedAiCall(
+        "/recommendations/personalized",
+        async () => {
+          return await firstValueFrom(
+            this.httpService.post(
+              `${this.aiBaseUrl}/recommendations/personalized`,
+              { student_profile: studentProfile, n_results: nResults },
+              { timeout: 30_000 },
+            ),
+          );
+        },
+      );
       return data;
     } catch (error) {
       this.logger.error(
@@ -239,16 +257,145 @@ export class AiService {
     }
   }
 
+  async getLearningState(studentId: string): Promise<any> {
+    try {
+      const { data } = await this.timedAiCall("/learning-state", async () => {
+        return await firstValueFrom(
+          this.httpService.get(
+            `${this.aiBaseUrl}/learning-state/${studentId}`,
+            {
+              timeout: 15_000,
+            },
+          ),
+        );
+      });
+      return data;
+    } catch (error) {
+      this.logger.error(`getLearningState failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getLearningAnalytics(studentId: string, refresh = false): Promise<any> {
+    try {
+      const { data } = await this.timedAiCall(
+        "/analytics/learning",
+        async () => {
+          return await firstValueFrom(
+            this.httpService.get(
+              `${this.aiBaseUrl}/analytics/learning/${studentId}`,
+              {
+                params: refresh ? { refresh: "true" } : undefined,
+                timeout: 20_000,
+              },
+            ),
+          );
+        },
+      );
+      return data;
+    } catch (error) {
+      this.logger.error(`getLearningAnalytics failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getPaceAnalytics(studentId: string, refresh = false): Promise<any> {
+    try {
+      const { data } = await this.timedAiCall("/analytics/pace", async () => {
+        return await firstValueFrom(
+          this.httpService.get(
+            `${this.aiBaseUrl}/analytics/pace/${studentId}`,
+            {
+              params: refresh ? { refresh: "true" } : undefined,
+              timeout: 20_000,
+            },
+          ),
+        );
+      });
+      return data;
+    } catch (error) {
+      this.logger.error(`getPaceAnalytics failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getConceptsAnalytics(studentId: string, refresh = false): Promise<any> {
+    try {
+      const { data } = await this.timedAiCall(
+        "/analytics/concepts",
+        async () => {
+          return await firstValueFrom(
+            this.httpService.get(
+              `${this.aiBaseUrl}/analytics/concepts/${studentId}`,
+              {
+                params: refresh ? { refresh: "true" } : undefined,
+                timeout: 20_000,
+              },
+            ),
+          );
+        },
+      );
+      return data;
+    } catch (error) {
+      this.logger.error(`getConceptsAnalytics failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getInterventionsEffectiveness(studentId: string): Promise<any> {
+    try {
+      const { data } = await this.timedAiCall(
+        "/interventions/effectiveness/student",
+        async () => {
+          return await firstValueFrom(
+            this.httpService.get(
+              `${this.aiBaseUrl}/interventions/effectiveness/${studentId}`,
+              { timeout: 20_000 },
+            ),
+          );
+        },
+      );
+      return data;
+    } catch (error) {
+      this.logger.error(
+        `getInterventionsEffectiveness failed: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  async getInterventionsEffectivenessGlobal(): Promise<any> {
+    try {
+      const { data } = await this.timedAiCall(
+        "/interventions/effectiveness/global",
+        async () => {
+          return await firstValueFrom(
+            this.httpService.get(
+              `${this.aiBaseUrl}/interventions/effectiveness`,
+              { timeout: 20_000 },
+            ),
+          );
+        },
+      );
+      return data;
+    } catch (error) {
+      this.logger.error(
+        `getInterventionsEffectivenessGlobal failed: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
   async healthCheck(): Promise<{ status: string; model?: string }> {
     try {
-      const { data } = await this.timedAiCall('/health', async () => {
+      const { data } = await this.timedAiCall("/health", async () => {
         return await firstValueFrom(
           this.httpService.get(`${this.aiBaseUrl}/health`, { timeout: 5_000 }),
         );
       });
-      return { status: 'ok', model: data.ollama_model };
+      return { status: "ok", model: data.ollama_model };
     } catch {
-      return { status: 'unavailable' };
+      return { status: "unavailable" };
     }
   }
 
@@ -288,27 +435,29 @@ export class AiService {
   }
 
   private tryInitRedis() {
-    const redisUrl = this.configService.get<string>('REDIS_URL', '');
+    const redisUrl = this.configService.get<string>("REDIS_URL", "");
     if (!redisUrl) return;
     try {
       const client = new Redis(redisUrl, {
         maxRetriesPerRequest: 1,
         lazyConnect: true,
       });
-      client.on('error', (err) => {
+      client.on("error", (err) => {
         this.logger.warn(`Redis cache error: ${err?.message || err}`);
       });
       this.redisClient = client;
-      this.logger.log('Redis cache configured for AiService');
+      this.logger.log("Redis cache configured for AiService");
     } catch (error) {
       this.redisClient = null;
-      this.logger.warn(`Redis init failed, using memory cache only: ${error.message}`);
+      this.logger.warn(
+        `Redis init failed, using memory cache only: ${error.message}`,
+      );
     }
   }
 
   private makeCacheKey(scope: string, payload: Record<string, any>): string {
     const raw = JSON.stringify(payload);
-    const digest = createHash('sha256').update(raw).digest('hex');
+    const digest = createHash("sha256").update(raw).digest("hex");
     return `${this.redisPrefix}:${scope}:${digest}`;
   }
 
@@ -340,7 +489,7 @@ export class AiService {
         await this.redisClient.set(
           key,
           JSON.stringify(value),
-          'PX',
+          "PX",
           this.CACHE_TTL_MS,
         );
       } catch {
@@ -349,7 +498,10 @@ export class AiService {
     }
   }
 
-  private async timedAiCall<T>(endpoint: string, fn: () => Promise<T>): Promise<T> {
+  private async timedAiCall<T>(
+    endpoint: string,
+    fn: () => Promise<T>,
+  ): Promise<T> {
     const t0 = Date.now();
     try {
       const result = await fn();

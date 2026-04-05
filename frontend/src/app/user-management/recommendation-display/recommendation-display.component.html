@@ -1,0 +1,163 @@
+<div class="space-y-6">
+
+  <!-- ── Header Stats ── -->
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+      <p class="text-xs font-bold text-slate-500 uppercase mb-1">Total</p>
+      <p class="text-2xl font-black text-slate-900">
+        {{ recommendations.length }}
+      </p>
+      <p class="text-xs text-slate-500 mt-1">recommendations</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+      <p class="text-xs font-bold text-slate-500 uppercase mb-1">Unread</p>
+      <p class="text-2xl font-black text-primary">{{ unviewedCount }}</p>
+      <p class="text-xs text-slate-500 mt-1">not yet viewed</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+      <p class="text-xs font-bold text-slate-500 uppercase mb-1">Courses</p>
+      <p class="text-2xl font-black text-emerald-600">{{ courseCount }}</p>
+      <p class="text-xs text-slate-500 mt-1">to explore</p>
+    </div>
+  </div>
+
+  <!-- ── Filters + Generate ── -->
+  <div class="flex items-center justify-between">
+    <div class="flex gap-2">
+      <button *ngFor="let f of ['all', 'exercise', 'course']"
+        (click)="selectedFilter = f"
+        [class]="selectedFilter === f
+          ? 'px-4 py-2 rounded-xl text-sm font-bold bg-primary text-white'
+          : 'px-4 py-2 rounded-xl text-sm font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">
+        {{ f === 'all' ? 'All' : f === 'exercise' ? 'Exercises' : 'Courses' }}
+        <span *ngIf="f === 'exercise'"
+          class="ml-1 text-xs opacity-70">({{ exerciseCount }})</span>
+        <span *ngIf="f === 'course'"
+          class="ml-1 text-xs opacity-70">({{ courseCount }})</span>
+      </button>
+    </div>
+
+    <!-- Generate Button -->
+    <button (click)="generateNew()"
+      [disabled]="isGenerating"
+      class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
+      <span *ngIf="!isGenerating"
+        class="material-symbols-outlined text-sm">auto_awesome</span>
+      <span *ngIf="isGenerating"
+        class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin">
+      </span>
+      {{ isGenerating ? 'Generating...' : 'Generate New' }}
+    </button>
+  </div>
+
+  <!-- ── Empty State ── -->
+  <div *ngIf="recommendations.length === 0"
+    class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+    <span class="material-symbols-outlined text-5xl text-slate-300 block mb-4">
+      auto_awesome
+    </span>
+    <p class="font-bold text-slate-700 mb-2">No recommendations yet</p>
+    <p class="text-sm text-slate-500 mb-6">
+      Generate personalized recommendations based on your profile
+    </p>
+    <button (click)="generateNew()"
+      [disabled]="isGenerating"
+      class="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-60">
+      <span *ngIf="isGenerating">Generating...</span>
+      <span *ngIf="!isGenerating">Generate Recommendations</span>
+    </button>
+  </div>
+
+  <!-- ── Recommendations Grid ── -->
+  <div *ngIf="filtered.length > 0"
+    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+    <div *ngFor="let rec of filtered; let i = index"
+      class="bg-white rounded-2xl border overflow-hidden transition-all duration-200 hover:shadow-lg"
+      [class.border-primary]="!rec.isViewed"
+      [class.border-slate-200]="rec.isViewed">
+
+      <!-- Card Header -->
+      <div [class]="'h-32 bg-gradient-to-br ' + getGradient(i) + ' relative'">
+
+        <!-- Unread dot -->
+        <div *ngIf="!rec.isViewed"
+          class="absolute top-3 left-3 w-2.5 h-2.5 bg-white rounded-full animate-pulse">
+        </div>
+
+        <!-- Icon -->
+        <div class="absolute inset-0 flex items-center justify-center">
+          <span class="material-symbols-outlined text-white text-5xl opacity-30">
+            {{ getIcon(rec.contentType) }}
+          </span>
+        </div>
+
+        <!-- Confidence Badge -->
+        <div class="absolute top-3 right-3">
+          <span [class]="'text-[10px] font-bold px-2 py-1 rounded-full border ' + getConfidenceColor(rec.confidenceScore)">
+            {{ getConfidenceLabel(rec.confidenceScore) }}
+            · {{ rec.confidenceScore }}%
+          </span>
+        </div>
+
+        <!-- Content Type -->
+        <div class="absolute bottom-3 left-3">
+          <span class="text-[10px] font-bold px-2 py-1 bg-white/20 text-white rounded-full uppercase backdrop-blur-sm">
+            {{ rec.contentType }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Card Body -->
+      <div class="p-4">
+        <h4 class="font-bold text-sm text-slate-900 mb-1 line-clamp-1">
+          {{ rec.recommendedContent }}
+        </h4>
+
+        <!-- Reason (expandable) -->
+        <p [class]="expandedId === rec._id
+          ? 'text-xs text-slate-500 mb-3'
+          : 'text-xs text-slate-500 mb-3 line-clamp-2'">
+          {{ rec.reason }}
+        </p>
+
+        <button (click)="toggleExpand(rec._id)"
+          class="text-[10px] text-primary font-bold hover:underline mb-3 block">
+          {{ expandedId === rec._id ? 'Show less' : 'Read more' }}
+        </button>
+
+        <!-- Date -->
+        <p class="text-[10px] text-slate-400 mb-3">
+          Generated {{ rec.generatedAt | date:'dd MMM yyyy' }}
+        </p>
+
+        <!-- Actions -->
+        <div class="flex gap-2">
+          <button (click)="markAsViewed(rec)"
+            [class]="rec.isViewed
+              ? 'flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-400 cursor-default'
+              : 'flex-1 py-2 rounded-xl text-xs font-bold bg-primary text-white hover:bg-blue-700 transition-colors'">
+            {{ rec.isViewed ? '✓ Viewed' : 'Mark as Viewed' }}
+          </button>
+          <button
+            class="px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── No Results Filter ── -->
+  <div *ngIf="recommendations.length > 0 && filtered.length === 0"
+    class="bg-white rounded-xl border border-slate-200 p-8 text-center">
+    <p class="font-bold text-slate-600">
+      No {{ selectedFilter }} recommendations
+    </p>
+    <button (click)="selectedFilter = 'all'"
+      class="mt-3 text-sm text-primary font-bold hover:underline">
+      Show all
+    </button>
+  </div>
+
+</div>

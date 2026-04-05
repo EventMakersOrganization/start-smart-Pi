@@ -8,12 +8,20 @@ __pycache__/
 *.bin
 *.map
 
+# Python virtual environments
+.venv/
+venv/
+env/
+ai-service/venv/
+
 # Environment secrets
 .env
 ai-service/.env
 
 # Python (recursive)
 **/__pycache__/
+*/.py[cod]
+*/.pyd
 **/*.py[cod]
 **/*.pyd
 
@@ -21,6 +29,9 @@ ai-service/.env
 ai-service/embedding_query_cache/
 ai-service/embedding_query_cache/**/*.pkl
 ai-service/embedding_query_cache/**/*.json
+embedding_query_cache/
+**/embedding_query_cache/
+**/embedding_query_cache/**
 ai-service/logs/
 ai-service/response_cache/
 ai-service/chroma_db/

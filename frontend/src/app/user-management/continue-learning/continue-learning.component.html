@@ -1,0 +1,400 @@
+<header
+  class="h-16 border-b border-slate-200 bg-white sticky top-0 z-50 px-6 flex items-center justify-between shrink-0"
+>
+  <div class="flex items-center gap-4">
+    <button
+      (click)="goBack()"
+      class="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+    >
+      <span class="material-symbols-outlined text-slate-600">arrow_back</span>
+    </button>
+    <div class="h-8 w-[1px] bg-slate-200 mx-2"></div>
+    <div>
+      <h1 class="font-bold text-lg text-slate-900 leading-tight">
+        {{ courseName }}
+      </h1>
+      <div class="flex items-center gap-3">
+        <div class="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div class="bg-primary h-full" [style.width.%]="progress"></div>
+        </div>
+        <span
+          class="text-[10px] font-bold text-primary uppercase tracking-wider"
+          >{{ progress }}% Complete</span
+        >
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center gap-6">
+    <div
+      class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full"
+    >
+      <span class="material-symbols-outlined text-sm">workspace_premium</span>
+      <span class="text-xs font-bold">In Progress</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="text-right">
+        <p class="text-sm font-bold leading-none">Alex Johnson</p>
+        <p
+          class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter"
+        >
+          Student Account
+        </p>
+      </div>
+      <img
+        alt="Alex Profile"
+        class="w-9 h-9 rounded-full border border-slate-200 object-cover"
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAU4eiTOc0eg3RTUpIEvaMzq_AsY0ya0SYxk3HA8GOBRktHdUfRpFdp4gaxpgZ9hNASlCUFk85CWkYASXuubG-D_o0sPtwlTkZcC_UpsVuoRFbegvOOWTH3GgU8N6qzvowhDxtBcmxQm1geQ1A8PIVL02IeB8NQBYQU_pggE4TLb2F9i56urjg6NS0QoJgC8lclT_7LieFFnLgMURw8aWIfzj5cjyYQLN-x9wlg5oqa5KhSdnAzT69BPIiTGXTcBhCp7gmg84cpktvs"
+      />
+    </div>
+  </div>
+</header>
+
+<div class="flex flex-1 overflow-hidden">
+  <!-- Sidebar -->
+  <aside
+    class="w-80 border-r border-slate-200 bg-white flex flex-col h-full shrink-0 overflow-hidden"
+  >
+    <div
+      class="p-4 border-b border-slate-100 flex items-center justify-between"
+    >
+      <h2 class="font-bold text-slate-800">Course Content</h2>
+      <span class="text-xs font-bold text-slate-400"
+        >{{ modules.length * 10 }} Lessons</span
+      >
+    </div>
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-2">
+      <div *ngFor="let module of modules" class="mb-2">
+        <button
+          (click)="toggleModule(module.id)"
+          class="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg group"
+          [class.bg-slate-50]="module.expanded"
+        >
+          <span class="text-sm font-bold text-slate-900">{{
+            module.title
+          }}</span>
+          <span
+            class="material-symbols-outlined text-slate-400 text-sm"
+            [class.rotate-180]="module.expanded"
+          >
+            expand_more
+          </span>
+        </button>
+        <div *ngIf="module.expanded" class="mt-1 space-y-1 px-1">
+          <a
+            *ngFor="let lesson of module.lessons"
+            (click)="selectLesson(lesson.id)"
+            class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 group cursor-pointer transition-colors"
+            [ngClass]="{
+              'bg-blue-50 border-l-4 border-primary': lesson.id === 'L3',
+            }"
+          >
+            <span
+              class="material-symbols-outlined text-lg"
+              [class.text-emerald-500]="lesson.completed"
+              [class.fill-1]="lesson.completed"
+              [class.text-primary]="lesson.id === 'L3'"
+              [class.text-slate-300]="!lesson.completed && lesson.id !== 'L3'"
+            >
+              {{
+                lesson.completed
+                  ? "check_circle"
+                  : lesson.id === "L3"
+                    ? "play_circle"
+                    : "circle"
+              }}
+            </span>
+            <span
+              class="text-sm font-medium"
+              [class.text-slate-600]="!lesson.completed && lesson.id !== 'L3'"
+              [class.text-primary]="lesson.id === 'L3'"
+              [class.font-bold]="lesson.id === 'L3'"
+            >
+              {{ lesson.title }}
+            </span>
+            <span
+              class="ml-auto text-[10px]"
+              [class.text-slate-400]="lesson.id !== 'L3'"
+              [ngClass]="{ 'opacity-60 text-primary': lesson.id === 'L3' }"
+            >
+              {{ lesson.duration }}
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main
+    class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 flex flex-col"
+  >
+    <!-- Video Player -->
+    <div class="bg-black w-full video-aspect relative group">
+      <img
+        alt="Lecture Video Player"
+        class="w-full h-full object-cover opacity-80"
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBr90Bxj3pXIJV5rJR20TcN4kS6R6jPlalgq-gOGoqRWF98PeraMlA-aAtcZeITCCdg8EB765OXXZz1Y_iMVpXr-EFceGHMfjT-SjZ_s3ReIAGHBH5FRCHW7EzlrBK9p-OEpWnPfpSW1AVmxorRdrcTFDRXJt1qPGN_wxubZX8RYScSumHUMe1OPrtWBNqXp_MNZBltnnSH4siNzRuEGG5HV7BnFWpRZK-Wh0wMDo48u5-mJbdy4GPVYZ-eXSA-AyZZHRxO7uGstqgb"
+      />
+      <div class="absolute inset-0 flex items-center justify-center">
+        <button
+          class="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+        >
+          <span class="material-symbols-outlined text-5xl">play_arrow</span>
+        </button>
+      </div>
+      <div
+        class="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-4"
+      >
+        <span class="material-symbols-outlined text-white cursor-pointer"
+          >play_arrow</span
+        >
+        <span class="material-symbols-outlined text-white cursor-pointer"
+          >volume_up</span
+        >
+        <div class="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+          <div class="bg-primary h-full" [style.width.%]="videoProgress"></div>
+        </div>
+        <span class="text-white text-xs font-medium"
+          >{{ videoCurrentTime }} / {{ videoDuration }}</span
+        >
+        <span class="material-symbols-outlined text-white cursor-pointer"
+          >settings</span
+        >
+        <span class="material-symbols-outlined text-white cursor-pointer"
+          >fullscreen</span
+        >
+      </div>
+    </div>
+
+    <!-- Lesson Content -->
+    <div class="flex-1 max-w-5xl mx-auto w-full p-8 pb-32">
+      <div class="flex items-start justify-between mb-8">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <span
+              class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider rounded"
+            >
+              {{ currentModule }}
+            </span>
+            <span class="text-slate-400 text-xs font-medium"
+              >• {{ totalDuration }} total</span
+            >
+          </div>
+          <h2 class="text-2xl font-black text-slate-900">
+            {{ currentLesson }} with PyTorch
+          </h2>
+        </div>
+        <button
+          (click)="saveLesson()"
+          class="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg hover:bg-white transition-colors text-sm font-bold text-slate-600"
+        >
+          <span class="material-symbols-outlined text-lg">bookmark</span>
+          Save Lesson
+        </button>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="border-b border-slate-200 mb-6">
+        <nav class="flex gap-8">
+          <button
+            (click)="setActiveTab('overview')"
+            class="pb-4 text-sm font-bold transition-colors"
+            [class.text-primary]="activeTab === 'overview'"
+            [class.border-b-2]="activeTab === 'overview'"
+            [class.border-primary]="activeTab === 'overview'"
+            [class.text-slate-400]="activeTab !== 'overview'"
+            [class.hover:text-slate-600]="activeTab !== 'overview'"
+          >
+            Overview
+          </button>
+          <button
+            (click)="setActiveTab('resources')"
+            class="pb-4 text-sm font-bold transition-colors"
+            [class.text-primary]="activeTab === 'resources'"
+            [class.border-b-2]="activeTab === 'resources'"
+            [class.border-primary]="activeTab === 'resources'"
+            [class.text-slate-400]="activeTab !== 'resources'"
+            [class.hover:text-slate-600]="activeTab !== 'resources'"
+          >
+            Resources
+          </button>
+          <button
+            (click)="setActiveTab('notes')"
+            class="pb-4 text-sm font-bold transition-colors"
+            [class.text-primary]="activeTab === 'notes'"
+            [class.border-b-2]="activeTab === 'notes'"
+            [class.border-primary]="activeTab === 'notes'"
+            [class.text-slate-400]="activeTab !== 'notes'"
+            [class.hover:text-slate-600]="activeTab !== 'notes'"
+          >
+            Notes
+          </button>
+          <button
+            (click)="setActiveTab('tutor')"
+            class="pb-4 text-sm font-bold transition-colors flex items-center gap-2"
+            [class.text-primary]="activeTab === 'tutor'"
+            [class.border-b-2]="activeTab === 'tutor'"
+            [class.border-primary]="activeTab === 'tutor'"
+            [class.text-slate-400]="activeTab !== 'tutor'"
+            [class.hover:text-slate-600]="activeTab !== 'tutor'"
+          >
+            AI Tutor Chat
+            <span
+              class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"
+            ></span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div
+        *ngIf="activeTab === 'overview'"
+        class="prose prose-slate max-w-none"
+      >
+        <p class="text-slate-600 leading-relaxed mb-6">
+          In this comprehensive lesson, we'll dive deep into the architecture of
+          Multi-layer Perceptrons (MLPs). You'll learn how to implement custom
+          linear layers, stack them using
+          <code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono">
+            nn.Sequential
+          </code>
+          , and apply non-linear activation functions to create complex decision
+          boundaries.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <div
+            class="p-4 bg-white border border-slate-100 rounded-xl shadow-sm"
+          >
+            <h4
+              class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-primary"
+                >lightbulb</span
+              >
+              Learning Objectives
+            </h4>
+            <ul class="space-y-2">
+              <li class="flex items-start gap-2 text-sm text-slate-600">
+                <span
+                  class="material-symbols-outlined text-emerald-500 text-xs mt-0.5"
+                >
+                  check
+                </span>
+                Define the mathematical foundation of MLPs
+              </li>
+              <li class="flex items-start gap-2 text-sm text-slate-600">
+                <span
+                  class="material-symbols-outlined text-emerald-500 text-xs mt-0.5"
+                >
+                  check
+                </span>
+                Implement backpropagation manually vs using Autograd
+              </li>
+              <li class="flex items-start gap-2 text-sm text-slate-600">
+                <span
+                  class="material-symbols-outlined text-emerald-500 text-xs mt-0.5"
+                >
+                  check
+                </span>
+                Handle weight initialization techniques
+              </li>
+            </ul>
+          </div>
+          <div
+            class="p-4 bg-white border border-slate-100 rounded-xl shadow-sm"
+          >
+            <h4
+              class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-primary"
+                >description</span
+              >
+              Files &amp; Notebooks
+            </h4>
+            <div class="space-y-2">
+              <a
+                href="#"
+                class="flex items-center justify-between p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+              >
+                <span class="text-xs font-medium text-slate-700"
+                  >mlp_basics.ipynb</span
+                >
+                <span class="material-symbols-outlined text-slate-400 text-sm">
+                  download
+                </span>
+              </a>
+              <a
+                href="#"
+                class="flex items-center justify-between p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+              >
+                <span class="text-xs font-medium text-slate-700"
+                  >architecture_diagrams.pdf</span
+                >
+                <span class="material-symbols-outlined text-slate-400 text-sm">
+                  download
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        *ngIf="activeTab === 'resources'"
+        class="text-center text-slate-500 py-8"
+      >
+        <span class="material-symbols-outlined text-4xl mb-2 block"
+          >description</span
+        >
+        <p>Resources coming soon</p>
+      </div>
+
+      <div
+        *ngIf="activeTab === 'notes'"
+        class="text-center text-slate-500 py-8"
+      >
+        <span class="material-symbols-outlined text-4xl mb-2 block">note</span>
+        <p>Your notes will appear here</p>
+      </div>
+
+      <div
+        *ngIf="activeTab === 'tutor'"
+        class="text-center text-slate-500 py-8"
+      >
+        <span class="material-symbols-outlined text-4xl mb-2 block"
+          >psychology</span
+        >
+        <p>AI Tutor Chat coming soon</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Footer -->
+<footer
+  class="h-16 border-t border-slate-200 bg-white px-8 flex items-center justify-between z-40 shrink-0"
+>
+  <button
+    (click)="previousLesson()"
+    class="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm font-bold text-slate-600"
+  >
+    <span class="material-symbols-outlined">chevron_left</span>
+    Previous Lesson
+  </button>
+  <div
+    class="hidden md:flex items-center gap-4 px-4 py-2 bg-slate-50 rounded-full border border-slate-100"
+  >
+    <span class="text-xs font-bold text-slate-400 uppercase">Up Next</span>
+    <div class="h-4 w-[1px] bg-slate-300"></div>
+    <p class="text-xs font-bold text-slate-800">
+      Understanding Activation Functions
+    </p>
+  </div>
+  <button
+    (click)="nextLesson()"
+    class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white hover:bg-blue-700 transition-colors text-sm font-bold shadow-lg shadow-primary/20"
+  >
+    Next Lesson
+    <span class="material-symbols-outlined">chevron_right</span>
+  </button>
+</footer>

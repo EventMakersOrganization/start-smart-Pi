@@ -185,28 +185,51 @@ class HallucinationGuard:
             ``is_valid`` (bool), ``confidence`` (0-1), ``issues`` (list).
         """
         issues: list[str] = []
+        ctx = (source_context or "").strip()
+        ctx_low = ctx.lower()
 
-        question_text = question_dict.get("question", "")
-        if not self._is_claim_supported(question_text, source_context):
+        question_text = str(question_dict.get("question", ""))
+        if not question_text.strip():
+            issues.append("Question text empty")
+        elif not self._is_claim_supported(question_text, ctx):
             issues.append("Question topic not well-supported by source material")
 
         correct_answer = str(question_dict.get("correct_answer", ""))
         if correct_answer and len(correct_answer) > 5:
-            if correct_answer.lower() not in source_context.lower():
+            if correct_answer.lower() not in ctx_low:
                 answer_words = set(
                     re.findall(rf"\b\w{{{_MIN_WORD_LEN},}}\b", correct_answer.lower())
                 )
                 context_words = set(
-                    re.findall(rf"\b\w{{{_MIN_WORD_LEN},}}\b", source_context.lower())
+                    re.findall(rf"\b\w{{{_MIN_WORD_LEN},}}\b", ctx_low)
                 )
                 if answer_words and len(answer_words & context_words) < len(answer_words) * 0.5:
                     issues.append("Correct answer may not be supported by course material")
 
+        explanation = str(question_dict.get("explanation", "")).strip()
+        if not explanation:
+            issues.append("Explanation missing or empty")
+        elif len(explanation) > 12 and not self._is_claim_supported(explanation[:500], ctx):
+            issues.append("Explanation not well-supported by source material")
+
+        # MCQ / TrueFalse options
         for option in question_dict.get("options", []):
             if len(str(option)) > 200:
                 issues.append(f"Option too long: {str(option)[:50]}...")
 
-        confidence = max(0.0, 1.0 - len(issues) * 0.25)
+        # DragDrop: labels should be traceable to context
+        if question_dict.get("correct_pairs") is not None:
+            for lab in list(question_dict.get("items") or []) + list(question_dict.get("matches") or []):
+                s = str(lab).strip()
+                if len(s) > 8 and s.lower() not in ctx_low:
+                    lw = set(re.findall(rf"\b\w{{{_MIN_WORD_LEN},}}\b", s.lower()))
+                    cw = set(re.findall(rf"\b\w{{{_MIN_WORD_LEN},}}\b", ctx_low))
+                    if lw and len(lw & cw) < max(1, len(lw) // 2):
+                        issues.append("DragDrop label may not be supported by course material")
+                        break
+
+        # Stricter confidence: aligns with rejecting borderline multi-issue cases (e.g. 0.5 at 2+ issues)
+        confidence = max(0.0, 1.0 - len(issues) * 0.2)
         return {"is_valid": len(issues) == 0, "confidence": confidence, "issues": issues}
 
     # ------------------------------------------------------------------

@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Study Group Suggestions - Test</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        color: white;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .search-box {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #764ba2;
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: white;
+      }
+
+      .error {
+        background: #fee;
+        color: #c33;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        border-left: 4px solid #c33;
+      }
+
+      .groups-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+      }
+
+      .group-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition:
+          transform 0.3s,
+          box-shadow 0.3s;
+      }
+
+      .group-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+      }
+
+      .group-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .group-type {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      .type-remediation {
+        background: #fef3c7;
+        color: #d97706;
+      }
+
+      .type-mixed {
+        background: #dbeafe;
+        color: #0369a1;
+      }
+
+      .type-advanced {
+        background: #dcfce7;
+        color: #15803d;
+      }
+
+      .score {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+      }
+
+      .section {
+        margin-bottom: 15px;
+      }
+
+      .section-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .common-topics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .topic-badge {
+        background: #f3f4f6;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        color: #666;
+        border: 1px solid #e5e7eb;
+      }
+
+      .activities {
+        list-style: none;
+      }
+
+      .activities li {
+        padding: 5px 0;
+        padding-left: 20px;
+        position: relative;
+        color: #555;
+        font-size: 13px;
+      }
+
+      .activities li:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #667eea;
+        font-weight: bold;
+      }
+
+      .members {
+        background: #f9fafb;
+        padding: 10px;
+        border-radius: 5px;
+      }
+
+      .member {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 13px;
+      }
+
+      .member:last-child {
+        border-bottom: none;
+      }
+
+      .member-id {
+        font-family: monospace;
+        color: #667eea;
+        font-weight: bold;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .member-level {
+        background: #e5e7eb;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: bold;
+        color: #4b5563;
+        margin-left: 10px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #f3f4f6;
+      }
+
+      .stat {
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #999;
+        margin-top: 5px;
+        text-transform: uppercase;
+      }
+
+      .best-match {
+        background: #f0f9ff;
+        border: 2px solid #0369a1;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 20px;
+      }
+
+      .best-match-title {
+        font-weight: bold;
+        color: #0369a1;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .best-match-info {
+        font-size: 13px;
+        color: #555;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 768px) {
+        .groups-container {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎓 Study Group Suggestions</h1>
+
+      <div class="search-box">
+        <input
+          type="text"
+          id="studentIdInput"
+          placeholder="Enter Student ID (e.g., 507f1f77bcf86cd799439011)"
+          value="507f1f77bcf86cd799439011"
+        />
+        <button onclick="searchStudyGroups()">🔍 Get Study Groups</button>
+      </div>
+
+      <div id="loading" class="loading" style="display: none">
+        <div style="font-size: 20px">⏳ Loading...</div>
+      </div>
+
+      <div id="error" class="error" style="display: none"></div>
+
+      <div id="content">
+        <div id="stats" class="stats" style="display: none">
+          <div class="stat">
+            <div class="stat-value" id="totalStudentsValue">0</div>
+            <div class="stat-label">Students Analyzed</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="groupsCountValue">0</div>
+            <div class="stat-label">Groups Suggested</div>
+          </div>
+        </div>
+
+        <div id="bestMatch" class="best-match" style="display: none">
+          <div class="best-match-title">⭐ Best Match Found</div>
+          <div class="best-match-info">
+            <strong>Student ID:</strong> <span id="bestMatchId">-</span><br />
+            <strong>Compatibility Score:</strong>
+            <span id="bestMatchScore">-</span>
+          </div>
+        </div>
+
+        <div id="groupsContainer" class="groups-container"></div>
+      </div>
+    </div>
+
+    <script>
+      async function searchStudyGroups() {
+        const studentId = document
+          .getElementById("studentIdInput")
+          .value.trim();
+        const loading = document.getElementById("loading");
+        const error = document.getElementById("error");
+        const content = document.getElementById("content");
+
+        if (!studentId) {
+          error.textContent = "❌ Please enter a Student ID";
+          error.style.display = "block";
+          return;
+        }
+
+        loading.style.display = "block";
+        error.style.display = "none";
+        content.innerHTML = "";
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/adaptive/study-groups/${studentId}`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          renderGroups(data);
+        } catch (err) {
+          error.textContent = `❌ Error: ${err.message}. Make sure the backend is running at http://localhost:3000`;
+          error.style.display = "block";
+          console.error("Error:", err);
+        } finally {
+          loading.style.display = "none";
+        }
+      }
+
+      function renderGroups(data) {
+        const container = document.getElementById("groupsContainer");
+        const stats = document.getElementById("stats");
+        const bestMatch = document.getElementById("bestMatch");
+
+        // Render stats
+        document.getElementById("totalStudentsValue").textContent =
+          data.totalStudentsAnalyzed;
+        document.getElementById("groupsCountValue").textContent =
+          data.suggestedGroups.length;
+        stats.style.display = "grid";
+
+        // Render best match
+        if (data.bestMatch) {
+          document.getElementById("bestMatchId").textContent =
+            data.bestMatch.userId;
+          document.getElementById("bestMatchScore").textContent =
+            data.bestMatch.compatibilityScore;
+          bestMatch.style.display = "block";
+        }
+
+        // Render groups
+        data.suggestedGroups.forEach((group, index) => {
+          const card = createGroupCard(group, index);
+          container.appendChild(card);
+        });
+      }
+
+      function createGroupCard(group, index) {
+        const card = document.createElement("div");
+        card.className = "group-card";
+
+        const typeClass = `type-${group.groupType}`;
+
+        card.innerHTML = `
+        <div class="group-header">
+          <div>
+            <div class="group-title">${group.groupName}</div>
+            <div class="score" style="margin-top: 8px;">Score: ${group.compatibilityScore}</div>
+          </div>
+          <span class="group-type ${typeClass}">${group.groupType}</span>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📚 Common Topics</div>
+          <div class="common-topics">
+            ${
+              group.commonTopics.length > 0
+                ? group.commonTopics
+                    .map((topic) => `<span class="topic-badge">${topic}</span>`)
+                    .join("")
+                : '<span style="color: #999; font-size: 12px;">No common topics</span>'
+            }
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✨ Suggested Activities</div>
+          <ul class="activities">
+            ${group.suggestedActivities.map((activity) => `<li>${activity}</li>`).join("")}
+          </ul>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👥 Members (${group.members.length})</div>
+          <div class="members">
+            ${group.members
+              .map(
+                (member) => `
+              <div class="member">
+                <span class="member-id" title="${member.userId}">${member.userId}</span>
+                <span class="member-level">${member.level}</span>
+              </div>
+            `,
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+
+        return card;
+      }
+
+      // Load on page load
+      window.addEventListener("load", () => {
+        const studentIdInput = document.getElementById("studentIdInput");
+        if (studentIdInput.value) {
+          searchStudyGroups();
+        }
+      });
+    </script>
+  </body>
+</html>

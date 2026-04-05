@@ -324,5 +324,16 @@ def reject_level_test_question(
     ) and _ORDINAL_STEP_QUESTION.search(qt):
         return "ordinal_procedure_step_question"
 
+    # Syllabus / course-title trivia (BrainRush + level test): not a concept question
+    if re.search(
+        r"\b(illustre le mieux le thème|parmi les propositions suivantes.*thème|"
+        r"thème «[^»]+»\s+dans\s+«|est abordé dans le cours «)\b",
+        qt,
+        re.IGNORECASE,
+    ):
+        return "syllabus_or_course_title_meta_mcq"
+    if {x.strip().lower() for x in on} <= {"choix a", "choix b", "choix c", "choix d"}:
+        return "placeholder_choix_abcd_options"
+
     return None
 

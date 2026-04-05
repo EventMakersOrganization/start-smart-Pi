@@ -1,0 +1,475 @@
+<div class="layout-container flex flex-col items-center py-10 px-4 md:px-10 lg:px-40">
+  <div class="layout-content-container flex flex-col max-w-[1100px] w-full gap-8">
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- 1. HEADER — Score + Niveau + Message  -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="bg-white dark:bg-slate-900 p-8 rounded-xl border
+      border-slate-200 dark:border-slate-800 shadow-sm
+      flex flex-col md:flex-row items-center justify-between gap-8">
+
+      <div class="flex flex-col gap-4 max-w-md">
+        <span class="inline-flex items-center px-3 py-1 rounded-full
+          bg-primary/10 text-primary text-xs font-bold uppercase
+          tracking-wider w-fit">
+          Assessment Complete
+        </span>
+        <h1 class="text-slate-900 dark:text-slate-100 text-4xl
+          font-black leading-tight tracking-tighter">
+          Evaluation Results
+        </h1>
+        <p class="text-slate-500 dark:text-slate-400 text-lg">
+          {{ getLevelMessage() }}
+        </p>
+
+        <!-- Badges niveau + temps -->
+        <div class="flex gap-3 mt-2 flex-wrap">
+
+          <!-- Badge niveau Beginner -->
+          <div *ngIf="result?.resultLevel === 'beginner'"
+            class="flex h-10 items-center justify-center gap-x-2
+            rounded-lg bg-orange-500/10 border border-orange-500/20 px-4">
+            <span class="material-symbols-outlined text-orange-500 text-[18px]">
+              school
+            </span>
+            <p class="text-orange-700 dark:text-orange-400 text-sm font-bold">
+              Level: Beginner
+            </p>
+          </div>
+
+          <!-- Badge niveau Intermediate -->
+          <div *ngIf="result?.resultLevel === 'intermediate'"
+            class="flex h-10 items-center justify-center gap-x-2
+            rounded-lg bg-blue-500/10 border border-blue-500/20 px-4">
+            <span class="material-symbols-outlined text-blue-500 text-[18px]">
+              trending_up
+            </span>
+            <p class="text-blue-700 dark:text-blue-400 text-sm font-bold">
+              Level: Intermediate
+            </p>
+          </div>
+
+          <!-- Badge niveau Advanced -->
+          <div *ngIf="result?.resultLevel === 'advanced'"
+            class="flex h-10 items-center justify-center gap-x-2
+            rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4">
+            <span class="material-symbols-outlined text-emerald-500 text-[18px]">
+              emoji_events
+            </span>
+            <p class="text-emerald-700 dark:text-emerald-400 text-sm font-bold">
+              Level: Advanced
+            </p>
+          </div>
+
+          <!-- Badge temps -->
+          <div class="flex h-10 items-center justify-center gap-x-2
+            rounded-lg bg-primary/10 border border-primary/20 px-4">
+            <span class="material-symbols-outlined text-primary text-[18px]">
+              timer
+            </span>
+            <p class="text-primary text-sm font-bold">
+              {{ formatDuration(totalTimeSeconds) }}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Circular Score Chart -->
+      <div class="relative flex flex-col items-center justify-center">
+        <div class="relative size-48 flex items-center justify-center">
+          <svg class="size-full -rotate-90" viewBox="0 0 100 100">
+            <circle class="text-slate-100 dark:text-slate-800"
+              cx="50" cy="50" fill="transparent" r="40"
+              stroke="currentColor" stroke-width="10">
+            </circle>
+            <circle class="text-primary"
+              cx="50" cy="50" fill="transparent" r="40"
+              stroke="currentColor"
+              [attr.stroke-dasharray]="251.2"
+              [attr.stroke-dashoffset]="251.2 - (result?.totalScore || 0) * 2.512"
+              stroke-linecap="round" stroke-width="10">
+            </circle>
+          </svg>
+          <div class="absolute flex flex-col items-center">
+            <span class="text-4xl font-black text-slate-900 dark:text-slate-100">
+              {{ result?.totalScore || 0 }}%
+            </span>
+            <span class="text-xs font-medium text-slate-400 uppercase tracking-widest">
+              Mastery
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- 2. STATS PAR TOPIC                    -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="bg-white dark:bg-slate-900 p-6 rounded-xl
+      border border-slate-200 dark:border-slate-800 shadow-sm">
+      <h3 class="text-slate-900 dark:text-slate-100 text-lg
+        font-bold mb-6 flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">bar_chart</span>
+        Performance by Topic
+      </h3>
+      <div class="flex flex-col gap-4">
+        <div *ngFor="let stat of topicStats">
+          <div class="flex justify-between mb-1">
+            <span class="text-sm font-medium text-slate-700
+              dark:text-slate-300">
+              {{ stat.topic | titlecase }}
+            </span>
+            <span class="text-sm font-bold"
+              [ngClass]="{
+                'text-emerald-600': stat.percent >= 70,
+                'text-blue-600': stat.percent >= 50 && stat.percent < 70,
+                'text-orange-600': stat.percent < 50
+              }">
+              {{ stat.correct }}/{{ stat.total }} ({{ stat.percent }}%)
+            </span>
+          </div>
+          <div class="w-full bg-slate-100 dark:bg-slate-800
+            rounded-full h-3 overflow-hidden">
+            <div class="h-3 rounded-full transition-all duration-700"
+              [ngClass]="{
+                'bg-emerald-500': stat.percent >= 70,
+                'bg-blue-500': stat.percent >= 50 && stat.percent < 70,
+                'bg-orange-500': stat.percent < 50
+              }"
+              [style.width.%]="stat.percent">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+   <!-- ══════════════════════════════════════ -->
+<!-- FORCES + FAIBLESSES                   -->
+<!-- ══════════════════════════════════════ -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <!-- ✅ FORCES -->
+  <div class="bg-white dark:bg-slate-900 p-6 rounded-xl
+    border border-slate-200 dark:border-slate-800 shadow-sm">
+
+    <h3 class="text-slate-900 dark:text-slate-100 text-lg
+      font-bold mb-2 flex items-center gap-2">
+      <span class="material-symbols-outlined text-emerald-500">
+        thumb_up
+      </span>
+      Your Strengths
+    </h3>
+    <p class="text-slate-400 text-xs mb-4">
+      Topics where you scored ≥ 70%
+    </p>
+
+    <!-- Avec données enrichies -->
+    <div *ngIf="result?.detectedStrengths?.length > 0"
+      class="space-y-3">
+      <div *ngFor="let s of result.detectedStrengths"
+        class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20
+        border border-emerald-100 dark:border-emerald-900/50">
+
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined
+              text-emerald-500 text-[18px]">
+              check_circle
+            </span>
+            <span class="text-sm font-bold text-emerald-900
+              dark:text-emerald-300">
+              {{ s.topic || s | titlecase }}
+            </span>
+          </div>
+          <span class="text-xs font-black text-emerald-600
+            bg-emerald-100 dark:bg-emerald-900/50
+            px-2 py-0.5 rounded-full">
+            {{ s.score !== undefined ? s.score : '—' }}%
+          </span>
+        </div>
+
+        <!-- Barre de progression -->
+        <div *ngIf="s.score !== undefined"
+          class="w-full bg-emerald-100 dark:bg-emerald-900/30
+          rounded-full h-2 overflow-hidden">
+          <div class="h-2 rounded-full bg-emerald-500
+            transition-all duration-700"
+            [style.width.%]="s.score">
+          </div>
+        </div>
+
+        <!-- Détail correct/total -->
+        <p *ngIf="s.correct !== undefined"
+          class="text-xs text-emerald-600 mt-1.5">
+          {{ s.correct }} / {{ s.total }} correct answers
+        </p>
+
+        <!-- Badge mastery -->
+        <div class="mt-2">
+          <span *ngIf="s.score >= 90"
+            class="text-xs font-bold text-white
+            bg-emerald-500 px-2 py-0.5 rounded-full">
+            ⭐ Master
+          </span>
+          <span *ngIf="s.score >= 70 && s.score < 90"
+            class="text-xs font-bold text-white
+            bg-emerald-400 px-2 py-0.5 rounded-full">
+            ✓ Proficient
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Vide -->
+    <div *ngIf="!result?.detectedStrengths?.length"
+      class="flex flex-col items-center justify-center
+      py-8 text-center">
+      <span class="material-symbols-outlined text-slate-300
+        text-4xl mb-2">
+        emoji_events
+      </span>
+      <p class="text-slate-400 text-sm">
+        Keep practicing to build strengths!
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ⚠️ FAIBLESSES -->
+  <div class="bg-white dark:bg-slate-900 p-6 rounded-xl
+    border border-slate-200 dark:border-slate-800 shadow-sm">
+
+    <h3 class="text-slate-900 dark:text-slate-100 text-lg
+      font-bold mb-2 flex items-center gap-2">
+      <span class="material-symbols-outlined text-orange-500">
+        warning
+      </span>
+      Areas to Improve
+    </h3>
+    <p class="text-slate-400 text-xs mb-4">
+      Topics where you scored &lt; 50% — focus here next
+    </p>
+
+    <!-- Avec données enrichies -->
+    <div *ngIf="result?.detectedWeaknesses?.length > 0"
+      class="space-y-3">
+      <div *ngFor="let w of result.detectedWeaknesses"
+        class="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/20
+        border border-orange-100 dark:border-orange-900/50">
+
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined
+              text-orange-500 text-[18px]">
+              priority_high
+            </span>
+            <span class="text-sm font-bold text-orange-900
+              dark:text-orange-300">
+              {{ w.topic || w | titlecase }}
+            </span>
+          </div>
+          <span class="text-xs font-black text-orange-600
+            bg-orange-100 dark:bg-orange-900/50
+            px-2 py-0.5 rounded-full">
+            {{ w.score !== undefined ? w.score : '—' }}%
+          </span>
+        </div>
+
+        <!-- Barre de progression -->
+        <div *ngIf="w.score !== undefined"
+          class="w-full bg-orange-100 dark:bg-orange-900/30
+          rounded-full h-2 overflow-hidden">
+          <div class="h-2 rounded-full bg-orange-500
+            transition-all duration-700"
+            [style.width.%]="w.score">
+          </div>
+        </div>
+
+        <!-- Détail correct/total -->
+        <p *ngIf="w.correct !== undefined"
+          class="text-xs text-orange-600 mt-1.5">
+          {{ w.correct }} / {{ w.total }} correct answers
+        </p>
+
+        <!-- Conseil personnalisé -->
+        <div class="mt-3 flex items-start gap-2
+          bg-orange-100 dark:bg-orange-900/30
+          p-2 rounded-lg">
+          <span class="material-symbols-outlined
+            text-orange-500 text-[16px] mt-0.5">
+            lightbulb
+          </span>
+          <p class="text-xs text-orange-700 dark:text-orange-300">
+            <span *ngIf="w.score === 0">
+              Start from the basics of
+              <strong>{{ w.topic || w }}</strong>.
+            </span>
+            <span *ngIf="w.score > 0 && w.score < 30">
+              Review core concepts in
+              <strong>{{ w.topic || w }}</strong> — low score detected.
+            </span>
+            <span *ngIf="w.score >= 30 && w.score < 50">
+              You're close! A bit more practice in
+              <strong>{{ w.topic || w }}</strong> will make a big difference.
+            </span>
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Vide -->
+    <div *ngIf="!result?.detectedWeaknesses?.length"
+      class="flex flex-col items-center justify-center
+      py-8 text-center">
+      <span class="material-symbols-outlined text-slate-300
+        text-4xl mb-2">
+        celebration
+      </span>
+      <p class="text-slate-400 text-sm font-medium">
+        No weaknesses detected — excellent work!
+      </p>
+    </div>
+
+  </div>
+
+</div>
+
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- 4. EXPLICATION AI                     -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="bg-primary/5 dark:bg-primary/10 p-6 rounded-xl
+      border-2 border-dashed border-primary/30">
+      <h3 class="text-primary text-lg font-bold mb-3
+        flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">
+          smart_toy
+        </span>
+        Why was this level assigned?
+      </h3>
+      <p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
+        {{ aiExplanation }}
+      </p>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- 5. RECOMMANDATIONS DEPUIS MONGODB     -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="bg-white dark:bg-slate-900 p-6 rounded-xl
+      border border-slate-200 dark:border-slate-800 shadow-sm">
+      <h3 class="text-slate-900 dark:text-slate-100 text-lg
+        font-bold mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-indigo-500">
+          auto_awesome
+        </span>
+        Recommended Next Topics
+      </h3>
+
+      <!-- Loading -->
+      <div *ngIf="loadingRecs" class="text-slate-400 text-sm p-3">
+        Loading recommendations...
+      </div>
+
+      <!-- Recommandations depuis MongoDB -->
+      <div *ngIf="!loadingRecs && recommendations.length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div *ngFor="let rec of recommendations"
+          class="flex items-center gap-4 p-4 rounded-xl
+          bg-indigo-50 dark:bg-indigo-950/20
+          border border-indigo-100 dark:border-indigo-900/50">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500
+            flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-white
+              text-[18px]">book</span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-slate-800
+              dark:text-slate-200">
+              {{ rec.recommendedContent || 'Learning Module' }}
+            </p>
+            <p class="text-xs text-slate-500 mt-0.5">
+              {{ rec.reason }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggestions par défaut si pas de reco -->
+      <div *ngIf="!loadingRecs && recommendations.length === 0">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div *ngFor="let w of result?.detectedWeaknesses || []"
+            class="flex items-center gap-4 p-4 rounded-xl
+            bg-slate-50 dark:bg-slate-800
+            border border-slate-200 dark:border-slate-700">
+            <div class="w-10 h-10 rounded-lg bg-primary
+              flex items-center justify-center flex-shrink-0">
+              <span class="material-symbols-outlined text-white
+                text-[18px]">school</span>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-slate-800
+                dark:text-slate-200">
+                {{ w }} Fundamentals
+              </p>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Focus area based on your results
+              </p>
+            </div>
+          </div>
+          <div *ngIf="!result?.detectedWeaknesses?.length"
+            class="text-slate-400 text-sm p-3">
+            Complete more exercises to get personalized recommendations!
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- 6. CALL TO ACTION                     -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="flex flex-col md:flex-row items-center
+      justify-between border-t border-slate-200
+      dark:border-slate-800 pt-8 mt-4 gap-4">
+
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-slate-400">info</span>
+        <p class="text-slate-500 text-sm">
+          Results are valid for 90 days.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-4 w-full md:w-auto flex-wrap">
+        <button (click)="retakeTest()"
+          class="px-6 py-3 border border-slate-200
+          dark:border-slate-700 rounded-lg text-slate-700
+          dark:text-slate-300 font-bold hover:bg-slate-50
+          dark:hover:bg-slate-800 transition-all">
+          Retake Test
+        </button>
+        <button (click)="startLearning()"
+          class="px-6 py-3 bg-indigo-500 text-white rounded-lg
+          font-bold hover:bg-indigo-600 transition-all
+          flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">
+            play_arrow
+          </span>
+          Start Learning
+        </button>
+        <button (click)="goDashboard()"
+          class="px-8 py-3 bg-primary text-white rounded-lg
+          font-bold hover:shadow-lg transition-all
+          flex items-center justify-center gap-2">
+          Go to Dashboard
+          <span class="material-symbols-outlined">dashboard</span>
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>

@@ -18,6 +18,22 @@ import { AuthGuard } from './auth.guard';
 import { RoleGuard } from './role.guard';
 import { JwtInterceptor } from './jwt.interceptor';
 import { StudentDashboardComponent } from './student-dashboard/student-dashboard.component';
+import { AdaptiveLearningService } from './adaptive-learning.service';
+import { LevelTestComponent } from './level-test/level-test.component';
+import { LevelTestResultComponent } from './level-test-result/level-test-result.component';
+import { ProgressChartsComponent } from './progress-charts/progress-charts.component';
+import { PerformanceHistoryComponent } from './performance-history/performance-history.component';
+import { RecommendationDisplayComponent } from './recommendation-display/recommendation-display.component';
+import { LearningPathComponent } from './learning-path/learning-path.component';
+import { SkillMasteryComponent } from './skill-mastery/skill-mastery.component';
+import { GoalSettingComponent } from './goal-setting/goal-setting.component';
+import { BadgeDisplayComponent } from './badge-display/badge-display.component';
+import { PeerComparisonComponent } from './peer-comparison/peer-comparison.component';
+import { StudyPlannerComponent } from './study-planner/study-planner.component';
+import { MyCoursesComponent } from './my-courses/my-courses.component';
+import { ContinueLearningComponent } from './continue-learning/continue-learning.component';
+import { AssignmentsComponent } from './assignments/assignments.component';
+import { AssignmentSubmissionComponent } from './assignment-submission/assignment-submission.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -32,15 +48,128 @@ const routes: Routes = [
     data: { roles: ['admin'] },
     children: [
       { path: '', redirectTo: 'students', pathMatch: 'full' },
-      { path: 'students', component: StudentManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
-      { path: 'instructors', component: TeacherManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
-    ]
+      {
+        path: 'students',
+        component: StudentManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+      {
+        path: 'instructors',
+        component: TeacherManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+    ],
   },
-  { path: 'student-dashboard', component: StudentDashboardComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['student'] } },
-  { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['student'] } },
+  {
+    path: 'student-dashboard',
+    component: StudentDashboardComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['student'] },
+    children: [
+      {
+        path: 'level-test',
+        component: LevelTestComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'level-test-result',
+        component: LevelTestResultComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'goal-setting',
+        component: GoalSettingComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'badges',
+        component: BadgeDisplayComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'my-courses',
+        component: MyCoursesComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'performance',
+        component: PerformanceHistoryComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'learning-path',
+        component: LearningPathComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'assignments',
+        component: AssignmentsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'assignments/submission',
+        component: AssignmentSubmissionComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+      {
+        path: 'continue-learning/:courseId',
+        component: ContinueLearningComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'] },
+      },
+    ],
+  },
+  {
+    path: 'student/dashboard',
+    redirectTo: 'student-dashboard',
+    pathMatch: 'full',
+  },
+
+  // Level Test route
+  {
+    path: 'level-test',
+    redirectTo: 'student-dashboard/level-test',
+    pathMatch: 'full',
+  },
+  {
+    path: 'level-test/result',
+    redirectTo: 'student-dashboard/level-test-result',
+    pathMatch: 'full',
+  },
 
   // instructor dashboard
-  { path: 'instructor/dashboard', component: InstructorDashboardComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['instructor'] } },
+  {
+    path: 'instructor/dashboard',
+    component: InstructorDashboardComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['instructor'] },
+  },
+  {
+    path: 'goal-setting',
+    redirectTo: 'student-dashboard/goal-setting',
+    pathMatch: 'full',
+  },
+  {
+    path: 'badges',
+    redirectTo: 'student-dashboard/badges',
+    pathMatch: 'full',
+  },
+  {
+    path: 'my-courses',
+    redirectTo: 'student-dashboard/my-courses',
+    pathMatch: 'full',
+  },
 ];
 
 @NgModule({
@@ -54,20 +183,36 @@ const routes: Routes = [
     StudentDashboardComponent,
     StudentManagementComponent,
     TeacherManagementComponent,
-    InstructorDashboardComponent
+    InstructorDashboardComponent,
+    LevelTestComponent,
+    LevelTestResultComponent,
+    ProgressChartsComponent,
+    PerformanceHistoryComponent,
+    RecommendationDisplayComponent,
+    LearningPathComponent,
+    SkillMasteryComponent,
+    GoalSettingComponent,
+    BadgeDisplayComponent,
+    PeerComparisonComponent,
+    StudyPlannerComponent,
+    MyCoursesComponent,
+    ContinueLearningComponent,
+    AssignmentsComponent,
+    AssignmentSubmissionComponent,
   ],
   imports: [
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
     HttpClientModule,
-    RouterModule.forChild(routes)
+    RouterModule.forChild(routes),
   ],
   providers: [
     AuthService,
     AuthGuard,
     RoleGuard,
-    JwtInterceptor
-  ]
+    JwtInterceptor,
+    AdaptiveLearningService,
+  ],
 })
-export class UserManagementModule { }
+export class UserManagementModule {}
