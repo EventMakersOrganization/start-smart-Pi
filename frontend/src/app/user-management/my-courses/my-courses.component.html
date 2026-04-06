@@ -360,100 +360,6 @@
         Loading chapter content...
       </div>
 
-      <div *ngIf="!courseLoading" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div
-          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
-        >
-          <h4
-            class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"
-          >
-            <span class="material-symbols-outlined text-red-500"
-              >picture_as_pdf</span
-            >
-            PDFs
-          </h4>
-          <div class="space-y-3">
-            <div
-              *ngFor="let item of courseResources"
-              class="p-3 rounded-lg bg-slate-50 text-sm"
-            >
-              <p class="font-semibold text-slate-800">{{ item.title }}</p>
-              <p class="text-xs text-slate-500 break-all">
-                {{ item.subtitle }}
-              </p>
-            </div>
-            <p
-              *ngIf="courseResources.length === 0"
-              class="text-sm text-slate-500"
-            >
-              No PDF resources found.
-            </p>
-          </div>
-        </div>
-
-        <div
-          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
-        >
-          <h4
-            class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"
-          >
-            <span class="material-symbols-outlined text-indigo-500">quiz</span>
-            Quizzes
-          </h4>
-          <div class="space-y-3">
-            <div
-              *ngFor="let quiz of courseQuizzes"
-              class="p-3 rounded-lg bg-slate-50 text-sm"
-            >
-              <p class="font-semibold text-slate-800 line-clamp-2">
-                {{ quiz?.content || "Quiz item" }}
-              </p>
-              <p class="text-xs text-slate-500">
-                Difficulty: {{ quiz?.difficulty || "N/A" }}
-              </p>
-            </div>
-            <p
-              *ngIf="courseQuizzes.length === 0"
-              class="text-sm text-slate-500"
-            >
-              No quizzes found.
-            </p>
-          </div>
-        </div>
-
-        <div
-          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
-        >
-          <h4
-            class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2"
-          >
-            <span class="material-symbols-outlined text-emerald-500"
-              >exercise</span
-            >
-            Exercises
-          </h4>
-          <div class="space-y-3">
-            <div
-              *ngFor="let ex of courseExercises"
-              class="p-3 rounded-lg bg-slate-50 text-sm"
-            >
-              <p class="font-semibold text-slate-800 line-clamp-2">
-                {{ ex?.content || "Exercise item" }}
-              </p>
-              <p class="text-xs text-slate-500">
-                Difficulty: {{ ex?.difficulty || "N/A" }}
-              </p>
-            </div>
-            <p
-              *ngIf="courseExercises.length === 0"
-              class="text-sm text-slate-500"
-            >
-              No exercises found.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div
         class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
       >
@@ -462,7 +368,7 @@
         </h4>
         <div class="space-y-3">
           <div
-            *ngFor="let module of subchapterContents"
+            *ngFor="let module of subchapterContents; let moduleIndex = index"
             class="p-4 rounded-xl border border-slate-200 bg-slate-50"
           >
             <p class="font-semibold text-slate-900">{{ module.title }}</p>
@@ -470,58 +376,162 @@
               {{ module.description || "No module description." }}
             </p>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-xs">
-              <div class="bg-white rounded-lg p-3 border border-slate-200">
-                <p class="font-semibold text-slate-700 mb-2">PDF files</p>
-                <p
-                  *ngFor="let item of module.pdfs"
-                  class="text-slate-600 break-all"
+            <div class="space-y-3 mt-4 text-xs">
+              <div class="flex flex-wrap gap-2">
+                <button
+                  *ngFor="let folder of folderKeys"
+                  (click)="
+                    setActiveFolderForSubchapter(module, moduleIndex, folder)
+                  "
+                  class="rounded-lg border px-3 py-1.5 text-xs font-bold"
+                  [ngClass]="
+                    getActiveFolderForSubchapter(module, moduleIndex) === folder
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-slate-300 bg-white text-slate-700'
+                  "
                 >
-                  {{ item.title }}
-                </p>
-                <p *ngIf="module.pdfs.length === 0" class="text-slate-400">
-                  No PDF file.
-                </p>
+                  {{ folderLabels[folder] }}
+                </button>
               </div>
 
-              <div class="bg-white rounded-lg p-3 border border-slate-200">
-                <p class="font-semibold text-slate-700 mb-2">Word files</p>
-                <p
-                  *ngFor="let item of module.words"
-                  class="text-slate-600 break-all"
+              <ng-container *ngFor="let folder of folderKeys">
+                <article
+                  *ngIf="
+                    getActiveFolderForSubchapter(module, moduleIndex) === folder
+                  "
+                  class="rounded-lg border border-slate-200 bg-white p-3"
                 >
-                  {{ item.title }}
-                </p>
-                <p *ngIf="module.words.length === 0" class="text-slate-400">
-                  No Word file.
-                </p>
-              </div>
+                  <p class="font-semibold text-slate-700 mb-2">
+                    {{ folderLabels[folder] }}
+                  </p>
 
-              <div class="bg-white rounded-lg p-3 border border-slate-200">
-                <p class="font-semibold text-slate-700 mb-2">Quizzes</p>
-                <p
-                  *ngFor="let item of module.quizzes"
-                  class="text-slate-600 line-clamp-2"
-                >
-                  {{ item.subtitle }}
-                </p>
-                <p *ngIf="module.quizzes.length === 0" class="text-slate-400">
-                  No quiz found.
-                </p>
-              </div>
+                  <div class="space-y-2">
+                    <div
+                      *ngFor="let item of getFolderItems(module, folder)"
+                      class="rounded border border-slate-200 px-3 py-2"
+                    >
+                      <button
+                        *ngIf="
+                          folder === 'exercices' && item.type === 'prosit';
+                          else defaultItemTitle
+                        "
+                        (click)="openProsit(item, module)"
+                        class="font-semibold text-left text-blue-700 underline hover:text-blue-800"
+                      >
+                        {{ item.title }}
+                      </button>
+                      <ng-template #defaultItemTitle>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span
+                            *ngIf="
+                              isQuizItem(item, folder) &&
+                              getQuizResultLabel(item)
+                            "
+                            class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700"
+                          >
+                            {{ getQuizResultLabel(item) }}
+                          </span>
+                          <p class="font-semibold text-slate-800">
+                            {{ item.title }}
+                          </p>
+                        </div>
+                      </ng-template>
+                      <p
+                        *ngIf="isPrositItem(item, folder)"
+                        class="text-xs text-amber-700 mt-1"
+                      >
+                        {{ getPrositDueDateLabel(item) }}
+                      </p>
+                      <p
+                        *ngIf="isQuizItem(item, folder)"
+                        class="text-xs text-violet-700 mt-1"
+                      >
+                        {{ getItemDisplaySubtitle(item, folder) }}
+                      </p>
+                      <p
+                        *ngIf="
+                          !isQuizItem(item, folder) &&
+                          getItemDisplaySubtitle(item, folder)
+                        "
+                        class="text-slate-600 break-all"
+                      >
+                        {{ getItemDisplaySubtitle(item, folder) }}
+                      </p>
 
-              <div class="bg-white rounded-lg p-3 border border-slate-200">
-                <p class="font-semibold text-slate-700 mb-2">Exercises</p>
-                <p
-                  *ngFor="let item of module.exercises"
-                  class="text-slate-600 line-clamp-2"
-                >
-                  {{ item.subtitle }}
-                </p>
-                <p *ngIf="module.exercises.length === 0" class="text-slate-400">
-                  No exercise found.
-                </p>
-              </div>
+                      <div *ngIf="folder === 'cours'" class="mt-2">
+                        <div
+                          *ngIf="
+                            hasDownloadableUrl(item);
+                            else missingCourseFileLink
+                          "
+                          class="flex items-center gap-3"
+                        >
+                          <a
+                            [href]="getItemUrl(item)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center text-blue-600 underline font-semibold"
+                          >
+                            Ouvrir
+                          </a>
+                          <a
+                            [href]="getItemUrl(item)"
+                            [attr.download]="getDownloadFileName(item)"
+                            class="inline-flex items-center text-emerald-700 underline font-semibold"
+                          >
+                            Telecharger
+                          </a>
+                        </div>
+                        <ng-template #missingCourseFileLink>
+                          <p class="text-[11px] text-amber-700">
+                            Lien indisponible pour ce fichier. Re-upload requis
+                            pour activer Ouvrir/Telecharger.
+                          </p>
+                        </ng-template>
+                      </div>
+
+                      <div
+                        *ngIf="folder === 'exercices' && item.type === 'quiz'"
+                        class="mt-2"
+                      >
+                        <button
+                          type="button"
+                          (click)="openQuiz(item, module)"
+                          class="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold hover:opacity-90"
+                          [ngClass]="
+                            getQuizResultLabel(item)
+                              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'bg-violet-50 text-violet-700 hover:bg-violet-100'
+                          "
+                        >
+                          {{ getQuizActionLabel(item) }}
+                        </button>
+                      </div>
+
+                      <a
+                        *ngIf="
+                          folder !== 'cours' &&
+                          !isPrositItem(item, folder) &&
+                          hasDownloadableUrl(item)
+                        "
+                        [href]="getItemUrl(item)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center text-blue-600 underline mt-2"
+                      >
+                        Ouvrir
+                      </a>
+                    </div>
+
+                    <p
+                      *ngIf="getFolderItems(module, folder).length === 0"
+                      class="text-slate-400"
+                    >
+                      Aucun contenu dans ce dossier.
+                    </p>
+                  </div>
+                </article>
+              </ng-container>
             </div>
           </div>
           <p
@@ -531,6 +541,640 @@
             No modules listed for this chapter.
           </p>
         </div>
+      </div>
+    </section>
+
+    <section
+      *ngIf="viewMode === 'quiz' && selectedQuiz"
+      class="space-y-6 pb-12"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p
+            class="text-xs font-bold uppercase tracking-widest text-violet-500"
+          >
+            Quiz MCQ
+          </p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+            {{ selectedQuiz.title }}
+          </h3>
+          <p class="text-slate-500 text-sm mt-1">
+            Sous-chapitre: {{ selectedQuiz.subChapterTitle }}
+          </p>
+        </div>
+        <button
+          (click)="backToChapterContentFromQuiz()"
+          class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50"
+        >
+          Back to Chapter
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <div
+            class="flex items-center justify-between border-b border-slate-200 pb-4 mb-6"
+          >
+            <h4 class="text-3xl font-black text-slate-900">CHOIX MULTIPLES</h4>
+            <div
+              class="h-14 w-14 rounded-full border-2 border-violet-400 flex items-center justify-center text-violet-700 font-black text-lg"
+            >
+              {{ selectedQuiz.questions.length }}
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <article
+              *ngFor="let question of selectedQuiz.questions; let qi = index"
+              class="rounded-2xl border border-slate-200 overflow-hidden"
+            >
+              <div class="flex items-start gap-4 p-5 border-b border-slate-200">
+                <div
+                  class="h-10 w-10 rounded-full border-2 border-violet-400 text-violet-700 font-bold flex items-center justify-center shrink-0"
+                >
+                  {{ qi + 1 }}
+                </div>
+                <div class="flex-1">
+                  <p
+                    class="text-xs font-bold uppercase tracking-wider text-violet-700 mb-1"
+                  >
+                    Choix multiples
+                  </p>
+                  <p class="text-lg font-medium text-slate-800">
+                    {{ question.question }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="p-4 space-y-3">
+                <button
+                  *ngFor="let option of question.options; let oi = index"
+                  type="button"
+                  (click)="setQuizAnswer(qi, oi)"
+                  [disabled]="quizReviewMode"
+                  class="w-full text-left rounded-xl border px-4 py-4 transition-all disabled:cursor-not-allowed"
+                  [ngClass]="
+                    quizReviewMode
+                      ? oi === question.correctOptionIndex
+                        ? 'border-emerald-400 bg-emerald-50 shadow-sm'
+                        : selectedQuizAnswers[qi] === oi &&
+                            oi !== question.correctOptionIndex
+                          ? 'border-red-400 bg-red-50 shadow-sm'
+                          : 'border-slate-200 bg-white'
+                      : selectedQuizAnswers[qi] === oi
+                        ? 'border-slate-700 bg-slate-50 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-slate-400 hover:bg-slate-50'
+                  "
+                >
+                  <div class="flex items-center gap-4">
+                    <div
+                      class="h-7 w-7 rounded-full border flex items-center justify-center text-sm font-bold"
+                      [ngClass]="
+                        quizReviewMode
+                          ? oi === question.correctOptionIndex
+                            ? 'border-emerald-600 text-emerald-600'
+                            : selectedQuizAnswers[qi] === oi &&
+                                oi !== question.correctOptionIndex
+                              ? 'border-red-600 text-red-600'
+                              : 'border-slate-300 text-slate-600'
+                          : selectedQuizAnswers[qi] === oi
+                            ? 'border-slate-800 text-slate-800'
+                            : 'border-slate-300 text-slate-600'
+                      "
+                    >
+                      {{ ["A", "B", "C", "D", "E"][oi] || oi + 1 }}
+                    </div>
+                    <span class="text-slate-800">{{ option }}</span>
+                  </div>
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <div class="mt-6 flex items-center justify-between gap-4">
+            <p class="text-sm text-slate-500">
+              Répondues: {{ getQuizAnsweredCount() }}/{{
+                selectedQuiz.questions.length
+              }}
+            </p>
+            <button
+              type="button"
+              (click)="submitQuiz()"
+              [disabled]="!quizReviewMode && !isQuizComplete()"
+              class="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            >
+              {{
+                quizReviewMode
+                  ? "Fermer"
+                  : quizSubmitted
+                    ? "Submitted"
+                    : "Submit"
+              }}
+            </button>
+          </div>
+
+          <div
+            *ngIf="quizSubmitMessage"
+            class="mt-4 rounded-xl border px-4 py-3 text-sm"
+            [ngClass]="
+              quizSubmitted
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            "
+          >
+            {{ quizSubmitMessage }}
+          </div>
+        </div>
+
+        <aside class="bg-white rounded-2xl border border-slate-200 p-6 h-fit">
+          <h4 class="text-xl font-bold text-slate-900 mb-4">
+            Details et informations
+          </h4>
+          <div class="space-y-5 text-sm">
+            <div class="border-b border-slate-200 pb-4">
+              <p class="font-semibold text-slate-800">Progression</p>
+              <p class="text-slate-600">
+                {{ getQuizAnsweredCount() }}/{{ selectedQuiz.questions.length }}
+                réponses sélectionnées
+              </p>
+            </div>
+            <div class="border-b border-slate-200 pb-4">
+              <p class="font-semibold text-slate-800">Tentatives</p>
+              <p class="text-slate-600">1 tentative restante</p>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-800">Notation</p>
+              <p class="text-slate-600">Nombre maximal de points: 100 points</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section
+      *ngIf="viewMode === 'quiz-file' && selectedQuizFile"
+      class="space-y-6 pb-12"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p
+            class="text-xs font-bold uppercase tracking-widest text-violet-500"
+          >
+            Quiz Fichier
+          </p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+            {{ selectedQuizFile.title }}
+          </h3>
+          <p class="text-slate-500 text-sm mt-1">
+            Sous-chapitre: {{ selectedQuizFile.subChapterTitle }}
+          </p>
+        </div>
+        <button
+          (click)="backToChapterContentFromQuiz()"
+          class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50"
+        >
+          Back to Chapter
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h4 class="text-3xl font-black text-slate-900 mb-4">Remise Quiz</h4>
+
+          <div
+            *ngIf="!hasSelectedQuizFileSubmission()"
+            class="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-6"
+          >
+            <p class="font-semibold text-slate-800">Instructions</p>
+            <p class="text-sm text-slate-600 mt-1">
+              {{
+                selectedQuizFile.instructionsText ||
+                  "Telechargez le sujet, redigez vos reponses, puis deposez votre fichier."
+              }}
+            </p>
+            <p
+              *ngIf="selectedQuizFile.instructionFileName"
+              class="text-sm text-slate-700 mt-2"
+            >
+              Fichier du quiz: {{ selectedQuizFile.instructionFileName }}
+            </p>
+            <a
+              *ngIf="getSelectedQuizFileInstructionUrl()"
+              [href]="getSelectedQuizFileInstructionUrl()"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex mt-2 text-blue-700 underline font-semibold"
+            >
+              Ouvrir le fichier du quiz
+            </a>
+          </div>
+
+          <div
+            *ngIf="hasSelectedQuizFileSubmission()"
+            class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 mb-6"
+          >
+            <p class="text-base font-semibold text-emerald-800">Votre remise</p>
+            <p class="text-sm text-emerald-700 mt-1">
+              Fichier depose:
+              {{ selectedQuizFile.responseFileName || "Remise du quiz" }}
+            </p>
+
+            <button
+              *ngIf="getSelectedQuizFileResponseUrl()"
+              type="button"
+              (click)="toggleSelectedQuizFileResponsePreview()"
+              class="inline-flex mt-3 text-emerald-700 underline font-semibold"
+            >
+              {{
+                isSelectedQuizFileResponsePreviewOpen()
+                  ? "Masquer ma remise"
+                  : "Ouvrir ma remise"
+              }}
+            </button>
+
+            <p
+              *ngIf="
+                isSelectedQuizFileResponsePreviewOpen() &&
+                !isSelectedQuizFileResponsePreviewable() &&
+                !isSelectedQuizFileResponseDocxPreviewable()
+              "
+              class="mt-3 text-sm text-emerald-700"
+            >
+              Votre navigateur peut ne pas afficher DOC/DOCX inline. Si rien ne
+              s'affiche dans le cadre, utilisez un PDF pour l'aperçu direct.
+            </p>
+
+            <div
+              *ngIf="
+                isSelectedQuizFileResponsePreviewOpen() &&
+                isSelectedQuizFileResponseDocxPreviewable()
+              "
+              class="mt-4 rounded-lg border border-emerald-200 bg-white p-4"
+            >
+              <p
+                *ngIf="quizFileResponseDocxLoading"
+                class="text-sm text-slate-600"
+              >
+                Chargement de l'aperçu DOCX...
+              </p>
+
+              <p
+                *ngIf="
+                  !quizFileResponseDocxLoading && quizFileResponseDocxError
+                "
+                class="text-sm text-amber-700"
+              >
+                {{ quizFileResponseDocxError }}
+              </p>
+
+              <div
+                *ngIf="
+                  !quizFileResponseDocxLoading &&
+                  !quizFileResponseDocxError &&
+                  quizFileResponseDocxHtmlPreview
+                "
+                class="prose prose-slate max-w-none"
+                [innerHTML]="quizFileResponseDocxHtmlPreview"
+              ></div>
+            </div>
+
+            <iframe
+              *ngIf="
+                isSelectedQuizFileResponsePreviewOpen() &&
+                isSelectedQuizFileResponsePreviewable() &&
+                getSelectedQuizFileResponseUrl()
+              "
+              [attr.src]="getSelectedQuizFileResponseUrl()"
+              class="mt-4 w-full h-[520px] rounded-lg border border-emerald-200 bg-white"
+              title="Apercu de la remise"
+            ></iframe>
+          </div>
+
+          <div
+            *ngIf="!hasSelectedQuizFileSubmission()"
+            class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50"
+          >
+            <p class="text-sm text-slate-600 mb-3">
+              Deposer votre fichier de reponse (PDF/Word)
+            </p>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              (change)="onQuizResponseFileSelected($event)"
+              class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700"
+            />
+            <p
+              *ngIf="selectedQuizResponseFile"
+              class="text-sm text-slate-700 mt-3"
+            >
+              Fichier selectionne: {{ selectedQuizResponseFile.name }}
+            </p>
+          </div>
+
+          <div
+            *ngIf="!hasSelectedQuizFileSubmission()"
+            class="mt-5 flex items-center gap-3"
+          >
+            <button
+              (click)="submitQuizFileResponse()"
+              class="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
+            >
+              Soumettre au professeur
+            </button>
+          </div>
+
+          <div
+            *ngIf="quizFileSubmitMessage"
+            class="mt-4 rounded-xl border px-4 py-3 text-sm"
+            [ngClass]="
+              quizFileSubmitted
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            "
+          >
+            {{ quizFileSubmitMessage }}
+          </div>
+        </div>
+
+        <aside class="bg-white rounded-2xl border border-slate-200 p-6 h-fit">
+          <h4 class="text-xl font-bold text-slate-900 mb-4">
+            Details et informations
+          </h4>
+          <div class="space-y-5 text-sm">
+            <div class="border-b border-slate-200 pb-4">
+              <p class="font-semibold text-slate-800">Statut</p>
+              <p class="text-slate-600">
+                {{
+                  formatQuizFileStatusLabel(
+                    quizFileSubmissionsById[selectedQuizFile.quizId]?.status
+                  )
+                }}
+              </p>
+            </div>
+            <div class="border-b border-slate-200 pb-4">
+              <p class="font-semibold text-slate-800">Echeance</p>
+              <p
+                class="text-slate-600"
+                *ngIf="selectedQuizFile.dueDate; else noQuizDueDate"
+              >
+                {{ selectedQuizFile.dueDate | date: "dd/MM/yyyy HH:mm" }}
+              </p>
+              <ng-template #noQuizDueDate>
+                <p class="text-slate-500">Non specifiee</p>
+              </ng-template>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-800">Notation</p>
+              <p
+                class="text-slate-600"
+                *ngIf="
+                  quizFileSubmissionsById[selectedQuizFile.quizId]?.status ===
+                    'graded';
+                  else pendingGrade
+                "
+              >
+                Note:
+                {{
+                  quizFileSubmissionsById[selectedQuizFile.quizId]?.grade || 0
+                }}/100
+              </p>
+              <ng-template #pendingGrade>
+                <p class="text-slate-600">
+                  La note sera ajoutee apres correction par le professeur.
+                </p>
+              </ng-template>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section
+      *ngIf="viewMode === 'prosit' && selectedProsit"
+      class="space-y-6 pb-12"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400">
+            {{ selectedProsit.chapterTitle }}
+          </p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+            {{ selectedProsit.title }}
+          </h3>
+          <p class="text-slate-500 text-sm mt-1">
+            Sous-chapitre: {{ selectedProsit.subChapterTitle }}
+          </p>
+        </div>
+        <button
+          (click)="backToChapterContent()"
+          class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50"
+        >
+          Back to Chapter
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6">
+        <div
+          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"
+        >
+          <h4 class="text-2xl font-serif text-slate-900 dark:text-white mb-6">
+            Homework Examen
+          </h4>
+
+          <div class="border-t border-slate-200 pt-5">
+            <h5 class="text-3xl font-bold text-slate-900 mb-4">
+              Instructions du devoir
+            </h5>
+
+            <div
+              class="rounded-xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4"
+            >
+              <div>
+                <p class="font-semibold text-slate-800">
+                  {{ selectedProsit.fileName }}
+                </p>
+                <p
+                  class="text-xs text-slate-500"
+                  *ngIf="selectedProsit.submissionInstructions"
+                >
+                  {{ selectedProsit.submissionInstructions }}
+                </p>
+              </div>
+              <div
+                class="flex items-center gap-3"
+                *ngIf="canOpenPrositFile(); else missingPrositFileLink"
+              >
+                <a
+                  [href]="getPrositFileUrl()"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-700 underline font-semibold"
+                >
+                  Lire
+                </a>
+                <a
+                  [href]="getPrositFileUrl()"
+                  [attr.download]="selectedProsit.fileName"
+                  class="text-emerald-700 underline font-semibold"
+                >
+                  Telecharger
+                </a>
+              </div>
+              <ng-template #missingPrositFileLink>
+                <p class="text-[11px] text-amber-700">
+                  Lien du fichier prosit indisponible. Re-upload requis pour
+                  activer Lire/Telecharger.
+                </p>
+              </ng-template>
+            </div>
+          </div>
+
+          <div class="mt-8 border-t border-slate-200 pt-6">
+            <h5 class="text-3xl font-bold text-slate-900 mb-4">Remise</h5>
+
+            <div class="rounded-xl border border-slate-200 bg-white mb-6">
+              <div
+                class="border-b border-slate-200 px-3 py-2 flex flex-wrap items-center gap-1"
+              >
+                <button
+                  type="button"
+                  (click)="applyPrositEditorCommand('bold')"
+                  class="rounded px-2 py-1 text-sm font-bold text-slate-700 hover:bg-slate-100"
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  (click)="applyPrositEditorCommand('italic')"
+                  class="rounded px-2 py-1 text-sm italic text-slate-700 hover:bg-slate-100"
+                >
+                  I
+                </button>
+                <button
+                  type="button"
+                  (click)="applyPrositEditorCommand('underline')"
+                  class="rounded px-2 py-1 text-sm underline text-slate-700 hover:bg-slate-100"
+                >
+                  U
+                </button>
+                <span class="mx-1 h-5 w-px bg-slate-200"></span>
+                <button
+                  type="button"
+                  (click)="applyPrositEditorCommand('insertUnorderedList')"
+                  class="rounded px-2 py-1 text-sm text-slate-700 hover:bg-slate-100"
+                >
+                  • List
+                </button>
+                <button
+                  type="button"
+                  (click)="applyPrositEditorCommand('insertOrderedList')"
+                  class="rounded px-2 py-1 text-sm text-slate-700 hover:bg-slate-100"
+                >
+                  1. List
+                </button>
+                <span class="mx-1 h-5 w-px bg-slate-200"></span>
+                <button
+                  type="button"
+                  (click)="applyPrositEditorCommand('undo')"
+                  class="rounded px-2 py-1 text-sm text-slate-700 hover:bg-slate-100"
+                >
+                  ↶
+                </button>
+                <button
+                  type="button"
+                  (click)="applyPrositEditorCommand('redo')"
+                  class="rounded px-2 py-1 text-sm text-slate-700 hover:bg-slate-100"
+                >
+                  ↷
+                </button>
+              </div>
+              <div class="px-4 py-3">
+                <p class="text-sm text-slate-500 italic mb-3">
+                  Cliquez pour ajouter du texte
+                </p>
+                <div
+                  #prositEditor
+                  contenteditable="true"
+                  (input)="onPrositEditorInput($event)"
+                  class="min-h-[180px] w-full rounded border border-slate-200 p-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  data-placeholder="Ecrire votre compte rendu ici..."
+                ></div>
+              </div>
+              <div class="px-4 pb-3">
+                <p class="text-xs text-slate-500">
+                  Nombre de mots: {{ prositReportWordCount }}
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50"
+            >
+              <p class="text-sm text-slate-600 mb-3">
+                Deposer les fichiers ici
+              </p>
+              <p class="text-xl font-semibold text-slate-700 mb-3">ou bien</p>
+              <input
+                type="file"
+                (change)="onPrositSubmissionFileSelected($event)"
+                class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700"
+              />
+              <p
+                *ngIf="selectedPrositSubmissionFile"
+                class="text-sm text-slate-700 mt-3"
+              >
+                Fichier selectionne: {{ selectedPrositSubmissionFile.name }}
+              </p>
+            </div>
+
+            <div class="mt-5 flex items-center gap-3">
+              <button
+                (click)="submitProsit()"
+                class="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
+              >
+                Valider
+              </button>
+              <span class="text-sm text-slate-600" *ngIf="prositSubmitMessage">
+                {{ prositSubmitMessage }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <aside
+          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 h-fit"
+        >
+          <h4 class="text-xl font-bold text-slate-900 dark:text-white mb-4">
+            Details et informations
+          </h4>
+
+          <div class="space-y-5 text-sm">
+            <div class="border-b border-slate-200 pb-4">
+              <p class="font-semibold text-slate-800">
+                Echeance de l'evaluation
+              </p>
+              <p
+                class="text-slate-600"
+                *ngIf="selectedProsit.dueDate; else noDueDate"
+              >
+                {{ selectedProsit.dueDate | date: "dd/MM/yyyy HH:mm" }}
+              </p>
+              <ng-template #noDueDate>
+                <p class="text-slate-500">Non specifiee</p>
+              </ng-template>
+            </div>
+
+            <div class="border-b border-slate-200 pb-4">
+              <p class="font-semibold text-slate-800">Tentatives</p>
+              <p class="text-slate-600">1 tentative restante</p>
+            </div>
+
+            <div>
+              <p class="font-semibold text-slate-800">Notation</p>
+              <p class="text-slate-600">Nombre maximal de points: 100 points</p>
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
   </div>

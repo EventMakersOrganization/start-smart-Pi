@@ -404,6 +404,34 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     );
   }
 
+  canSubmitFinal(): boolean {
+    const total = this.testData?.total_questions || 0;
+    if (
+      total <= 0 ||
+      !this.sessionId ||
+      this.submitting ||
+      this.loadingNextQuestion
+    ) {
+      return false;
+    }
+
+    if (this.isAssessmentComplete()) {
+      return true;
+    }
+
+    if (this.loadedQuestionsCount !== total) {
+      return false;
+    }
+
+    const answeredCount = this.answers
+      .slice(0, total)
+      .filter((a) => !!a?.selectedAnswer).length;
+
+    // Allow final click when all loaded questions are answered; submitTest() will
+    // submit the current unanswered-on-server answer before completing the stage.
+    return answeredCount === total;
+  }
+
   submitTest() {
     if (this.submitting || !this.sessionId) return;
 
@@ -414,6 +442,8 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       this.adaptiveService.completeLevelTestStage(this.sessionId!).subscribe({
         next: (completeRes) => {
           const profile = completeRes?.profile || {};
+          const studentId =
+            profile?.student_id || this.user?._id || this.user?.id || '';
           this.recordLearningEvent({
             eventType: 'quiz',
             score: Math.round(profile?.overall_mastery || 0),
@@ -426,9 +456,34 @@ export class LevelTestComponent implements OnInit, OnDestroy {
           });
           const result = this.buildResultPayload(profile);
 
-          this.router.navigate(['/student-dashboard/level-test-result'], {
-            state: { result },
-          });
+          const goToResult = () => {
+            this.router.navigate(['/student-dashboard/level-test-result'], {
+              state: { result },
+            });
+          };
+
+          if (!studentId) {
+            goToResult();
+            return;
+          }
+
+          this.adaptiveService
+            .syncLevelTestProfileToBackend(
+              studentId,
+              profile,
+              this.sessionId!,
+              result,
+            )
+            .subscribe({
+              next: () => goToResult(),
+              error: (syncErr) => {
+                console.warn(
+                  'Profile sync failed after level test completion',
+                  syncErr,
+                );
+                goToResult();
+              },
+            });
         },
         error: (err) => {
           console.error('Error completing test', err);
@@ -456,11 +511,18 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
     const questions = this.testData.questions
       .slice(0, this.loadedQuestionsCount)
-      .map((q: any) => ({ topic: q.topic || 'General' }));
+      .map((q: any, idx: number) => ({
+        questionText: q?.question || q?.questionText || `Question ${idx + 1}`,
+        options: Array.isArray(q?.options) ? q.options : [],
+        topic: q.topic || 'General',
+        difficulty: q?.difficulty || 'beginner',
+      }));
 
     const answers = this.answers
       .slice(0, this.loadedQuestionsCount)
-      .map((a) => ({
+      .map((a, idx) => ({
+        questionIndex: idx,
+        selectedAnswer: a?.selectedAnswer || '',
         isCorrect: !!a.isCorrect,
         timeSpent: a.timeSpent || 0,
       }));

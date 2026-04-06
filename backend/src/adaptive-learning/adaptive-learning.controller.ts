@@ -44,6 +44,21 @@ export class AdaptiveLearningController {
     return this.adaptiveService.deleteProfile(userId);
   }
 
+  @Get("goals/:studentId")
+  getGoalSettings(@Param("studentId") studentId: string) {
+    return this.adaptiveService.getGoalSettings(studentId);
+  }
+
+  @Put("goals/:studentId")
+  saveGoalSettings(@Param("studentId") studentId: string, @Body() goals: any) {
+    return this.adaptiveService.saveGoalSettings(studentId, goals);
+  }
+
+  @Delete("goals/:studentId")
+  resetGoalSettings(@Param("studentId") studentId: string) {
+    return this.adaptiveService.resetGoalSettings(studentId);
+  }
+
   // ── StudentPerformance ──────────────
   @Post("performances")
   createPerformance(@Body() dto: CreateStudentPerformanceDto) {
@@ -174,6 +189,16 @@ export class AdaptiveLearningController {
     return this.adaptiveService.findRecommendationsByStudent(studentId);
   }
 
+  @Get("students/:studentId/unified-profile")
+  getUnifiedStudentProfile(@Param("studentId") studentId: string) {
+    return this.adaptiveService.getUnifiedStudentProfile(studentId);
+  }
+
+  @Get("students/:studentId/comparison")
+  getStudentComparisonAnalytics(@Param("studentId") studentId: string) {
+    return this.adaptiveService.getStudentComparisonAnalytics(studentId);
+  }
+
   @Get("recommendations/:id")
   findRecommendationById(@Param("id") id: string) {
     return this.adaptiveService.findRecommendationById(id);
@@ -225,6 +250,19 @@ export class AdaptiveLearningController {
   findLatestCompletedLevelTest(@Param("studentId") studentId: string) {
     return this.adaptiveService.findLatestCompletedLevelTestByStudent(
       studentId,
+    );
+  }
+
+  @Post("level-test/student/:studentId/sync-profile")
+  syncProfileFromAiLevelTest(
+    @Param("studentId") studentId: string,
+    @Body() body: { profile: any; sessionId?: string; levelTestResult?: any },
+  ) {
+    return this.adaptiveService.syncProfileFromAiLevelTest(
+      studentId,
+      body?.profile,
+      body?.sessionId,
+      body?.levelTestResult,
     );
   }
 }

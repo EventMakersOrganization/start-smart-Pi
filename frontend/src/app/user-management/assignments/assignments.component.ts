@@ -42,6 +42,7 @@ export class AssignmentsComponent implements OnInit {
     title: '',
     description: '',
     level: '',
+    subject: '',
     modules: [{ title: '', description: '' }],
   };
 
@@ -171,6 +172,7 @@ export class AssignmentsComponent implements OnInit {
       title: '',
       description: '',
       level: '',
+      subject: '',
       modules: [{ title: '', description: '' }],
     };
   }
@@ -193,6 +195,7 @@ export class AssignmentsComponent implements OnInit {
       title: course?.title || '',
       description: course?.description || '',
       level: course?.level || '',
+      subject: course?.subject || '',
       modules: modules.length ? modules : [{ title: '', description: '' }],
     };
   }
@@ -229,9 +232,10 @@ export class AssignmentsComponent implements OnInit {
     const title = this.courseForm.title.trim();
     const description = this.courseForm.description.trim();
     const level = this.courseForm.level.trim();
+    const subject = this.courseForm.subject.trim();
 
-    if (!title || !description || !level) {
-      this.error = 'Title, description and level are required.';
+    if (!title || !description || !level || !subject) {
+      this.error = 'Title, description, level and subject are required.';
       return;
     }
 
@@ -247,6 +251,7 @@ export class AssignmentsComponent implements OnInit {
       title,
       description,
       level,
+      subject,
       instructorId,
       modules,
     };

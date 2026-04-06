@@ -1,0 +1,983 @@
+<div
+  class="flex flex-col min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100"
+>
+  <!-- Top Navigation Bar -->
+  <header
+    class="flex items-center justify-between border-b border-primary/10 bg-white dark:bg-slate-900 px-8 py-3 sticky top-0 z-30"
+  >
+    <div class="flex items-center gap-8">
+      <div class="flex items-center gap-3 text-primary">
+        <span class="material-symbols-outlined text-3xl">model_training</span>
+        <h2
+          class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight"
+        >
+          StartSmart
+        </h2>
+      </div>
+      <nav class="hidden md:flex items-center gap-6">
+        <a
+          class="text-sm font-semibold text-primary border-b-2 border-primary pb-1"
+          href="#"
+          >Dashboard</a
+        >
+        <a
+          class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1"
+          href="#"
+          >Courses</a
+        >
+        <a
+          class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1"
+          href="#"
+          >Students</a
+        >
+        <a
+          class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1"
+          href="#"
+          >Reports</a
+        >
+      </nav>
+    </div>
+    <div class="flex flex-1 justify-end gap-6 items-center">
+      <div class="relative w-64">
+        <span
+          class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl"
+          >search</span
+        >
+        <input
+          class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50"
+          placeholder="Search students or metrics..."
+          type="text"
+        />
+      </div>
+      <div class="flex gap-3">
+        <button
+          class="flex items-center justify-center rounded-lg size-10 bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-primary/10 hover:text-primary transition-colors"
+        >
+          <span class="material-symbols-outlined">notifications</span>
+        </button>
+      </div>
+      <div
+        class="flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-6"
+      >
+        <div class="text-right">
+          <p class="text-sm font-bold leading-none">
+            {{ user?.first_name }} {{ user?.last_name }}
+          </p>
+          <p class="text-xs text-slate-500 mt-1 capitalize">
+            {{ user?.role || "instructor" }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div
+            class="size-10 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold"
+          >
+            {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
+          </div>
+          <button
+            (click)="manageAccount()"
+            class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            Account
+          </button>
+          <button
+            (click)="logout()"
+            class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar Navigation -->
+    <aside
+      class="w-64 border-r border-primary/10 bg-white dark:bg-slate-900 p-6 hidden lg:flex lg:flex-col gap-8"
+    >
+      <div class="flex flex-col gap-2">
+        <p
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2"
+        >
+          Main Menu
+        </p>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="text-sm font-medium">Overview</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined">analytics</span>
+          <span class="text-sm font-medium">Deep Analytics</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined">report_problem</span>
+          <span class="text-sm font-medium">Risk Detection</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white shadow-lg shadow-primary/20"
+          routerLink="/instructor/subjects"
+        >
+          <span class="material-symbols-outlined">menu_book</span>
+          <span class="text-sm font-medium">Subjects</span>
+        </a>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <p
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2"
+        >
+          Messages
+        </p>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          routerLink="/chat/instructor"
+        >
+          <span class="material-symbols-outlined text-indigo-500"
+            >chat_bubble</span
+          >
+          <span class="text-sm font-medium">Conversations</span>
+        </a>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <p
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2"
+        >
+          My Courses
+        </p>
+        <div class="space-y-1">
+          <div
+            class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
+          >
+            <span>CS101 Intro</span>
+            <span class="size-2 rounded-full bg-green-500"></span>
+          </div>
+          <div
+            class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
+          >
+            <span>AI Ethics</span>
+            <span class="size-2 rounded-full bg-yellow-500"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-auto bg-primary/5 rounded-xl p-4 border border-primary/10">
+        <p class="text-xs font-bold text-primary mb-1">New AI Insight</p>
+        <p class="text-[11px] text-slate-500">
+          3 students are struggling with Module 4 Quiz. Consider a review
+          session.
+        </p>
+      </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 class="text-3xl font-black tracking-tight">Subjects</h1>
+          <p class="text-sm text-slate-500 mt-1">
+            Create a subject first, then open it to add chapters manually.
+          </p>
+        </div>
+
+        <button
+          *ngIf="selectedSubject"
+          (click)="goBackToList()"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <span class="material-symbols-outlined">arrow_back</span>
+          Back to subjects
+        </button>
+      </div>
+
+      <div
+        *ngIf="error"
+        class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+      >
+        {{ error }}
+      </div>
+
+      <section
+        *ngIf="!selectedSubject"
+        class="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-6"
+      >
+        <div
+          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+        >
+          <h2 class="text-lg font-black">Add a subject</h2>
+          <p class="text-sm text-slate-500 mt-1">
+            This creates the subject in MongoDB.
+          </p>
+
+          <div class="space-y-3 mt-4">
+            <input
+              [(ngModel)]="subjectForm.title"
+              placeholder="Subject title"
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+            />
+            <textarea
+              [(ngModel)]="subjectForm.description"
+              placeholder="Description"
+              rows="4"
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+            ></textarea>
+            <button
+              (click)="createSubject()"
+              [disabled]="savingSubject"
+              class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            >
+              {{ savingSubject ? "Saving..." : "Create subject" }}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div
+            *ngIf="loadingSubjects"
+            class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900"
+          >
+            Loading subjects...
+          </div>
+
+          <div
+            *ngIf="!loadingSubjects && subjects.length === 0"
+            class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900"
+          >
+            No subjects found. Create one from the form.
+          </div>
+
+          <div
+            *ngIf="!loadingSubjects && subjects.length > 0"
+            class="grid grid-cols-1 md:grid-cols-2 gap-5"
+          >
+            <section
+              *ngFor="let subject of subjects"
+              (click)="goToSubject(subject._id)"
+              class="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <p
+                    class="text-xs font-semibold uppercase tracking-widest text-slate-400"
+                  >
+                    {{ subject.code }}
+                  </p>
+                  <h2 class="text-lg font-bold leading-tight mt-1">
+                    {{ subject.title }}
+                  </h2>
+                </div>
+                <span
+                  class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary"
+                >
+                  {{ subject.chapters.length || 0 }} chapter{{
+                    (subject.chapters.length || 0) > 1 ? "s" : ""
+                  }}
+                </span>
+              </div>
+
+              <p
+                class="mt-3 text-sm text-slate-500 line-clamp-2"
+                *ngIf="subject.description"
+              >
+                {{ subject.description }}
+              </p>
+
+              <div
+                class="mt-4 flex flex-wrap gap-2"
+                *ngIf="subject.chapters?.length"
+              >
+                <span
+                  *ngFor="let chapter of subject.chapters | slice: 0 : 3"
+                  class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                >
+                  {{ chapter.title }}
+                </span>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section
+        *ngIf="selectedSubject"
+        class="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6"
+      >
+        <div class="space-y-5">
+          <div
+            class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+          >
+            <p
+              class="text-xs font-semibold uppercase tracking-widest text-slate-400"
+            >
+              {{ selectedSubject.code }}
+            </p>
+            <h2 class="mt-1 text-2xl font-black">
+              {{ selectedSubject.title }}
+            </h2>
+            <p
+              class="mt-2 text-sm text-slate-500"
+              *ngIf="selectedSubject.description"
+            >
+              {{ selectedSubject.description }}
+            </p>
+          </div>
+
+          <div
+            *ngIf="loadingSubject"
+            class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900"
+          >
+            Loading subject details...
+          </div>
+
+          <div
+            *ngIf="!loadingSubject"
+            class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 class="text-lg font-black">Chapters</h3>
+                <p class="text-sm text-slate-500 mt-1">
+                  Add chapters and their subchapters for this subject.
+                </p>
+              </div>
+              <span
+                class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary"
+              >
+                {{ selectedSubject.chapters.length || 0 }} total
+              </span>
+            </div>
+
+            <div
+              class="mt-4 space-y-3"
+              *ngIf="selectedSubject.chapters?.length; else noChapters"
+            >
+              <article
+                *ngFor="let chapter of selectedSubject.chapters"
+                class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"
+              >
+                <!-- Chapter Header -->
+                <div
+                  class="flex items-start justify-between gap-4 cursor-pointer"
+                  (click)="toggleChapter(chapter.order)"
+                >
+                  <div>
+                    <p
+                      class="text-xs font-semibold uppercase tracking-widest text-slate-400"
+                    >
+                      Chapter {{ chapter.order + 1 }}
+                    </p>
+                    <h4 class="mt-1 text-base font-bold">
+                      {{ chapter.title }}
+                    </h4>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      (click)="
+                        openSubChapterForm(chapter.order);
+                        $event.stopPropagation()
+                      "
+                      class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                    >
+                      Add subchapter
+                    </button>
+                    <button
+                      (click)="
+                        deleteChapter(chapter.order); $event.stopPropagation()
+                      "
+                      class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50"
+                    >
+                      Delete chapter
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Chapter Expanded Content -->
+                <div
+                  *ngIf="expandedChapterOrder === chapter.order"
+                  class="mt-4 space-y-4"
+                >
+                  <p class="text-sm text-slate-500" *ngIf="chapter.description">
+                    {{ chapter.description }}
+                  </p>
+
+                  <!-- Add SubChapter Form -->
+                  <div
+                    *ngIf="activeSubChapterFormChapterOrder === chapter.order"
+                    class="rounded-lg border border-dashed border-slate-300 bg-white p-4 space-y-2 dark:bg-slate-900"
+                  >
+                    <p
+                      class="text-xs font-bold uppercase tracking-wider text-slate-400"
+                    >
+                      Add subchapter
+                    </p>
+                    <input
+                      [(ngModel)]="subChapterForm.title"
+                      placeholder="Subchapter title"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                    />
+                    <textarea
+                      [(ngModel)]="subChapterForm.description"
+                      placeholder="Subchapter description (optional)"
+                      rows="2"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                    ></textarea>
+                    <div class="flex items-center gap-2">
+                      <button
+                        (click)="addSubChapter(chapter.order)"
+                        [disabled]="savingSubChapter"
+                        class="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+                      >
+                        {{ savingSubChapter ? "Saving..." : "Add subchapter" }}
+                      </button>
+                      <button
+                        (click)="cancelSubChapterForm()"
+                        class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- SubChapters List -->
+                  <div
+                    *ngIf="chapter.subChapters?.length; else noSubChapters"
+                    class="space-y-2"
+                  >
+                    <p
+                      class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2"
+                    >
+                      Subchapters
+                    </p>
+                    <article
+                      *ngFor="let subChapter of chapter.subChapters"
+                      class="rounded-lg border border-slate-200 bg-white p-3 dark:bg-slate-900 dark:border-slate-700"
+                    >
+                      <!-- SubChapter Header -->
+                      <div
+                        class="flex items-start justify-between gap-2 cursor-pointer"
+                        (click)="
+                          toggleSubChapter(chapter.order, subChapter.order)
+                        "
+                      >
+                        <div>
+                          <p
+                            class="text-xs font-semibold text-slate-600 dark:text-slate-400"
+                          >
+                            {{ subChapter.title }}
+                          </p>
+                        </div>
+                        <button
+                          (click)="
+                            openContentForm(chapter.order, subChapter.order);
+                            $event.stopPropagation()
+                          "
+                          class="rounded border border-slate-300 px-2 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
+                        >
+                          Add content
+                        </button>
+                      </div>
+
+                      <!-- SubChapter Expanded Content -->
+                      <div
+                        *ngIf="
+                          expandedSubChapterKey ===
+                          chapter.order + '_' + subChapter.order
+                        "
+                        class="mt-3 space-y-3"
+                      >
+                        <p
+                          class="text-xs text-slate-500"
+                          *ngIf="subChapter.description"
+                        >
+                          {{ subChapter.description }}
+                        </p>
+
+                        <!-- Folder tabs (click to switch visible folder content) -->
+                        <div class="space-y-3">
+                          <div class="flex flex-wrap gap-2">
+                            <button
+                              *ngFor="let folder of folderKeys"
+                              (click)="
+                                setActiveFolderForSubChapter(
+                                  chapter.order,
+                                  subChapter.order,
+                                  folder
+                                )
+                              "
+                              class="rounded-lg border px-3 py-1.5 text-xs font-bold"
+                              [ngClass]="
+                                getActiveFolderForSubChapter(
+                                  chapter.order,
+                                  subChapter.order
+                                ) === folder
+                                  ? 'border-primary bg-primary text-white'
+                                  : 'border-slate-300 bg-white text-slate-700'
+                              "
+                            >
+                              {{ folderLabels[folder] }}
+                            </button>
+                          </div>
+
+                          <ng-container *ngFor="let folder of folderKeys">
+                            <article
+                              *ngIf="
+                                getActiveFolderForSubChapter(
+                                  chapter.order,
+                                  subChapter.order
+                                ) === folder
+                              "
+                              class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:bg-slate-950 dark:border-slate-700"
+                            >
+                              <div
+                                class="flex items-center justify-between gap-2"
+                              >
+                                <p class="text-xs font-bold text-slate-700">
+                                  {{ folderLabels[folder] }}
+                                </p>
+                                <button
+                                  (click)="
+                                    openContentForm(
+                                      chapter.order,
+                                      subChapter.order,
+                                      folder
+                                    )
+                                  "
+                                  class="rounded border border-slate-300 px-2 py-0.5 text-[10px] font-bold text-slate-600"
+                                >
+                                  Ajouter
+                                </button>
+                              </div>
+
+                              <div class="mt-2 space-y-2">
+                                <div
+                                  *ngFor="
+                                    let content of getContentsByFolder(
+                                      subChapter,
+                                      folder
+                                    )
+                                  "
+                                  class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs dark:bg-slate-900"
+                                >
+                                  <div
+                                    class="flex items-center justify-between gap-2"
+                                  >
+                                    <p
+                                      class="font-semibold text-slate-800 dark:text-slate-100"
+                                    >
+                                      {{ content.title }}
+                                    </p>
+                                    <div class="flex items-center gap-2">
+                                      <span
+                                        class="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase text-primary"
+                                      >
+                                        {{ content.type }}
+                                      </span>
+                                      <button
+                                        *ngIf="content.type === 'quiz'"
+                                        (click)="
+                                          startEditQuiz(
+                                            chapter.order,
+                                            subChapter.order,
+                                            content
+                                          )
+                                        "
+                                        class="rounded border border-blue-300 px-2 py-0.5 text-[10px] font-bold text-blue-700"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        (click)="
+                                          deleteSubChapterContent(
+                                            chapter.order,
+                                            subChapter.order,
+                                            content.contentId
+                                          )
+                                        "
+                                        class="rounded border border-red-300 px-2 py-0.5 text-[10px] font-bold text-red-700"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <a
+                                    *ngIf="content.url"
+                                    [href]="content.url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="mt-1 inline-block text-[11px] text-blue-600 underline"
+                                  >
+                                    Ouvrir
+                                  </a>
+
+                                  <p
+                                    *ngIf="content.fileName"
+                                    class="mt-1 text-[11px] text-slate-500"
+                                  >
+                                    {{ content.fileName }}
+                                  </p>
+
+                                  <p
+                                    *ngIf="content.dueDate"
+                                    class="mt-1 text-[11px] text-amber-700"
+                                  >
+                                    Echeance:
+                                    {{ content.dueDate | date: "short" }}
+                                  </p>
+
+                                  <p
+                                    *ngIf="content.submissionInstructions"
+                                    class="mt-1 text-[11px] text-slate-500"
+                                  >
+                                    Rendu: {{ content.submissionInstructions }}
+                                  </p>
+
+                                  <pre
+                                    *ngIf="content.codeSnippet"
+                                    class="mt-2 overflow-x-auto rounded bg-slate-100 p-2 text-[11px] dark:bg-slate-800"
+                                  ><code>{{ content.codeSnippet }}</code></pre>
+                                </div>
+
+                                <p
+                                  *ngIf="
+                                    !getContentsByFolder(subChapter, folder)
+                                      .length
+                                  "
+                                  class="text-[11px] text-slate-400"
+                                >
+                                  Aucun contenu dans ce dossier.
+                                </p>
+                              </div>
+                            </article>
+                          </ng-container>
+                        </div>
+
+                        <!-- Add Content Form -->
+                        <div
+                          *ngIf="
+                            activeSubChapterChapterOrder === chapter.order &&
+                            activeSubChapterSubOrder === subChapter.order
+                          "
+                          class="rounded-lg border border-dashed border-slate-300 bg-white p-4 space-y-3 dark:bg-slate-900"
+                        >
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <select
+                              [(ngModel)]="chapterContentForm.folder"
+                              (ngModelChange)="onFolderChange()"
+                              class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                            >
+                              <option value="cours">Dossier Cours</option>
+                              <option value="exercices">
+                                Dossier Exercices
+                              </option>
+                              <option value="videos">Dossier Videos</option>
+                              <option value="ressources">
+                                Dossier Ressources Additionnelles
+                              </option>
+                            </select>
+                            <select
+                              [(ngModel)]="chapterContentForm.type"
+                              (ngModelChange)="onContentTypeChange()"
+                              class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                            >
+                              <option
+                                *ngFor="let t of getAllowedTypesForFolder()"
+                                [value]="t"
+                              >
+                                {{ t }}
+                              </option>
+                            </select>
+                          </div>
+
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input
+                              [(ngModel)]="chapterContentForm.title"
+                              placeholder="Content title"
+                              class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                            />
+                          </div>
+
+                          <input
+                            *ngIf="
+                              chapterContentForm.type === 'video' ||
+                              chapterContentForm.type === 'link'
+                            "
+                            [(ngModel)]="chapterContentForm.url"
+                            placeholder="https://..."
+                            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                          />
+
+                          <div
+                            *ngIf="chapterContentForm.type === 'prosit'"
+                            class="grid grid-cols-1 md:grid-cols-2 gap-3"
+                          >
+                            <input
+                              type="datetime-local"
+                              [(ngModel)]="chapterContentForm.dueDate"
+                              class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                            />
+                            <input
+                              [(ngModel)]="
+                                chapterContentForm.submissionInstructions
+                              "
+                              placeholder="Rendu attendu (ex: etude de cas PDF)"
+                              class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                            />
+                          </div>
+
+                          <div
+                            *ngIf="chapterContentForm.type === 'prosit'"
+                            class="space-y-2"
+                          >
+                            <input
+                              type="file"
+                              accept=".pdf,.txt,.doc,.docx,.ppt,.pptx"
+                              (change)="onChapterFileSelected($event)"
+                              class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700"
+                            />
+                            <p class="text-xs text-slate-500">
+                              Pour le prosit: ajoute un fichier d'instructions
+                              ou renseigne le champ "Rendu attendu".
+                            </p>
+                          </div>
+
+                          <textarea
+                            *ngIf="chapterContentForm.type === 'code'"
+                            [(ngModel)]="chapterContentForm.codeSnippet"
+                            rows="5"
+                            placeholder="Coller le code ou la ressource additionnelle ici"
+                            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                          ></textarea>
+
+                          <div
+                            *ngIf="chapterContentForm.type === 'quiz'"
+                            class="space-y-3"
+                          >
+                            <!-- Quiz Mode Selector -->
+                            <div class="flex gap-3">
+                              <label class="flex items-center gap-2 text-sm">
+                                <input
+                                  type="radio"
+                                  name="quiz-mode"
+                                  value="inline"
+                                  [(ngModel)]="chapterContentForm.quizMode"
+                                  class="cursor-pointer"
+                                />
+                                <span
+                                  >Questions en ligne (Choix multiples)</span
+                                >
+                              </label>
+                              <label class="flex items-center gap-2 text-sm">
+                                <input
+                                  type="radio"
+                                  name="quiz-mode"
+                                  value="file"
+                                  [(ngModel)]="chapterContentForm.quizMode"
+                                  class="cursor-pointer"
+                                />
+                                <span>Fichier de quiz (PDF/Word)</span>
+                              </label>
+                            </div>
+
+                            <!-- Inline Questions Editor -->
+                            <div
+                              *ngIf="chapterContentForm.quizMode === 'inline'"
+                              class="space-y-3"
+                            >
+                              <div
+                                *ngFor="
+                                  let q of chapterContentForm.quizQuestions;
+                                  let qi = index
+                                "
+                                class="rounded-lg border border-slate-200 p-3 space-y-2"
+                              >
+                                <div class="flex items-center justify-between">
+                                  <p
+                                    class="text-xs font-bold uppercase tracking-wider text-slate-400"
+                                  >
+                                    Question {{ qi + 1 }}
+                                  </p>
+                                  <button
+                                    (click)="removeQuizQuestion(qi)"
+                                    class="text-xs font-semibold text-red-600"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+
+                                <input
+                                  [(ngModel)]="q.question"
+                                  placeholder="Question text"
+                                  class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                                />
+
+                                <div class="space-y-2">
+                                  <div
+                                    *ngFor="
+                                      let option of q.options;
+                                      let oi = index
+                                    "
+                                    class="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2"
+                                  >
+                                    <input
+                                      type="radio"
+                                      [name]="'correct-option-' + qi"
+                                      [checked]="q.correctOptionIndex === oi"
+                                      (change)="setCorrectOption(qi, oi)"
+                                    />
+                                    <input
+                                      [(ngModel)]="q.options[oi]"
+                                      [placeholder]="'Option ' + (oi + 1)"
+                                      class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+                                    />
+                                    <span class="text-[11px] text-slate-400">{{
+                                      q.correctOptionIndex === oi
+                                        ? "Correct"
+                                        : ""
+                                    }}</span>
+                                    <button
+                                      (click)="removeQuizOption(qi, oi)"
+                                      class="text-xs font-semibold text-red-600"
+                                    >
+                                      Del
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <button
+                                  (click)="addQuizOption(qi)"
+                                  class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600"
+                                >
+                                  + Add option
+                                </button>
+                              </div>
+
+                              <button
+                                (click)="addQuizQuestion()"
+                                class="rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
+                              >
+                                + Add question
+                              </button>
+                            </div>
+
+                            <!-- File Upload for Quiz -->
+                            <div
+                              *ngIf="chapterContentForm.quizMode === 'file'"
+                              class="space-y-2"
+                            >
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx"
+                                (change)="onChapterFileSelected($event)"
+                                class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700"
+                              />
+                              <p class="text-xs text-slate-500">
+                                Pour le quiz: ajoute un fichier PDF ou Word
+                                contenant le quiz.
+                              </p>
+                            </div>
+                          </div>
+
+                          <input
+                            *ngIf="chapterContentForm.type === 'file'"
+                            type="file"
+                            accept=".pdf,.txt,.doc,.docx,.ppt,.pptx,.mp4,.mov,.avi,.zip,.js,.ts,.java,.py,.cpp,.c,.cs"
+                            (change)="onChapterFileSelected($event)"
+                            class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700"
+                          />
+
+                          <div class="flex items-center gap-2">
+                            <button
+                              (click)="
+                                addContentToSubChapter(
+                                  chapter.order,
+                                  subChapter.order
+                                )
+                              "
+                              [disabled]="savingChapterContent"
+                              class="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+                            >
+                              {{
+                                savingChapterContent
+                                  ? uploadingChapterFile
+                                    ? "Uploading..."
+                                    : "Saving..."
+                                  : editingContentId
+                                    ? "Update content"
+                                    : "Save content"
+                              }}
+                            </button>
+                            <button
+                              (click)="cancelContentForm()"
+                              class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+
+                  <ng-template #noSubChapters>
+                    <p class="text-xs text-slate-400">
+                      No subchapters yet. Add the first subchapter from the
+                      button above.
+                    </p>
+                  </ng-template>
+                </div>
+              </article>
+            </div>
+
+            <ng-template #noChapters>
+              <div
+                class="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-sm text-slate-500"
+              >
+                No chapters yet. Add the first chapter from the form on the
+                right.
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+        <div
+          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 h-fit"
+        >
+          <h3 class="text-lg font-black">Add chapter</h3>
+          <p class="text-sm text-slate-500 mt-1">
+            Manual chapter creation for this subject.
+          </p>
+
+          <div class="space-y-3 mt-4">
+            <input
+              [(ngModel)]="chapterForm.title"
+              placeholder="Chapter title"
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+            />
+            <textarea
+              [(ngModel)]="chapterForm.description"
+              placeholder="Chapter description"
+              rows="4"
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white dark:bg-slate-950"
+            ></textarea>
+            <button
+              (click)="addChapter()"
+              [disabled]="savingChapter"
+              class="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            >
+              {{ savingChapter ? "Saving..." : "Add chapter" }}
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>

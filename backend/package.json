@@ -18,7 +18,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed:subjects": "node scripts/seed-subjects.js"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -57,6 +58,7 @@
     "@types/bcrypt": "^5.0.0",
     "@types/express": "^4.17.17",
     "@types/jest": "29.5.2",
+    "@types/multer": "^1.4.13",
     "@types/node": "^20.3.1",
     "@types/nodemailer": "^7.0.11",
     "@types/passport-jwt": "^3.0.8",

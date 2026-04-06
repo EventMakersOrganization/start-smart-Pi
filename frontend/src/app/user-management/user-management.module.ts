@@ -34,8 +34,20 @@ import { MyCoursesComponent } from './my-courses/my-courses.component';
 import { ContinueLearningComponent } from './continue-learning/continue-learning.component';
 import { AssignmentsComponent } from './assignments/assignments.component';
 import { AssignmentSubmissionComponent } from './assignment-submission/assignment-submission.component';
+import { ProgressReportsComponent } from './progress-reports/progress-reports.component';
+import { InstructorSubjectsComponent } from './instructor-subjects/instructor-subjects.component';
 
 const routes: Routes = [
+  {
+    path: 'progress-reports',
+    component: ProgressReportsComponent,
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'progress-reports/:studentId',
+    component: ProgressReportsComponent,
+    canActivate: [AuthGuard],
+  },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
@@ -157,7 +169,18 @@ const routes: Routes = [
   },
   {
     path: 'instructor/assignments',
-    component: AssignmentsComponent,
+    redirectTo: 'instructor/dashboard',
+    pathMatch: 'full',
+  },
+  {
+    path: 'instructor/subjects',
+    component: InstructorSubjectsComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['instructor'] },
+  },
+  {
+    path: 'instructor/subjects/:id',
+    component: InstructorSubjectsComponent,
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['instructor'] },
   },
@@ -205,6 +228,8 @@ const routes: Routes = [
     ContinueLearningComponent,
     AssignmentsComponent,
     AssignmentSubmissionComponent,
+    ProgressReportsComponent,
+    InstructorSubjectsComponent,
   ],
   imports: [
     CommonModule,

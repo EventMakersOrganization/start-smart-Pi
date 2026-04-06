@@ -2,7 +2,8 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Subscription, filter } from 'rxjs';
+import { Subscription, filter, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import {
   AdaptiveLearningService,
   ClassifyDifficultyBatchResponse,
@@ -18,6 +19,7 @@ import {
   FeedbackRecommendationsResponse,
   EvaluateBatchResponse,
   EvaluateAnswerResponse,
+  GoalSettings,
   LearningAnalyticsResponse,
 } from '../adaptive-learning.service';
 
@@ -188,11 +190,16 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   totalModules = 20;
   learningStreak = 0;
   studyHours = 0;
+  goalSettings: GoalSettings | null = null;
 
   goalTracking: any = {
     studyHoursCompleted: 0,
-    studyHoursGoal: 15,
+    studyHoursGoal: 0,
     quizSuccess: 0,
+    quizSuccessGoal: 0,
+    hasGoals: false,
+    targetTopic: 'general',
+    deadline: '',
   };
 
   alerts: any[] = [];
@@ -200,30 +207,19 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   activeNav = 'dashboard';
   private routerEventsSubscription?: Subscription;
   private recommendationsSubscription?: Subscription;
+  collaborativeRecommendations: any[] = [];
+  collaborativeBasedOn = '';
+  collaborativeSimilarStudents = 0;
+  studyGroupSuggestions: any[] = [];
+  studyGroupBestMatch: any | null = null;
+  studyGroupsAnalyzed = 0;
+  learningStyleInsight: any | null = null;
+  adaptiveInsightsLoading = false;
 
   // Topic scores pour les progress rings
   topicRings: any[] = [];
 
-  suggestedCourses: any[] = [
-    {
-      title: 'Advanced Angular Patterns',
-      image: 'assets/img/angular.png',
-      level: 'Intermediate',
-      duration: '4h 30m',
-    },
-    {
-      title: 'Machine Learning Basics',
-      image: 'assets/img/ml.png',
-      level: 'Beginner',
-      duration: '6h 15m',
-    },
-    {
-      title: 'UI/UX Design Principles',
-      image: 'assets/img/design.png',
-      level: 'Beginner',
-      duration: '3h 45m',
-    },
-  ];
+  suggestedCourses: any[] = [];
 
   constructor(
     private authService: AuthService,
@@ -326,12 +322,6 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   private mapRecommendationCards(recommendations: any[]): any[] {
-    const fallbackImages = [
-      'assets/img/angular.png',
-      'assets/img/ml.png',
-      'assets/img/design.png',
-    ];
-
     return (recommendations || []).slice(0, 3).map((rec, index) => ({
       title: rec?.title || rec?.name || `Recommendation ${index + 1}`,
       reason:
@@ -339,7 +329,6 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         rec?.reason ||
         rec?.description ||
         'Updated from your latest progress.',
-      image: fallbackImages[index % fallbackImages.length],
       level: rec?.type || rec?.category || 'Adaptive',
       duration: rec?.estimated_effort_hours
         ? `${rec.estimated_effort_hours}h effort`
@@ -387,6 +376,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.loadPaceAnalytics(userId, forceAnalyticsRefresh);
     this.loadConceptsAnalytics(userId, forceAnalyticsRefresh);
     this.loadInterventionsEffectivenessGlobal();
+    this.loadGoalSettingsForDashboard(userId);
 
     // ── Charger état adaptatif courant (AI service) ──
     this.adaptiveService.getAdaptiveLearningState(userId).subscribe({
@@ -438,6 +428,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         this.adaptiveLoading = false;
         this.buildTopicRings();
         this.updateAlerts();
+        this.loadAdaptiveInsights(userId);
       },
       error: () => {
         this.adaptiveService
@@ -453,6 +444,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
               this.adaptiveProfile = data;
               this.adaptiveLoading = false;
               this.updateAlerts();
+              this.loadAdaptiveInsights(userId);
             },
             error: () => {
               this.adaptiveLoading = false;
@@ -477,8 +469,12 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
           this.goalTracking = {
             studyHoursCompleted: this.studyHours,
-            studyHoursGoal: 15,
+            studyHoursGoal: this.goalSettings?.studyHoursPerWeek || 0,
             quizSuccess: this.performance,
+            quizSuccessGoal: this.goalSettings?.targetScorePerTopic || 0,
+            hasGoals: !!this.goalSettings,
+            targetTopic: this.goalSettings?.targetTopic || 'general',
+            deadline: this.goalSettings?.deadline || '',
           };
 
           this.completedModules = data.filter((p: any) => p.score >= 70).length;
@@ -498,6 +494,103 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.recommendations = [];
+        this.suggestedCourses = [];
+      },
+    });
+  }
+
+  private loadGoalSettingsForDashboard(studentId: string): void {
+    this.adaptiveService.getGoalSettings(studentId).subscribe({
+      next: (goals) => {
+        this.goalSettings = goals;
+        this.goalTracking = {
+          ...this.goalTracking,
+          studyHoursGoal: goals?.studyHoursPerWeek || 0,
+          quizSuccessGoal: goals?.targetScorePerTopic || 0,
+          hasGoals: !!goals,
+          targetTopic: goals?.targetTopic || 'general',
+          deadline: goals?.deadline || '',
+        };
+      },
+      error: () => {
+        this.goalSettings = null;
+        this.goalTracking = {
+          ...this.goalTracking,
+          studyHoursGoal: 0,
+          quizSuccessGoal: 0,
+          hasGoals: false,
+          targetTopic: 'general',
+          deadline: '',
+        };
+      },
+    });
+  }
+
+  getStudyHoursGoalPercent(): number {
+    const goal = Number(this.goalTracking?.studyHoursGoal || 0);
+    if (goal <= 0) return 0;
+    const current = Number(this.goalTracking?.studyHoursCompleted || 0);
+    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  }
+
+  getQuizGoalPercent(): number {
+    const goal = Number(this.goalTracking?.quizSuccessGoal || 0);
+    if (goal <= 0) return 0;
+    const current = Number(this.goalTracking?.quizSuccess || 0);
+    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  }
+
+  private loadAdaptiveInsights(userId: string): void {
+    if (!userId) {
+      return;
+    }
+
+    this.adaptiveInsightsLoading = true;
+
+    forkJoin({
+      collaborative: this.adaptiveService
+        .getCollaborativeRecommendations(userId)
+        .pipe(
+          catchError(() =>
+            of({ recommendations: [], similarStudentsFound: 0, basedOn: '' }),
+          ),
+        ),
+      studyGroups: this.adaptiveService.getStudyGroupSuggestions(userId).pipe(
+        catchError(() =>
+          of({
+            suggestedGroups: [],
+            totalStudentsAnalyzed: 0,
+            bestMatch: null,
+          }),
+        ),
+      ),
+      learningStyle: this.adaptiveService
+        .detectLearningStyle(userId)
+        .pipe(catchError(() => of(null))),
+    }).subscribe({
+      next: ({ collaborative, studyGroups, learningStyle }) => {
+        this.collaborativeRecommendations =
+          collaborative?.recommendations || [];
+        this.collaborativeBasedOn = collaborative?.basedOn || '';
+        this.collaborativeSimilarStudents =
+          collaborative?.similarStudentsFound || 0;
+
+        this.studyGroupSuggestions = studyGroups?.suggestedGroups || [];
+        this.studyGroupBestMatch = studyGroups?.bestMatch || null;
+        this.studyGroupsAnalyzed = studyGroups?.totalStudentsAnalyzed || 0;
+
+        this.learningStyleInsight = learningStyle;
+        this.adaptiveInsightsLoading = false;
+      },
+      error: () => {
+        this.collaborativeRecommendations = [];
+        this.collaborativeBasedOn = '';
+        this.collaborativeSimilarStudents = 0;
+        this.studyGroupSuggestions = [];
+        this.studyGroupBestMatch = null;
+        this.studyGroupsAnalyzed = 0;
+        this.learningStyleInsight = null;
+        this.adaptiveInsightsLoading = false;
       },
     });
   }
@@ -1339,15 +1432,58 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   // ── Navigation ──
   goToLevelTest(): void {
-    const userId = this.user._id || this.user.id;
-    this.adaptiveService.startLevelTest(userId).subscribe({
-      next: (test) => {
-        this.router.navigate(['/student-dashboard/level-test'], {
-          state: { testId: test._id, test },
-        });
-      },
-      error: () => alert('Error starting level test'),
-    });
+    this.activeNav = 'level-test';
+    this.router.navigate(['/student-dashboard/level-test']);
+  }
+
+  private normalizeLevelTestResult(test: any): any {
+    if (!test) return null;
+
+    const studentId =
+      test.studentId || test.student_id || this.user?._id || this.user?.id;
+    const totalScore =
+      Number(test.totalScore ?? test.score ?? test.overall_mastery ?? 0) || 0;
+    const resultLevel =
+      test.resultLevel || test.level || test.overall_level || 'beginner';
+
+    return {
+      ...test,
+      studentId,
+      totalScore,
+      resultLevel,
+      questions: Array.isArray(test.questions) ? test.questions : [],
+      answers: Array.isArray(test.answers) ? test.answers : [],
+    };
+  }
+
+  private buildProfileFallbackLevelTestResult(userId: string): any {
+    const profile = this.adaptiveProfile || {};
+    const totalScore = Number(profile?.progress ?? 0) || 0;
+    const resultLevel = profile?.level || 'beginner';
+    const strengths = Array.isArray(profile?.strengths)
+      ? profile.strengths
+      : [];
+    const weaknesses = Array.isArray(profile?.weaknesses)
+      ? profile.weaknesses
+      : [];
+
+    return {
+      studentId: userId,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      totalScore,
+      resultLevel,
+      questions: [],
+      answers: [],
+      detectedStrengths: strengths.map((topic: string) => ({
+        topic,
+        score: totalScore,
+      })),
+      detectedWeaknesses: weaknesses.map((topic: string) => ({
+        topic,
+        score: Math.max(0, 100 - totalScore),
+      })),
+    };
   }
 
   openLevelTestFromSidebar(): void {
@@ -1360,10 +1496,28 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
     this.adaptiveService.getLatestCompletedLevelTest(userId).subscribe({
       next: (test) => {
-        if (test && test.status === 'completed') {
+        const normalized = this.normalizeLevelTestResult(test);
+        const hasCompletedResult = !!(
+          normalized &&
+          (String(normalized.status || '').toLowerCase() === 'completed' ||
+            normalized.completedAt ||
+            normalized.totalScore > 0 ||
+            (Array.isArray(normalized.answers) &&
+              normalized.answers.length > 0))
+        );
+
+        if (hasCompletedResult) {
           this.activeNav = 'level-test-result';
           this.router.navigate(['/student-dashboard/level-test-result'], {
-            state: { result: test },
+            state: { result: normalized },
+          });
+          return;
+        }
+
+        if (this.adaptiveProfile?.levelTestCompleted) {
+          this.activeNav = 'level-test-result';
+          this.router.navigate(['/student-dashboard/level-test-result'], {
+            state: { result: this.buildProfileFallbackLevelTestResult(userId) },
           });
           return;
         }
@@ -1426,6 +1580,17 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     if (type === 'course') return 'Course';
     if (type === 'topic') return 'Topic Review';
     return 'Exercise';
+  }
+
+  isLevelTestFullscreenView(): boolean {
+    return (
+      this.router.url.includes('/student-dashboard/level-test') &&
+      !this.router.url.includes('/student-dashboard/level-test-result')
+    );
+  }
+
+  showDashboardShell(): boolean {
+    return !this.isLevelTestFullscreenView();
   }
 
   isSubPageView(): boolean {

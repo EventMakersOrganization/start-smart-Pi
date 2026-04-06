@@ -3,15 +3,29 @@ import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import * as express from "express";
+import { existsSync, mkdirSync } from "fs";
+import { resolve } from "path";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Security Middleware
-  app.use(helmet());
-
-  // Enable CORS
+  // Enable CORS early so static assets under /uploads are readable by frontend preview fetch.
   app.enableCors();
+
+  // Allow cross-origin resource loading for uploaded documents (PDF/DOCX previews).
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
+
+  const uploadsRoot = resolve(__dirname, "..", "uploads");
+  if (!existsSync(uploadsRoot)) {
+    mkdirSync(uploadsRoot, { recursive: true });
+  }
+
+  app.use("/uploads", express.static(uploadsRoot));
 
   // Rate limiting - disabled in development, permissive in production
   if (process.env.NODE_ENV === "production") {

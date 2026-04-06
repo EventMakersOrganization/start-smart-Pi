@@ -265,28 +265,28 @@
 
       <div class="p-6 bg-slate-50 dark:bg-slate-800/30">
         <button
-          [disabled]="!isAssessmentComplete()"
+          [disabled]="!canSubmitFinal()"
           (click)="submitTest()"
-          [class.cursor-not-allowed]="!isAssessmentComplete()"
-          [class.opacity-60]="!isAssessmentComplete()"
-          [class.bg-slate-200]="!isAssessmentComplete()"
-          [class.dark:bg-slate-700]="!isAssessmentComplete()"
-          [class.text-slate-500]="!isAssessmentComplete()"
-          [class.bg-green-600]="isAssessmentComplete()"
-          [class.text-white]="isAssessmentComplete()"
-          [class.hover:bg-green-700]="isAssessmentComplete()"
+          [class.cursor-not-allowed]="!canSubmitFinal()"
+          [class.opacity-60]="!canSubmitFinal()"
+          [class.bg-slate-200]="!canSubmitFinal()"
+          [class.dark:bg-slate-700]="!canSubmitFinal()"
+          [class.text-slate-500]="!canSubmitFinal()"
+          [class.bg-green-600]="canSubmitFinal()"
+          [class.text-white]="canSubmitFinal()"
+          [class.hover:bg-green-700]="canSubmitFinal()"
           class="w-full py-3 px-4 font-bold rounded-lg transition-colors shadow-lg"
         >
           {{ submitting ? "Submitting..." : "Submit Test" }}
         </button>
         <p
-          *ngIf="!isAssessmentComplete()"
+          *ngIf="!canSubmitFinal()"
           class="mt-3 text-[10px] text-center text-slate-400"
         >
           Complete all questions to enable final submission.
         </p>
         <p
-          *ngIf="isAssessmentComplete()"
+          *ngIf="canSubmitFinal()"
           class="mt-3 text-[10px] text-center text-green-600 font-bold"
         >
           You are ready to submit!

@@ -33,6 +33,7 @@ export class GoalSettingComponent implements OnInit {
 
   loading = false;
   saving = false;
+  currentGoal: GoalSettings | null = null;
   performances: any[] = [];
   topics: string[] = ['general'];
   goalCards: GoalCard[] = [];
@@ -71,12 +72,13 @@ export class GoalSettingComponent implements OnInit {
 
   ngOnInit(): void {
     this.studentId = this.studentId || this.resolveStudentId();
-    this.initializeFormFromStorage();
     if (!this.studentId) {
+      this.goalForm.patchValue(this.getDefaultGoalValues());
       this.rebuildGoalCards();
       return;
     }
 
+    this.loadGoalSettings();
     this.loadPerformances();
 
     this.goalForm.valueChanges.subscribe(() => {
@@ -92,8 +94,6 @@ export class GoalSettingComponent implements OnInit {
     }
 
     this.saving = true;
-
-    const existing = this.adaptiveService.getGoalSettings(this.studentId);
     const payload: GoalSettings = {
       studyHoursPerWeek: Number(this.goalForm.value.studyHoursPerWeek || 8),
       targetTopic: String(this.goalForm.value.targetTopic || 'general'),
@@ -104,20 +104,36 @@ export class GoalSettingComponent implements OnInit {
       targetLevel: (this.goalForm.value.targetLevel ||
         'intermediate') as TargetLevel,
       deadline: String(this.goalForm.value.deadline || ''),
-      createdAt: existing?.createdAt || new Date().toISOString(),
+      createdAt: this.currentGoal?.createdAt || new Date().toISOString(),
     };
 
-    this.adaptiveService.saveGoalSettings(this.studentId, payload);
-    this.saving = false;
-    this.rebuildGoalCards();
+    this.adaptiveService.saveGoalSettings(this.studentId, payload).subscribe({
+      next: (saved) => {
+        this.currentGoal = saved;
+        this.saving = false;
+        this.rebuildGoalCards();
+      },
+      error: () => {
+        this.saving = false;
+      },
+    });
   }
 
   resetGoals(): void {
     if (!this.studentId) return;
 
-    this.adaptiveService.resetGoalSettings(this.studentId);
-    this.goalForm.patchValue(this.getDefaultGoalValues());
-    this.rebuildGoalCards();
+    this.adaptiveService.resetGoalSettings(this.studentId).subscribe({
+      next: () => {
+        this.currentGoal = null;
+        this.goalForm.patchValue(this.getDefaultGoalValues());
+        this.rebuildGoalCards();
+      },
+      error: () => {
+        this.currentGoal = null;
+        this.goalForm.patchValue(this.getDefaultGoalValues());
+        this.rebuildGoalCards();
+      },
+    });
   }
 
   getProgressBarClass(status: GoalStatus): string {
@@ -136,26 +152,37 @@ export class GoalSettingComponent implements OnInit {
     return card.key;
   }
 
-  private initializeFormFromStorage(): void {
+  private loadGoalSettings(): void {
     if (!this.studentId) {
       this.goalForm.patchValue(this.getDefaultGoalValues());
       return;
     }
 
-    const saved = this.adaptiveService.getGoalSettings(this.studentId);
-    if (saved) {
-      this.goalForm.patchValue({
-        studyHoursPerWeek: saved.studyHoursPerWeek,
-        targetTopic: saved.targetTopic,
-        targetScorePerTopic: saved.targetScorePerTopic,
-        exercisesPerDay: saved.exercisesPerDay,
-        targetLevel: saved.targetLevel,
-        deadline: saved.deadline,
-      });
-      return;
-    }
+    this.adaptiveService.getGoalSettings(this.studentId).subscribe({
+      next: (saved) => {
+        this.currentGoal = saved;
+        if (!saved) {
+          this.goalForm.patchValue(this.getDefaultGoalValues());
+          this.rebuildGoalCards();
+          return;
+        }
 
-    this.goalForm.patchValue(this.getDefaultGoalValues());
+        this.goalForm.patchValue({
+          studyHoursPerWeek: saved.studyHoursPerWeek,
+          targetTopic: saved.targetTopic,
+          targetScorePerTopic: saved.targetScorePerTopic,
+          exercisesPerDay: saved.exercisesPerDay,
+          targetLevel: saved.targetLevel,
+          deadline: saved.deadline,
+        });
+        this.rebuildGoalCards();
+      },
+      error: () => {
+        this.currentGoal = null;
+        this.goalForm.patchValue(this.getDefaultGoalValues());
+        this.rebuildGoalCards();
+      },
+    });
   }
 
   private loadPerformances(): void {
@@ -361,10 +388,7 @@ export class GoalSettingComponent implements OnInit {
       };
     }
 
-    const saved = this.studentId
-      ? this.adaptiveService.getGoalSettings(this.studentId)
-      : null;
-    const createdAt = saved?.createdAt || new Date().toISOString();
+    const createdAt = this.currentGoal?.createdAt || new Date().toISOString();
 
     const start = new Date(createdAt).getTime();
     const end = new Date(deadline).getTime();

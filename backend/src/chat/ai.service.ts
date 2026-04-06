@@ -51,6 +51,13 @@ export class AiService {
     this.logger.log(`AI Service URL: ${this.aiBaseUrl}`);
   }
 
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
+  }
+
   async askChatbot(
     question: string,
     conversationHistory?: Array<{ role: string; content: string }>,
@@ -99,7 +106,9 @@ export class AiService {
       await this.setInCache(cacheKey, result);
       return result;
     } catch (error) {
-      this.logger.error(`AI chatbot request failed: ${error.message}`);
+      this.logger.error(
+        `AI chatbot request failed: ${this.getErrorMessage(error)}`,
+      );
       return {
         answer: "I am temporarily unavailable. Please try again in a moment.",
         sources: [],
@@ -144,7 +153,9 @@ export class AiService {
       await this.setInCache(cacheKey, results);
       return results;
     } catch (error) {
-      this.logger.error(`Semantic search failed: ${error.message}`);
+      this.logger.error(
+        `Semantic search failed: ${this.getErrorMessage(error)}`,
+      );
       return [];
     }
   }
@@ -164,7 +175,9 @@ export class AiService {
       });
       return data;
     } catch (error) {
-      this.logger.error(`startLevelTest failed: ${error.message}`);
+      this.logger.error(
+        `startLevelTest failed: ${this.getErrorMessage(error)}`,
+      );
       throw error;
     }
   }
@@ -185,7 +198,7 @@ export class AiService {
       );
       return data;
     } catch (error) {
-      this.logger.error(`submitAnswer failed: ${error.message}`);
+      this.logger.error(`submitAnswer failed: ${this.getErrorMessage(error)}`);
       throw error;
     }
   }
@@ -206,7 +219,9 @@ export class AiService {
       );
       return data;
     } catch (error) {
-      this.logger.error(`completeLevelTest failed: ${error.message}`);
+      this.logger.error(
+        `completeLevelTest failed: ${this.getErrorMessage(error)}`,
+      );
       throw error;
     }
   }
@@ -226,7 +241,9 @@ export class AiService {
       );
       return data;
     } catch (error) {
-      this.logger.error(`getLevelTestSession failed: ${error.message}`);
+      this.logger.error(
+        `getLevelTestSession failed: ${this.getErrorMessage(error)}`,
+      );
       throw error;
     }
   }
@@ -251,7 +268,7 @@ export class AiService {
       return data;
     } catch (error) {
       this.logger.error(
-        `getPersonalizedRecommendations failed: ${error.message}`,
+        `getPersonalizedRecommendations failed: ${this.getErrorMessage(error)}`,
       );
       throw error;
     }
@@ -271,7 +288,9 @@ export class AiService {
       });
       return data;
     } catch (error) {
-      this.logger.error(`getLearningState failed: ${error.message}`);
+      this.logger.error(
+        `getLearningState failed: ${this.getErrorMessage(error)}`,
+      );
       throw error;
     }
   }
@@ -294,7 +313,9 @@ export class AiService {
       );
       return data;
     } catch (error) {
-      this.logger.error(`getLearningAnalytics failed: ${error.message}`);
+      this.logger.error(
+        `getLearningAnalytics failed: ${this.getErrorMessage(error)}`,
+      );
       throw error;
     }
   }
@@ -314,7 +335,9 @@ export class AiService {
       });
       return data;
     } catch (error) {
-      this.logger.error(`getPaceAnalytics failed: ${error.message}`);
+      this.logger.error(
+        `getPaceAnalytics failed: ${this.getErrorMessage(error)}`,
+      );
       throw error;
     }
   }
@@ -337,7 +360,9 @@ export class AiService {
       );
       return data;
     } catch (error) {
-      this.logger.error(`getConceptsAnalytics failed: ${error.message}`);
+      this.logger.error(
+        `getConceptsAnalytics failed: ${this.getErrorMessage(error)}`,
+      );
       throw error;
     }
   }
@@ -358,7 +383,7 @@ export class AiService {
       return data;
     } catch (error) {
       this.logger.error(
-        `getInterventionsEffectiveness failed: ${error.message}`,
+        `getInterventionsEffectiveness failed: ${this.getErrorMessage(error)}`,
       );
       throw error;
     }
@@ -380,7 +405,7 @@ export class AiService {
       return data;
     } catch (error) {
       this.logger.error(
-        `getInterventionsEffectivenessGlobal failed: ${error.message}`,
+        `getInterventionsEffectivenessGlobal failed: ${this.getErrorMessage(error)}`,
       );
       throw error;
     }
@@ -450,7 +475,7 @@ export class AiService {
     } catch (error) {
       this.redisClient = null;
       this.logger.warn(
-        `Redis init failed, using memory cache only: ${error.message}`,
+        `Redis init failed, using memory cache only: ${this.getErrorMessage(error)}`,
       );
     }
   }

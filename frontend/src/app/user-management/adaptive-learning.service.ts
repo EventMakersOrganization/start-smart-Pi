@@ -68,6 +68,110 @@ export interface SpacedRepetitionResponse {
   } | null;
 }
 
+export interface CollaborativeRecommendationItem {
+  topic: string;
+  reason: string;
+  similarStudentsCount: number;
+  averageSuccessRate: number;
+  suggestedDifficulty: string;
+}
+
+export interface CollaborativeRecommendationsResponse {
+  recommendations: CollaborativeRecommendationItem[];
+  similarStudentsFound: number;
+  basedOn: string;
+}
+
+export interface StudyGroupMember {
+  userId: string;
+  level: string;
+  commonWeaknesses: string[];
+}
+
+export interface StudyGroupSuggestion {
+  groupName: string;
+  groupType: 'remediation' | 'mixed' | 'advanced';
+  commonTopics: string[];
+  suggestedActivities: string[];
+  compatibilityScore: number;
+  members: StudyGroupMember[];
+}
+
+export interface StudyGroupSuggestionsResponse {
+  suggestedGroups: StudyGroupSuggestion[];
+  totalStudentsAnalyzed: number;
+  bestMatch: { userId: string; compatibilityScore: number } | null;
+}
+
+export interface LearningStyleIndicators {
+  averageTimePerExercise: number;
+  scoreConsistency: number;
+  preferredDifficulty: string;
+  preferredTopics: string[];
+  sessionsPerWeek: number;
+}
+
+export interface LearningStyleResponse {
+  primaryStyle: string;
+  secondaryStyle: string | null;
+  confidence: number;
+  styleDescription: string;
+  learningTips: string[];
+  indicators: LearningStyleIndicators;
+}
+
+export interface UnifiedStudentProfileResponse {
+  studentId: string;
+  profile: any;
+  summary: {
+    currentLevel: string;
+    progress: number;
+    strengths: string[];
+    weaknesses: string[];
+    riskLevel: string;
+    totalInteractions: number;
+  };
+  sources: {
+    exercises: any;
+    game: any;
+    chat: any;
+    levelTest: any;
+  };
+  analytics: {
+    learningVelocity: any;
+    spacedRepetition: any;
+    learningStyle: any;
+    learningPath: any;
+    achievementBadges: any;
+  };
+  adaptivePath: Array<{
+    topic: string;
+    priority: 'high' | 'medium' | 'low';
+    reason: string;
+    recommendedActions: string[];
+  }>;
+}
+
+export interface StudentComparisonAnalyticsResponse {
+  studentId: string;
+  rankingPercentile: number;
+  totalStudents: number;
+  student: {
+    averageScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    streak: number;
+  };
+  classAverage: {
+    averageScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    streak: number;
+  };
+  topStrengths: string[];
+  focusTopics: string[];
+}
+
 export interface LearningEventRequest {
   student_id?: string;
   event_type: 'quiz' | 'exercise' | 'chat' | 'brainrush';
@@ -373,7 +477,6 @@ export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
   private chatApiUrl = 'http://localhost:3000/api/chat/ai';
   private aiServiceUrl = 'http://localhost:8000';
-  private goalsStorageKey = 'adaptive_learning_goals_v1';
   private readonly learningRecommendationsSubject = new Subject<any[]>();
   readonly learningRecommendations$ =
     this.learningRecommendationsSubject.asObservable();
@@ -389,6 +492,26 @@ export class AdaptiveLearningService {
 
   getAllProfiles(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/profiles`);
+  }
+
+  getUnifiedStudentProfile(
+    studentId: string,
+  ): Observable<UnifiedStudentProfileResponse> {
+    return this.http.get<UnifiedStudentProfileResponse>(
+      `${this.apiUrl}/students/${studentId}/unified-profile`,
+    );
+  }
+
+  getStudentComparisonAnalytics(
+    studentId: string,
+  ): Observable<StudentComparisonAnalyticsResponse> {
+    return this.http.get<StudentComparisonAnalyticsResponse>(
+      `${this.apiUrl}/students/${studentId}/comparison`,
+    );
+  }
+
+  getAllPerformances(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/performances`);
   }
 
   createProfile(data: any): Observable<any> {
@@ -423,55 +546,57 @@ export class AdaptiveLearningService {
     );
   }
 
-  startLevelTest(studentId: string): Observable<any> {
-    // Call AI service to start level test (100% AI-generated questions)
-    return this.http.post<any>(`${this.chatApiUrl}/level-test/start`, {}).pipe(
-      map((aiResponse) => {
-        // Transform AI response to match component expectations
-        if (!aiResponse || !aiResponse.session_id) {
-          throw new Error('Invalid AI response');
-        }
-
-        const firstQuestion = aiResponse.first_question || {};
-        const totalQuestions = aiResponse.total_questions || 1;
-
-        // Build questions array with placeholders
-        // First question is real, rest are placeholders that will be fetched on demand
-        const questions = [firstQuestion];
-        for (let i = 1; i < totalQuestions; i++) {
-          questions.push({
-            questionIndex: i,
-            question: 'Loading next question...',
-            options: [],
-            difficulty: 'medium',
-            topic: 'Loading...',
-            subject: 'Loading...',
-            progress: { answered: i - 1, total: totalQuestions },
-          });
-        }
-
-        return {
-          _id: aiResponse.session_id, // Component expects _id for submit
-          session_id: aiResponse.session_id, // Keep for AI flow
-          questions,
-          total_questions: totalQuestions,
-          subjects: aiResponse.subjects || [],
-          status: 'in-progress',
-          answers: Array(totalQuestions)
-            .fill(null)
-            .map((_, i) => ({
-              questionIndex: i,
-              selectedAnswer: null,
-              timeSpent: 0,
-            })),
-          isAiGenerated: true,
-        };
-      }),
-      catchError((err) => {
-        console.error('Level test start error:', err);
-        throw err;
-      }),
+  getCollaborativeRecommendations(
+    studentId: string,
+  ): Observable<CollaborativeRecommendationsResponse> {
+    return this.http.get<CollaborativeRecommendationsResponse>(
+      `${this.apiUrl}/recommendations/collaborative/${studentId}`,
     );
+  }
+
+  getStudyGroupSuggestions(
+    studentId: string,
+  ): Observable<StudyGroupSuggestionsResponse> {
+    return this.http.get<StudyGroupSuggestionsResponse>(
+      `${this.apiUrl}/study-groups/${studentId}`,
+    );
+  }
+
+  detectLearningStyle(studentId: string): Observable<LearningStyleResponse> {
+    return this.http.get<LearningStyleResponse>(
+      `${this.apiUrl}/learning-style/${studentId}`,
+    );
+  }
+
+  startLevelTest(studentId: string): Observable<any> {
+    return this.http
+      .post<any>(`${this.aiServiceUrl}/level-test/start`, {
+        student_id: studentId,
+        subjects: [],
+      })
+      .pipe(
+        map((aiResponse) => {
+          if (!aiResponse || !aiResponse.session_id) {
+            throw new Error('Invalid AI response');
+          }
+
+          return {
+            _id: aiResponse.session_id,
+            session_id: aiResponse.session_id,
+            first_question: aiResponse.first_question,
+            total_questions: aiResponse.total_questions,
+            subjects: aiResponse.subjects || [],
+            status: aiResponse.status || 'in-progress',
+            isAiGenerated: !!(
+              aiResponse?.isAiGenerated ?? aiResponse?.is_ai_generated
+            ),
+          };
+        }),
+        catchError((err) => {
+          console.error('Level test start error:', err);
+          throw err;
+        }),
+      );
   }
 
   submitLevelTest(testId: string, answers: any[]): Observable<any> {
@@ -501,6 +626,22 @@ export class AdaptiveLearningService {
     });
   }
 
+  syncLevelTestProfileToBackend(
+    studentId: string,
+    profile: any,
+    sessionId?: string,
+    levelTestResult?: any,
+  ): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/level-test/student/${studentId}/sync-profile`,
+      {
+        profile,
+        sessionId,
+        levelTestResult,
+      },
+    );
+  }
+
   getLevelTestSession(sessionId: string): Observable<any> {
     return this.http.get(
       `${this.aiServiceUrl}/level-test/session/${sessionId}`,
@@ -512,9 +653,9 @@ export class AdaptiveLearningService {
   }
 
   getLatestCompletedLevelTest(studentId: string): Observable<any> {
-    return this.http.get(
-      `${this.apiUrl}/level-test/student/${studentId}/latest-completed`,
-    );
+    return this.http
+      .get(`${this.apiUrl}/level-test/student/${studentId}/latest-completed`)
+      .pipe(catchError(() => of(null)));
   }
 
   markRecommendationViewed(id: string): Observable<any> {
@@ -763,31 +904,23 @@ export class AdaptiveLearningService {
     );
   }
 
-  getGoalSettings(studentId: string): GoalSettings | null {
-    const store = this.readGoalsStore();
-    return store[studentId] || null;
+  getGoalSettings(studentId: string): Observable<GoalSettings | null> {
+    return this.http
+      .get<GoalSettings | null>(`${this.apiUrl}/goals/${studentId}`)
+      .pipe(catchError(() => of(null)));
   }
 
-  saveGoalSettings(studentId: string, goals: GoalSettings): void {
-    const store = this.readGoalsStore();
-    store[studentId] = goals;
-    localStorage.setItem(this.goalsStorageKey, JSON.stringify(store));
+  saveGoalSettings(
+    studentId: string,
+    goals: GoalSettings,
+  ): Observable<GoalSettings> {
+    return this.http.put<GoalSettings>(
+      `${this.apiUrl}/goals/${studentId}`,
+      goals,
+    );
   }
 
-  resetGoalSettings(studentId: string): void {
-    const store = this.readGoalsStore();
-    delete store[studentId];
-    localStorage.setItem(this.goalsStorageKey, JSON.stringify(store));
-  }
-
-  private readGoalsStore(): Record<string, GoalSettings> {
-    try {
-      const raw = localStorage.getItem(this.goalsStorageKey);
-      if (!raw) return {};
-      const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch {
-      return {};
-    }
+  resetGoalSettings(studentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/goals/${studentId}`);
   }
 }

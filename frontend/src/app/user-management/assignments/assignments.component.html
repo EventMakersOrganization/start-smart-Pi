@@ -61,17 +61,17 @@
       >
         <div class="text-right">
           <p class="text-sm font-bold leading-none">
-            {{ user?.first_name }} {{ user?.last_name }}
+            {{ user.first_name }} {{ user.last_name }}
           </p>
           <p class="text-xs text-slate-500 mt-1 capitalize">
-            {{ user?.role || "instructor" }}
+            {{ user.role || "instructor" }}
           </p>
         </div>
         <div class="flex items-center gap-2">
           <div
             class="size-10 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold"
           >
-            {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
+            {{ user.first_name[0] }}{{ user.last_name[0] }}
           </div>
           <button
             class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -126,6 +126,13 @@
         >
           <span class="material-symbols-outlined">assignment</span>
           <span class="text-sm font-medium">Assignments</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          routerLink="/instructor/subjects"
+        >
+          <span class="material-symbols-outlined">menu_book</span>
+          <span class="text-sm font-medium">Subjects</span>
         </a>
       </div>
       <div class="flex flex-col gap-2">
@@ -247,7 +254,7 @@
           {{ editingCourseId ? "Edit Course" : "Create Course" }}
         </h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <input
             [(ngModel)]="courseForm.title"
             placeholder="Course title"
@@ -255,7 +262,12 @@
           />
           <input
             [(ngModel)]="courseForm.level"
-            placeholder="Level / Subject"
+            placeholder="Level"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+          <input
+            [(ngModel)]="courseForm.subject"
+            placeholder="Subject (Matiere)"
             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           />
         </div>
@@ -375,6 +387,9 @@
               </h3>
               <p class="text-xs text-primary font-semibold mt-1">
                 {{ course?.level }}
+              </p>
+              <p class="text-xs text-slate-500 mt-1" *ngIf="course?.subject">
+                Subject: {{ course?.subject }}
               </p>
               <p class="text-sm text-slate-500 mt-2">
                 {{ course?.description }}
