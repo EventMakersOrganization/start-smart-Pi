@@ -18,6 +18,7 @@ import { AuthGuard } from './auth.guard';
 import { RoleGuard } from './role.guard';
 import { JwtInterceptor } from './jwt.interceptor';
 import { StudentDashboardComponent } from './student-dashboard/student-dashboard.component';
+import { SubjectsManagementComponent } from './subjects-management/subjects-management.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -34,6 +35,7 @@ const routes: Routes = [
       { path: '', redirectTo: 'students', pathMatch: 'full' },
       { path: 'students', component: StudentManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
       { path: 'instructors', component: TeacherManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
+      { path: 'subjects', component: SubjectsManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
     ]
   },
   { path: 'student-dashboard', component: StudentDashboardComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['student'] } },
@@ -54,6 +56,7 @@ const routes: Routes = [
     StudentDashboardComponent,
     StudentManagementComponent,
     TeacherManagementComponent,
+    SubjectsManagementComponent,
     InstructorDashboardComponent
   ],
   imports: [
