@@ -35,6 +35,7 @@ export interface Room {
     hostId: string;
     players: RoomPlayer[];
     status: 'waiting' | 'playing' | 'finished';
+    totalQuestions: number;
     createdAt: Date;
     gameState?: MultiplayerGameState;
 }
@@ -60,7 +61,7 @@ export class RoomService {
     // ──────────────────────────────────────────
     // Create Room
     // ──────────────────────────────────────────
-    createRoom(socketId: string, username: string, avatar: string, userId?: string): Room {
+    createRoom(socketId: string, username: string, avatar: string, userId?: string, totalQuestions: number = 10): Room {
         // Ensure unique code
         let roomCode: string;
         do {
@@ -83,6 +84,7 @@ export class RoomService {
             hostId: socketId,
             players: [host],
             status: 'waiting',
+            totalQuestions,
             createdAt: new Date(),
         };
 

@@ -25,7 +25,7 @@ let MultiplayerGameService = MultiplayerGameService_1 = class MultiplayerGameSer
     setServer(server) {
         this.server = server;
     }
-    async startGame(roomCode, subject, difficulty) {
+    async startGame(roomCode, subject, difficulty, totalQuestions = 10) {
         const room = this.roomService.getRoom(roomCode);
         if (!room)
             return;
@@ -33,9 +33,9 @@ let MultiplayerGameService = MultiplayerGameService_1 = class MultiplayerGameSer
             this.logger.warn(`Room ${roomCode} is already playing. Skipping startGame.`);
             return;
         }
-        this.logger.log(`[START] Initializing game for Room ${roomCode}. Subject: ${subject}`);
+        this.logger.log(`[START] Initializing game for Room ${roomCode}. Subject: ${subject}, Questions: ${totalQuestions}`);
         this.cleanupRoom(roomCode);
-        const questions = await this.aiService.generateSession(subject, difficulty, 10);
+        const questions = await this.aiService.generateSession(subject, difficulty, totalQuestions);
         room.players.forEach(p => {
             p.score = 0;
             p.hasAnswered = false;

@@ -135,6 +135,19 @@ import { AudioService } from '../../services/audio.service';
           </div>
           <h1 class="text-5xl font-black text-white drop-shadow-2xl mb-2">🎯 BrainRush</h1>
           <p class="text-white/60 text-lg">Waiting for players to join…</p>
+          
+          <!-- Selected Config Display -->
+          <div class="mt-4 flex justify-center gap-4">
+            <div class="px-3 py-1 bg-white/10 rounded-full border border-white/20 text-xs font-bold text-white/80 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[14px]">category</span> {{ selectedTopic }}
+            </div>
+            <div class="px-3 py-1 bg-white/10 rounded-full border border-white/20 text-xs font-bold text-white/80 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[14px]">speed</span> {{ selectedDifficulty | titlecase }}
+            </div>
+            <div class="px-3 py-1 bg-orange-500/20 rounded-full border border-orange-500/30 text-xs font-black text-orange-300 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[14px]">quiz</span> {{ totalQuestions }} Questions
+            </div>
+          </div>
         </div>
 
         <!-- Room Code Card -->
@@ -256,6 +269,7 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
   gameStarting = false;
   selectedTopic = 'Programming';
   selectedDifficulty = 'medium';
+  totalQuestions = 10;
 
   private subs: Subscription[] = [];
 
@@ -280,6 +294,7 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
     this.myAvatar = state?.avatar ?? me?.avatar ?? '🎮';
     this.selectedTopic = state?.topic ?? 'Programming';
     this.selectedDifficulty = state?.difficulty ?? 'medium';
+    this.totalQuestions = state?.totalQuestions ?? 10;
 
     if (!this.roomCode) {
       this.router.navigate(['/brainrush/lobby']);
@@ -358,7 +373,7 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
   startGame(): void {
     if (!this.isHost || this.gameStarting) return;
     this.gameStarting = true;
-    this.socketService.startGame(this.roomCode, this.selectedTopic, this.selectedDifficulty);
+    this.socketService.startGame(this.roomCode, this.selectedTopic, this.selectedDifficulty, this.totalQuestions);
   }
 
   leaveRoom(): void {

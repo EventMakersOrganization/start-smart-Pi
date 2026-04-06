@@ -23,7 +23,7 @@ let RoomService = RoomService_1 = class RoomService {
         }
         return code;
     }
-    createRoom(socketId, username, avatar, userId) {
+    createRoom(socketId, username, avatar, userId, totalQuestions = 10) {
         let roomCode;
         do {
             roomCode = this.generateCode();
@@ -43,6 +43,7 @@ let RoomService = RoomService_1 = class RoomService {
             hostId: socketId,
             players: [host],
             status: 'waiting',
+            totalQuestions,
             createdAt: new Date(),
         };
         this.rooms.set(roomCode, room);

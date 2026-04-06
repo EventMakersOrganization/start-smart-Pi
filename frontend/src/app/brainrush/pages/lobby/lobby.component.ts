@@ -114,6 +114,26 @@ export class ModeSelectorComponent {
               </span>
             </button>
           </div>
+
+          <!-- Question Count -->
+          <div class="mt-8">
+            <h3 class="text-lg font-extrabold text-gray-800 mb-5 flex items-center gap-2">
+              <span class="material-symbols-outlined text-blue-600">quiz</span> Quiz Length
+            </h3>
+            <div class="flex gap-3">
+              <button *ngFor="let count of [10, 15, 20]"
+                (click)="selectedCount = count"
+                [class.bg-blue-600]="selectedCount === count"
+                [class.text-white]="selectedCount === count"
+                [class.border-blue-600]="selectedCount === count"
+                [class.bg-white]="selectedCount !== count"
+                [class.text-gray-700]="selectedCount !== count"
+                [class.border-gray-200]="selectedCount !== count"
+                class="flex-1 py-3 rounded-xl font-bold border-2 transition-all">
+                {{ count }} Qs
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- RIGHT: Topic Selection -->
@@ -156,10 +176,11 @@ export class ModeSelectorComponent {
   `
 })
 export class SoloConfigComponent implements OnInit {
-  @Output() start = new EventEmitter<{ topic: string; difficulty: string }>();
+  @Output() start = new EventEmitter<{ topic: string; difficulty: string; totalQuestions: number }>();
 
   selectedDifficulty = 'medium';
   selectedTopic = '';
+  selectedCount = 10;
   loadingTopics = true;
 
   difficulties = [
@@ -208,7 +229,11 @@ export class SoloConfigComponent implements OnInit {
 
   onStart() {
     if (this.selectedTopic) {
-      this.start.emit({ topic: this.selectedTopic, difficulty: this.selectedDifficulty });
+      this.start.emit({
+        topic: this.selectedTopic,
+        difficulty: this.selectedDifficulty,
+        totalQuestions: this.selectedCount
+      });
     }
   }
 }
@@ -276,6 +301,16 @@ export class SoloConfigComponent implements OnInit {
               <option value="easy">Easy</option>
               <option value="hard">Hard</option>
               <option value="adaptive">Adaptive (AI)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Quiz Length</label>
+            <select [(ngModel)]="createCount"
+              class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-cyan-400">
+              <option [ngValue]="10">10 Questions</option>
+              <option [ngValue]="15">15 Questions</option>
+              <option [ngValue]="20">20 Questions</option>
             </select>
           </div>
 
@@ -350,7 +385,7 @@ export class SoloConfigComponent implements OnInit {
   `
 })
 export class TeamConfigComponent implements OnDestroy {
-  @Output() create = new EventEmitter<{ username: string; avatar: string; topic: string; difficulty: string }>();
+  @Output() create = new EventEmitter<{ username: string; avatar: string; topic: string; difficulty: string; totalQuestions: number }>();
   @Output() join = new EventEmitter<{ roomCode: string; username: string; avatar: string }>();
 
   avatars = ['🎮', '🚀', '🧠', '⚡', '🦉', '🦊', '🐼', '🐱', '🐶', '👻', '👾', '🔥'];
@@ -365,6 +400,7 @@ export class TeamConfigComponent implements OnDestroy {
   createUsername = '';
   createTopic = 'data_structures';
   createDifficulty = 'medium';
+  createCount = 10;
   creating = false;
   createError = '';
 
@@ -386,6 +422,7 @@ export class TeamConfigComponent implements OnDestroy {
       avatar: this.selectedAvatar,
       topic: this.createTopic,
       difficulty: this.createDifficulty,
+      totalQuestions: this.createCount,
     });
   }
 
@@ -500,20 +537,21 @@ export class LobbyComponent implements OnDestroy {
 
   // ── Solo mode ────────────────────────────────────────────────────────────
 
-  startSolo(config?: { topic: string; difficulty: string }) {
+  startSolo(config?: { topic: string; difficulty: string; totalQuestions: number }) {
     const topic = config?.topic || 'data_structures';
     const difficulty = config?.difficulty || 'medium';
-    this.service.createRoom('solo', topic, difficulty).subscribe({
+    const totalQuestions = config?.totalQuestions || 10;
+    this.service.createRoom('solo', topic, difficulty, totalQuestions).subscribe({
       next: (res: any) => {
         this.router.navigate(
           ['/brainrush/game', res._id, 'solo'],
-          { state: { topic, difficulty } }
+          { state: { topic, difficulty, totalQuestions } }
         );
       },
       error: () => {
         this.router.navigate(
           ['/brainrush/game', 'demo', 'solo'],
-          { state: { topic, difficulty } }
+          { state: { topic, difficulty, totalQuestions } }
         );
       }
     });
@@ -521,7 +559,7 @@ export class LobbyComponent implements OnDestroy {
 
   // ── Team mode ────────────────────────────────────────────────────────────
 
-  createTeam(payload: { username: string; avatar: string; topic: string; difficulty: string }) {
+  createTeam(payload: { username: string; avatar: string; topic: string; difficulty: string; totalQuestions: number }) {
 
     // Connect socket (no auth token required at this level)
     this.socketService.connect();
@@ -541,8 +579,8 @@ export class LobbyComponent implements OnDestroy {
               avatar: payload.avatar,
               topic: payload.topic,
               difficulty: payload.difficulty,
+              totalQuestions: room.totalQuestions,
             }
-
           }
         );
       }
@@ -555,7 +593,7 @@ export class LobbyComponent implements OnDestroy {
     });
 
     this.subs.push(sub, errSub);
-    this.socketService.createRoom(payload.username, payload.avatar);
+    this.socketService.createRoom(payload.username, payload.avatar, undefined, payload.totalQuestions);
   }
 
   joinTeam(payload: { roomCode: string; username: string, avatar: string }) {
@@ -575,6 +613,7 @@ export class LobbyComponent implements OnDestroy {
               isHost: false,
               username: payload.username,
               avatar: payload.avatar,
+              totalQuestions: room.totalQuestions,
             }
 
           }

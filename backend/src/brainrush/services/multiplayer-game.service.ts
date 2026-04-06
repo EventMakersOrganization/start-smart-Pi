@@ -23,7 +23,7 @@ export class MultiplayerGameService {
     // ── GAME LIFECYCLE ──
     // ──────────────────────────────────────────────────────────────────────────
 
-    async startGame(roomCode: string, subject: string, difficulty: string) {
+    async startGame(roomCode: string, subject: string, difficulty: string, totalQuestions: number = 10) {
         const room = this.roomService.getRoom(roomCode);
         if (!room) return;
 
@@ -33,11 +33,11 @@ export class MultiplayerGameService {
             return;
         }
 
-        this.logger.log(`[START] Initializing game for Room ${roomCode}. Subject: ${subject}`);
+        this.logger.log(`[START] Initializing game for Room ${roomCode}. Subject: ${subject}, Questions: ${totalQuestions}`);
         this.cleanupRoom(roomCode);
 
         // Fetch questions
-        const questions = await this.aiService.generateSession(subject, difficulty, 10);
+        const questions = await this.aiService.generateSession(subject, difficulty, totalQuestions);
 
         // Initialize players for a fresh start
         room.players.forEach(p => {

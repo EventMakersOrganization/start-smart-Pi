@@ -10,7 +10,7 @@ export declare class MultiplayerGameService {
     private roomTimeouts;
     constructor(roomService: RoomService, aiService: AiService);
     setServer(server: Server): void;
-    startGame(roomCode: string, subject: string, difficulty: string): Promise<void>;
+    startGame(roomCode: string, subject: string, difficulty: string, totalQuestions?: number): Promise<void>;
     private startQuestion;
     submitAnswer(roomCode: string, socketId: string, answer: string, responseTimeMs: number): void;
     private endQuestion;

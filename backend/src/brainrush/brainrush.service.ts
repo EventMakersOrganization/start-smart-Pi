@@ -37,6 +37,7 @@ export class BrainrushService {
       mode: dto.mode,
       topic: dto.topic || 'General',
       players: [uid],
+      totalQuestions: dto.totalQuestions || 10,
     });
     await session.save();
 
@@ -51,7 +52,9 @@ export class BrainrushService {
   }
 
   async generateSoloSession(gameSessionId: string, userId: string, topic: string, difficulty: string) {
-    const questions = await this.aiService.generateSession(topic, difficulty, 10);
+    const session = await this.gameSessionModel.findById(gameSessionId);
+    const count = session?.totalQuestions || 10;
+    const questions = await this.aiService.generateSession(topic, difficulty, count);
     const savedQuestions = [];
 
     for (const q of questions) {

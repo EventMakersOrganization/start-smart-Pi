@@ -19,6 +19,7 @@ interface CreateRoomPayload {
   username: string;
   avatar: string;
   userId?: string;
+  totalQuestions?: number;
 }
 
 interface JoinRoomPayload {
@@ -32,6 +33,7 @@ interface StartGamePayload {
   roomCode: string;
   subject: string;
   difficulty: string;
+  totalQuestions?: number;
 }
 
 interface SubmitAnswerPayload {
@@ -115,14 +117,14 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const { username, avatar, userId } = payload;
+      const { username, avatar, userId, totalQuestions } = payload;
 
       if (!username || username.trim().length === 0) {
         client.emit('roomError', { message: 'Username is required' });
         return;
       }
 
-      const room = this.roomService.createRoom(client.id, username.trim(), avatar || '👤', userId);
+      const room = this.roomService.createRoom(client.id, username.trim(), avatar || '👤', userId, totalQuestions);
 
       // Join the socket.io room channel
       await client.join(room.roomCode);
@@ -135,6 +137,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
           hostId: room.hostId,
           players: room.players,
           status: room.status,
+          totalQuestions: room.totalQuestions,
         },
       });
 
@@ -195,6 +198,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
           hostId: room.hostId,
           players: room.players,
           status: room.status,
+          totalQuestions: room.totalQuestions,
         },
       });
 
@@ -219,7 +223,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const { roomCode, subject, difficulty } = payload;
+      const { roomCode, subject, difficulty, totalQuestions } = payload;
       const { room, error } = this.roomService.startGame(roomCode, client.id);
 
       if (error) {
@@ -228,7 +232,7 @@ export class BrainrushGateway implements OnGatewayConnection, OnGatewayDisconnec
       }
 
       // Initialize the authoritative game loop
-      await this.gameService.startGame(roomCode, subject || 'Programming', difficulty || 'medium');
+      await this.gameService.startGame(roomCode, subject || 'Programming', difficulty || 'medium', totalQuestions || room.totalQuestions);
 
       this.logger.log(`Game started in room ${roomCode}`);
     } catch (err) {

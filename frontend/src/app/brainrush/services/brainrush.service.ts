@@ -12,8 +12,8 @@ export class BrainrushService {
   constructor(private http: HttpClient) { }
 
   // ── NestJS backend ────────────────────────
-  createRoom(mode: string, topic: string, difficulty: string): Observable<any> {
-    return this.http.post(`${this.nestUrl}/create-room`, { mode, topic, difficulty });
+  createRoom(mode: string, topic: string, difficulty: string, totalQuestions: number = 10): Observable<any> {
+    return this.http.post(`${this.nestUrl}/create-room`, { mode, topic, difficulty, totalQuestions });
   }
 
   joinRoom(roomCode: string): Observable<any> {

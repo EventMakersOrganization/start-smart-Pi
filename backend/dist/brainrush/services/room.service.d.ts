@@ -30,6 +30,7 @@ export interface Room {
     hostId: string;
     players: RoomPlayer[];
     status: 'waiting' | 'playing' | 'finished';
+    totalQuestions: number;
     createdAt: Date;
     gameState?: MultiplayerGameState;
 }
@@ -38,7 +39,7 @@ export declare class RoomService {
     private socketToRoom;
     private readonly logger;
     private generateCode;
-    createRoom(socketId: string, username: string, avatar: string, userId?: string): Room;
+    createRoom(socketId: string, username: string, avatar: string, userId?: string, totalQuestions?: number): Room;
     joinRoom(roomCode: string, socketId: string, username: string, avatar: string, userId?: string): {
         room: Room;
         error?: string;

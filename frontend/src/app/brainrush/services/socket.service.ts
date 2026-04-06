@@ -17,6 +17,7 @@ export interface RoomData {
   hostId: string;
   players: RoomPlayer[];
   status: 'waiting' | 'playing';
+  totalQuestions: number;
 }
 
 // ── Service ───────────────────────────────────────────────────────────────
@@ -63,8 +64,8 @@ export class SocketService implements OnDestroy {
   // ── Emit events ─────────────────────────────────────────────────────────
 
   /** Host: create a new room */
-  createRoom(username: string, avatar: string, userId?: string): void {
-    this.socket?.emit('createRoom', { username, avatar, userId });
+  createRoom(username: string, avatar: string, userId?: string, totalQuestions: number = 10): void {
+    this.socket?.emit('createRoom', { username, avatar, userId, totalQuestions });
   }
 
   /** Guest: join an existing room */
@@ -73,8 +74,8 @@ export class SocketService implements OnDestroy {
   }
 
   /** Host: start the game */
-  startGame(roomCode: string, subject: string, difficulty: string): void {
-    this.socket?.emit('startGame', { roomCode, subject, difficulty });
+  startGame(roomCode: string, subject: string, difficulty: string, totalQuestions?: number): void {
+    this.socket?.emit('startGame', { roomCode, subject, difficulty, totalQuestions });
   }
 
   /** Multiplayer: submit an answer for the current synchronized question */
