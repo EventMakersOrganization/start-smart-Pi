@@ -9,6 +9,45 @@ export class AiService {
 
   constructor(private readonly httpService: HttpService) { }
 
+  async generateSession(subject: string, difficulty: string, numQuestions: number = 10): Promise<any[]> {
+    try {
+      this.logger.log(`Calling AI generator for subject: ${subject}, difficulty: ${difficulty}, numQuestions: ${numQuestions}`);
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.AI_SERVICE_URL}/brainrush/generate-session`, {
+          subject,
+          difficulty,
+          num_questions: numQuestions
+        })
+      );
+
+      this.logger.log(`AI response received. Status: ${response.status}`);
+      const rawQuestions = response.data.questions || [];
+      return rawQuestions.map((q: any, i: number) => ({
+        id: q.id || `q-${i}-${Date.now()}`,
+        text: q.question || q.text || q.questionText || 'Question',
+        options: q.options || [],
+        correctAnswer: q.correct_answer || q.correctAnswer || '',
+        explanation: q.explanation || '',
+        timeLimit: q.time_limit || q.timeLimit || 20,
+        points: q.points || 500
+      }));
+    } catch (error) {
+      this.logger.error('Failed to call Python generate-session, using fallback', error);
+      return Array.from({ length: numQuestions }).map((_, i) => {
+        const fb = this.getFallbackQuestion(difficulty, i);
+        return {
+          id: fb.id,
+          text: fb.text,
+          options: fb.options,
+          correctAnswer: fb.correctAnswer,
+          explanation: fb.explanation,
+          timeLimit: fb.timeLimit,
+          points: fb.points
+        };
+      });
+    }
+  }
+
   async generateQuestion(subject: string, difficulty: string): Promise<any> {
     try {
       const response = await firstValueFrom(
@@ -28,13 +67,17 @@ export class AiService {
       };
     } catch (error) {
       this.logger.error('Failed to call Python AI Service, using fallback', error);
-      return this.getFallbackQuestion(difficulty);
+      const fallback = this.getFallbackQuestion(difficulty);
+      return {
+        questionText: fallback.text,
+        options: fallback.options,
+        correctAnswer: fallback.correctAnswer
+      };
     }
   }
 
   async generateFeedback(strengths: string[], weaknesses: string[]): Promise<string> {
     try {
-      // Use the Chatbot endpoint with a specific instruction for feedback
       const response = await firstValueFrom(
         this.httpService.post(`${this.AI_SERVICE_URL}/chatbot/ask`, {
           question: `Analyse mes résultats : points forts (${strengths.join(', ')}), points faibles (${weaknesses.join(', ')}). Donne-moi un conseil court et encourageant.`,
@@ -48,11 +91,21 @@ export class AiService {
     }
   }
 
-  private getFallbackQuestion(difficulty: string) {
+  private getFallbackQuestion(difficulty: string, index = 0) {
+    const fallbacks = [
+      { q: 'What is the capital of France?', options: ['Paris', 'Lyon', 'Marseille'], ans: 'Paris' },
+      { q: 'What is 10 + 10?', options: ['15', '20', '25'], ans: '20' },
+      { q: 'Which language is used for Web?', options: ['C++', 'HTML', 'Cobol'], ans: 'HTML' }
+    ];
+    const picked = fallbacks[index % fallbacks.length];
     return {
-      questionText: 'What is the capital of France? (Fallback)',
-      options: ['London', 'Berlin', 'Paris', 'Madrid'],
-      correctAnswer: 'Paris',
+      id: `fallback-${index}-${Date.now()}`,
+      text: picked.q + ' (Fallback)',
+      options: picked.options,
+      correctAnswer: picked.ans,
+      explanation: 'General knowledge fallback.',
+      timeLimit: 20,
+      points: 20
     };
   }
 }

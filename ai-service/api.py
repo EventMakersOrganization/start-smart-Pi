@@ -3872,7 +3872,7 @@ async def get_learning_state(student_id: str):
     try:
         state = student_state_store.get_state(student_id)
         if not state:
-            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+            return {"status": "success", "learning_state": {}}
         return {"status": "success", "learning_state": state}
     except HTTPException:
         raise
@@ -3975,7 +3975,13 @@ async def analytics_learning(student_id: str):
     try:
         state = student_state_store.get_state(student_id)
         if not state:
-            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+            return {
+                "status": "success",
+                "daily_progress": [],
+                "concepts": {"strengths": [], "weaknesses": []},
+                "pace": {"current": "steady", "trend": []},
+                "predicted_success": 0.0
+            }
         recs = continuous_recommender.recommend(state, n_results=5)
         return {
             "status": "success",
@@ -3997,7 +4003,7 @@ async def analytics_pace(student_id: str):
     try:
         state = student_state_store.get_state(student_id)
         if not state:
-            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+            return {"status": "success", "current": "steady", "trend": []}
         return {"status": "success", **learning_analytics_service.pace_trend(state)}
     except HTTPException:
         raise
@@ -4012,7 +4018,7 @@ async def analytics_concepts(student_id: str):
     try:
         state = student_state_store.get_state(student_id)
         if not state:
-            raise HTTPException(status_code=404, detail="Learning state not found for this student")
+            return {"status": "success", "strengths": [], "weaknesses": []}
         return {"status": "success", **learning_analytics_service.concept_strengths_weaknesses(state)}
     except HTTPException:
         raise

@@ -425,11 +425,12 @@ def generate_level_test_question(
         else:
             c_guidance = "Pour le sujet C: évite les questions génériques; utilise des règles/syntaxes concrètes."
 
+    c_text = f"C guidance: {c_guidance}\n" if c_guidance else ""
     prompt = (
         f"{base_prompt}\n\n"
         f"COURSE CONTENT (from ChromaDB / course database via RAG):\n{course_content}\n\n"
         f"Return STRICT JSON only (no markdown fences).\n"
-        f"{'C guidance: ' + c_guidance + '\\n' if c_guidance else ''}"
+        f"{c_text}"
     )
 
     invalid_json_count = 0
@@ -506,7 +507,7 @@ def generate_multiple_questions(subject, difficulty="medium", num_questions=5, t
     prompt = prompt_templates.get_multiple_questions_prompt(subject, difficulty, num_questions, topics_str)
     try:
         print(f"[question_generator] generate_multiple_questions: subject={subject}, n={num_questions}")
-        response = langchain_ollama.generate_response(prompt)
+        response = langchain_ollama.generate_fast(prompt)
         if not response:
             return []
         data = parse_json_response(response)

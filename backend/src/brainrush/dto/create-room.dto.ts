@@ -12,4 +12,7 @@ export class CreateRoomDto {
   @IsString()
   @IsNotEmpty()
   difficulty: string;
+
+  @IsNotEmpty()
+  totalQuestions: number;
 }

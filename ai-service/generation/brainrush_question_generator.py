@@ -1065,9 +1065,8 @@ class BrainRushQuestionGenerator:
         try:
             course_content = _fetch_brainrush_context(self.rag_service, subject, topic, course_id_hint)
             if len(course_content.strip()) < MIN_BRAINRUSH_CONTEXT_CHARS:
-                raise BrainRushGroundingError(
-                    "Insufficient retrieved course content for BrainRush MCQ; widen subject or re-embed materials."
-                )
+                # Relaxed Mode: If no RAG content is found, use LLM knowledge for this question.
+                course_content = f"(Aucun support de cours trouvé. Utilise tes connaissances générales sur {subject}/{topic} pour générer cette question.)"
 
             if use_gamified:
                 for attempt in range(_MAX_MCQ_ATTEMPTS):
@@ -1184,9 +1183,8 @@ class BrainRushQuestionGenerator:
         try:
             course_content = _fetch_brainrush_context(self.rag_service, subject, topic, course_id_hint)
             if len(course_content.strip()) < MIN_BRAINRUSH_CONTEXT_CHARS:
-                raise BrainRushGroundingError(
-                    "Insufficient retrieved course content for BrainRush True/False; widen subject or re-embed materials."
-                )
+                # Relaxed Mode: If no RAG content is found, use LLM knowledge for this question.
+                course_content = f"(Aucun support de cours trouvé. Utilise tes connaissances générales sur {subject}/{topic} pour générer cette question.)"
 
             if use_gamified:
                 for attempt in range(_MAX_TF_ATTEMPTS):
@@ -1325,9 +1323,8 @@ class BrainRushQuestionGenerator:
         try:
             course_content = _fetch_brainrush_context(self.rag_service, subject, topic, course_id_hint)
             if len(course_content.strip()) < MIN_BRAINRUSH_CONTEXT_CHARS:
-                raise BrainRushGroundingError(
-                    "Insufficient retrieved course content for BrainRush DragDrop; widen subject or re-embed materials."
-                )
+                # Relaxed Mode: If no RAG content is found, use LLM knowledge for this question.
+                course_content = f"(Aucun support de cours trouvé. Utilise tes connaissances générales sur {subject}/{topic} pour générer cette question.)"
 
             for attempt in range(_MAX_DD_ATTEMPTS):
                 prompt = _build_gamified_dd_prompt(
