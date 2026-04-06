@@ -23,13 +23,27 @@ const student_performance_schema_1 = require("./schemas/student-performance.sche
 const recommendation_schema_1 = require("./schemas/recommendation.schema");
 const level_test_schema_1 = require("./schemas/level-test.schema");
 const question_schema_1 = require("./schemas/question.schema");
+const chat_ai_schema_1 = require("../chat/schemas/chat-ai.schema");
+const chat_instructor_schema_1 = require("../chat/schemas/chat-instructor.schema");
+const chat_room_schema_1 = require("../chat/schemas/chat-room.schema");
+const chat_message_schema_1 = require("../chat/schemas/chat-message.schema");
+const score_schema_1 = require("../brainrush/schemas/score.schema");
+const player_session_schema_1 = require("../brainrush/schemas/player-session.schema");
+const goal_settings_schema_1 = require("./schemas/goal-settings.schema");
 let AdaptiveLearningService = AdaptiveLearningService_1 = class AdaptiveLearningService {
-    constructor(profileModel, performanceModel, recommendationModel, levelTestModel, questionModel) {
+    constructor(profileModel, performanceModel, recommendationModel, levelTestModel, questionModel, chatAiModel, chatInstructorModel, chatRoomModel, chatMessageModel, scoreModel, playerSessionModel, goalSettingsModel) {
         this.profileModel = profileModel;
         this.performanceModel = performanceModel;
         this.recommendationModel = recommendationModel;
         this.levelTestModel = levelTestModel;
         this.questionModel = questionModel;
+        this.chatAiModel = chatAiModel;
+        this.chatInstructorModel = chatInstructorModel;
+        this.chatRoomModel = chatRoomModel;
+        this.chatMessageModel = chatMessageModel;
+        this.scoreModel = scoreModel;
+        this.playerSessionModel = playerSessionModel;
+        this.goalSettingsModel = goalSettingsModel;
         this.logger = new common_1.Logger(AdaptiveLearningService_1.name);
         this.aiServiceBaseUrl = process.env.AI_SERVICE_URL || "http://localhost:8000";
     }
@@ -64,6 +78,548 @@ let AdaptiveLearningService = AdaptiveLearningService_1 = class AdaptiveLearning
     }
     async deleteProfile(userId) {
         await this.profileModel.findOneAndDelete({ userId }).exec();
+    }
+    async getGoalSettings(studentId) {
+        const goal = await this.goalSettingsModel.findOne({ studentId }).lean();
+        return goal || null;
+    }
+    async saveGoalSettings(studentId, goals) {
+        const updateDoc = {
+            studyHoursPerWeek: Number(goals?.studyHoursPerWeek ?? 8),
+            targetTopic: String(goals?.targetTopic || "general"),
+            targetScorePerTopic: Number(goals?.targetScorePerTopic ?? 75),
+            exercisesPerDay: Number(goals?.exercisesPerDay ?? 2),
+            targetLevel: String(goals?.targetLevel || "intermediate"),
+            deadline: String(goals?.deadline || ""),
+        };
+        const updated = await this.goalSettingsModel
+            .findOneAndUpdate({ studentId }, {
+            $set: updateDoc,
+            $setOnInsert: {
+                studentId,
+            },
+        }, {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+        })
+            .lean();
+        return updated;
+    }
+    async resetGoalSettings(studentId) {
+        await this.goalSettingsModel.deleteOne({ studentId }).exec();
+    }
+    async getUnifiedStudentProfile(studentId) {
+        const [profile, performances, levelTest, velocity, spacedRepetition, learningStyle, learningPath, achievementBadges, gameScores, playerSessions, chatSessions,] = await Promise.all([
+            this.profileModel
+                .findOne({ userId: studentId })
+                .exec()
+                .catch(() => null),
+            this.performanceModel
+                .find({ studentId })
+                .sort({ attemptDate: -1 })
+                .exec()
+                .catch(() => []),
+            this.levelTestModel
+                .findOne({ studentId, status: "completed" })
+                .sort({ completedAt: -1, createdAt: -1 })
+                .exec()
+                .catch(() => null),
+            this.getLearningVelocity(studentId).catch(() => null),
+            this.getSpacedRepetitionSchedule(studentId).catch(() => null),
+            this.detectLearningStyle(studentId).catch(() => null),
+            this.getLearningPath(studentId).catch(() => []),
+            this.getAchievementBadges(studentId).catch(() => null),
+            this.scoreModel
+                .find({ userId: studentId })
+                .sort({ createdAt: -1 })
+                .exec()
+                .catch(() => []),
+            this.playerSessionModel
+                .find({ userId: studentId })
+                .sort({ createdAt: -1 })
+                .exec()
+                .catch(() => []),
+            Promise.all([
+                this.chatAiModel
+                    .find({ student: studentId })
+                    .select("_id")
+                    .lean()
+                    .exec()
+                    .catch(() => []),
+                this.chatInstructorModel
+                    .find({ participants: studentId })
+                    .select("_id")
+                    .lean()
+                    .exec()
+                    .catch(() => []),
+                this.chatRoomModel
+                    .find({ participants: studentId })
+                    .select("_id")
+                    .lean()
+                    .exec()
+                    .catch(() => []),
+            ]).then(([ai, instructor, rooms]) => ({ ai, instructor, rooms })),
+        ]);
+        const chatSessionIds = [
+            ...(chatSessions.ai || []).map((session) => session._id),
+            ...(chatSessions.instructor || []).map((session) => session._id),
+            ...(chatSessions.rooms || []).map((session) => session._id),
+        ].filter(Boolean);
+        const chatMessages = chatSessionIds.length > 0
+            ? await this.chatMessageModel
+                .find({
+                $or: [
+                    { sessionType: "ChatAi", sessionId: { $in: chatSessionIds } },
+                    {
+                        sessionType: "ChatInstructor",
+                        sessionId: { $in: chatSessionIds },
+                    },
+                    { sessionType: "ChatRoom", sessionId: { $in: chatSessionIds } },
+                ],
+            })
+                .sort({ createdAt: -1 })
+                .lean()
+                .exec()
+                .catch(() => [])
+            : [];
+        const exerciseSummary = this.summarizeExercisePerformance(performances);
+        const gameSummary = this.summarizeGameInteractions(gameScores, playerSessions);
+        const chatSummary = this.summarizeChatInteractions(chatSessions, chatMessages);
+        const totalInteractions = exerciseSummary.attempts +
+            gameSummary.sessions +
+            chatSummary.messages +
+            (levelTest ? 1 : 0);
+        return {
+            studentId,
+            profile,
+            summary: {
+                currentLevel: profile?.level || levelTest?.resultLevel || "beginner",
+                progress: Number(profile?.progress ?? levelTest?.totalScore ?? 0) || 0,
+                strengths: Array.isArray(profile?.strengths) ? profile.strengths : [],
+                weaknesses: Array.isArray(profile?.weaknesses)
+                    ? profile.weaknesses
+                    : [],
+                riskLevel: String(profile?.risk_level || "LOW"),
+                totalInteractions,
+            },
+            sources: {
+                exercises: exerciseSummary,
+                game: gameSummary,
+                chat: chatSummary,
+                levelTest: {
+                    completed: !!levelTest,
+                    totalScore: Number(levelTest?.totalScore ?? 0) || 0,
+                    resultLevel: levelTest?.resultLevel || profile?.level || "beginner",
+                    completedAt: levelTest?.completedAt || null,
+                },
+            },
+            analytics: {
+                learningVelocity: velocity,
+                spacedRepetition,
+                learningStyle,
+                learningPath,
+                achievementBadges,
+            },
+            adaptivePath: this.buildAdaptivePath(performances, profile, levelTest, gameScores, chatSummary),
+        };
+    }
+    async getStudentComparisonAnalytics(studentId) {
+        const [allProfiles, allPerformances, targetProfile] = await Promise.all([
+            this.profileModel
+                .find()
+                .exec()
+                .catch(() => []),
+            this.performanceModel
+                .find()
+                .exec()
+                .catch(() => []),
+            this.profileModel
+                .findOne({ userId: studentId })
+                .exec()
+                .catch(() => null),
+        ]);
+        const allStudents = this.buildComparisonMetrics(allProfiles, allPerformances);
+        const targetMetrics = allStudents.find((student) => student.studentId === studentId) ||
+            this.buildComparisonMetrics([targetProfile], allPerformances).find((student) => student.studentId === studentId);
+        const comparisonBase = targetMetrics || {
+            studentId,
+            averageScore: 0,
+            completionRate: 0,
+            totalTimeSpent: 0,
+            streak: 0,
+            topicScores: {},
+        };
+        const totalStudents = allStudents.length;
+        const betterOrEqual = allStudents.filter((student) => student.averageScore >= comparisonBase.averageScore).length;
+        const rankingPercentile = totalStudents > 0
+            ? Math.round(((totalStudents - betterOrEqual + 1) / totalStudents) * 100)
+            : 0;
+        const classAverage = this.calculateComparisonAverage(allStudents);
+        return {
+            studentId,
+            rankingPercentile,
+            totalStudents,
+            student: {
+                averageScore: comparisonBase.averageScore,
+                completionRate: comparisonBase.completionRate,
+                totalTimeSpent: comparisonBase.totalTimeSpent,
+                streak: comparisonBase.streak,
+            },
+            classAverage,
+            topStrengths: Object.entries(comparisonBase.topicScores || {})
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([topic]) => topic),
+            focusTopics: (targetProfile?.weaknesses || []).slice(0, 3),
+        };
+    }
+    summarizeExercisePerformance(performances) {
+        const attempts = Array.isArray(performances) ? performances : [];
+        const completed = attempts.filter((item) => Number(item?.score) >= 70).length;
+        const averageScore = attempts.length
+            ? Math.round((attempts.reduce((sum, item) => sum + (Number(item?.score) || 0), 0) /
+                attempts.length) *
+                100) / 100
+            : 0;
+        const topicMap = new Map();
+        attempts.forEach((item) => {
+            const topic = String(item?.topic || "general").trim() || "general";
+            const entry = topicMap.get(topic) || { attempts: 0, total: 0 };
+            entry.attempts += 1;
+            entry.total += Number(item?.score) || 0;
+            topicMap.set(topic, entry);
+        });
+        return {
+            attempts: attempts.length,
+            completed,
+            averageScore,
+            byTopic: Array.from(topicMap.entries())
+                .map(([topic, stat]) => ({
+                topic,
+                attempts: stat.attempts,
+                averageScore: stat.attempts > 0
+                    ? Math.round((stat.total / stat.attempts) * 100) / 100
+                    : 0,
+            }))
+                .sort((a, b) => b.attempts - a.attempts),
+        };
+    }
+    summarizeGameInteractions(gameScores, playerSessions) {
+        const scores = Array.isArray(gameScores) ? gameScores : [];
+        const sessions = Array.isArray(playerSessions) ? playerSessions : [];
+        const averageScore = scores.length
+            ? Math.round((scores.reduce((sum, item) => sum + (Number(item?.score) || 0), 0) /
+                scores.length) *
+                100) / 100
+            : 0;
+        const totalTimeSpent = scores.reduce((sum, item) => sum + (Number(item?.timeSpent) || 0), 0);
+        return {
+            sessions: Math.max(scores.length, sessions.length),
+            averageScore,
+            totalTimeSpent,
+        };
+    }
+    summarizeChatInteractions(chatSessions, chatMessages) {
+        const sessionCount = (chatSessions?.ai?.length || 0) +
+            (chatSessions?.instructor?.length || 0) +
+            (chatSessions?.rooms?.length || 0);
+        const messageCount = Array.isArray(chatMessages) ? chatMessages.length : 0;
+        return {
+            sessions: sessionCount,
+            messages: messageCount,
+        };
+    }
+    buildAdaptivePath(performances, profile, levelTest, gameScores, chatSummary) {
+        const topicMap = new Map();
+        (performances || []).forEach((item) => {
+            const topic = String(item?.topic || "general").trim() || "general";
+            const entry = topicMap.get(topic) || { score: 0, attempts: 0 };
+            entry.score += Number(item?.score) || 0;
+            entry.attempts += 1;
+            topicMap.set(topic, entry);
+        });
+        const levelTopics = Array.isArray(levelTest?.detectedWeaknesses)
+            ? levelTest.detectedWeaknesses
+                .map((item) => String(item?.topic || "").trim())
+                .filter(Boolean)
+            : [];
+        const gamePressure = (gameScores || []).filter((item) => Number(item?.score) < 70).length;
+        const chatEngagement = chatSummary.messages > 0;
+        const path = Array.from(topicMap.entries())
+            .map(([topic, stat]) => {
+            const averageScore = stat.attempts > 0 ? stat.score / stat.attempts : 0;
+            const levelWeak = (profile?.weaknesses || []).includes(topic) ||
+                levelTopics.includes(topic);
+            const priority = levelWeak || averageScore < 60
+                ? "high"
+                : averageScore < 75
+                    ? "medium"
+                    : "low";
+            return {
+                topic,
+                priority,
+                reason: levelWeak
+                    ? `Marked as a weakness in profile or level test.`
+                    : `Based on exercise average of ${Math.round(averageScore)}%.`,
+                recommendedActions: [
+                    `Complete 3 targeted exercises on ${topic}`,
+                    chatEngagement
+                        ? `Ask the AI tutor 1 focused question about ${topic}`
+                        : `Review a short lesson on ${topic}`,
+                    gamePressure > 0
+                        ? `Use a game round to practice ${topic}`
+                        : `Repeat one assessment for ${topic}`,
+                ],
+            };
+        })
+            .sort((a, b) => {
+            const order = { high: 0, medium: 1, low: 2 };
+            return order[a.priority] - order[b.priority];
+        });
+        if (path.length === 0) {
+            return [
+                {
+                    topic: profile?.level || "general",
+                    priority: "medium",
+                    reason: "Insufficient interaction data yet, using current level as guidance.",
+                    recommendedActions: [
+                        "Complete a few exercises",
+                        "Review the level test results",
+                        "Open a chat session if you need help",
+                    ],
+                },
+            ];
+        }
+        return path.slice(0, 6);
+    }
+    buildComparisonMetrics(allProfiles, allPerformances) {
+        const performancesByStudent = new Map();
+        (allPerformances || []).forEach((performance) => {
+            const studentId = String(performance?.studentId || "").trim();
+            if (!studentId)
+                return;
+            const list = performancesByStudent.get(studentId) || [];
+            list.push(performance);
+            performancesByStudent.set(studentId, list);
+        });
+        const metrics = [];
+        (allProfiles || []).forEach((profile) => {
+            const studentId = String(profile?.userId || "").trim();
+            if (!studentId)
+                return;
+            const studentPerformances = performancesByStudent.get(studentId) || [];
+            const summary = this.summarizeComparisonStudent(studentId, profile, studentPerformances);
+            metrics.push(summary);
+            performancesByStudent.delete(studentId);
+        });
+        performancesByStudent.forEach((studentPerformances, studentId) => {
+            metrics.push(this.summarizeComparisonStudent(studentId, null, studentPerformances));
+        });
+        return metrics;
+    }
+    summarizeComparisonStudent(studentId, profile, performances) {
+        const scores = (performances || []).map((item) => Number(item?.score) || 0);
+        const averageScore = scores.length
+            ? Math.round((scores.reduce((sum, score) => sum + score, 0) /
+                scores.length) *
+                100) / 100
+            : Number(profile?.progress ?? 0) || 0;
+        const completionRate = scores.length
+            ? Math.round((scores.filter((score) => score >= 70).length /
+                scores.length) *
+                10000) / 100
+            : Number(profile?.progress ?? 0) || 0;
+        const totalTimeSpent = Math.round((performances || []).reduce((sum, item) => sum + (Number(item?.timeSpent) || 0), 0));
+        const topicScores = {};
+        const topicMap = new Map();
+        (performances || []).forEach((item) => {
+            const topic = String(item?.topic || "general").trim() || "general";
+            const entry = topicMap.get(topic) || { total: 0, count: 0 };
+            entry.total += Number(item?.score) || 0;
+            entry.count += 1;
+            topicMap.set(topic, entry);
+        });
+        topicMap.forEach((entry, topic) => {
+            topicScores[topic] =
+                entry.count > 0
+                    ? Math.round((entry.total / entry.count) * 100) / 100
+                    : 0;
+        });
+        return {
+            studentId,
+            averageScore,
+            completionRate,
+            totalTimeSpent,
+            streak: this.computeStreakFromPerformances(performances),
+            topicScores,
+        };
+    }
+    calculateComparisonAverage(allStudents) {
+        if (!allStudents.length) {
+            return {
+                averageScore: 0,
+                completionRate: 0,
+                totalTimeSpent: 0,
+                streak: 0,
+            };
+        }
+        return {
+            averageScore: Math.round((allStudents.reduce((sum, student) => sum + student.averageScore, 0) /
+                allStudents.length) *
+                100) / 100,
+            completionRate: Math.round((allStudents.reduce((sum, student) => sum + student.completionRate, 0) /
+                allStudents.length) *
+                100) / 100,
+            totalTimeSpent: Math.round(allStudents.reduce((sum, student) => sum + student.totalTimeSpent, 0) /
+                allStudents.length),
+            streak: Math.round((allStudents.reduce((sum, student) => sum + student.streak, 0) /
+                allStudents.length) *
+                100) / 100,
+        };
+    }
+    computeStreakFromPerformances(performances) {
+        if (!performances || performances.length === 0) {
+            return 0;
+        }
+        const uniqueDays = new Set();
+        performances.forEach((performance) => {
+            if (!performance?.attemptDate)
+                return;
+            const date = new Date(performance.attemptDate);
+            if (Number.isNaN(date.getTime()))
+                return;
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+            uniqueDays.add(key);
+        });
+        if (!uniqueDays.size) {
+            return 0;
+        }
+        const sortedDays = Array.from(uniqueDays)
+            .map((day) => new Date(`${day}T00:00:00.000Z`))
+            .sort((a, b) => b.getTime() - a.getTime());
+        let streak = 1;
+        for (let i = 1; i < sortedDays.length; i++) {
+            const diffDays = Math.round((sortedDays[i - 1].getTime() - sortedDays[i].getTime()) /
+                (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                streak += 1;
+            }
+            else {
+                break;
+            }
+        }
+        return streak;
+    }
+    async syncProfileFromAiLevelTest(studentId, aiProfile, sessionId, levelTestResult) {
+        const userId = String(studentId || "").trim();
+        if (!userId) {
+            throw new common_1.NotFoundException("studentId is required");
+        }
+        const profile = aiProfile || {};
+        const level = profile?.overall_level === "advanced" ||
+            profile?.overall_level === "intermediate" ||
+            profile?.overall_level === "beginner"
+            ? profile.overall_level
+            : "beginner";
+        const progressRaw = Number(profile?.overall_mastery ?? profile?.totalScore ?? 0);
+        const progress = Math.max(0, Math.min(100, Number.isFinite(progressRaw) ? progressRaw : 0));
+        const strengths = Array.isArray(profile?.strengths)
+            ? profile.strengths
+                .map((item) => item?.title || item?.topic || item)
+                .filter((value) => typeof value === "string" && value.trim().length > 0)
+            : [];
+        const weaknesses = Array.isArray(profile?.weaknesses)
+            ? profile.weaknesses
+                .map((item) => item?.title || item?.topic || item)
+                .filter((value) => typeof value === "string" && value.trim().length > 0)
+            : [];
+        const riskLevel = progress >= 70 ? "LOW" : progress >= 40 ? "MEDIUM" : "HIGH";
+        const updated = await this.profileModel
+            .findOneAndUpdate({ userId }, {
+            $set: {
+                level,
+                progress,
+                strengths,
+                weaknesses,
+                levelTestCompleted: true,
+                risk_level: riskLevel,
+            },
+            $setOnInsert: {
+                userId,
+                academic_level: "N/A",
+                points_gamification: 0,
+            },
+        }, {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+        })
+            .exec();
+        try {
+            const result = levelTestResult || {};
+            const questions = Array.isArray(result?.questions)
+                ? result.questions.map((q, idx) => ({
+                    questionText: String(q?.questionText || `Question ${idx + 1}`),
+                    options: Array.isArray(q?.options) ? q.options : [],
+                    correctAnswer: String(q?.correctAnswer || ""),
+                    topic: String(q?.topic || "General"),
+                    difficulty: String(q?.difficulty || "beginner"),
+                }))
+                : [];
+            const answers = Array.isArray(result?.answers)
+                ? result.answers.map((a, idx) => ({
+                    questionIndex: Number.isFinite(Number(a?.questionIndex))
+                        ? Number(a.questionIndex)
+                        : idx,
+                    selectedAnswer: String(a?.selectedAnswer || ""),
+                    isCorrect: !!a?.isCorrect,
+                    timeSpent: Number.isFinite(Number(a?.timeSpent))
+                        ? Number(a.timeSpent)
+                        : 0,
+                }))
+                : [];
+            const detectedStrengths = Array.isArray(result?.detectedStrengths)
+                ? result.detectedStrengths
+                : [];
+            const detectedWeaknesses = Array.isArray(result?.detectedWeaknesses)
+                ? result.detectedWeaknesses
+                : [];
+            const totalScore = Math.max(0, Math.min(100, Number(result?.totalScore ??
+                profile?.overall_mastery ??
+                profile?.progress ??
+                0) || 0));
+            const resultLevel = result?.resultLevel || profile?.overall_level || level || "beginner";
+            const hasMeaningfulData = questions.length > 0 ||
+                answers.length > 0 ||
+                totalScore > 0 ||
+                detectedStrengths.length > 0 ||
+                detectedWeaknesses.length > 0;
+            if (hasMeaningfulData) {
+                const levelTest = new this.levelTestModel({
+                    studentId: userId,
+                    questions,
+                    answers,
+                    totalScore,
+                    resultLevel,
+                    detectedStrengths,
+                    detectedWeaknesses,
+                    status: "completed",
+                    completedAt: new Date(),
+                });
+                await levelTest.save();
+            }
+        }
+        catch (error) {
+            this.logger.warn(`Level-test result snapshot persistence skipped for ${userId}: ${error?.message || "unknown error"}`);
+        }
+        try {
+            await this.generateInitialRecommendationsFromLevelTest(userId, profile);
+        }
+        catch (error) {
+            this.logger.warn(`Initial recommendations auto-generation skipped for ${userId}${sessionId ? ` (session ${sessionId})` : ""}: ${error?.message || "unknown error"}`);
+        }
+        return updated;
     }
     async createPerformance(dto) {
         const performance = new this.performanceModel(dto);
@@ -2663,20 +3219,51 @@ let AdaptiveLearningService = AdaptiveLearningService_1 = class AdaptiveLearning
             .exec();
         return test ? test.toObject() : null;
     }
-    async generateInitialRecommendationsFromLevelTest(studentId) {
+    async generateInitialRecommendationsFromLevelTest(studentId, levelTestProfile) {
         const levelTest = await this.levelTestModel
             .findOne({ studentId, status: "completed" })
             .sort({ completedAt: -1, createdAt: -1 })
             .exec();
-        if (!levelTest) {
-            throw new common_1.NotFoundException(`No completed level test found for student ${studentId}`);
-        }
         const profile = await this.profileModel
             .findOne({ userId: studentId })
             .exec();
-        const currentLevel = levelTest.resultLevel || "beginner";
-        const sortedWeaknesses = levelTest.detectedWeaknesses?.sort((a, b) => a.score - b.score) || [];
-        const sortedStrengths = levelTest.detectedStrengths?.sort((a, b) => b.score - a.score) || [];
+        if (!levelTest && !levelTestProfile) {
+            throw new common_1.NotFoundException(`No completed level test found for student ${studentId}`);
+        }
+        const aiProfile = levelTestProfile || {};
+        const mapTopicRows = (rows, fallbackScore) => (Array.isArray(rows) ? rows : [])
+            .map((row) => {
+            const topic = String(row?.topic || row?.title || "").trim();
+            if (!topic)
+                return null;
+            const rawScore = Number(row?.score ?? row?.mastery ?? fallbackScore);
+            const score = Math.max(0, Math.min(100, Number.isFinite(rawScore) ? rawScore : fallbackScore));
+            const correct = Number.isFinite(Number(row?.correct))
+                ? Number(row.correct)
+                : Math.round((score / 100) * 5);
+            const total = Number.isFinite(Number(row?.total))
+                ? Number(row.total)
+                : 5;
+            return {
+                topic,
+                score,
+                correct,
+                total: total > 0 ? total : 5,
+            };
+        })
+            .filter(Boolean);
+        const currentLevel = levelTest?.resultLevel ||
+            aiProfile?.overall_level ||
+            profile?.level ||
+            "beginner";
+        const weaknessesBase = levelTest
+            ? levelTest.detectedWeaknesses || []
+            : mapTopicRows(aiProfile?.weaknesses || profile?.weaknesses || [], 45);
+        const sortedWeaknesses = [...weaknessesBase].sort((a, b) => Number(a?.score || 0) - Number(b?.score || 0));
+        const strengthsBase = levelTest
+            ? levelTest.detectedStrengths || []
+            : mapTopicRows(aiProfile?.strengths || profile?.strengths || [], 80);
+        const sortedStrengths = [...strengthsBase].sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0));
         await this.recommendationModel
             .deleteMany({
             studentId,
@@ -2722,7 +3309,7 @@ let AdaptiveLearningService = AdaptiveLearningService_1 = class AdaptiveLearning
         return {
             recommendations,
             source: "level-test",
-            levelTestScore: levelTest.totalScore || 0,
+            levelTestScore: Number(levelTest?.totalScore ?? aiProfile?.overall_mastery ?? 0),
             resultLevel: currentLevel,
             weaknessesAddressed,
             strengthsChallenged,
@@ -2738,7 +3325,21 @@ exports.AdaptiveLearningService = AdaptiveLearningService = AdaptiveLearningServ
     __param(2, (0, mongoose_1.InjectModel)(recommendation_schema_1.Recommendation.name)),
     __param(3, (0, mongoose_1.InjectModel)(level_test_schema_1.LevelTest.name)),
     __param(4, (0, mongoose_1.InjectModel)(question_schema_1.Question.name)),
+    __param(5, (0, mongoose_1.InjectModel)(chat_ai_schema_1.ChatAi.name)),
+    __param(6, (0, mongoose_1.InjectModel)(chat_instructor_schema_1.ChatInstructor.name)),
+    __param(7, (0, mongoose_1.InjectModel)(chat_room_schema_1.ChatRoom.name)),
+    __param(8, (0, mongoose_1.InjectModel)(chat_message_schema_1.ChatMessage.name)),
+    __param(9, (0, mongoose_1.InjectModel)(score_schema_1.Score.name)),
+    __param(10, (0, mongoose_1.InjectModel)(player_session_schema_1.PlayerSession.name)),
+    __param(11, (0, mongoose_1.InjectModel)(goal_settings_schema_1.GoalSettings.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
+        mongoose_2.Model,
+        mongoose_2.Model,
+        mongoose_2.Model,
+        mongoose_2.Model,
+        mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,

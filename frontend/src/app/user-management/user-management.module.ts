@@ -124,15 +124,13 @@ const routes: Routes = [
       },
       {
         path: 'assignments',
-        component: AssignmentsComponent,
-        canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        redirectTo: 'my-courses',
+        pathMatch: 'full',
       },
       {
         path: 'assignments/submission',
-        component: AssignmentSubmissionComponent,
-        canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        redirectTo: 'my-courses',
+        pathMatch: 'full',
       },
       {
         path: 'continue-learning/:courseId',

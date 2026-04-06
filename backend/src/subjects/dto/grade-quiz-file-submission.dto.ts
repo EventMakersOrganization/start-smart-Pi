@@ -1,4 +1,5 @@
 import {
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -17,4 +18,14 @@ export class GradeQuizFileSubmissionDto {
   @IsOptional()
   @IsString()
   teacherFeedback?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  correctAnswersCount?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  totalQuestionsCount?: number;
 }

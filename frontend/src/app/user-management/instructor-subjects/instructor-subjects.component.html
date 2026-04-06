@@ -946,6 +946,253 @@
               </div>
             </ng-template>
           </div>
+
+          <div
+            class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h3 class="text-lg font-black">Corrections Quiz Fichier</h3>
+                <p class="text-sm text-slate-500 mt-1">
+                  Ouvrez la remise, verifiez les reponses, puis saisissez:
+                  reponses correctes / nombre total de questions.
+                </p>
+              </div>
+              <span
+                class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary"
+              >
+                {{ getSelectedSubjectQuizFileSubmissions().length }} remise(s)
+              </span>
+            </div>
+
+            <div
+              *ngIf="loadingQuizFileSubmissions"
+              class="mt-4 text-sm text-slate-500"
+            >
+              Chargement des remises...
+            </div>
+
+            <div
+              *ngIf="
+                !loadingQuizFileSubmissions &&
+                !getSelectedSubjectQuizFileSubmissions().length
+              "
+              class="mt-4 text-sm text-slate-500"
+            >
+              Aucune remise de quiz fichier pour ce sujet.
+            </div>
+
+            <div
+              *ngIf="
+                !loadingQuizFileSubmissions &&
+                getSelectedSubjectQuizFileSubmissions().length
+              "
+              class="mt-4 space-y-3"
+            >
+              <article
+                *ngFor="
+                  let submission of getSelectedSubjectQuizFileSubmissions()
+                "
+                class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <div class="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <p
+                      class="text-xs font-semibold uppercase tracking-widest text-slate-400"
+                    >
+                      {{ submission.chapterTitle }} /
+                      {{ submission.subChapterTitle }}
+                    </p>
+                    <h4 class="mt-1 text-sm font-bold text-slate-900">
+                      {{ submission.quizTitle }}
+                    </h4>
+                    <button
+                      type="button"
+                      (click)="toggleSubmissionPreview(submission)"
+                      class="mt-1 text-xs text-blue-700 underline font-semibold"
+                    >
+                      Etudiant: {{ getStudentDisplayName(submission) }}
+                    </button>
+                    <p class="text-xs text-slate-500">
+                      Soumis le: {{ submission.submittedAt | date: "short" }}
+                    </p>
+                  </div>
+                  <span
+                    class="rounded-full px-2.5 py-1 text-[11px] font-bold"
+                    [ngClass]="
+                      submission.status === 'graded'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-amber-100 text-amber-700'
+                    "
+                  >
+                    {{
+                      submission.status === "graded" ? "Corrige" : "En attente"
+                    }}
+                  </span>
+                </div>
+
+                <div
+                  *ngIf="isSubmissionPreviewOpen(submission._id)"
+                  class="mt-3 rounded-lg border border-slate-200 bg-white p-3"
+                >
+                  <p
+                    *ngIf="quizFilePreviews[submission._id]?.loading"
+                    class="text-sm text-slate-500"
+                  >
+                    Chargement de la remise...
+                  </p>
+
+                  <p
+                    *ngIf="quizFilePreviews[submission._id]?.error"
+                    class="text-sm text-amber-700"
+                  >
+                    {{ quizFilePreviews[submission._id].error }}
+                  </p>
+
+                  <iframe
+                    *ngIf="
+                      quizFilePreviews[submission._id]?.type === 'pdf' &&
+                      quizFilePreviews[submission._id]?.url &&
+                      !quizFilePreviews[submission._id]?.loading
+                    "
+                    [attr.src]="quizFilePreviews[submission._id].url"
+                    class="w-full h-[520px] rounded border border-slate-200 bg-white"
+                    title="Apercu de la remise"
+                  ></iframe>
+
+                  <div
+                    *ngIf="
+                      quizFilePreviews[submission._id]?.type === 'docx' &&
+                      quizFilePreviews[submission._id]?.html &&
+                      !quizFilePreviews[submission._id]?.loading
+                    "
+                    class="prose prose-slate max-w-none"
+                    [innerHTML]="quizFilePreviews[submission._id].html"
+                  ></div>
+
+                  <p
+                    *ngIf="
+                      quizFilePreviews[submission._id]?.type === 'link' &&
+                      quizFilePreviews[submission._id]?.url &&
+                      !quizFilePreviews[submission._id]?.loading
+                    "
+                    class="text-sm text-slate-600"
+                  >
+                    Apercu direct indisponible. Utilisez le lien pour ouvrir le
+                    fichier.
+                  </p>
+                </div>
+
+                <div
+                  *ngIf="isSubmissionPreviewOpen(submission._id)"
+                  class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3"
+                >
+                  <input
+                    type="number"
+                    min="0"
+                    [ngModel]="
+                      getGradeFormForSubmission(submission._id)
+                        .correctAnswersCount
+                    "
+                    (ngModelChange)="
+                      getGradeFormForSubmission(
+                        submission._id
+                      ).correctAnswersCount = $event
+                    "
+                    placeholder="Reponses correctes"
+                    class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                    [disabled]="isSubmissionFormLocked(submission)"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    [ngModel]="
+                      getGradeFormForSubmission(submission._id)
+                        .totalQuestionsCount
+                    "
+                    (ngModelChange)="
+                      getGradeFormForSubmission(
+                        submission._id
+                      ).totalQuestionsCount = $event
+                    "
+                    placeholder="Nombre total de questions"
+                    class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                    [disabled]="isSubmissionFormLocked(submission)"
+                  />
+                  <div
+                    class="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white text-slate-700"
+                  >
+                    Note calculee:
+                    <span
+                      class="font-bold"
+                      *ngIf="getComputedQuizFileGrade(submission._id) !== null"
+                    >
+                      {{ getComputedQuizFileGrade(submission._id) }} / 100
+                    </span>
+                    <span
+                      class="text-amber-700"
+                      *ngIf="getComputedQuizFileGrade(submission._id) === null"
+                    >
+                      Valeurs invalides
+                    </span>
+                  </div>
+                </div>
+
+                <textarea
+                  *ngIf="isSubmissionPreviewOpen(submission._id)"
+                  [ngModel]="
+                    getGradeFormForSubmission(submission._id).teacherFeedback
+                  "
+                  (ngModelChange)="
+                    getGradeFormForSubmission(submission._id).teacherFeedback =
+                      $event
+                  "
+                  rows="2"
+                  placeholder="Feedback optionnel"
+                  class="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                  [disabled]="isSubmissionFormLocked(submission)"
+                ></textarea>
+
+                <div
+                  *ngIf="isSubmissionPreviewOpen(submission._id)"
+                  class="mt-3 flex items-center gap-3"
+                >
+                  <button
+                    (click)="gradeQuizFileSubmission(submission)"
+                    [disabled]="
+                      gradingQuizSubmissionId === submission._id ||
+                      isSubmissionFormLocked(submission)
+                    "
+                    class="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+                  >
+                    {{
+                      gradingQuizSubmissionId === submission._id
+                        ? "Enregistrement..."
+                        : isSubmissionFormLocked(submission)
+                          ? "Note envoyee"
+                          : "Envoyer la note"
+                    }}
+                  </button>
+                  <p
+                    class="text-xs text-slate-500"
+                    *ngIf="submission.status === 'graded'"
+                  >
+                    Derniere note: {{ submission.grade || 0 }}/100
+                    <span
+                      *ngIf="
+                        submission.correctAnswersCount !== undefined &&
+                        submission.totalQuestionsCount !== undefined
+                      "
+                    >
+                      ({{ submission.correctAnswersCount }}/{{
+                        submission.totalQuestionsCount
+                      }})
+                    </span>
+                  </p>
+                </div>
+              </article>
+            </div>
+          </div>
         </div>
 
         <div

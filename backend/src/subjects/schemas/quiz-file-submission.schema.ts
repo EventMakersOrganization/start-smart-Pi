@@ -50,6 +50,12 @@ export class QuizFileSubmission {
   @Prop({ default: null })
   teacherFeedback?: string;
 
+  @Prop({ default: null })
+  correctAnswersCount?: number;
+
+  @Prop({ default: null })
+  totalQuestionsCount?: number;
+
   @Prop({ type: Types.ObjectId, ref: "User", default: null })
   gradedBy?: Types.ObjectId;
 

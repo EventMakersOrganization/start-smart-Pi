@@ -55,6 +55,7 @@ interface SubchapterFolderItem {
   subtitle?: string;
   type: string;
   url?: string;
+  codeSnippet?: string;
   dueDate?: string;
   submissionInstructions?: string;
   quizId?: string;
@@ -87,6 +88,8 @@ interface QuizFileViewModel {
   responseFileName?: string;
   responseStatus?: 'pending' | 'graded';
   responseGrade?: number;
+  responseCorrectAnswersCount?: number;
+  responseTotalQuestionsCount?: number;
   responseFeedback?: string;
   dueDate?: string;
 }
@@ -99,6 +102,8 @@ interface QuizResultViewModel {
 interface QuizFileSubmissionViewModel {
   status: 'pending' | 'graded';
   grade?: number;
+  correctAnswersCount?: number;
+  totalQuestionsCount?: number;
   teacherFeedback?: string;
   submittedAt: string;
   responseFileUrl?: string;
@@ -227,6 +232,7 @@ export class MyCoursesComponent implements OnInit {
   quizFileResponseDocxError = '';
   quizReviewMode = false;
   quizAnswersById: Record<string, number[]> = {};
+  expandedCodeResources: Record<string, boolean> = {};
 
   constructor(
     private http: HttpClient,
@@ -271,6 +277,8 @@ export class MyCoursesComponent implements OnInit {
           this.quizFileSubmissionsById[submission.quizId] = {
             status: submission.status,
             grade: submission.grade,
+            correctAnswersCount: submission.correctAnswersCount,
+            totalQuestionsCount: submission.totalQuestionsCount,
             teacherFeedback: submission.teacherFeedback,
             submittedAt: submission.submittedAt,
             responseFileUrl: submission.responseFileUrl,
@@ -928,6 +936,13 @@ export class MyCoursesComponent implements OnInit {
     const fileSubmission = this.quizFileSubmissionsById[quizKey];
     if (fileSubmission) {
       if (fileSubmission.status === 'graded') {
+        if (
+          typeof fileSubmission.correctAnswersCount === 'number' &&
+          typeof fileSubmission.totalQuestionsCount === 'number' &&
+          fileSubmission.totalQuestionsCount > 0
+        ) {
+          return `Note ${fileSubmission.correctAnswersCount}/${fileSubmission.totalQuestionsCount}`;
+        }
         return `Note ${Number(fileSubmission.grade ?? 0)}/100`;
       }
       return 'Remise en attente';
@@ -1034,6 +1049,24 @@ export class MyCoursesComponent implements OnInit {
     }
 
     if (this.isQuizItem(item, folder)) {
+      const quizId = String(item?.quizId || '').trim();
+      const existingSubmission = quizId
+        ? this.quizFileSubmissionsById[quizId]
+        : undefined;
+      const feedback = quizId
+        ? String(
+            this.quizFileSubmissionsById[quizId]?.teacherFeedback || '',
+          ).trim()
+        : '';
+      if (feedback) {
+        return `Feedback: ${feedback}`;
+      }
+      if (existingSubmission) {
+        return existingSubmission.status === 'graded'
+          ? 'Feedback: Aucun commentaire du professeur.'
+          : 'Feedback: En attente de correction.';
+      }
+
       const quizQuestionCount = Array.isArray(item?.quizQuestions)
         ? item.quizQuestions.length
         : 0;
@@ -1050,6 +1083,20 @@ export class MyCoursesComponent implements OnInit {
       return fileName ? `Document du quiz: ${fileName}` : 'Quiz fichier';
     }
 
+    if (folder === 'ressources' && item.type === 'code') {
+      return 'Cliquez sur le titre pour afficher le code';
+    }
+
+    // For course files, keep only the human-readable title and hide raw URL/id-like subtitles.
+    if (folder === 'cours' && this.hasDownloadableUrl(item)) {
+      return null;
+    }
+
+    // For video resources, hide technical ids/urls and keep the readable title only.
+    if (folder === 'videos') {
+      return null;
+    }
+
     const subtitle = String(item?.subtitle || '').trim();
     if (!subtitle) {
       return null;
@@ -1063,6 +1110,41 @@ export class MyCoursesComponent implements OnInit {
     }
 
     return subtitle;
+  }
+
+  isCodeResourceItem(item: SubchapterFolderItem, folder: FolderKey): boolean {
+    return folder === 'ressources' && item.type === 'code';
+  }
+
+  getCodeResourceKey(
+    module: SubchapterContent,
+    moduleIndex: number,
+    item: SubchapterFolderItem,
+  ): string {
+    const itemKey = String(item.contentId || item.title || 'resource').trim();
+    return `${this.getSubchapterKey(module, moduleIndex)}::${itemKey}`;
+  }
+
+  toggleCodeResource(
+    module: SubchapterContent,
+    moduleIndex: number,
+    item: SubchapterFolderItem,
+  ): void {
+    const key = this.getCodeResourceKey(module, moduleIndex, item);
+    this.expandedCodeResources[key] = !this.expandedCodeResources[key];
+  }
+
+  isCodeResourceExpanded(
+    module: SubchapterContent,
+    moduleIndex: number,
+    item: SubchapterFolderItem,
+  ): boolean {
+    const key = this.getCodeResourceKey(module, moduleIndex, item);
+    return !!this.expandedCodeResources[key];
+  }
+
+  getCodeResourceContent(item: SubchapterFolderItem): string {
+    return String(item.codeSnippet || item.subtitle || '').trim();
   }
 
   isQuizItem(item: SubchapterFolderItem, folder: FolderKey): boolean {
@@ -1153,6 +1235,8 @@ export class MyCoursesComponent implements OnInit {
       responseFileName: existingSubmission?.responseFileName,
       responseStatus: existingSubmission?.status,
       responseGrade: existingSubmission?.grade,
+      responseCorrectAnswersCount: existingSubmission?.correctAnswersCount,
+      responseTotalQuestionsCount: existingSubmission?.totalQuestionsCount,
       responseFeedback: existingSubmission?.teacherFeedback,
       dueDate: item.dueDate,
     };
@@ -1300,6 +1384,8 @@ export class MyCoursesComponent implements OnInit {
         this.quizFileSubmissionsById[this.selectedQuizFile!.quizId] = {
           status: submission.status,
           grade: submission.grade,
+          correctAnswersCount: submission.correctAnswersCount,
+          totalQuestionsCount: submission.totalQuestionsCount,
           teacherFeedback: submission.teacherFeedback,
           submittedAt: submission.submittedAt,
           responseFileUrl: submission.responseFileUrl,
@@ -1641,9 +1727,16 @@ export class MyCoursesComponent implements OnInit {
             : String(content?.submissionInstructions || '').trim() ||
               String(content?.url || '').trim() ||
               'Quiz fichier (deposez votre reponse)'
-          : url || text,
+          : content?.type === 'code'
+            ? String(content?.codeSnippet || '').trim() ||
+              String(content?.submissionInstructions || '').trim() ||
+              String(content?.quizText || '').trim() ||
+              String(content?.url || '').trim() ||
+              ''
+            : url || text,
       type: String(content?.type || 'file'),
       url: url || undefined,
+      codeSnippet: String(content?.codeSnippet || '').trim() || undefined,
       dueDate: content?.dueDate,
       submissionInstructions: content?.submissionInstructions,
       quizId:

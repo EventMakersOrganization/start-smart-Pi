@@ -38,6 +38,15 @@ let AdaptiveLearningController = class AdaptiveLearningController {
     deleteProfile(userId) {
         return this.adaptiveService.deleteProfile(userId);
     }
+    getGoalSettings(studentId) {
+        return this.adaptiveService.getGoalSettings(studentId);
+    }
+    saveGoalSettings(studentId, goals) {
+        return this.adaptiveService.saveGoalSettings(studentId, goals);
+    }
+    resetGoalSettings(studentId) {
+        return this.adaptiveService.resetGoalSettings(studentId);
+    }
     createPerformance(dto) {
         return this.adaptiveService.createPerformance(dto);
     }
@@ -110,6 +119,12 @@ let AdaptiveLearningController = class AdaptiveLearningController {
     findRecommendationsByStudent(studentId) {
         return this.adaptiveService.findRecommendationsByStudent(studentId);
     }
+    getUnifiedStudentProfile(studentId) {
+        return this.adaptiveService.getUnifiedStudentProfile(studentId);
+    }
+    getStudentComparisonAnalytics(studentId) {
+        return this.adaptiveService.getStudentComparisonAnalytics(studentId);
+    }
     findRecommendationById(id) {
         return this.adaptiveService.findRecommendationById(id);
     }
@@ -139,6 +154,9 @@ let AdaptiveLearningController = class AdaptiveLearningController {
     }
     findLatestCompletedLevelTest(studentId) {
         return this.adaptiveService.findLatestCompletedLevelTestByStudent(studentId);
+    }
+    syncProfileFromAiLevelTest(studentId, body) {
+        return this.adaptiveService.syncProfileFromAiLevelTest(studentId, body?.profile, body?.sessionId, body?.levelTestResult);
     }
 };
 exports.AdaptiveLearningController = AdaptiveLearningController;
@@ -177,6 +195,28 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "deleteProfile", null);
+__decorate([
+    (0, common_1.Get)("goals/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getGoalSettings", null);
+__decorate([
+    (0, common_1.Put)("goals/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "saveGoalSettings", null);
+__decorate([
+    (0, common_1.Delete)("goals/:studentId"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "resetGoalSettings", null);
 __decorate([
     (0, common_1.Post)("performances"),
     __param(0, (0, common_1.Body)()),
@@ -346,6 +386,20 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findRecommendationsByStudent", null);
 __decorate([
+    (0, common_1.Get)("students/:studentId/unified-profile"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getUnifiedStudentProfile", null);
+__decorate([
+    (0, common_1.Get)("students/:studentId/comparison"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "getStudentComparisonAnalytics", null);
+__decorate([
     (0, common_1.Get)("recommendations/:id"),
     __param(0, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
@@ -416,6 +470,14 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdaptiveLearningController.prototype, "findLatestCompletedLevelTest", null);
+__decorate([
+    (0, common_1.Post)("level-test/student/:studentId/sync-profile"),
+    __param(0, (0, common_1.Param)("studentId")),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdaptiveLearningController.prototype, "syncProfileFromAiLevelTest", null);
 exports.AdaptiveLearningController = AdaptiveLearningController = __decorate([
     (0, common_1.Controller)("adaptive"),
     __metadata("design:paramtypes", [adaptive_learning_service_1.AdaptiveLearningService])

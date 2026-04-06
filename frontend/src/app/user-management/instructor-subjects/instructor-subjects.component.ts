@@ -5,6 +5,10 @@ import { firstValueFrom } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../auth.service';
 import {
+  QuizFileSubmissionResponse,
+  QuizSubmissionService,
+} from '../quiz-submission.service';
+import {
   SubjectItem,
   SubjectChapter,
   SubjectChapterContent,
@@ -44,6 +48,20 @@ interface QuizQuestionFormModel {
   question: string;
   options: string[];
   correctOptionIndex: number | null;
+}
+
+interface QuizFileGradeFormModel {
+  correctAnswersCount: number | null;
+  totalQuestionsCount: number | null;
+  teacherFeedback: string;
+}
+
+interface QuizFilePreviewState {
+  loading: boolean;
+  error: string;
+  html: string;
+  url: string | null;
+  type: string;
 }
 
 @Component({
@@ -95,6 +113,12 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   selectedChapterFile: File | null = null;
   selectedQuizFile: File | null = null;
   uploadingChapterFile = false;
+  loadingQuizFileSubmissions = false;
+  gradingQuizSubmissionId: string | null = null;
+  instructorQuizFileSubmissions: QuizFileSubmissionResponse[] = [];
+  quizFileGradeForms: Record<string, QuizFileGradeFormModel> = {};
+  expandedQuizSubmissionId: string | null = null;
+  quizFilePreviews: Record<string, QuizFilePreviewState> = {};
 
   private subjectsApiUrl = 'http://localhost:3000/api/subjects';
 
@@ -135,6 +159,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private authService: AuthService,
     private subjectsService: SubjectsService,
+    private quizSubmissionService: QuizSubmissionService,
   ) {}
 
   ngOnInit(): void {
@@ -194,6 +219,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     this.subjectsService.getSubject(subjectId).subscribe({
       next: (subject) => {
         this.selectedSubject = this.normalizeContentFolders(subject);
+        this.loadInstructorQuizFileSubmissions();
         this.expandedChapterOrder = null;
         this.expandedSubChapterKey = null;
         this.chapterForm = {
@@ -207,6 +233,220 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         this.loadingSubject = false;
       },
     });
+  }
+
+  private loadInstructorQuizFileSubmissions(): void {
+    this.loadingQuizFileSubmissions = true;
+    this.quizSubmissionService.getInstructorQuizFileSubmissions().subscribe({
+      next: (rows) => {
+        this.instructorQuizFileSubmissions = Array.isArray(rows) ? rows : [];
+        for (const row of this.instructorQuizFileSubmissions) {
+          this.quizFileGradeForms[row._id] = {
+            correctAnswersCount:
+              typeof row.correctAnswersCount === 'number'
+                ? row.correctAnswersCount
+                : null,
+            totalQuestionsCount:
+              typeof row.totalQuestionsCount === 'number'
+                ? row.totalQuestionsCount
+                : null,
+            teacherFeedback: String(row.teacherFeedback || ''),
+          };
+        }
+        this.loadingQuizFileSubmissions = false;
+      },
+      error: () => {
+        this.loadingQuizFileSubmissions = false;
+      },
+    });
+  }
+
+  getSelectedSubjectQuizFileSubmissions(): QuizFileSubmissionResponse[] {
+    const currentSubjectTitle = String(
+      this.selectedSubject?.title || '',
+    ).trim();
+    if (!currentSubjectTitle) {
+      return [];
+    }
+
+    return this.instructorQuizFileSubmissions.filter(
+      (row) => String(row.subjectTitle || '').trim() === currentSubjectTitle,
+    );
+  }
+
+  getGradeFormForSubmission(submissionId: string): QuizFileGradeFormModel {
+    if (!this.quizFileGradeForms[submissionId]) {
+      this.quizFileGradeForms[submissionId] = {
+        correctAnswersCount: null,
+        totalQuestionsCount: null,
+        teacherFeedback: '',
+      };
+    }
+    return this.quizFileGradeForms[submissionId];
+  }
+
+  getStudentDisplayName(submission: QuizFileSubmissionResponse): string {
+    const student = submission.studentId;
+    if (typeof student === 'string') {
+      return 'Etudiant';
+    }
+
+    const firstName = String(student?.first_name || '').trim();
+    const lastName = String(student?.last_name || '').trim();
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || String(student?.email || 'Etudiant').trim();
+  }
+
+  toggleSubmissionPreview(submission: QuizFileSubmissionResponse): void {
+    const submissionId = submission._id;
+    const isOpen = this.expandedQuizSubmissionId === submissionId;
+    this.expandedQuizSubmissionId = isOpen ? null : submissionId;
+
+    if (isOpen) {
+      return;
+    }
+
+    if (!this.quizFilePreviews[submissionId]) {
+      this.quizFilePreviews[submissionId] = {
+        loading: false,
+        error: '',
+        html: '',
+        url: submission.responseFileUrl,
+        type: String(
+          submission.responseMimeType || submission.responseFileName || '',
+        ).toLowerCase(),
+      };
+    }
+
+    void this.loadSubmissionPreview(submission);
+  }
+
+  isSubmissionPreviewOpen(submissionId: string): boolean {
+    return this.expandedQuizSubmissionId === submissionId;
+  }
+
+  private async loadSubmissionPreview(
+    submission: QuizFileSubmissionResponse,
+  ): Promise<void> {
+    const submissionId = submission._id;
+    const preview = (this.quizFilePreviews[submissionId] ||= {
+      loading: false,
+      error: '',
+      html: '',
+      url: submission.responseFileUrl,
+      type: String(
+        submission.responseMimeType || submission.responseFileName || '',
+      ).toLowerCase(),
+    });
+
+    preview.loading = true;
+    preview.error = '';
+    preview.html = '';
+    preview.url = submission.responseFileUrl;
+
+    try {
+      const response = await fetch(submission.responseFileUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const contentType = String(
+        response.headers.get('content-type') || '',
+      ).toLowerCase();
+      const fileName = String(submission.responseFileName || '').toLowerCase();
+      const isPdf = contentType.includes('pdf') || fileName.endsWith('.pdf');
+      const isDocx =
+        contentType.includes('officedocument') || fileName.endsWith('.docx');
+
+      if (isPdf) {
+        preview.type = 'pdf';
+        preview.url = submission.responseFileUrl;
+      } else if (isDocx) {
+        preview.type = 'docx';
+        const arrayBuffer = await response.arrayBuffer();
+        const mammothModule: any = await import('mammoth/mammoth.browser');
+        const result = await mammothModule.convertToHtml({ arrayBuffer });
+        preview.html = String(result?.value || '').trim();
+        if (!preview.html) {
+          preview.error = 'Apercu indisponible pour ce document DOCX.';
+        }
+      } else {
+        preview.type = 'link';
+        preview.url = submission.responseFileUrl;
+      }
+    } catch (error: any) {
+      preview.error = error?.message || 'Impossible de charger la remise.';
+    } finally {
+      preview.loading = false;
+    }
+  }
+
+  getComputedQuizFileGrade(submissionId: string): number | null {
+    const form = this.getGradeFormForSubmission(submissionId);
+    const correct = Number(form.correctAnswersCount);
+    const total = Number(form.totalQuestionsCount);
+    if (!Number.isFinite(correct) || !Number.isFinite(total) || total <= 0) {
+      return null;
+    }
+    if (correct < 0 || correct > total) {
+      return null;
+    }
+    return Math.round((correct / total) * 10000) / 100;
+  }
+
+  isSubmissionFormLocked(submission: QuizFileSubmissionResponse): boolean {
+    return submission.status === 'graded';
+  }
+
+  gradeQuizFileSubmission(submission: QuizFileSubmissionResponse): void {
+    const form = this.getGradeFormForSubmission(submission._id);
+    const computedGrade = this.getComputedQuizFileGrade(submission._id);
+
+    if (computedGrade === null) {
+      this.error =
+        'Saisissez un nombre valide de reponses correctes et de questions totales.';
+      return;
+    }
+
+    this.gradingQuizSubmissionId = submission._id;
+    this.error = '';
+
+    this.quizSubmissionService
+      .gradeQuizFileSubmission(submission._id, {
+        grade: computedGrade,
+        teacherFeedback: String(form.teacherFeedback || '').trim() || undefined,
+        correctAnswersCount: Number(form.correctAnswersCount),
+        totalQuestionsCount: Number(form.totalQuestionsCount),
+      })
+      .subscribe({
+        next: (updated) => {
+          this.instructorQuizFileSubmissions =
+            this.instructorQuizFileSubmissions.map((row) =>
+              row._id === updated._id ? updated : row,
+            );
+          this.quizFileGradeForms[updated._id] = {
+            correctAnswersCount:
+              typeof updated.correctAnswersCount === 'number'
+                ? updated.correctAnswersCount
+                : Number(form.correctAnswersCount),
+            totalQuestionsCount:
+              typeof updated.totalQuestionsCount === 'number'
+                ? updated.totalQuestionsCount
+                : Number(form.totalQuestionsCount),
+            teacherFeedback: String(
+              updated.teacherFeedback || form.teacherFeedback || '',
+            ),
+          };
+          this.gradingQuizSubmissionId = null;
+        },
+        error: (err) => {
+          this.error =
+            err?.error?.message ||
+            err?.error?.detail ||
+            'Impossible de noter cette remise.';
+          this.gradingQuizSubmissionId = null;
+        },
+      });
   }
 
   goToSubject(subjectId: string): void {

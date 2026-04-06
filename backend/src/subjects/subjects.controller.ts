@@ -473,8 +473,14 @@ export class SubjectsController {
   @ApiOperation({
     summary: "Get all quiz-file submissions for instructor review",
   })
-  getInstructorQuizFileSubmissions() {
-    return this.subjectsService.getInstructorQuizFileSubmissions();
+  getInstructorQuizFileSubmissions(@Req() req: any) {
+    const instructorId = req?.user?.id || req?.user?.userId || req?.user?._id;
+    if (!instructorId) {
+      throw new BadRequestException("Instructor ID not found in request");
+    }
+    return this.subjectsService.getInstructorQuizFileSubmissions(
+      String(instructorId),
+    );
   }
 
   @Put("quiz-file-submissions/:submissionId/grade")

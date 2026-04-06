@@ -36,6 +36,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   adaptiveProfile: any = null;
   learningState: any = null;
   recommendations: any[] = [];
+  recommendationsLoading = false;
+  recommendationsError = '';
   performances: any[] = [];
   adaptiveLoading = true;
   adaptivePace = 'unknown';
@@ -215,9 +217,11 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   studyGroupsAnalyzed = 0;
   learningStyleInsight: any | null = null;
   adaptiveInsightsLoading = false;
+  adaptiveInsightsError = '';
 
   // Topic scores pour les progress rings
   topicRings: any[] = [];
+  learningProgressPeriod: 'weekly' | 'monthly' = 'weekly';
 
   suggestedCourses: any[] = [];
 
@@ -322,20 +326,247 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   private mapRecommendationCards(recommendations: any[]): any[] {
-    return (recommendations || []).slice(0, 3).map((rec, index) => ({
-      title: rec?.title || rec?.name || `Recommendation ${index + 1}`,
-      reason:
+    return (recommendations || []).slice(0, 6).map((rec, index) => {
+      const title = this.cleanRecommendationText(
+        rec?.title || rec?.subject || rec?.topic || rec?.name,
+      );
+
+      const reason = this.cleanRecommendationText(
         rec?.rationale ||
-        rec?.reason ||
-        rec?.description ||
-        'Updated from your latest progress.',
-      level: rec?.type || rec?.category || 'Adaptive',
-      duration: rec?.estimated_effort_hours
-        ? `${rec.estimated_effort_hours}h effort`
-        : rec?.success_probability !== undefined
-          ? `${Math.round(Number(rec.success_probability) * 100)}% success`
-          : 'Live update',
+          rec?.reason ||
+          rec?.description ||
+          rec?.relevant_material_preview ||
+          rec?.action,
+      );
+
+      const successProbability = this.normalizePercent(
+        rec?.predicted_success_probability ?? rec?.success_probability,
+      );
+      const effortHours = Number(rec?.estimated_effort_hours);
+
+      return {
+        id: rec?._id || rec?.id || `rec-${index}`,
+        title: title || `Recommendation ${index + 1}`,
+        reason: reason || 'Updated from your latest progress.',
+        level: this.cleanRecommendationText(
+          rec?.priority ||
+            rec?.type ||
+            rec?.category ||
+            rec?.suggestedDifficulty,
+        ),
+        duration:
+          Number.isFinite(effortHours) && effortHours > 0
+            ? `${effortHours}h effort`
+            : `${successProbability}% success`,
+      };
+    });
+  }
+
+  private cleanRecommendationText(value: unknown): string {
+    const raw = String(value || '').trim();
+    if (!raw) {
+      return '';
+    }
+
+    let cleaned = raw
+      .replace(/undefined/gi, '')
+      .replace(/\(\s*\/\s*correct\s*\)/gi, '')
+      .replace(/\(\s*\/\s*\)/g, '')
+      .replace(/\(\s*correct\s*\)/gi, '')
+      .replace(/\(\s*\)/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    cleaned = cleaned.replace(/^[-:;,\s]+/, '').replace(/[-:;,\s]+$/, '');
+    return cleaned;
+  }
+
+  getLearningStyleConfidencePercent(): number {
+    return this.normalizePercent(this.learningStyleInsight?.confidence);
+  }
+
+  formatCompatibilityScore(score: unknown): string {
+    const value = Number(score);
+    if (!Number.isFinite(value)) {
+      return '0';
+    }
+    if (Math.abs(value - Math.round(value)) < 0.01) {
+      return String(Math.round(value));
+    }
+    return value.toFixed(2).replace(/\.00$/, '');
+  }
+
+  formatGroupTypeLabel(groupType: unknown): string {
+    const raw = String(groupType || '')
+      .trim()
+      .toLowerCase();
+    if (!raw) {
+      return 'unknown';
+    }
+    if (raw === 'mixed') {
+      return 'mixed';
+    }
+    if (raw === 'advanced') {
+      return 'advanced';
+    }
+    if (raw === 'remediation') {
+      return 'remediation';
+    }
+    return raw;
+  }
+
+  private normalizeCollaborativeRecommendations(items: any[]): any[] {
+    return (items || []).map((rec: any) => ({
+      topic: this.cleanRecommendationText(rec?.topic || rec?.name || 'General'),
+      reason: this.cleanRecommendationText(
+        rec?.reason || rec?.rationale || rec?.description,
+      ),
+      similarStudentsCount: Number(
+        rec?.similarStudentsCount ?? rec?.similar_students_count ?? 0,
+      ),
+      averageSuccessRate: this.normalizePercent(
+        rec?.averageSuccessRate ?? rec?.average_success_rate ?? 0,
+      ),
+      suggestedDifficulty: this.cleanRecommendationText(
+        rec?.suggestedDifficulty || rec?.suggested_difficulty || 'adaptive',
+      ),
     }));
+  }
+
+  private normalizeStudyGroupSuggestions(groups: any[]): any[] {
+    return (groups || []).map((group: any) => ({
+      groupName: this.cleanRecommendationText(
+        group?.groupName || group?.group_name || 'Study Group',
+      ),
+      groupType: this.formatGroupTypeLabel(
+        group?.groupType || group?.group_type,
+      ),
+      commonTopics: Array.isArray(group?.commonTopics)
+        ? group.commonTopics
+        : Array.isArray(group?.common_topics)
+          ? group.common_topics
+          : [],
+      compatibilityScore: Number(
+        group?.compatibilityScore ?? group?.compatibility_score ?? 0,
+      ),
+    }));
+  }
+
+  private normalizeLearningStyleInsight(style: any): any | null {
+    if (!style || typeof style !== 'object') {
+      return null;
+    }
+
+    return {
+      ...style,
+      primaryStyle:
+        style?.primaryStyle || style?.primary_style || 'Learning style pending',
+      secondaryStyle: style?.secondaryStyle || style?.secondary_style || null,
+      styleDescription:
+        style?.styleDescription ||
+        style?.style_description ||
+        'More performance data is needed for detailed learning style insights.',
+      learningTips: Array.isArray(style?.learningTips)
+        ? style.learningTips
+        : Array.isArray(style?.learning_tips)
+          ? style.learning_tips
+          : [],
+      confidence: this.normalizePercent(
+        style?.confidence ?? style?.confidence_score,
+      ),
+    };
+  }
+
+  private buildAiRecommendationProfile(userId: string): Record<string, any> {
+    const profile = this.adaptiveProfile || {};
+
+    const weakFromProfile = Array.isArray(profile?.weaknesses)
+      ? profile.weaknesses
+      : [];
+    const weakFromConcepts = Array.isArray(this.conceptWeaknesses)
+      ? this.conceptWeaknesses
+          .map((item: any) => String(item?.concept || '').trim())
+          .filter((item: string) => !!item)
+      : [];
+
+    const weaknesses = Array.from(
+      new Set([...weakFromProfile, ...weakFromConcepts]),
+    );
+    const sourceRecommendations = Array.isArray(profile?.recommendations)
+      ? profile.recommendations
+      : [];
+
+    const recommendations =
+      sourceRecommendations.length > 0
+        ? sourceRecommendations
+        : weaknesses.slice(0, 6).map((topic) => ({
+            subject: topic,
+            focus_topics: [topic],
+            priority: 'high',
+            rationale: `Reinforce ${topic} through guided practice.`,
+          }));
+
+    return {
+      ...profile,
+      student_id: userId,
+      weaknesses,
+      recommendations,
+    };
+  }
+
+  private loadRecommendationCards(userId: string): void {
+    this.recommendationsLoading = true;
+    this.recommendationsError = '';
+
+    const aiProfile = this.buildAiRecommendationProfile(userId);
+
+    this.adaptiveService
+      .getPersonalizedRecommendationsFromAi(aiProfile, 6)
+      .subscribe({
+        next: (result) => {
+          const aiContinuous = Array.isArray(result?.continuous_recommendations)
+            ? result.continuous_recommendations
+            : [];
+          const aiPersonalized = Array.isArray(result?.recommendations)
+            ? result.recommendations
+            : [];
+          const merged =
+            aiContinuous.length > 0 ? aiContinuous : aiPersonalized;
+
+          if (merged.length > 0) {
+            this.recommendations = merged;
+            this.suggestedCourses = this.mapRecommendationCards(merged);
+            this.recommendationsLoading = false;
+            this.updateAlerts();
+            return;
+          }
+
+          this.loadBackendRecommendationCards(userId);
+        },
+        error: () => {
+          this.loadBackendRecommendationCards(userId);
+        },
+      });
+  }
+
+  private loadBackendRecommendationCards(userId: string): void {
+    this.adaptiveService.getRecommendations(userId).subscribe({
+      next: (data) => {
+        this.recommendations = Array.isArray(data) ? data : [];
+        this.suggestedCourses = this.mapRecommendationCards(
+          this.recommendations,
+        );
+        this.recommendationsLoading = false;
+        this.updateAlerts();
+      },
+      error: () => {
+        this.recommendations = [];
+        this.suggestedCourses = [];
+        this.recommendationsLoading = false;
+        this.recommendationsError =
+          'Unable to load personalized recommendations.';
+      },
+    });
   }
 
   loadUserInfo(): void {
@@ -485,18 +716,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       error: () => {},
     });
 
-    // ── Charger recommandations ──
-    this.adaptiveService.getRecommendations(userId).subscribe({
-      next: (data) => {
-        this.recommendations = data;
-        this.suggestedCourses = this.mapRecommendationCards(data || []);
-        this.updateAlerts();
-      },
-      error: () => {
-        this.recommendations = [];
-        this.suggestedCourses = [];
-      },
-    });
+    // ── Charger recommandations (AI service + fallback backend) ──
+    this.loadRecommendationCards(userId);
   }
 
   private loadGoalSettingsForDashboard(studentId: string): void {
@@ -546,6 +767,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
 
     this.adaptiveInsightsLoading = true;
+    this.adaptiveInsightsError = '';
 
     forkJoin({
       collaborative: this.adaptiveService
@@ -570,16 +792,23 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: ({ collaborative, studyGroups, learningStyle }) => {
         this.collaborativeRecommendations =
-          collaborative?.recommendations || [];
+          this.normalizeCollaborativeRecommendations(
+            collaborative?.recommendations || [],
+          );
         this.collaborativeBasedOn = collaborative?.basedOn || '';
         this.collaborativeSimilarStudents =
           collaborative?.similarStudentsFound || 0;
 
-        this.studyGroupSuggestions = studyGroups?.suggestedGroups || [];
+        this.studyGroupSuggestions = this.normalizeStudyGroupSuggestions(
+          studyGroups?.suggestedGroups || [],
+        );
         this.studyGroupBestMatch = studyGroups?.bestMatch || null;
-        this.studyGroupsAnalyzed = studyGroups?.totalStudentsAnalyzed || 0;
+        this.studyGroupsAnalyzed = Number(
+          studyGroups?.totalStudentsAnalyzed || 0,
+        );
 
-        this.learningStyleInsight = learningStyle;
+        this.learningStyleInsight =
+          this.normalizeLearningStyleInsight(learningStyle);
         this.adaptiveInsightsLoading = false;
       },
       error: () => {
@@ -590,6 +819,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         this.studyGroupBestMatch = null;
         this.studyGroupsAnalyzed = 0;
         this.learningStyleInsight = null;
+        this.adaptiveInsightsError =
+          'Unable to load collaborative, group, and learning style insights.';
         this.adaptiveInsightsLoading = false;
       },
     });
@@ -1323,6 +1554,66 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return Math.max(0, Math.min(100, Math.round(pct)));
   }
 
+  onLearningProgressPeriodChange(period: string): void {
+    const normalized = String(period || '').toLowerCase();
+    this.learningProgressPeriod =
+      normalized === 'monthly' ? 'monthly' : 'weekly';
+    this.buildTopicRings();
+  }
+
+  getRingDashoffset(score: unknown): number {
+    const circumference = 2 * Math.PI * 40;
+    const pct = this.normalizePercent(score);
+    const offset = circumference * (1 - pct / 100);
+    return Math.round(offset * 10) / 10;
+  }
+
+  formatTopicRingName(name: unknown): string {
+    const raw = String(name || '').trim();
+    if (!raw) {
+      return 'GENERAL';
+    }
+    return raw.replace(/[_-]+/g, ' ').toUpperCase();
+  }
+
+  private parsePerformanceDate(performance: any): Date | null {
+    const raw =
+      performance?.attemptDate ||
+      performance?.createdAt ||
+      performance?.updatedAt ||
+      performance?.date;
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  private getPerformancesForSelectedPeriod(): any[] {
+    const source = Array.isArray(this.performances) ? this.performances : [];
+    if (!source.length) {
+      return [];
+    }
+
+    const now = Date.now();
+    const lookbackDays = this.learningProgressPeriod === 'monthly' ? 30 : 7;
+    const cutoff = now - lookbackDays * 24 * 60 * 60 * 1000;
+
+    return source.filter((performance: any) => {
+      const dt = this.parsePerformanceDate(performance);
+      if (!dt) {
+        // Keep undated records visible rather than silently dropping them.
+        return true;
+      }
+      return dt.getTime() >= cutoff;
+    });
+  }
+
   // ── Construit les anneaux par topic ──
   buildTopicRings(): void {
     const colors = [
@@ -1332,10 +1623,12 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       'text-purple-500',
     ];
 
-    if (this.performances.length > 0) {
+    const scopedPerformances = this.getPerformancesForSelectedPeriod();
+
+    if (scopedPerformances.length > 0) {
       // Grouper par topic
       const topicMap: Record<string, { total: number; count: number }> = {};
-      this.performances.forEach((p: any) => {
+      scopedPerformances.forEach((p: any) => {
         const t = p.topic || 'general';
         if (!topicMap[t]) topicMap[t] = { total: 0, count: 0 };
         topicMap[t].total += p.score;
@@ -1602,7 +1895,6 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       this.router.url.includes('/student-dashboard/my-courses') ||
       this.router.url.includes('/student-dashboard/performance') ||
       this.router.url.includes('/student-dashboard/learning-path') ||
-      this.router.url.includes('/student-dashboard/assignments') ||
       this.router.url.includes('/student-dashboard/continue-learning')
     );
   }
@@ -1640,11 +1932,6 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
     if (url.includes('/student-dashboard/learning-path')) {
       this.activeNav = 'learning-path';
-      return;
-    }
-
-    if (url.includes('/student-dashboard/assignments')) {
-      this.activeNav = 'assignments';
       return;
     }
 

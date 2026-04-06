@@ -431,9 +431,24 @@
                           >
                             {{ getQuizResultLabel(item) }}
                           </span>
-                          <p class="font-semibold text-slate-800">
+                          <button
+                            *ngIf="
+                              isCodeResourceItem(item, folder);
+                              else staticTitle
+                            "
+                            type="button"
+                            (click)="
+                              toggleCodeResource(module, moduleIndex, item)
+                            "
+                            class="font-semibold text-slate-800 underline text-left hover:text-blue-700"
+                          >
                             {{ item.title }}
-                          </p>
+                          </button>
+                          <ng-template #staticTitle>
+                            <p class="font-semibold text-slate-800">
+                              {{ item.title }}
+                            </p>
+                          </ng-template>
                         </div>
                       </ng-template>
                       <p
@@ -457,6 +472,14 @@
                       >
                         {{ getItemDisplaySubtitle(item, folder) }}
                       </p>
+
+                      <pre
+                        *ngIf="
+                          isCodeResourceItem(item, folder) &&
+                          isCodeResourceExpanded(module, moduleIndex, item)
+                        "
+                        class="mt-2 rounded-lg border border-slate-200 bg-slate-900 p-3 text-xs text-slate-100 overflow-x-auto whitespace-pre-wrap"
+                      ><code>{{ getCodeResourceContent(item) }}</code></pre>
 
                       <div *ngIf="folder === 'cours'" class="mt-2">
                         <div
@@ -511,6 +534,7 @@
                       <a
                         *ngIf="
                           folder !== 'cours' &&
+                          !isQuizItem(item, folder) &&
                           !isPrositItem(item, folder) &&
                           hasDownloadableUrl(item)
                         "
@@ -925,19 +949,51 @@
             </div>
             <div>
               <p class="font-semibold text-slate-800">Notation</p>
-              <p
-                class="text-slate-600"
+              <ng-container
                 *ngIf="
                   quizFileSubmissionsById[selectedQuizFile.quizId]?.status ===
                     'graded';
                   else pendingGrade
                 "
               >
-                Note:
-                {{
-                  quizFileSubmissionsById[selectedQuizFile.quizId]?.grade || 0
-                }}/100
-              </p>
+                <p
+                  class="text-slate-600"
+                  *ngIf="
+                    quizFileSubmissionsById[selectedQuizFile.quizId]
+                      ?.correctAnswersCount !== undefined &&
+                    quizFileSubmissionsById[selectedQuizFile.quizId]
+                      ?.correctAnswersCount !== null &&
+                    quizFileSubmissionsById[selectedQuizFile.quizId]
+                      ?.totalQuestionsCount
+                  "
+                >
+                  Note:
+                  {{
+                    quizFileSubmissionsById[selectedQuizFile.quizId]
+                      ?.correctAnswersCount
+                  }}/{{
+                    quizFileSubmissionsById[selectedQuizFile.quizId]
+                      ?.totalQuestionsCount
+                  }}
+                </p>
+                <p
+                  class="text-slate-600"
+                  *ngIf="
+                    quizFileSubmissionsById[selectedQuizFile.quizId]
+                      ?.correctAnswersCount === undefined ||
+                    quizFileSubmissionsById[selectedQuizFile.quizId]
+                      ?.correctAnswersCount === null ||
+                    !quizFileSubmissionsById[selectedQuizFile.quizId]
+                      ?.totalQuestionsCount
+                  "
+                >
+                  Note:
+                  {{
+                    quizFileSubmissionsById[selectedQuizFile.quizId]?.grade ||
+                      0
+                  }}/100
+                </p>
+              </ng-container>
               <ng-template #pendingGrade>
                 <p class="text-slate-600">
                   La note sera ajoutee apres correction par le professeur.

@@ -11,6 +11,9 @@ export declare class AdaptiveLearningController {
     findProfile(userId: string): Promise<import("../users/schemas/student-profile.schema").StudentProfile>;
     updateProfile(userId: string, updateData: any): Promise<import("../users/schemas/student-profile.schema").StudentProfile>;
     deleteProfile(userId: string): Promise<void>;
+    getGoalSettings(studentId: string): Promise<import("./schemas/goal-settings.schema").GoalSettings>;
+    saveGoalSettings(studentId: string, goals: any): Promise<import("./schemas/goal-settings.schema").GoalSettings>;
+    resetGoalSettings(studentId: string): Promise<void>;
     createPerformance(dto: CreateStudentPerformanceDto): Promise<import("./schemas/student-performance.schema").StudentPerformance & {
         adaptation?: any;
     }>;
@@ -235,6 +238,77 @@ export declare class AdaptiveLearningController {
     createRecommendation(dto: CreateRecommendationDto): Promise<import("./schemas/recommendation.schema").Recommendation>;
     findAllRecommendations(): Promise<import("./schemas/recommendation.schema").Recommendation[]>;
     findRecommendationsByStudent(studentId: string): Promise<import("./schemas/recommendation.schema").Recommendation[]>;
+    getUnifiedStudentProfile(studentId: string): Promise<{
+        studentId: string;
+        profile: import("../users/schemas/student-profile.schema").StudentProfile | null;
+        summary: {
+            currentLevel: string;
+            progress: number;
+            strengths: string[];
+            weaknesses: string[];
+            riskLevel: string;
+            totalInteractions: number;
+        };
+        sources: {
+            exercises: {
+                attempts: number;
+                completed: number;
+                averageScore: number;
+                byTopic: Array<{
+                    topic: string;
+                    attempts: number;
+                    averageScore: number;
+                }>;
+            };
+            game: {
+                sessions: number;
+                averageScore: number;
+                totalTimeSpent: number;
+            };
+            chat: {
+                sessions: number;
+                messages: number;
+            };
+            levelTest: {
+                completed: boolean;
+                totalScore: number;
+                resultLevel: string;
+                completedAt: Date | null;
+            };
+        };
+        analytics: {
+            learningVelocity: any;
+            spacedRepetition: any;
+            learningStyle: any;
+            learningPath: any;
+            achievementBadges: any;
+        };
+        adaptivePath: Array<{
+            topic: string;
+            priority: "high" | "medium" | "low";
+            reason: string;
+            recommendedActions: string[];
+        }>;
+    }>;
+    getStudentComparisonAnalytics(studentId: string): Promise<{
+        studentId: string;
+        rankingPercentile: number;
+        totalStudents: number;
+        student: {
+            averageScore: number;
+            completionRate: number;
+            totalTimeSpent: number;
+            streak: number;
+        };
+        classAverage: {
+            averageScore: number;
+            completionRate: number;
+            totalTimeSpent: number;
+            streak: number;
+        };
+        topStrengths: string[];
+        focusTopics: string[];
+    }>;
     findRecommendationById(id: string): Promise<import("./schemas/recommendation.schema").Recommendation>;
     markViewed(id: string): Promise<import("./schemas/recommendation.schema").Recommendation>;
     updateRecommendation(id: string, updateData: any): Promise<import("./schemas/recommendation.schema").Recommendation>;
@@ -247,4 +321,9 @@ export declare class AdaptiveLearningController {
     }): Promise<import("./schemas/level-test.schema").LevelTest>;
     findLevelTest(studentId: string): Promise<any>;
     findLatestCompletedLevelTest(studentId: string): Promise<any>;
+    syncProfileFromAiLevelTest(studentId: string, body: {
+        profile: any;
+        sessionId?: string;
+        levelTestResult?: any;
+    }): Promise<import("../users/schemas/student-profile.schema").StudentProfile>;
 }

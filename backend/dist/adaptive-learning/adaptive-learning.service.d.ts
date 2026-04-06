@@ -8,20 +8,117 @@ import { CreateStudentProfileDto } from "./dto/create-student-profile.dto";
 import { CreateStudentPerformanceDto } from "./dto/create-student-performance.dto";
 import { CreateRecommendationDto } from "./dto/create-recommendation.dto";
 import { CreateQuestionDto } from "./dto/create-question.dto";
+import { ChatAiDocument } from "../chat/schemas/chat-ai.schema";
+import { ChatInstructorDocument } from "../chat/schemas/chat-instructor.schema";
+import { ChatRoomDocument } from "../chat/schemas/chat-room.schema";
+import { ChatMessageDocument } from "../chat/schemas/chat-message.schema";
+import { ScoreDocument } from "../brainrush/schemas/score.schema";
+import { PlayerSessionDocument } from "../brainrush/schemas/player-session.schema";
+import { GoalSettings, GoalSettingsDocument } from "./schemas/goal-settings.schema";
 export declare class AdaptiveLearningService {
     private profileModel;
     private performanceModel;
     private recommendationModel;
     private levelTestModel;
     private questionModel;
+    private chatAiModel;
+    private chatInstructorModel;
+    private chatRoomModel;
+    private chatMessageModel;
+    private scoreModel;
+    private playerSessionModel;
+    private goalSettingsModel;
     private readonly logger;
     private readonly aiServiceBaseUrl;
-    constructor(profileModel: Model<StudentProfileDocument>, performanceModel: Model<StudentPerformanceDocument>, recommendationModel: Model<RecommendationDocument>, levelTestModel: Model<LevelTestDocument>, questionModel: Model<QuestionDocument>);
+    constructor(profileModel: Model<StudentProfileDocument>, performanceModel: Model<StudentPerformanceDocument>, recommendationModel: Model<RecommendationDocument>, levelTestModel: Model<LevelTestDocument>, questionModel: Model<QuestionDocument>, chatAiModel: Model<ChatAiDocument>, chatInstructorModel: Model<ChatInstructorDocument>, chatRoomModel: Model<ChatRoomDocument>, chatMessageModel: Model<ChatMessageDocument>, scoreModel: Model<ScoreDocument>, playerSessionModel: Model<PlayerSessionDocument>, goalSettingsModel: Model<GoalSettingsDocument>);
     createProfile(dto: CreateStudentProfileDto): Promise<StudentProfile>;
     findAllProfiles(): Promise<StudentProfile[]>;
     findProfileByUserId(userId: string): Promise<StudentProfile>;
     updateProfile(userId: string, updateData: Partial<StudentProfile>): Promise<StudentProfile>;
     deleteProfile(userId: string): Promise<void>;
+    getGoalSettings(studentId: string): Promise<GoalSettings | null>;
+    saveGoalSettings(studentId: string, goals: Partial<GoalSettings>): Promise<GoalSettings>;
+    resetGoalSettings(studentId: string): Promise<void>;
+    getUnifiedStudentProfile(studentId: string): Promise<{
+        studentId: string;
+        profile: StudentProfile | null;
+        summary: {
+            currentLevel: string;
+            progress: number;
+            strengths: string[];
+            weaknesses: string[];
+            riskLevel: string;
+            totalInteractions: number;
+        };
+        sources: {
+            exercises: {
+                attempts: number;
+                completed: number;
+                averageScore: number;
+                byTopic: Array<{
+                    topic: string;
+                    attempts: number;
+                    averageScore: number;
+                }>;
+            };
+            game: {
+                sessions: number;
+                averageScore: number;
+                totalTimeSpent: number;
+            };
+            chat: {
+                sessions: number;
+                messages: number;
+            };
+            levelTest: {
+                completed: boolean;
+                totalScore: number;
+                resultLevel: string;
+                completedAt: Date | null;
+            };
+        };
+        analytics: {
+            learningVelocity: any;
+            spacedRepetition: any;
+            learningStyle: any;
+            learningPath: any;
+            achievementBadges: any;
+        };
+        adaptivePath: Array<{
+            topic: string;
+            priority: "high" | "medium" | "low";
+            reason: string;
+            recommendedActions: string[];
+        }>;
+    }>;
+    getStudentComparisonAnalytics(studentId: string): Promise<{
+        studentId: string;
+        rankingPercentile: number;
+        totalStudents: number;
+        student: {
+            averageScore: number;
+            completionRate: number;
+            totalTimeSpent: number;
+            streak: number;
+        };
+        classAverage: {
+            averageScore: number;
+            completionRate: number;
+            totalTimeSpent: number;
+            streak: number;
+        };
+        topStrengths: string[];
+        focusTopics: string[];
+    }>;
+    private summarizeExercisePerformance;
+    private summarizeGameInteractions;
+    private summarizeChatInteractions;
+    private buildAdaptivePath;
+    private buildComparisonMetrics;
+    private summarizeComparisonStudent;
+    private calculateComparisonAverage;
+    private computeStreakFromPerformances;
+    syncProfileFromAiLevelTest(studentId: string, aiProfile: any, sessionId?: string, levelTestResult?: any): Promise<StudentProfile>;
     createPerformance(dto: CreateStudentPerformanceDto): Promise<StudentPerformance & {
         adaptation?: any;
     }>;
@@ -263,7 +360,7 @@ export declare class AdaptiveLearningService {
     submitLevelTest(id: string, answers: any[]): Promise<LevelTest>;
     findLevelTestByStudent(studentId: string): Promise<any>;
     findLatestCompletedLevelTestByStudent(studentId: string): Promise<any>;
-    generateInitialRecommendationsFromLevelTest(studentId: string): Promise<{
+    generateInitialRecommendationsFromLevelTest(studentId: string, levelTestProfile?: any): Promise<{
         recommendations: any[];
         source: string;
         levelTestScore: number;

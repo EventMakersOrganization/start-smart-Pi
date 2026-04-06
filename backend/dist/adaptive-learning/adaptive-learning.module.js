@@ -16,6 +16,13 @@ const student_performance_schema_1 = require("./schemas/student-performance.sche
 const recommendation_schema_1 = require("./schemas/recommendation.schema");
 const level_test_schema_1 = require("./schemas/level-test.schema");
 const question_schema_1 = require("./schemas/question.schema");
+const chat_ai_schema_1 = require("../chat/schemas/chat-ai.schema");
+const chat_instructor_schema_1 = require("../chat/schemas/chat-instructor.schema");
+const chat_room_schema_1 = require("../chat/schemas/chat-room.schema");
+const chat_message_schema_1 = require("../chat/schemas/chat-message.schema");
+const score_schema_1 = require("../brainrush/schemas/score.schema");
+const player_session_schema_1 = require("../brainrush/schemas/player-session.schema");
+const goal_settings_schema_1 = require("./schemas/goal-settings.schema");
 let AdaptiveLearningModule = class AdaptiveLearningModule {
 };
 exports.AdaptiveLearningModule = AdaptiveLearningModule;
@@ -25,25 +32,53 @@ exports.AdaptiveLearningModule = AdaptiveLearningModule = __decorate([
             mongoose_1.MongooseModule.forFeature([
                 {
                     name: student_profile_schema_1.StudentProfile.name,
-                    schema: student_profile_schema_1.StudentProfileSchema
+                    schema: student_profile_schema_1.StudentProfileSchema,
                 },
                 {
                     name: student_performance_schema_1.StudentPerformance.name,
-                    schema: student_performance_schema_1.StudentPerformanceSchema
+                    schema: student_performance_schema_1.StudentPerformanceSchema,
                 },
                 {
                     name: recommendation_schema_1.Recommendation.name,
-                    schema: recommendation_schema_1.RecommendationSchema
+                    schema: recommendation_schema_1.RecommendationSchema,
                 },
                 {
                     name: level_test_schema_1.LevelTest.name,
-                    schema: level_test_schema_1.LevelTestSchema
+                    schema: level_test_schema_1.LevelTestSchema,
                 },
                 {
                     name: question_schema_1.Question.name,
-                    schema: question_schema_1.QuestionSchema
-                }
-            ])
+                    schema: question_schema_1.QuestionSchema,
+                },
+                {
+                    name: chat_ai_schema_1.ChatAi.name,
+                    schema: chat_ai_schema_1.ChatAiSchema,
+                },
+                {
+                    name: chat_instructor_schema_1.ChatInstructor.name,
+                    schema: chat_instructor_schema_1.ChatInstructorSchema,
+                },
+                {
+                    name: chat_room_schema_1.ChatRoom.name,
+                    schema: chat_room_schema_1.ChatRoomSchema,
+                },
+                {
+                    name: chat_message_schema_1.ChatMessage.name,
+                    schema: chat_message_schema_1.ChatMessageSchema,
+                },
+                {
+                    name: score_schema_1.Score.name,
+                    schema: score_schema_1.ScoreSchema,
+                },
+                {
+                    name: player_session_schema_1.PlayerSession.name,
+                    schema: player_session_schema_1.PlayerSessionSchema,
+                },
+                {
+                    name: goal_settings_schema_1.GoalSettings.name,
+                    schema: goal_settings_schema_1.GoalSettingsSchema,
+                },
+            ]),
         ],
         controllers: [adaptive_learning_controller_1.AdaptiveLearningController],
         providers: [adaptive_learning_service_1.AdaptiveLearningService],

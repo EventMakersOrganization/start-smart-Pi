@@ -288,6 +288,14 @@ export interface InterventionsEffectivenessGlobalResponse {
   message?: string;
 }
 
+export interface PersonalizedRecommendationsAiResponse {
+  status: string;
+  overall_level?: string;
+  overall_mastery?: number;
+  recommendations?: any[];
+  continuous_recommendations?: any[];
+}
+
 export interface EvaluateAnswerRequest {
   question: Record<string, any>;
   student_answer: string;
@@ -543,6 +551,19 @@ export class AdaptiveLearningService {
   getRecommendations(studentId: string): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.apiUrl}/recommendations/student/${studentId}`,
+    );
+  }
+
+  getPersonalizedRecommendationsFromAi(
+    studentProfile: Record<string, any>,
+    nResults = 5,
+  ): Observable<PersonalizedRecommendationsAiResponse> {
+    return this.http.post<PersonalizedRecommendationsAiResponse>(
+      `${this.aiServiceUrl}/recommendations/personalized`,
+      {
+        student_profile: studentProfile || {},
+        n_results: nResults,
+      },
     );
   }
 

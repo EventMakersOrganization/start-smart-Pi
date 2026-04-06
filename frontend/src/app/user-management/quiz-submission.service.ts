@@ -36,9 +36,16 @@ interface QuizSubmissionResponse {
   updatedAt?: string;
 }
 
-interface QuizFileSubmissionResponse {
+export interface QuizFileSubmissionResponse {
   _id: string;
-  studentId: string;
+  studentId:
+    | string
+    | {
+        _id?: string;
+        first_name?: string;
+        last_name?: string;
+        email?: string;
+      };
   quizId: string;
   quizTitle: string;
   subjectTitle: string;
@@ -50,8 +57,17 @@ interface QuizFileSubmissionResponse {
   status: 'pending' | 'graded';
   grade?: number;
   teacherFeedback?: string;
+  correctAnswersCount?: number;
+  totalQuestionsCount?: number;
   submittedAt: string;
   gradedAt?: string;
+}
+
+export interface GradeQuizFileSubmissionRequestDto {
+  grade: number;
+  teacherFeedback?: string;
+  correctAnswersCount?: number;
+  totalQuestionsCount?: number;
 }
 
 @Injectable({
@@ -102,6 +118,22 @@ export class QuizSubmissionService {
   getStudentQuizFileSubmissions(): Observable<QuizFileSubmissionResponse[]> {
     return this.http.get<QuizFileSubmissionResponse[]>(
       `${this.apiUrl}/quiz-file-submissions/student`,
+    );
+  }
+
+  getInstructorQuizFileSubmissions(): Observable<QuizFileSubmissionResponse[]> {
+    return this.http.get<QuizFileSubmissionResponse[]>(
+      `${this.apiUrl}/quiz-file-submissions/instructor`,
+    );
+  }
+
+  gradeQuizFileSubmission(
+    submissionId: string,
+    payload: GradeQuizFileSubmissionRequestDto,
+  ): Observable<QuizFileSubmissionResponse> {
+    return this.http.put<QuizFileSubmissionResponse>(
+      `${this.apiUrl}/quiz-file-submissions/${encodeURIComponent(submissionId)}/grade`,
+      payload,
     );
   }
 }

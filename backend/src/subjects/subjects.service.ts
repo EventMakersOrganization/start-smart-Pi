@@ -1325,9 +1325,24 @@ export class SubjectsService {
       .exec();
   }
 
-  async getInstructorQuizFileSubmissions(): Promise<QuizFileSubmission[]> {
+  async getInstructorQuizFileSubmissions(
+    instructorId: string,
+  ): Promise<QuizFileSubmission[]> {
+    const ownedSubjects = await this.subjectModel
+      .find({ instructorId })
+      .select("title")
+      .exec();
+    const subjectTitles = ownedSubjects
+      .map((subject: any) => String(subject?.title || "").trim())
+      .filter((title) => !!title);
+
+    if (!subjectTitles.length) {
+      return [];
+    }
+
     return this.quizFileSubmissionModel
-      .find({})
+      .find({ subjectTitle: { $in: subjectTitles } })
+      .populate("studentId", "first_name last_name email")
       .sort({ submittedAt: -1 })
       .exec();
   }
@@ -1351,6 +1366,14 @@ export class SubjectsService {
     submission.teacherFeedback = dto.teacherFeedback
       ? String(dto.teacherFeedback).trim()
       : undefined;
+    submission.correctAnswersCount =
+      typeof dto.correctAnswersCount === "number"
+        ? Number(dto.correctAnswersCount)
+        : undefined;
+    submission.totalQuestionsCount =
+      typeof dto.totalQuestionsCount === "number"
+        ? Number(dto.totalQuestionsCount)
+        : undefined;
     submission.status = QuizFileSubmissionStatus.GRADED;
     submission.gradedBy = graderId as any;
     submission.gradedAt = new Date();
