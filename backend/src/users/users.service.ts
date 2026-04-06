@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema';
 import { StudentProfile, StudentProfileDocument } from './schemas/student-profile.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -19,13 +19,20 @@ export class UsersService {
     private activityService: ActivityService,
   ) {}
 
+  private profileLookupFilter(userId: string) {
+    if (Types.ObjectId.isValid(userId)) {
+      return { $or: [{ userId }, { userId: new Types.ObjectId(userId) }] } as any;
+    }
+    return { userId } as any;
+  }
+
   async getProfile(userId: string) {
     const user = await this.userModel.findById(userId).select('-password');
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const profile = await this.profileModel.findOne({ userId }).exec();
+    const profile = await this.profileModel.findOne(this.profileLookupFilter(userId)).exec();
     return {
       user: {
         id: user._id,
@@ -70,9 +77,9 @@ export class UsersService {
         updateProfileDto.points_gamification !== undefined
       )
     ) {
-      let profile = await this.profileModel.findOne({ userId }).exec();
+      let profile = await this.profileModel.findOne(this.profileLookupFilter(userId)).exec();
       if (!profile) {
-        profile = new this.profileModel({ userId });
+        profile = new this.profileModel({ userId: new Types.ObjectId(userId) });
       }
       if (updateProfileDto.academic_level) profile.academic_level = updateProfileDto.academic_level;
       if (updateProfileDto.risk_level) profile.risk_level = updateProfileDto.risk_level as any;
@@ -102,7 +109,16 @@ export class UsersService {
     // If requesting students, include their student profiles
     if (role.toLowerCase() === 'student') {
       const userIds = users.map(u => u._id);
-      const profiles = await this.profileModel.find({ userId: { $in: userIds } }).exec();
+      const userIdStrings = userIds.map((id) => String(id));
+      const objectIds = userIdStrings
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
+      const profiles = await this.profileModel.find({
+        $or: [
+          { userId: { $in: objectIds } },
+          { userId: { $in: userIdStrings } },
+        ],
+      } as any).exec();
       const profileMap = new Map<string, StudentProfileDocument>();
       profiles.forEach(p => profileMap.set(String(p.userId), p));
 
@@ -163,9 +179,9 @@ export class UsersService {
         dto.points_gamification !== undefined
       )
     ) {
-      let profile = await this.profileModel.findOne({ userId: id }).exec();
+      let profile = await this.profileModel.findOne(this.profileLookupFilter(id)).exec();
       if (!profile) {
-        profile = new this.profileModel({ userId: id });
+        profile = new this.profileModel({ userId: new Types.ObjectId(id) });
       }
       if (dto.academic_level) profile.academic_level = dto.academic_level;
       if (dto.risk_level) profile.risk_level = dto.risk_level as any;
@@ -218,6 +234,14 @@ export class UsersService {
     });
 
     await user.save();
+
+    if (user.role === UserRole.STUDENT) {
+      const profile = new this.profileModel({
+        userId: user._id,
+        academic_level: null,
+      });
+      await profile.save();
+    }
 
     // Send credentials by email if SMTP is configured, otherwise log to console
     const transporter = nodemailer.createTransport({

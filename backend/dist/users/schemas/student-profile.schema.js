@@ -20,7 +20,7 @@ __decorate([
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], StudentProfile.prototype, "userId", void 0);
 __decorate([
-    (0, mongoose_1.Prop)(),
+    (0, mongoose_1.Prop)({ type: String, default: null }),
     __metadata("design:type", String)
 ], StudentProfile.prototype, "academic_level", void 0);
 __decorate([

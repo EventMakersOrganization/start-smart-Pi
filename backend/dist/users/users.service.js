@@ -29,12 +29,18 @@ let UsersService = class UsersService {
         this.profileModel = profileModel;
         this.activityService = activityService;
     }
+    profileLookupFilter(userId) {
+        if (mongoose_2.Types.ObjectId.isValid(userId)) {
+            return { $or: [{ userId }, { userId: new mongoose_2.Types.ObjectId(userId) }] };
+        }
+        return { userId };
+    }
     async getProfile(userId) {
         const user = await this.userModel.findById(userId).select('-password');
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
-        const profile = await this.profileModel.findOne({ userId }).exec();
+        const profile = await this.profileModel.findOne(this.profileLookupFilter(userId)).exec();
         return {
             user: {
                 id: user._id,
@@ -71,9 +77,9 @@ let UsersService = class UsersService {
         if (user.role === user_schema_1.UserRole.STUDENT && (updateProfileDto.academic_level ||
             updateProfileDto.risk_level ||
             updateProfileDto.points_gamification !== undefined)) {
-            let profile = await this.profileModel.findOne({ userId }).exec();
+            let profile = await this.profileModel.findOne(this.profileLookupFilter(userId)).exec();
             if (!profile) {
-                profile = new this.profileModel({ userId });
+                profile = new this.profileModel({ userId: new mongoose_2.Types.ObjectId(userId) });
             }
             if (updateProfileDto.academic_level)
                 profile.academic_level = updateProfileDto.academic_level;
@@ -99,7 +105,16 @@ let UsersService = class UsersService {
         console.log(`[DEBUG] getUsersByRole('${role}') found ${users.length} users with query:`, query);
         if (role.toLowerCase() === 'student') {
             const userIds = users.map(u => u._id);
-            const profiles = await this.profileModel.find({ userId: { $in: userIds } }).exec();
+            const userIdStrings = userIds.map((id) => String(id));
+            const objectIds = userIdStrings
+                .filter((id) => mongoose_2.Types.ObjectId.isValid(id))
+                .map((id) => new mongoose_2.Types.ObjectId(id));
+            const profiles = await this.profileModel.find({
+                $or: [
+                    { userId: { $in: objectIds } },
+                    { userId: { $in: userIdStrings } },
+                ],
+            }).exec();
             const profileMap = new Map();
             profiles.forEach(p => profileMap.set(String(p.userId), p));
             return users.map(u => {
@@ -156,9 +171,9 @@ let UsersService = class UsersService {
         if (user.role === user_schema_1.UserRole.STUDENT && (dto.academic_level ||
             dto.risk_level ||
             dto.points_gamification !== undefined)) {
-            let profile = await this.profileModel.findOne({ userId: id }).exec();
+            let profile = await this.profileModel.findOne(this.profileLookupFilter(id)).exec();
             if (!profile) {
-                profile = new this.profileModel({ userId: id });
+                profile = new this.profileModel({ userId: new mongoose_2.Types.ObjectId(id) });
             }
             if (dto.academic_level)
                 profile.academic_level = dto.academic_level;
@@ -203,6 +218,13 @@ let UsersService = class UsersService {
             status: dto.status || user_schema_1.UserStatus.ACTIVE,
         });
         await user.save();
+        if (user.role === user_schema_1.UserRole.STUDENT) {
+            const profile = new this.profileModel({
+                userId: user._id,
+                academic_level: null,
+            });
+            await profile.save();
+        }
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: parseInt(process.env.SMTP_PORT || '587', 10),

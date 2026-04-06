@@ -9,6 +9,7 @@ export declare class UsersService {
     private profileModel;
     private activityService;
     constructor(userModel: Model<UserDocument>, profileModel: Model<StudentProfileDocument>, activityService: ActivityService);
+    private profileLookupFilter;
     getProfile(userId: string): Promise<{
         user: {
             id: any;
