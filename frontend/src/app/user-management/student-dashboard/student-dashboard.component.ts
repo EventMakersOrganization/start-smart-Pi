@@ -591,10 +591,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
       next: (data) => {
         this.profileData = data;
-        if (this.user && data?.user?.phone) {
-          this.user.phone = data.user.phone;
-        }
-        this.ensureInternalOpsDataLoaded();
+        this.user = {
+          ...(this.user || {}),
+          ...(data?.user || {}),
+          academic_level: data?.profile?.academic_level,
+          risk_level: data?.profile?.risk_level,
+          points_gamification: data?.profile?.points_gamification,
+        };
       },
       error: () => {},
     });

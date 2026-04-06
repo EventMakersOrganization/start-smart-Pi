@@ -1,17 +1,9 @@
 import {
-  Body,
-  Controller,
-  Delete,
   BadRequestException,
-  Get,
-  Param,
   ParseIntPipe,
-  Put,
-  Post,
   Query,
   Req,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import {
@@ -21,21 +13,23 @@ import {
   ApiResponse,
   ApiTags,
 } from "@nestjs/swagger";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { RolesGuard } from "../auth/guards/roles.guard";
-import { Roles } from "../auth/decorators/roles.decorator";
-import { UserRole } from "../users/schemas/user.schema";
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/schemas/user.schema';
+import { SubjectsService } from './subjects.service';
+import { CreateSubjectDto } from './dto/create-subject.dto';
+import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { AddChapterDto } from "./dto/add-chapter.dto";
 import { AddChapterContentDto } from "./dto/add-chapter-content.dto";
 import { AddSubChapterDto } from "./dto/add-subchapter.dto";
 import { AddSubChapterContentDto } from "./dto/add-subchapter-content.dto";
 import { UpdateSubChapterContentDto } from "./dto/update-subchapter-content.dto";
-import { CreateSubjectDto } from "./dto/create-subject.dto";
 import { UpdateChapterContentDto } from "./dto/update-chapter-content.dto";
 import { SubmitQuizDto } from "./dto/submit-quiz.dto";
 import { SubmitQuizFileDto } from "./dto/submit-quiz-file.dto";
 import { GradeQuizFileSubmissionDto } from "./dto/grade-quiz-file-submission.dto";
-import { SubjectsService } from "./subjects.service";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { extname, resolve } from "path";
@@ -503,4 +497,10 @@ export class SubjectsController {
       gradeDto,
     );
   }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateSubjectDto) {
+    return this.subjectsService.update(id, dto);
+  }
+
 }

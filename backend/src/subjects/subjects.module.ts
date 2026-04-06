@@ -1,13 +1,16 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
 import { AuthModule } from "../auth/auth.module";
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { SubjectsController } from './subjects.controller';
+import { SubjectsService } from './subjects.service';
+import { Subject, SubjectSchema } from './schemas/subject.schema';
+import { User, UserSchema } from '../users/schemas/user.schema';
 import { Course, CourseSchema } from "../courses/schemas/course.schema";
 import { Exercise, ExerciseSchema } from "../exercises/schemas/exercise.schema";
 import {
   CourseUploadAsset,
   CourseUploadAssetSchema,
 } from "./schemas/course-upload-asset.schema";
-import { Subject, SubjectSchema } from "./schemas/subject.schema";
 import {
   PrositQuizAsset,
   PrositQuizAssetSchema,
@@ -25,8 +28,6 @@ import {
   QuizFileSubmission,
   QuizFileSubmissionSchema,
 } from "./schemas/quiz-file-submission.schema";
-import { SubjectsController } from "./subjects.controller";
-import { SubjectsService } from "./subjects.service";
 
 @Module({
   imports: [
@@ -54,6 +55,10 @@ import { SubjectsService } from "./subjects.service";
       { name: QuizFileSubmission.name, schema: QuizFileSubmissionSchema },
     ]),
     AuthModule,
+    MongooseModule.forFeature([
+      { name: Subject.name, schema: SubjectSchema },
+      { name: User.name, schema: UserSchema },
+    ]),
   ],
   controllers: [SubjectsController],
   providers: [SubjectsService],

@@ -115,14 +115,20 @@ export class Subject {
   @Prop()
   description?: string;
 
-  @Prop({ type: Types.ObjectId, ref: "User", required: true })
-  instructorId: Types.ObjectId;
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  instructors: Types.ObjectId[];
 
   @Prop({ type: [ChapterSchema], default: [] })
   chapters: Chapter[];
 
   createdAt?: Date;
   updatedAt?: Date;
+
+
+
+
+
+
+
 }
 
-export const SubjectSchema = SchemaFactory.createForClass(Subject);

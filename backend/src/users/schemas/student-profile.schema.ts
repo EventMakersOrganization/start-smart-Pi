@@ -10,7 +10,7 @@ export class StudentProfile {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true })
   userId: Types.ObjectId;
 
-  @Prop()
+  @Prop({ type: String, default: null })
   academic_level: string;
 
   @Prop({

@@ -36,6 +36,7 @@ import { AssignmentsComponent } from './assignments/assignments.component';
 import { AssignmentSubmissionComponent } from './assignment-submission/assignment-submission.component';
 import { ProgressReportsComponent } from './progress-reports/progress-reports.component';
 import { InstructorSubjectsComponent } from './instructor-subjects/instructor-subjects.component';
+import { SubjectsManagementComponent } from './subjects-management/subjects-management.component';
 
 const routes: Routes = [
   {
@@ -145,6 +146,7 @@ const routes: Routes = [
     redirectTo: 'student-dashboard',
     pathMatch: 'full',
   },
+  { path: 'subjects', component: SubjectsManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
 
   // Level Test route
   {
@@ -228,6 +230,8 @@ const routes: Routes = [
     AssignmentSubmissionComponent,
     ProgressReportsComponent,
     InstructorSubjectsComponent,
+    SubjectsManagementComponent,
+    InstructorDashboardComponent
   ],
   imports: [
     CommonModule,

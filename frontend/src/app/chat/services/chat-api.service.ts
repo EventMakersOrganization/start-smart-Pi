@@ -44,4 +44,8 @@ export class ChatApiService {
   aiHealthCheck(): Observable<any> {
     return this.http.get(`${this.apiUrl}/ai/health`);
   }
+
+  deleteAiSession(sessionId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/ai/session/${sessionId}`);
+  }
 }

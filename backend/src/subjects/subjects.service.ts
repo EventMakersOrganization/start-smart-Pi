@@ -1,19 +1,21 @@
 import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
+  Logger
 } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { User, UserDocument } from '../users/schemas/user.schema';
+import { Subject, SubjectDocument } from './schemas/subject.schema';
+import { CreateSubjectDto } from './dto/create-subject.dto';
+import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { randomUUID } from "crypto";
-import { InjectModel } from "@nestjs/mongoose";
-import { FilterQuery, Model } from "mongoose";
+import { FilterQuery } from "mongoose";
 import { AddChapterDto } from "./dto/add-chapter.dto";
 import { AddChapterContentDto } from "./dto/add-chapter-content.dto";
 import { AddSubChapterDto } from "./dto/add-subchapter.dto";
 import { AddSubChapterContentDto } from "./dto/add-subchapter-content.dto";
 import { UpdateChapterContentDto } from "./dto/update-chapter-content.dto";
 import { UpdateSubChapterContentDto } from "./dto/update-subchapter-content.dto";
-import { CreateSubjectDto } from "./dto/create-subject.dto";
 import { SubmitQuizDto } from "./dto/submit-quiz.dto";
 import { Course, CourseDocument } from "../courses/schemas/course.schema";
 import {
@@ -53,7 +55,6 @@ import {
 } from "./schemas/quiz-file-submission.schema";
 import { SubmitQuizFileDto } from "./dto/submit-quiz-file.dto";
 import { GradeQuizFileSubmissionDto } from "./dto/grade-quiz-file-submission.dto";
-import { Subject, SubjectDocument } from "./schemas/subject.schema";
 
 @Injectable()
 export class SubjectsService {
@@ -78,20 +79,6 @@ export class SubjectsService {
     private quizFileSubmissionModel: Model<QuizFileSubmissionDocument>,
   ) {}
 
-  async create(createSubjectDto: CreateSubjectDto): Promise<Subject> {
-    const title = String(createSubjectDto.title || "").trim();
-    const code = await this.generateUniqueSubjectCode(title);
-    const payload = {
-      ...createSubjectDto,
-      code,
-      title,
-      description:
-        String(createSubjectDto.description || "").trim() || undefined,
-    };
-
-    const subject = new this.subjectModel(payload);
-    return subject.save();
-  }
 
   private normalizeCode(value: string): string {
     return String(value || "")
@@ -116,39 +103,6 @@ export class SubjectsService {
     return candidate;
   }
 
-  async findAll(instructorId?: string): Promise<Subject[]> {
-    const filter: FilterQuery<SubjectDocument> = {};
-    if (instructorId) {
-      filter.instructorId = instructorId;
-    }
-
-    const subjects = await this.subjectModel
-      .find(filter)
-      .sort({ title: 1 })
-      .populate("instructorId", "first_name last_name email")
-      .exec();
-
-    for (const subject of subjects) {
-      await this.ensureContentIds(subject);
-    }
-
-    return subjects;
-  }
-
-  async findOne(id: string): Promise<Subject> {
-    const subject = await this.subjectModel
-      .findById(id)
-      .populate("instructorId", "first_name last_name email")
-      .exec();
-
-    if (!subject) {
-      throw new NotFoundException(`Subject with ID "${id}" not found`);
-    }
-
-    await this.ensureContentIds(subject);
-
-    return subject;
-  }
 
   private async ensureContentIds(subject: SubjectDocument): Promise<void> {
     let changed = false;
@@ -1219,18 +1173,6 @@ export class SubjectsService {
     );
   }
 
-  async remove(id: string): Promise<Subject> {
-    const subject = await this.subjectModel.findByIdAndDelete(id).exec();
-    if (!subject) {
-      throw new NotFoundException(`Subject with ID "${id}" not found`);
-    }
-
-    await this.courseUploadAssetModel
-      .deleteMany({ subjectId: subject._id })
-      .exec();
-
-    return subject;
-  }
 
   async submitQuiz(
     studentId: string,
@@ -1379,5 +1321,111 @@ export class SubjectsService {
     submission.gradedAt = new Date();
 
     return submission.save();
+  }
+
+
+
+  async create(dto: CreateSubjectDto) {
+    const instructorIds = this.normalizeIds(dto.instructorIds);
+    await this.assertAllInstructorsExist(instructorIds);
+
+    const subject = await this.subjectModel.create({
+      name: dto.name,
+      description: dto.description || '',
+      instructors: instructorIds.map((id) => new Types.ObjectId(id)),
+    });
+
+    return this.findOne(subject._id.toString());
+  }
+
+  async findAll() {
+    const subjects = await this.subjectModel
+      .find()
+      .sort({ createdAt: -1 })
+      .populate('instructors', 'first_name last_name email role')
+      .exec();
+
+    return subjects.map((subject) => this.toResponse(subject));
+  }
+
+  async findOne(id: string) {
+    const subject = await this.subjectModel
+      .findById(id)
+      .populate('instructors', 'first_name last_name email role')
+      .exec();
+
+    if (!subject) {
+      throw new NotFoundException('Subject not found');
+    }
+
+    return this.toResponse(subject);
+  }
+
+  async update(id: string, dto: UpdateSubjectDto) {
+    const subject = await this.subjectModel.findById(id);
+    if (!subject) {
+      throw new NotFoundException('Subject not found');
+    }
+
+    if (dto.name !== undefined) {
+      subject.name = dto.name;
+    }
+    if (dto.description !== undefined) {
+      subject.description = dto.description;
+    }
+    if (dto.instructorIds !== undefined) {
+      const instructorIds = this.normalizeIds(dto.instructorIds);
+      await this.assertAllInstructorsExist(instructorIds);
+      subject.instructors = instructorIds.map((instructorId) => new Types.ObjectId(instructorId));
+    }
+
+    await subject.save();
+
+    return this.findOne(id);
+  }
+
+  async remove(id: string) {
+    const deleted = await this.subjectModel.findByIdAndDelete(id).exec();
+    if (!deleted) {
+      throw new NotFoundException('Subject not found');
+    }
+
+    return { success: true };
+  }
+
+  private normalizeIds(ids: string[]) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('At least one instructor is required');
+    }
+
+    return [...new Set(ids.map((id) => id?.trim()).filter(Boolean))];
+  }
+
+  private async assertAllInstructorsExist(instructorIds: string[]) {
+    const instructors = await this.userModel.find({
+      _id: { $in: instructorIds },
+      role: { $regex: /^(instructor|teacher)$/i },
+    });
+
+    if (instructors.length !== instructorIds.length) {
+      throw new BadRequestException('One or more selected instructors are invalid');
+    }
+  }
+
+  private toResponse(subject: SubjectDocument) {
+    return {
+      id: (subject as any)._id,
+      name: subject.name,
+      description: subject.description,
+      instructors: ((subject as any).instructors || []).map((instructor: any) => ({
+        id: instructor._id,
+        first_name: instructor.first_name,
+        last_name: instructor.last_name,
+        email: instructor.email,
+        role: instructor.role,
+      })),
+      createdAt: (subject as any).createdAt,
+      updatedAt: (subject as any).updatedAt,
+    };
   }
 }

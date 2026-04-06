@@ -53,6 +53,14 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
         }
       })
     );
+
+    this.subs.push(
+      this.chatSocketService.onMessageDeleted().subscribe((data: any) => {
+        if (this.currentSessionId) {
+          this.messages = this.messages.filter(m => m._id !== data.messageId);
+        }
+      })
+    );
   }
 
   ngOnDestroy() {
@@ -141,6 +149,12 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
 
     this.chatSocketService.sendMessage('ChatInstructor', this.currentSessionId, this.newMessage);
     this.newMessage = '';
+  }
+
+  deleteMessage(messageId: string) {
+    if (confirm('Are you sure you want to delete this message?')) {
+      this.chatSocketService.deleteMessage(messageId, this.currentSessionId!);
+    }
   }
 
   getDashboardRoute(): string {

@@ -143,4 +143,34 @@ export class ChatService {
       return false;
     }
   }
+
+  async deleteMessage(messageId: string, userId: string): Promise<any> {
+    const message = await this.chatMessageModel.findById(messageId);
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    if (message.sender.toString() !== userId) {
+      throw new UnauthorizedException('You can only delete your own messages');
+    }
+
+    return this.chatMessageModel.findByIdAndDelete(messageId);
+  }
+
+  async deleteAiSession(sessionId: string, userId: string): Promise<any> {
+    const session = await this.chatAiModel.findById(sessionId);
+    if (!session) {
+      throw new NotFoundException('AI Session not found');
+    }
+
+    if (session.student.toString() !== userId) {
+      throw new UnauthorizedException('You can only delete your own AI sessions');
+    }
+
+    // Delete all messages associated with this session
+    await this.chatMessageModel.deleteMany({ sessionType: 'ChatAi', sessionId });
+
+    // Delete the session itself
+    return this.chatAiModel.findByIdAndDelete(sessionId);
+  }
 }

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsArray, IsMongoId, ArrayUnique, ArrayNotEmpty } from 'class-validator';
 
 export class CreateSubjectDto {
   @ApiProperty({ example: "Application côté client 2_4TWIN3" })
@@ -18,7 +19,11 @@ export class CreateSubjectDto {
     description: "MongoDB user id of the instructor",
     example: "66f2d8c3b5d9f9e1d0a00001",
   })
-  @IsString()
-  @IsOptional()
-  instructorId?: string;
+
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayUnique()
+  @IsMongoId({ each: true })
+  instructorIds: string[];
 }

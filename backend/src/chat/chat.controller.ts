@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Body,
+  Delete,
   Param,
   Query,
   UseGuards,
@@ -207,5 +208,15 @@ export class ChatController {
   @Get("ai/interventions/effectiveness")
   async interventionsEffectivenessGlobal() {
     return this.aiService.getInterventionsEffectivenessGlobal();
+  }
+
+  @Delete('message/:id')
+  async deleteMessage(@Request() req, @Param('id') messageId: string) {
+    return this.chatService.deleteMessage(messageId, req.user.id);
+  }
+
+  @Delete('ai/session/:id')
+  async deleteAiSession(@Request() req, @Param('id') sessionId: string) {
+    return this.chatService.deleteAiSession(sessionId, req.user.id);
   }
 }

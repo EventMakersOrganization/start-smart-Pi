@@ -1,27 +1,15 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
-import {
-  User,
-  UserDocument,
-  UserRole,
-  UserStatus,
-} from "./schemas/user.schema";
-import {
-  StudentProfile,
-  StudentProfileDocument,
-} from "./schemas/student-profile.schema";
-import { UpdateProfileDto } from "./dto/update-profile.dto";
-import { ActivityService } from "../activity/activity.service";
-import { ActivityAction } from "../activity/schemas/activity.schema";
-import * as bcrypt from "bcrypt";
-import * as crypto from "crypto";
-import * as nodemailer from "nodemailer";
-import { AdminCreateUserDto } from "./dto/admin-create-user.dto";
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema';
+import { StudentProfile, StudentProfileDocument } from './schemas/student-profile.schema';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ActivityService } from '../activity/activity.service';
+import { ActivityAction } from '../activity/schemas/activity.schema';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -32,13 +20,20 @@ export class UsersService {
     private activityService: ActivityService,
   ) {}
 
+  private profileLookupFilter(userId: string) {
+    if (Types.ObjectId.isValid(userId)) {
+      return { $or: [{ userId }, { userId: new Types.ObjectId(userId) }] } as any;
+    }
+    return { userId } as any;
+  }
+
   async getProfile(userId: string) {
     const user = await this.userModel.findById(userId).select("-password");
     if (!user) {
       throw new NotFoundException("User not found");
     }
 
-    const profile = await this.profileModel.findOne({ userId }).exec();
+    const profile = await this.profileModel.findOne(this.profileLookupFilter(userId)).exec();
     return {
       user: {
         id: user._id,
@@ -117,20 +112,23 @@ export class UsersService {
       };
     }
 
-    const users = await this.userModel
-      .find(query)
-      .select('-password')
-      .exec();
-
-    console.log(
-      `[DEBUG] getUsersByRole('${role}') found ${users.length} users`
-    );
-
-    // ── Include student profiles ──
+    const users = await this.userModel.find(query).select('-password').exec();
+    console.log(`[DEBUG] getUsersByRole('${role}') found ${users.length} users with query:`, query);
+    
+    // If requesting students, include their student profiles (match userId as ObjectId or string)
     if (role.toLowerCase() === 'student') {
       const userIds = users.map((u) => u._id);
+      const userIdStrings = userIds.map((id) => String(id));
+      const objectIds = userIdStrings
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
       const profiles = await this.profileModel
-        .find({ userId: { $in: userIds } })
+        .find({
+          $or: [
+            { userId: { $in: objectIds } },
+            { userId: { $in: userIdStrings } },
+          ],
+        } as any)
         .exec();
 
       const profileMap = new Map<string, StudentProfileDocument>();
@@ -246,6 +244,15 @@ export class UsersService {
 
     await user.save();
 
+    if (user.role === UserRole.STUDENT) {
+      const profile = new this.profileModel({
+        userId: user._id,
+        academic_level: null,
+      });
+      await profile.save();
+    }
+
+    // Send credentials by email if SMTP is configured, otherwise log to console
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || "587", 10),

@@ -20,14 +20,19 @@
         <div>
           <h3 class="px-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Recent Chats</h3>
           <div class="space-y-1">
-            <button *ngFor="let session of sessions" (click)="loadSession(session._id, session.title)" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-600 dark:text-slate-300"
-              [ngClass]="currentSessionId === session._id ? 'bg-primary text-white shadow-md' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'">
-              <span class="material-symbols-outlined transition-colors" [ngClass]="currentSessionId === session._id ? 'text-white' : 'text-primary'">chat_bubble</span>
-              <div class="text-left overflow-hidden">
-                <p class="text-sm font-semibold truncate">{{ session.title || 'AI Session' }}</p>
-                <p class="text-[11px] opacity-70">{{ session.updatedAt | date:'short' }}</p>
-              </div>
-            </button>
+            <div *ngFor="let session of sessions" class="relative group">
+              <button (click)="loadSession(session._id, session.title)" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 transition-all" [class.bg-primary!]="currentSessionId === session._id" [class.text-primary!]="currentSessionId === session._id">
+                <span class="material-symbols-outlined transition-colors" [class.text-primary]="currentSessionId === session._id">chat_bubble</span>
+                <div class="text-left overflow-hidden pr-8">
+                  <p class="text-sm font-semibold truncate">{{ session.title || 'AI Session' }}</p>
+                  <p class="text-[11px] text-slate-400">{{ session.updatedAt | date:'short' }}</p>
+                </div>
+              </button>
+              <!-- Session Delete Button -->
+              <button (click)="deleteSession($event, session._id)" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-50" title="Delete conversation">
+                <span class="material-symbols-outlined text-sm">delete</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -88,15 +93,26 @@
                   <div class="chat-ai-bubble rounded-2xl rounded-tl-md border border-slate-100 bg-slate-50/80 p-4 sm:p-5 shadow-sm">
                     <markdown class="chat-ai-markdown block" [data]="msg._parsed?.answer || msg.content"></markdown>
 
-                    <div *ngIf="msg._parsed?.sources?.length" class="mt-4 pt-3 border-t border-slate-200">
-                      <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Sources</p>
-                      <div class="space-y-1">
-                        <div *ngFor="let src of msg._parsed.sources" class="flex items-center gap-2 text-xs text-indigo-700">
-                          <span class="material-symbols-outlined text-sm">menu_book</span>
-                          <span>{{ src }}</span>
-                        </div>
-                      </div>
-                    </div>
+            <!-- User Message -->
+            <div *ngIf="msg.sender !== 'AI'" class="flex gap-4 max-w-3xl ml-auto flex-row-reverse">
+              <div class="size-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-xs overflow-hidden">
+                <span class="material-symbols-outlined text-sm">person</span>
+              </div>
+              <div class="space-y-2 text-right relative group">
+                <div class="bg-primary p-5 rounded-2xl rounded-tr-none shadow-lg shadow-primary/20 text-white inline-block">
+                  <p class="text-sm leading-relaxed text-left" [innerHTML]="msg.content"></p>
+                </div>
+                <!-- Delete Button -->
+                <button (click)="deleteMessage(msg._id)" class="absolute -left-10 top-1/2 -translate-y-1/2 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-100 shadow-sm" title="Delete message">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+                <div class="flex justify-end items-center gap-1.5 mr-1">
+                  <span class="text-[10px] text-slate-400 font-medium">YOU • {{ msg.createdAt | date:'shortTime' }}</span>
+                  <span class="material-symbols-outlined text-xs text-primary">done_all</span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
 
                     <div *ngIf="msg._parsed?.confidence" class="mt-3 flex items-center gap-2">
                       <span class="material-symbols-outlined text-sm text-amber-600">verified</span>

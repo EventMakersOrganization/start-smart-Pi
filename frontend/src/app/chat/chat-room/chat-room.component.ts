@@ -61,6 +61,14 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       })
     );
+
+    this.subs.push(
+      this.chatSocketService.onMessageDeleted().subscribe((data: any) => {
+        if (this.currentSessionId) {
+          this.messages = this.messages.filter(m => m._id !== data.messageId);
+        }
+      })
+    );
   }
 
   ngOnDestroy() {
@@ -147,6 +155,12 @@ export class ChatRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatSocketService.sendMessage('ChatRoom', this.currentSessionId, this.newMessage);
     this.newMessage = '';
+  }
+
+  deleteMessage(messageId: string) {
+    if (confirm('Are you sure you want to delete this message?')) {
+      this.chatSocketService.deleteMessage(messageId, this.currentSessionId!);
+    }
   }
 
   getDashboardRoute(): string {

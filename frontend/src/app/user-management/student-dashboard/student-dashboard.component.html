@@ -194,11 +194,10 @@
         <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
         <div class="flex items-center gap-3">
           <div class="text-right">
-            <p class="text-sm font-bold leading-none">
-              {{ user?.first_name }} {{ user?.last_name }}
-            </p>
-            <p class="text-xs text-primary font-medium capitalize">
-              {{ user?.role || "student" }}
+            <p class="text-sm font-bold leading-none">{{ user?.first_name }} {{ user?.last_name }}</p>
+            <p class="text-xs text-primary font-medium capitalize">{{ user?.role || 'student' }}</p>
+            <p class="text-[11px] font-semibold text-slate-500 leading-tight mt-0.5">
+              {{ user?.academic_level || 'Academic level not set' }}
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -785,8 +784,9 @@
         >
           {{ user?.first_name }} {{ user?.last_name }}
         </h3>
-        <p class="text-primary font-semibold text-sm capitalize">
-          {{ user?.role || "student" }}
+        <p class="text-primary font-semibold text-sm capitalize">{{ user?.role || 'student' }}</p>
+        <p class="text-xs font-semibold text-slate-500 mt-1">
+          {{ user?.academic_level || 'Academic level not set' }}
         </p>
       </div>
       <div class="px-6 mb-8">
