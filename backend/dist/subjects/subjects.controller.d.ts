@@ -22,24 +22,33 @@ export declare class SubjectsController {
     };
     create(createSubjectDto: CreateSubjectDto): Promise<{
         id: any;
-        name: any;
+        code: string;
+        title: string;
+        name: string;
         description: string;
+        chapters: import("./schemas/subject.schema").Chapter[];
         instructors: any;
         createdAt: any;
         updatedAt: any;
     }>;
     findAll(instructorId?: string): Promise<{
         id: any;
-        name: any;
+        code: string;
+        title: string;
+        name: string;
         description: string;
+        chapters: import("./schemas/subject.schema").Chapter[];
         instructors: any;
         createdAt: any;
         updatedAt: any;
     }[]>;
     findOne(id: string): Promise<{
         id: any;
-        name: any;
+        code: string;
+        title: string;
+        name: string;
         description: string;
+        chapters: import("./schemas/subject.schema").Chapter[];
         instructors: any;
         createdAt: any;
         updatedAt: any;
@@ -66,8 +75,11 @@ export declare class SubjectsController {
     gradeQuizFileSubmission(req: any, submissionId: string, gradeDto: GradeQuizFileSubmissionDto): Promise<import("./schemas/quiz-file-submission.schema").QuizFileSubmission>;
     update(id: string, dto: UpdateSubjectDto): Promise<{
         id: any;
-        name: any;
+        code: string;
+        title: string;
+        name: string;
         description: string;
+        chapters: import("./schemas/subject.schema").Chapter[];
         instructors: any;
         createdAt: any;
         updatedAt: any;

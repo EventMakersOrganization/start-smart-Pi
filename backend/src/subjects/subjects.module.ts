@@ -1,5 +1,5 @@
 import { AuthModule } from "../auth/auth.module";
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SubjectsController } from './subjects.controller';
 import { SubjectsService } from './subjects.service';
@@ -54,7 +54,7 @@ import {
     MongooseModule.forFeature([
       { name: QuizFileSubmission.name, schema: QuizFileSubmissionSchema },
     ]),
-    AuthModule,
+    forwardRef(() => AuthModule),
     MongooseModule.forFeature([
       { name: Subject.name, schema: SubjectSchema },
       { name: User.name, schema: UserSchema },

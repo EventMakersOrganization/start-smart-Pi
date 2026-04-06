@@ -3,7 +3,7 @@ import { IsArray, IsMongoId, IsOptional, IsString, ArrayUnique } from 'class-val
 export class UpdateSubjectDto {
   @IsOptional()
   @IsString()
-  name?: string;
+  title?: string;
 
   @IsOptional()
   @IsString()

@@ -197,7 +197,9 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         this.subjects = Array.isArray(rows) ? rows : [];
         if (selectedSubjectId) {
           const found = this.subjects.find(
-            (subject) => subject._id === selectedSubjectId,
+            (subject) =>
+              subject._id === selectedSubjectId ||
+              subject.id === selectedSubjectId,
           );
           if (found) {
             this.selectedSubject = found;
@@ -449,8 +451,12 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
       });
   }
 
-  goToSubject(subjectId: string): void {
-    this.router.navigate(['/instructor/subjects', subjectId]);
+  goToSubject(subjectId: string | undefined): void {
+    const id = subjectId != null ? String(subjectId).trim() : '';
+    if (!id) {
+      return;
+    }
+    this.router.navigate(['/instructor/subjects', id]);
   }
 
   goBackToList(): void {
@@ -549,7 +555,10 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   // ============ SUBCHAPTER MANAGEMENT ============
 
   openSubChapterForm(chapterOrder: number): void {
-    this.activeSubChapterFormChapterOrder = chapterOrder;
+    const order = Number(chapterOrder);
+    // Expand this chapter so the subchapter form (nested under expanded content) is visible.
+    this.expandedChapterOrder = order;
+    this.activeSubChapterFormChapterOrder = order;
     this.subChapterForm = { title: '', description: '' };
   }
 
@@ -563,8 +572,9 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const order = Number(chapterOrder);
     const chapter = this.selectedSubject.chapters?.find(
-      (ch) => ch.order === chapterOrder,
+      (ch) => Number(ch.order) === order,
     );
     if (!chapter) {
       this.error = 'Chapter not found.';
@@ -585,7 +595,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     this.error = '';
 
     this.subjectsService
-      .addSubChapter(this.selectedSubject._id, chapterOrder, {
+      .addSubChapter(this.selectedSubject._id, order, {
         title,
         description,
         order: subChapterOrder,

@@ -51,7 +51,7 @@ exports.SubjectsModule = SubjectsModule = __decorate([
             mongoose_1.MongooseModule.forFeature([
                 { name: quiz_file_submission_schema_1.QuizFileSubmission.name, schema: quiz_file_submission_schema_1.QuizFileSubmissionSchema },
             ]),
-            auth_module_1.AuthModule,
+            (0, common_1.forwardRef)(() => auth_module_1.AuthModule),
             mongoose_1.MongooseModule.forFeature([
                 { name: subject_schema_1.Subject.name, schema: subject_schema_1.SubjectSchema },
                 { name: user_schema_1.User.name, schema: user_schema_1.UserSchema },

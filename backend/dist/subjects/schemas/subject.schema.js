@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Subject = exports.ChapterSchema = exports.Chapter = exports.SubChapterSchema = exports.SubChapter = exports.SubChapterContentSchema = exports.SubChapterContent = exports.QuizQuestionSchema = exports.QuizQuestion = void 0;
+exports.SubjectSchema = exports.Subject = exports.ChapterSchema = exports.Chapter = exports.SubChapterSchema = exports.SubChapter = exports.SubChapterContentSchema = exports.SubChapterContent = exports.QuizQuestionSchema = exports.QuizQuestion = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const crypto_1 = require("crypto");
 const mongoose_2 = require("mongoose");
@@ -170,4 +170,5 @@ __decorate([
 exports.Subject = Subject = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Subject);
+exports.SubjectSchema = mongoose_1.SchemaFactory.createForClass(Subject);
 //# sourceMappingURL=subject.schema.js.map

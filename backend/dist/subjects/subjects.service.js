@@ -18,6 +18,7 @@ const common_1 = require("@nestjs/common");
 const common_2 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
+const user_schema_1 = require("../users/schemas/user.schema");
 const subject_schema_1 = require("./schemas/subject.schema");
 const crypto_1 = require("crypto");
 const course_schema_1 = require("../courses/schemas/course.schema");
@@ -29,7 +30,7 @@ const video_asset_schema_1 = require("./schemas/video-asset.schema");
 const quiz_submission_schema_1 = require("./schemas/quiz-submission.schema");
 const quiz_file_submission_schema_1 = require("./schemas/quiz-file-submission.schema");
 let SubjectsService = SubjectsService_1 = class SubjectsService {
-    constructor(courseModel, exerciseModel, courseUploadAssetModel, prositQuizAssetModel, resourceAddAssetModel, videoAssetModel, subjectModel, quizSubmissionModel, quizFileSubmissionModel) {
+    constructor(courseModel, exerciseModel, courseUploadAssetModel, prositQuizAssetModel, resourceAddAssetModel, videoAssetModel, subjectModel, quizSubmissionModel, quizFileSubmissionModel, userModel) {
         this.courseModel = courseModel;
         this.exerciseModel = exerciseModel;
         this.courseUploadAssetModel = courseUploadAssetModel;
@@ -39,7 +40,18 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         this.subjectModel = subjectModel;
         this.quizSubmissionModel = quizSubmissionModel;
         this.quizFileSubmissionModel = quizFileSubmissionModel;
+        this.userModel = userModel;
         this.logger = new common_1.Logger(SubjectsService_1.name);
+    }
+    primaryCourseInstructorId(subject) {
+        const list = subject.instructors || [];
+        const raw = list[0];
+        if (raw == null) {
+            return undefined;
+        }
+        return raw instanceof mongoose_2.Types.ObjectId
+            ? raw
+            : new mongoose_2.Types.ObjectId(String(raw));
     }
     normalizeCode(value) {
         return String(value || "")
@@ -90,19 +102,23 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         if (!subjectTitle || !chapterTitle) {
             return;
         }
+        const instructorId = this.primaryCourseInstructorId(subject);
+        if (!instructorId) {
+            return;
+        }
         const level = await this.resolveCourseLevel(subjectTitle);
         await this.courseModel
             .findOneAndUpdate({
             subject: subjectTitle,
             title: chapterTitle,
-            instructorId: subject.instructorId,
+            instructorId,
         }, {
             $set: {
                 title: chapterTitle,
                 description: String(chapter.description || "").trim() || chapterTitle,
                 level,
                 subject: subjectTitle,
-                instructorId: subject.instructorId,
+                instructorId,
             },
             $setOnInsert: {
                 modules: [],
@@ -117,19 +133,23 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         if (!subjectTitle || !chapterTitle || !subChapterTitle) {
             return;
         }
+        const instructorId = this.primaryCourseInstructorId(subject);
+        if (!instructorId) {
+            return;
+        }
         const level = await this.resolveCourseLevel(subjectTitle);
         const course = await this.courseModel
             .findOneAndUpdate({
             subject: subjectTitle,
             title: chapterTitle,
-            instructorId: subject.instructorId,
+            instructorId,
         }, {
             $setOnInsert: {
                 title: chapterTitle,
                 description: String(chapter.description || "").trim() || chapterTitle,
                 level,
                 subject: subjectTitle,
-                instructorId: subject.instructorId,
+                instructorId,
                 modules: [],
             },
         }, { upsert: true, new: true, setDefaultsOnInsert: true })
@@ -160,19 +180,23 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         if (!subjectTitle || !chapterTitle) {
             return null;
         }
+        const instructorId = this.primaryCourseInstructorId(subject);
+        if (!instructorId) {
+            return null;
+        }
         const level = await this.resolveCourseLevel(subjectTitle);
         return this.courseModel
             .findOneAndUpdate({
             subject: subjectTitle,
             title: chapterTitle,
-            instructorId: subject.instructorId,
+            instructorId,
         }, {
             $set: {
                 title: chapterTitle,
                 description: String(chapter.description || "").trim() || chapterTitle,
                 level,
                 subject: subjectTitle,
-                instructorId: subject.instructorId,
+                instructorId,
             },
             $setOnInsert: {
                 modules: [],
@@ -333,7 +357,7 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         subject.chapters.push(chapter);
         await subject.save();
         await this.upsertCourseChapter(subject, chapter);
-        return subject.populate("instructorId", "first_name last_name email");
+        return subject.populate("instructors", "first_name last_name email");
     }
     async addSubChapter(subjectId, chapterOrder, subChapterDto) {
         const subject = await this.subjectModel.findById(subjectId).exec();
@@ -360,7 +384,7 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         subject.markModified("chapters");
         await subject.save();
         await this.upsertCourseSubChapter(subject, chapter, subChapter);
-        return subject.populate("instructorId", "first_name last_name email");
+        return subject.populate("instructors", "first_name last_name email");
     }
     async deleteChapter(subjectId, chapterOrder) {
         const subject = await this.subjectModel.findById(subjectId).exec();
@@ -382,12 +406,16 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         subject.markModified("chapters");
         await subject.save();
         try {
-            const linkedCourses = await this.courseModel
-                .find({
+            const primaryInstructorId = this.primaryCourseInstructorId(subject);
+            const courseFilter = {
                 subject: String(subject.title || "").trim(),
                 title: deletedChapterTitle,
-                instructorId: subject.instructorId,
-            })
+            };
+            if (primaryInstructorId) {
+                courseFilter.instructorId = primaryInstructorId;
+            }
+            const linkedCourses = await this.courseModel
+                .find(courseFilter)
                 .select("_id")
                 .exec();
             const courseIds = linkedCourses.map((course) => course._id);
@@ -425,7 +453,7 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         catch (cleanupError) {
             this.logger.warn(`Chapter cleanup warning: ${cleanupError?.message || cleanupError}`);
         }
-        return subject.populate("instructorId", "first_name last_name email");
+        return subject.populate("instructors", "first_name last_name email");
     }
     async addSubChapterContent(subjectId, chapterOrder, subChapterOrder, contentDto) {
         const subject = await this.subjectModel.findById(subjectId).exec();
@@ -591,7 +619,7 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         });
         subject.markModified("chapters");
         await subject.save();
-        return subject.populate("instructorId", "first_name last_name email");
+        return subject.populate("instructors", "first_name last_name email");
     }
     async updateSubChapterContent(subjectId, chapterOrder, subChapterOrder, contentId, dto) {
         const subject = await this.subjectModel.findById(subjectId).exec();
@@ -718,7 +746,7 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         }
         subject.markModified("chapters");
         await subject.save();
-        return subject.populate("instructorId", "first_name last_name email");
+        return subject.populate("instructors", "first_name last_name email");
     }
     async deleteSubChapterContent(subjectId, chapterOrder, subChapterOrder, contentId) {
         const subject = await this.subjectModel.findById(subjectId).exec();
@@ -746,7 +774,7 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
             .exec();
         subject.markModified("chapters");
         await subject.save();
-        return subject.populate("instructorId", "first_name last_name email");
+        return subject.populate("instructors", "first_name last_name email");
     }
     async addChapterContent(subjectId, chapterOrder, _contentDto) {
         throw new common_2.BadRequestException(`Chapter content is now nested under subchapters. Use POST /subjects/${subjectId}/chapters/${chapterOrder}/subchapters/:subChapterOrder/contents`);
@@ -820,8 +848,11 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
             .exec();
     }
     async getInstructorQuizFileSubmissions(instructorId) {
+        if (!mongoose_2.Types.ObjectId.isValid(instructorId)) {
+            return [];
+        }
         const ownedSubjects = await this.subjectModel
-            .find({ instructorId })
+            .find({ instructors: new mongoose_2.Types.ObjectId(instructorId) })
             .select("title")
             .exec();
         const subjectTitles = ownedSubjects
@@ -863,16 +894,22 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
     async create(dto) {
         const instructorIds = this.normalizeIds(dto.instructorIds);
         await this.assertAllInstructorsExist(instructorIds);
+        const code = await this.generateUniqueSubjectCode(dto.title);
         const subject = await this.subjectModel.create({
-            name: dto.name,
+            code,
+            title: dto.title,
             description: dto.description || '',
             instructors: instructorIds.map((id) => new mongoose_2.Types.ObjectId(id)),
         });
         return this.findOne(subject._id.toString());
     }
-    async findAll() {
+    async findAll(instructorId) {
+        const filter = {};
+        if (instructorId && mongoose_2.Types.ObjectId.isValid(instructorId)) {
+            filter.instructors = new mongoose_2.Types.ObjectId(instructorId);
+        }
         const subjects = await this.subjectModel
-            .find()
+            .find(filter)
             .sort({ createdAt: -1 })
             .populate('instructors', 'first_name last_name email role')
             .exec();
@@ -893,8 +930,8 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         if (!subject) {
             throw new common_2.NotFoundException('Subject not found');
         }
-        if (dto.name !== undefined) {
-            subject.name = dto.name;
+        if (dto.title !== undefined) {
+            subject.title = dto.title;
         }
         if (dto.description !== undefined) {
             subject.description = dto.description;
@@ -921,8 +958,9 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
         return [...new Set(ids.map((id) => id?.trim()).filter(Boolean))];
     }
     async assertAllInstructorsExist(instructorIds) {
+        const objectIds = instructorIds.map((id) => new mongoose_2.Types.ObjectId(id));
         const instructors = await this.userModel.find({
-            _id: { $in: instructorIds },
+            _id: { $in: objectIds },
             role: { $regex: /^(instructor|teacher)$/i },
         });
         if (instructors.length !== instructorIds.length) {
@@ -932,8 +970,11 @@ let SubjectsService = SubjectsService_1 = class SubjectsService {
     toResponse(subject) {
         return {
             id: subject._id,
-            name: subject.name,
+            code: subject.code,
+            title: subject.title,
+            name: subject.title,
             description: subject.description,
+            chapters: subject.chapters || [],
             instructors: (subject.instructors || []).map((instructor) => ({
                 id: instructor._id,
                 first_name: instructor.first_name,
@@ -958,7 +999,9 @@ exports.SubjectsService = SubjectsService = SubjectsService_1 = __decorate([
     __param(6, (0, mongoose_1.InjectModel)(subject_schema_1.Subject.name)),
     __param(7, (0, mongoose_1.InjectModel)(quiz_submission_schema_1.QuizSubmission.name)),
     __param(8, (0, mongoose_1.InjectModel)(quiz_file_submission_schema_1.QuizFileSubmission.name)),
+    __param(9, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,

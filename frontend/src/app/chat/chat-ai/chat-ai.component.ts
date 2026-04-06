@@ -175,7 +175,7 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.newMessage = '';
   }
 
-parseAiContent(content: string): {
+  parseAiContent(content: string): {
     answer: string;
     sources: string[];
     confidence: string;
@@ -284,7 +284,7 @@ parseAiContent(content: string): {
     });
   }
 
-deleteMessage(messageId: string) {
+  deleteMessage(messageId: string) {
     if (confirm('Are you sure you want to delete this message?')) {
       this.chatSocketService.deleteMessage(messageId, this.currentSessionId!);
     }
@@ -310,6 +310,7 @@ deleteMessage(messageId: string) {
       });
     }
   }
+
   getDashboardRoute(): string {
     if (this.userRole === 'admin') return '/admin';
     if (this.userRole === 'instructor') return '/instructor/dashboard';

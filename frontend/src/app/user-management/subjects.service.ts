@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export interface SubjectQuizQuestion {
   question: string;
@@ -40,13 +41,26 @@ export interface SubjectChapter {
 
 export interface SubjectItem {
   _id: string;
+  id?: string;
   code: string;
   title: string;
   description?: string;
   chapters: SubjectChapter[];
+  instructors?: unknown[];
   instructorId?: any;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** API returns `id`; UI expects `_id`. Default `chapters` when omitted. */
+export function normalizeSubjectItem(raw: any): SubjectItem {
+  const idVal = raw?._id ?? raw?.id;
+  const _id = idVal != null ? String(idVal) : '';
+  return {
+    ...raw,
+    _id,
+    chapters: Array.isArray(raw?.chapters) ? raw.chapters : [],
+  };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -59,38 +73,58 @@ export class SubjectsService {
     const query = instructorId
       ? `?instructorId=${encodeURIComponent(instructorId)}`
       : '';
-    return this.http.get<SubjectItem[]>(`${this.apiUrl}${query}`);
+    return this.http.get<any[]>(`${this.apiUrl}${query}`).pipe(
+      map((rows) =>
+        Array.isArray(rows) ? rows.map(normalizeSubjectItem) : [],
+      ),
+    );
   }
 
   getSubject(id: string): Observable<SubjectItem> {
-    return this.http.get<SubjectItem>(`${this.apiUrl}/${id}`);
+    return this.http
+      .get<any>(`${this.apiUrl}/${id}`)
+      .pipe(map(normalizeSubjectItem));
   }
 
   createSubject(payload: {
     title: string;
     description?: string;
     instructorId?: string;
+    instructorIds?: string[];
   }): Observable<SubjectItem> {
-    return this.http.post<SubjectItem>(this.apiUrl, payload);
+    const instructorIds =
+      payload.instructorIds?.length && payload.instructorIds.length > 0
+        ? payload.instructorIds
+        : payload.instructorId
+          ? [payload.instructorId]
+          : [];
+    return this.http
+      .post<any>(this.apiUrl, {
+        title: payload.title,
+        description: payload.description,
+        instructorIds,
+      })
+      .pipe(map(normalizeSubjectItem));
   }
 
   addChapter(
     subjectId: string,
     payload: { title: string; description?: string; order?: number },
   ): Observable<SubjectItem> {
-    return this.http.post<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters`,
-      payload,
-    );
+    return this.http
+      .post<any>(`${this.apiUrl}/${subjectId}/chapters`, payload)
+      .pipe(map(normalizeSubjectItem));
   }
 
   deleteChapter(
     subjectId: string,
     chapterOrder: number,
   ): Observable<SubjectItem> {
-    return this.http.delete<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}`,
-    );
+    return this.http
+      .delete<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}`,
+      )
+      .pipe(map(normalizeSubjectItem));
   }
 
   addChapterContent(
@@ -110,10 +144,12 @@ export class SubjectsService {
       codeSnippet?: string;
     },
   ): Observable<SubjectItem> {
-    return this.http.post<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/contents`,
-      payload,
-    );
+    return this.http
+      .post<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/contents`,
+        payload,
+      )
+      .pipe(map(normalizeSubjectItem));
   }
 
   updateChapterContent(
@@ -134,10 +170,12 @@ export class SubjectsService {
       codeSnippet?: string;
     },
   ): Observable<SubjectItem> {
-    return this.http.put<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/contents/${contentId}`,
-      payload,
-    );
+    return this.http
+      .put<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/contents/${contentId}`,
+        payload,
+      )
+      .pipe(map(normalizeSubjectItem));
   }
 
   deleteChapterContent(
@@ -145,9 +183,11 @@ export class SubjectsService {
     chapterOrder: number,
     contentId: string,
   ): Observable<SubjectItem> {
-    return this.http.delete<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/contents/${contentId}`,
-    );
+    return this.http
+      .delete<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/contents/${contentId}`,
+      )
+      .pipe(map(normalizeSubjectItem));
   }
 
   // ==================== SubChapter Methods ====================
@@ -157,10 +197,12 @@ export class SubjectsService {
     chapterOrder: number,
     payload: { title: string; description?: string; order?: number },
   ): Observable<SubjectItem> {
-    return this.http.post<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters`,
-      payload,
-    );
+    return this.http
+      .post<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters`,
+        payload,
+      )
+      .pipe(map(normalizeSubjectItem));
   }
 
   addSubChapterContent(
@@ -181,10 +223,12 @@ export class SubjectsService {
       codeSnippet?: string;
     },
   ): Observable<SubjectItem> {
-    return this.http.post<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters/${subChapterOrder}/contents`,
-      payload,
-    );
+    return this.http
+      .post<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters/${subChapterOrder}/contents`,
+        payload,
+      )
+      .pipe(map(normalizeSubjectItem));
   }
 
   updateSubChapterContent(
@@ -206,10 +250,12 @@ export class SubjectsService {
       codeSnippet?: string;
     },
   ): Observable<SubjectItem> {
-    return this.http.put<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters/${subChapterOrder}/contents/${contentId}`,
-      payload,
-    );
+    return this.http
+      .put<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters/${subChapterOrder}/contents/${contentId}`,
+        payload,
+      )
+      .pipe(map(normalizeSubjectItem));
   }
 
   deleteSubChapterContent(
@@ -218,8 +264,10 @@ export class SubjectsService {
     subChapterOrder: number,
     contentId: string,
   ): Observable<SubjectItem> {
-    return this.http.delete<SubjectItem>(
-      `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters/${subChapterOrder}/contents/${contentId}`,
-    );
+    return this.http
+      .delete<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters/${subChapterOrder}/contents/${contentId}`,
+      )
+      .pipe(map(normalizeSubjectItem));
   }
 }

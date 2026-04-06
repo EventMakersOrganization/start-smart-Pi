@@ -73,6 +73,12 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['admin'] },
       },
+      {
+        path: 'subjects',
+        component: SubjectsManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
     ],
   },
   {
@@ -146,7 +152,7 @@ const routes: Routes = [
     redirectTo: 'student-dashboard',
     pathMatch: 'full',
   },
-  { path: 'subjects', component: SubjectsManagementComponent, canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
+  { path: 'subjects', redirectTo: 'admin/subjects', pathMatch: 'full' },
 
   // Level Test route
   {

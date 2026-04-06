@@ -1,5 +1,5 @@
 export declare class UpdateSubjectDto {
-    name?: string;
+    title?: string;
     description?: string;
     instructorIds?: string[];
 }

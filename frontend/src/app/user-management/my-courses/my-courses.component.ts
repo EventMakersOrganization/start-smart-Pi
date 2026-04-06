@@ -21,6 +21,8 @@ interface CourseModule {
 
 interface CourseItem {
   id: string;
+  /** Matches `Chapter.order` in the subject API (used to merge fresh chapter data). */
+  chapterOrder: number;
   title: string;
   description: string;
   instructor: string;
@@ -36,6 +38,8 @@ interface SubjectItem {
   count: number;
   courses: CourseItem[];
   color: string;
+  /** Mongo subject id when loaded from `/api/subjects` (for refreshing chapter payload). */
+  subjectDbId?: string;
   loaded?: boolean;
   source?: 'subject' | 'course_title';
   includeAllTitles?: boolean;
@@ -340,14 +344,24 @@ export class MyCoursesComponent implements OnInit {
           order: Number(subChapter?.order ?? 0),
         }));
 
+        const chapterOrder = Number(chapter?.order ?? chapterIndex);
+        const firstInstructor = Array.isArray((subject as any).instructors)
+          ? (subject as any).instructors[0]
+          : null;
+        const instructorLabel =
+          firstInstructor?.first_name || firstInstructor?.email
+            ? `${firstInstructor.first_name || ''} ${firstInstructor.last_name || ''}`.trim() ||
+              String(firstInstructor.email || '')
+            : subject?.instructorId?.name ||
+              subject?.instructorId?.first_name ||
+              'Enseignant';
+
         return {
-          id: `${subject._id}-${Number(chapter?.order ?? chapterIndex)}`,
+          id: `${subject._id}-${chapterOrder}`,
+          chapterOrder,
           title: String(chapter?.title || `Chapter ${chapterIndex + 1}`),
           description: String(chapter?.description || ''),
-          instructor:
-            subject?.instructorId?.name ||
-            subject?.instructorId?.first_name ||
-            'Enseignant',
+          instructor: instructorLabel,
           subject: String(subject?.title || 'General'),
           modules,
           moduleCount: modules.length,
@@ -363,6 +377,7 @@ export class MyCoursesComponent implements OnInit {
 
       return {
         name: String(subject?.title || `Subject ${index + 1}`),
+        subjectDbId: String(subject._id || (subject as any).id || ''),
         count: courses.length,
         courses,
         color: colors[index % colors.length],
@@ -569,6 +584,7 @@ export class MyCoursesComponent implements OnInit {
 
       return {
         id: course?._id || course?.id || String(index + 1),
+        chapterOrder: Number(course?.order ?? index),
         title: course?.title || `Course ${index + 1}`,
         description: course?.description || '',
         instructor:
@@ -861,9 +877,59 @@ export class MyCoursesComponent implements OnInit {
   }
 
   openCourse(course: CourseItem): void {
+    const subjectId = this.selectedSubject?.subjectDbId;
+    if (subjectId) {
+      this.courseLoading = true;
+      this.subjectsService.getSubject(subjectId).subscribe({
+        next: (fresh) => {
+          const merged = this.mergeCourseWithFreshSubject(course, fresh);
+          this.selectedCourse = merged;
+          this.viewMode = 'content';
+          this.loadCourseContent(merged);
+        },
+        error: () => {
+          this.selectedCourse = course;
+          this.viewMode = 'content';
+          this.loadCourseContent(course);
+        },
+      });
+      return;
+    }
     this.selectedCourse = course;
     this.viewMode = 'content';
     this.loadCourseContent(course);
+  }
+
+  /** List payload can be shallow; detail GET returns full subchapters + contents for student work. */
+  private mergeCourseWithFreshSubject(
+    course: CourseItem,
+    fresh: DbSubjectItem,
+  ): CourseItem {
+    const order = Number(course.chapterOrder);
+    const chapter = (fresh.chapters || []).find(
+      (ch) => Number(ch.order) === order,
+    );
+    if (!chapter) {
+      return course;
+    }
+    const subChapters = Array.isArray(chapter.subChapters)
+      ? [...chapter.subChapters].sort(
+          (a, b) => Number(a?.order ?? 0) - Number(b?.order ?? 0),
+        )
+      : [];
+    const modules: CourseModule[] = subChapters.map((subChapter) => ({
+      title: String(subChapter?.title || 'Untitled subchapter'),
+      description: String(subChapter?.description || ''),
+      order: Number(subChapter?.order ?? 0),
+    }));
+    return {
+      ...course,
+      title: String(chapter?.title || course.title),
+      description: String(chapter?.description || course.description || ''),
+      modules,
+      moduleCount: modules.length,
+      sourceSubChapters: subChapters,
+    };
   }
 
   backToCourses(): void {
@@ -957,7 +1023,6 @@ export class MyCoursesComponent implements OnInit {
   }
 
   private loadCourseContent(course: CourseItem): void {
-    this.courseLoading = true;
     this.subchapterContents = this.buildSubchapterContents(course);
     this.courseResources = [];
     this.courseExercises = [];

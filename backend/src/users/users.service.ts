@@ -113,8 +113,7 @@ export class UsersService {
     }
 
     const users = await this.userModel.find(query).select('-password').exec();
-    console.log(`[DEBUG] getUsersByRole('${role}') found ${users.length} users with query:`, query);
-    
+
     // If requesting students, include their student profiles (match userId as ObjectId or string)
     if (role.toLowerCase() === 'student') {
       const userIds = users.map((u) => u._id);

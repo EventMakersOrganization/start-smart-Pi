@@ -45,3 +45,4 @@ export declare class Subject {
     createdAt?: Date;
     updatedAt?: Date;
 }
+export declare const SubjectSchema: import("mongoose").Schema<Subject, import("mongoose").Model<Subject, any, any, any, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, Subject>;

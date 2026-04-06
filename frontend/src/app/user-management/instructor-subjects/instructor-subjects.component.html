@@ -277,8 +277,8 @@
                 <span
                   class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary"
                 >
-                  {{ subject.chapters.length || 0 }} chapter{{
-                    (subject.chapters.length || 0) > 1 ? "s" : ""
+                  {{ subject.chapters?.length || 0 }} chapter{{
+                    (subject.chapters?.length || 0) > 1 ? "s" : ""
                   }}
                 </span>
               </div>

@@ -123,12 +123,7 @@ export class Subject {
 
   createdAt?: Date;
   updatedAt?: Date;
-
-
-
-
-
-
-
 }
+
+export const SubjectSchema = SchemaFactory.createForClass(Subject);
 

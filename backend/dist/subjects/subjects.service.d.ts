@@ -1,4 +1,5 @@
 import { Model } from 'mongoose';
+import { UserDocument } from '../users/schemas/user.schema';
 import { Subject, SubjectDocument } from './schemas/subject.schema';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
@@ -29,8 +30,10 @@ export declare class SubjectsService {
     private subjectModel;
     private quizSubmissionModel;
     private quizFileSubmissionModel;
+    private userModel;
     private readonly logger;
-    constructor(courseModel: Model<CourseDocument>, exerciseModel: Model<ExerciseDocument>, courseUploadAssetModel: Model<CourseUploadAssetDocument>, prositQuizAssetModel: Model<PrositQuizAssetDocument>, resourceAddAssetModel: Model<ResourceAddAssetDocument>, videoAssetModel: Model<VideoAssetDocument>, subjectModel: Model<SubjectDocument>, quizSubmissionModel: Model<QuizSubmissionDocument>, quizFileSubmissionModel: Model<QuizFileSubmissionDocument>);
+    constructor(courseModel: Model<CourseDocument>, exerciseModel: Model<ExerciseDocument>, courseUploadAssetModel: Model<CourseUploadAssetDocument>, prositQuizAssetModel: Model<PrositQuizAssetDocument>, resourceAddAssetModel: Model<ResourceAddAssetDocument>, videoAssetModel: Model<VideoAssetDocument>, subjectModel: Model<SubjectDocument>, quizSubmissionModel: Model<QuizSubmissionDocument>, quizFileSubmissionModel: Model<QuizFileSubmissionDocument>, userModel: Model<UserDocument>);
+    private primaryCourseInstructorId;
     private normalizeCode;
     private generateUniqueSubjectCode;
     private ensureContentIds;
@@ -68,32 +71,44 @@ export declare class SubjectsService {
     gradeQuizFileSubmission(submissionId: string, graderId: string, dto: GradeQuizFileSubmissionDto): Promise<QuizFileSubmission>;
     create(dto: CreateSubjectDto): Promise<{
         id: any;
-        name: any;
+        code: string;
+        title: string;
+        name: string;
         description: string;
+        chapters: import("./schemas/subject.schema").Chapter[];
         instructors: any;
         createdAt: any;
         updatedAt: any;
     }>;
-    findAll(): Promise<{
+    findAll(instructorId?: string): Promise<{
         id: any;
-        name: any;
+        code: string;
+        title: string;
+        name: string;
         description: string;
+        chapters: import("./schemas/subject.schema").Chapter[];
         instructors: any;
         createdAt: any;
         updatedAt: any;
     }[]>;
     findOne(id: string): Promise<{
         id: any;
-        name: any;
+        code: string;
+        title: string;
+        name: string;
         description: string;
+        chapters: import("./schemas/subject.schema").Chapter[];
         instructors: any;
         createdAt: any;
         updatedAt: any;
     }>;
     update(id: string, dto: UpdateSubjectDto): Promise<{
         id: any;
-        name: any;
+        code: string;
+        title: string;
+        name: string;
         description: string;
+        chapters: import("./schemas/subject.schema").Chapter[];
         instructors: any;
         createdAt: any;
         updatedAt: any;
