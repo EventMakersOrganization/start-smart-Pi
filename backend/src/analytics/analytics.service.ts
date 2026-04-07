@@ -102,6 +102,16 @@ export interface InterventionTrackingData {
   status: 'applied' | 'pending';
 }
 
+/** One row for instructor/admin “student risk” tables (matches frontend `StudentRiskListItem`). */
+export interface StudentRiskListRow {
+  userId: string;
+  name: string;
+  email: string;
+  riskScore: number;
+  riskLevel: string;
+  alertStatus: 'Pending' | 'Reviewed' | 'Resolved';
+}
+
 export interface StudentEngagementScore {
   userId: string;
   engagementScore: number;
@@ -919,6 +929,79 @@ export class AnalyticsService {
       createdAt: alert.createdAt,
       updatedAt: alert.updatedAt,
     }));
+  }
+
+  /**
+   * Latest risk score per student + unresolved alert flag (for dashboards).
+   */
+  async getStudentRiskList(): Promise<StudentRiskListRow[]> {
+    const riskScores = await this.riskScoreModel
+      .find()
+      .sort({ lastUpdated: -1, _id: -1 })
+      .lean<RiskScoreDocument[]>()
+      .exec();
+
+    const latestRiskByUser = new Map<string, RiskScoreDocument>();
+    for (const risk of riskScores) {
+      const riskUserId = String(risk.user);
+      if (!latestRiskByUser.has(riskUserId)) {
+        latestRiskByUser.set(riskUserId, risk);
+      }
+    }
+
+    const unresolved = await this.alertModel
+      .find({ resolved: false })
+      .select('student userId')
+      .lean()
+      .exec();
+
+    const pendingByUser = new Set<string>();
+    for (const a of unresolved as Array<{ student?: unknown; userId?: unknown }>) {
+      const sid = a.student != null ? String(a.student) : a.userId != null ? String(a.userId) : '';
+      if (sid) {
+        pendingByUser.add(sid);
+      }
+    }
+
+    const userIds = Array.from(latestRiskByUser.keys());
+    const validObjectIds = userIds
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+
+    const users =
+      validObjectIds.length > 0
+        ? await this.userModel
+            .find({ _id: { $in: validObjectIds } })
+            .select('first_name last_name email')
+            .lean<UserDocument[]>()
+            .exec()
+        : [];
+
+    const userMap = new Map<string, UserDocument>();
+    for (const u of users) {
+      userMap.set(String((u as any)._id), u);
+    }
+
+    return userIds.map((userId) => {
+      const risk = latestRiskByUser.get(userId)!;
+      const u = userMap.get(userId);
+      const name = u
+        ? `${(u as any).first_name || ''} ${(u as any).last_name || ''}`.trim() || 'Unknown Student'
+        : 'Unknown Student';
+      return {
+        userId,
+        name,
+        email: (u as any)?.email || 'N/A',
+        riskScore: Number(risk.score ?? 0),
+        riskLevel: String(risk.riskLevel ?? '').toLowerCase(),
+        alertStatus: pendingByUser.has(userId) ? 'Pending' : 'Resolved',
+      };
+    });
+  }
+
+  /** Same data as `GET /api/analytics/kpis/risk-distribution` (alias for the Angular client). */
+  async getRiskDistributionDashboard() {
+    return this.kpiService.getRiskDistribution();
   }
 
   async getInterventions(limit: number = 200): Promise<InterventionTrackingData[]> {

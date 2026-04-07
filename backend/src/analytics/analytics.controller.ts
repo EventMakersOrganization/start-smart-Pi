@@ -117,6 +117,24 @@ export class AnalyticsController {
   }
 
   /**
+   * Risk distribution KPI (alias of `/api/analytics/kpis/risk-distribution` for older clients).
+   */
+  @Get('risk-distribution')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  async getRiskDistribution() {
+    return this.analyticsService.getRiskDistributionDashboard();
+  }
+
+  /**
+   * Latest risk score per student with alert status (instructor/admin tables).
+   */
+  @Get('student-risk-list')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  async getStudentRiskList() {
+    return this.analyticsService.getStudentRiskList();
+  }
+
+  /**
    * Get intervention tracking rows for instructor dashboard.
    */
   @Get('interventions')

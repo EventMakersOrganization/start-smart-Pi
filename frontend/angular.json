@@ -34,6 +34,7 @@
               "debug",
               "file-saver",
               "html2canvas",
+              "mammoth/mammoth.browser",
               "raf",
               "rgbcolor",
               "socket.io-parser"
