@@ -1,0 +1,8 @@
+/* Risk Distribution Chart Component Styles */
+:host {
+  display: block;
+}
+
+.chart-bar-glow {
+  filter: drop-shadow(0 0 8px rgba(17, 82, 212, 0.2));
+}

@@ -1,0 +1,12 @@
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+  <div class="flex items-start justify-between mb-4">
+    <div [ngClass]="['p-2 rounded-lg', bgColor, iconColor]">
+      <span class="material-symbols-outlined">{{ icon }}</span>
+    </div>
+    <span [ngClass]="trendClass" *ngIf="trend">
+      <span class="material-symbols-outlined text-sm mr-1">{{ trendIcon }}</span>{{ trend }}
+    </span>
+  </div>
+  <p class="text-slate-500 text-sm font-medium">{{ title }}</p>
+  <h3 class="text-3xl font-bold mt-1">{{ value }}</h3>
+</div>

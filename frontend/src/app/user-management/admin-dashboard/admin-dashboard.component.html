@@ -4,8 +4,7 @@
   <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 py-3 sticky top-0 z-50">
     <div class="flex items-center gap-8">
       <div class="flex items-center gap-3 text-primary">
-        <span class="material-symbols-outlined text-3xl">hub</span>
-        <h2 class="text-slate-900 dark:text-white text-xl font-bold tracking-tight">Adaptive AI Admin</h2>
+        <app-brand-logo [link]="'/admin/students'" variant="header" />
       </div>
       <div class="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1.5 w-64 border border-transparent focus-within:border-primary transition-all">
         <span class="material-symbols-outlined text-slate-400 text-lg">search</span>
@@ -13,9 +12,13 @@
       </div>
     </div>
     <nav class="flex items-center gap-6">
-      <a class="text-sm font-semibold text-primary border-b-2 border-primary pb-1" href="#">Users</a>
+      <a routerLink="/admin/students" routerLinkActive="text-primary border-b-2 border-primary" class="text-sm font-semibold pb-1" [routerLinkActiveOptions]="{ exact: false }">Users</a>
       <a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1" href="#">Learning Paths</a>
-      <a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1" href="#">Analytics</a>
+      <a
+        routerLink="/admin/system-metrics"
+        [ngClass]="analyticsSectionActive ? 'text-primary border-b-2 border-primary' : 'text-slate-500 hover:text-primary'"
+        class="text-sm font-medium pb-1 transition-colors"
+      >Analytics</a>
       <a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1" href="#">Settings</a>
     </nav>
     <div class="flex items-center gap-3">
@@ -43,19 +46,34 @@
       <div class="mb-4 px-2">
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</p>
       </div>
-      <a routerLink="/admin/students" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
+      <a routerLink="/admin/students" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20" [routerLinkActiveOptions]="{ exact: false }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
         <span class="material-symbols-outlined">group</span>
         <span class="text-sm font-medium">Student Directory</span>
       </a>
-      <a routerLink="/admin/instructors" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <a routerLink="/admin/instructors" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20" [routerLinkActiveOptions]="{ exact: false }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
         <span class="material-symbols-outlined">person</span>
         <span class="text-sm font-medium">Instructor Directory</span>
       </a>
-      <a routerLink="/admin/subjects" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <a routerLink="/admin/subjects" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20" [routerLinkActiveOptions]="{ exact: false }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
         <span class="material-symbols-outlined">menu_book</span>
         <span class="text-sm font-medium">Subjects</span>
       </a>
-      <!-- additional links could be added here -->
+      <a routerLink="/admin/system-metrics" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <span class="material-symbols-outlined">monitoring</span>
+        <span class="text-sm font-medium">System metrics</span>
+      </a>
+      <a routerLink="/admin/comprehensive-analytics" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <span class="material-symbols-outlined">insights</span>
+        <span class="text-sm font-medium">Comprehensive analytics</span>
+      </a>
+      <a routerLink="/admin/report-builder" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <span class="material-symbols-outlined">summarize</span>
+        <span class="text-sm font-medium">Report builder</span>
+      </a>
+      <a routerLink="/admin/explainability" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <span class="material-symbols-outlined">psychology</span>
+        <span class="text-sm font-medium">Explainability</span>
+      </a>
     </aside>
 
     <!-- Main Content Area -->
