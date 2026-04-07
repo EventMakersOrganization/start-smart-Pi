@@ -18,7 +18,7 @@ export class UsersService {
     @InjectModel(StudentProfile.name)
     private profileModel: Model<StudentProfileDocument>,
     private activityService: ActivityService,
-  ) {}
+  ) { }
 
   private profileLookupFilter(userId: string) {
     if (Types.ObjectId.isValid(userId)) {
@@ -46,10 +46,10 @@ export class UsersService {
       },
       profile: profile
         ? {
-            academic_level: profile.academic_level,
-            risk_level: profile.risk_level,
-            points_gamification: profile.points_gamification,
-          }
+          academic_level: profile.academic_level,
+          risk_level: profile.risk_level,
+          points_gamification: profile.points_gamification,
+        }
         : null,
     };
   }

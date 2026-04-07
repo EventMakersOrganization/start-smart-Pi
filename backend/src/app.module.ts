@@ -9,6 +9,7 @@ import { ActivityModule } from './activity/activity.module';
 import { AppController } from './app.controller';
 import { ChatModule } from './chat/chat.module';
 import { SubjectsModule } from './subjects/subjects.module';
+import { CodebattleModule } from './codebattle/codebattle.module';
 
 @Module({
   imports: [
@@ -33,8 +34,9 @@ import { SubjectsModule } from './subjects/subjects.module';
     ChatModule,
     BrainrushModule,
     SubjectsModule,
+    CodebattleModule,
   ],
   controllers: [AppController],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }
