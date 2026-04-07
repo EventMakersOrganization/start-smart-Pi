@@ -1,0 +1,91 @@
+<div class="max-w-5xl mx-auto space-y-8 p-4 md:p-8">
+  <div>
+    <h1 class="text-2xl font-extrabold text-blue-900 dark:text-blue-100">Report builder & integrations</h1>
+    <p class="text-slate-500 mt-1">Save metric bundles, export CSV/XLSX in the browser, and register outbound webhooks (HMAC-signed test pings).</p>
+  </div>
+
+  <p *ngIf="error" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{{ error }}</p>
+
+  <section class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+    <h2 class="text-lg font-bold">Saved reports</h2>
+    <div *ngIf="loading" class="text-sm text-slate-500">Loading…</div>
+    <ul *ngIf="!loading" class="divide-y divide-slate-100 dark:divide-slate-800">
+      <li *ngFor="let d of definitions" class="py-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p class="font-semibold">{{ d.name }}</p>
+          <p class="text-xs text-slate-500">{{ d.metrics.join(', ') }} · {{ d.format }}</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" (click)="runReport(d._id)" class="text-sm font-bold text-primary hover:underline">Run &amp; CSV</button>
+          <button type="button" (click)="deleteReport(d._id)" class="text-sm font-bold text-red-600 hover:underline">Delete</button>
+        </div>
+      </li>
+      <li *ngIf="definitions.length === 0 && !loading" class="py-4 text-sm text-slate-500">No saved reports yet.</li>
+    </ul>
+
+    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-3">
+      <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300">New report</h3>
+      <input
+        [(ngModel)]="reportName"
+        class="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+        placeholder="Report name"
+      />
+      <div class="flex flex-wrap gap-3">
+        <label *ngFor="let m of metricOptions" class="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            [checked]="selectedMetrics.includes(m.id)"
+            (change)="toggleMetric(m.id)"
+          />
+          {{ m.label }}
+        </label>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">Format</label>
+        <select [(ngModel)]="format" class="rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm">
+          <option value="csv">csv</option>
+          <option value="xlsx">xlsx</option>
+        </select>
+      </div>
+      <button
+        type="button"
+        (click)="saveReport()"
+        class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90"
+      >
+        Save definition
+      </button>
+    </div>
+  </section>
+
+  <section class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+    <h2 class="text-lg font-bold">External webhooks</h2>
+    <p class="text-sm text-slate-500">Test delivery sends a JSON body with <code class="text-xs">X-StartSmart-Signature: sha256 HMAC</code> of the raw body.</p>
+
+    <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+      <li *ngFor="let w of webhooks" class="py-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p class="font-semibold">{{ w.name }}</p>
+          <p class="text-xs text-slate-500 break-all">{{ w.url }}</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" (click)="testWebhook(w._id)" class="text-sm font-bold text-primary hover:underline">Test</button>
+          <button type="button" (click)="deleteWebhook(w._id)" class="text-sm font-bold text-red-600 hover:underline">Delete</button>
+        </div>
+      </li>
+      <li *ngIf="webhooks.length === 0" class="py-2 text-sm text-slate-500">No webhooks yet.</li>
+    </ul>
+
+    <div class="grid gap-2 max-w-lg">
+      <input [(ngModel)]="webhookName" placeholder="Name" class="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      <input [(ngModel)]="webhookUrl" placeholder="https://…" class="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      <input [(ngModel)]="webhookSecret" type="password" placeholder="Shared secret" class="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      <button
+        type="button"
+        (click)="addWebhook()"
+        class="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-bold hover:bg-slate-900 w-fit"
+      >
+        Add webhook
+      </button>
+    </div>
+  </section>
+</div>

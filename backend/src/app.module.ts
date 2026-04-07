@@ -4,13 +4,20 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AcademicModule } from './academic/academic.module';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ActivityModule } from './activity/activity.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { RiskScoreModule } from './analytics/riskscore.module';
+import { AlertModule } from './analytics/alert.module';
+import { AlertConfigModule } from './alert-config/alert-config.module';
 import { AppController } from './app.controller';
 import { ChatModule } from './chat/chat.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { CodebattleModule } from './codebattle/codebattle.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
+import { ReportModule } from './report/report.module';
 
 @Module({
   imports: [
@@ -18,6 +25,7 @@ import { CodebattleModule } from './codebattle/codebattle.module';
       isGlobal: true,
       envFilePath: ".env",
     }),
+    ScheduleModule.forRoot(),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -30,7 +38,13 @@ import { CodebattleModule } from './codebattle/codebattle.module';
     }),
     AuthModule,
     UsersModule,
+    AnalyticsModule,
+    RiskScoreModule,
+    AlertModule,
+    AlertConfigModule,
     ActivityModule,
+    MonitoringModule,
+    ReportModule,
     AdaptiveLearningModule,
     AcademicModule,
     ChatModule,

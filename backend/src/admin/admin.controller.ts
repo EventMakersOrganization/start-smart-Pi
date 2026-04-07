@@ -19,6 +19,13 @@ export class AdminController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @Get('users')
+  async getAllUsers() {
+    return this.usersService.listAllUsersForAdmin();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get('students')
   async getStudents() {
     return this.usersService.getUsersByRole(UserRole.STUDENT);

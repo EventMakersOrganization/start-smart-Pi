@@ -43,6 +43,7 @@ export declare class UsersService {
         };
     }>;
     getUsersByRole(role: string): Promise<any[]>;
+    listAllUsersForAdmin(): Promise<any[]>;
     updateUserById(id: string, dto: any): Promise<{
         success: boolean;
     }>;

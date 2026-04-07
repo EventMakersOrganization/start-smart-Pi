@@ -149,6 +149,38 @@ let UsersService = class UsersService {
             updatedAt: u.updatedAt,
         }));
     }
+    async listAllUsersForAdmin() {
+        const users = await this.userModel.find().select('-password').sort({ createdAt: -1 }).exec();
+        const userIds = users.map((u) => u._id);
+        const userIdStrings = userIds.map((id) => String(id));
+        const objectIds = userIdStrings
+            .filter((id) => mongoose_2.Types.ObjectId.isValid(id))
+            .map((id) => new mongoose_2.Types.ObjectId(id));
+        const profiles = await this.profileModel
+            .find({
+            $or: [{ userId: { $in: objectIds } }, { userId: { $in: userIdStrings } }],
+        })
+            .exec();
+        const profileMap = new Map();
+        profiles.forEach((p) => profileMap.set(String(p.userId), p));
+        return users.map((u) => {
+            const p = profileMap.get(String(u._id));
+            return {
+                id: u._id,
+                first_name: u.first_name,
+                last_name: u.last_name,
+                email: u.email,
+                phone: u.phone,
+                role: u.role,
+                status: u.status,
+                createdAt: u.createdAt,
+                updatedAt: u.updatedAt,
+                academic_level: p ? p.academic_level : undefined,
+                risk_level: p ? p.risk_level : undefined,
+                points_gamification: p ? p.points_gamification : undefined,
+            };
+        });
+    }
     async updateUserById(id, dto) {
         const user = await this.userModel.findById(id);
         if (!user)

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
+import { AnalyticsService } from '../modules/analytics/services/analytics.service';
 
 interface LoginResponse {
   token: string;
@@ -24,7 +25,11 @@ export class AuthService {
   private userSubject = new BehaviorSubject<any>(null);
   public user$ = this.userSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private analyticsService: AnalyticsService,
+  ) {
     const token = localStorage.getItem(this.tokenKey);
     if (token) {
       this.userSubject.next(this.decodeToken(token));
@@ -64,6 +69,7 @@ export class AuthService {
   }
 
   logout() {
+    this.analyticsService.clearSharedAnalyticsCache();
     localStorage.removeItem(this.tokenKey);
     this.userSubject.next(null);
     this.router.navigate(['/login']);

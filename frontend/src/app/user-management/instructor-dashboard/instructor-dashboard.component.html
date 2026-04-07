@@ -7,12 +7,7 @@
   >
     <div class="flex items-center gap-8">
       <div class="flex items-center gap-3 text-primary">
-        <span class="material-symbols-outlined text-3xl">model_training</span>
-        <h2
-          class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight"
-        >
-          StartSmart
-        </h2>
+        <app-brand-logo [link]="'/instructor/dashboard'" variant="header" />
       </div>
       <nav class="hidden md:flex items-center gap-6">
         <a
@@ -103,24 +98,44 @@
         </p>
         <a
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white shadow-lg shadow-primary/20"
-          href="#"
+          routerLink="/instructor/dashboard"
+          routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20"
+          [routerLinkActiveOptions]="{ exact: true }"
         >
           <span class="material-symbols-outlined">dashboard</span>
-          <span class="text-sm font-medium">Overview</span>
+          <span class="text-sm font-medium">Risk &amp; KPI overview</span>
         </a>
         <a
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          href="#"
+          routerLink="/instructor/deep-analytics"
+          routerLinkActive="bg-primary/10 text-primary"
         >
           <span class="material-symbols-outlined">analytics</span>
           <span class="text-sm font-medium">Deep Analytics</span>
         </a>
         <a
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          href="#"
+          routerLink="/instructor/risk-detection"
+          routerLinkActive="bg-primary/10 text-primary"
         >
           <span class="material-symbols-outlined">report_problem</span>
           <span class="text-sm font-medium">Risk Detection</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          routerLink="/instructor/comprehensive-analytics"
+          routerLinkActive="bg-primary/10 text-primary"
+        >
+          <span class="material-symbols-outlined">hub</span>
+          <span class="text-sm font-medium">Cross-module analytics</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          routerLink="/instructor/interventions"
+          routerLinkActive="bg-primary/10 text-primary"
+        >
+          <span class="material-symbols-outlined">medical_services</span>
+          <span class="text-sm font-medium">Interventions</span>
         </a>
         <a
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
