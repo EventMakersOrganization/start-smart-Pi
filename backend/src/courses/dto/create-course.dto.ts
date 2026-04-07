@@ -30,7 +30,7 @@ export class CreateCourseDto {
     @IsNotEmpty()
     description: string;
 
-    @ApiProperty({ description: 'Academic level', example: '1st Year' })
+    @ApiProperty({ description: 'Class', example: '1st Year' })
     @IsString()
     @IsNotEmpty()
     level: string;

@@ -43,17 +43,21 @@
       <div class="mb-4 px-2">
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</p>
       </div>
-      <a routerLink="/admin/students" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
+      <a routerLink="/admin/students" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary dark:hover:bg-primary" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
         <span class="material-symbols-outlined">group</span>
         <span class="text-sm font-medium">Student Directory</span>
       </a>
-      <a routerLink="/admin/instructors" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <a routerLink="/admin/instructors" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary dark:hover:bg-primary" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
         <span class="material-symbols-outlined">person</span>
         <span class="text-sm font-medium">Instructor Directory</span>
       </a>
-      <a routerLink="/admin/subjects" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <a routerLink="/admin/subjects" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary dark:hover:bg-primary" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
         <span class="material-symbols-outlined">menu_book</span>
         <span class="text-sm font-medium">Subjects</span>
+      </a>
+      <a routerLink="/admin/classes" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary dark:hover:bg-primary" [routerLinkActiveOptions]="{ exact: true }" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <span class="material-symbols-outlined">groups</span>
+        <span class="text-sm font-medium">Classes</span>
       </a>
       <!-- additional links could be added here -->
     </aside>

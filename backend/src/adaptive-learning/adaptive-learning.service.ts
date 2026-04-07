@@ -896,7 +896,7 @@ export class AdaptiveLearningService {
           },
           $setOnInsert: {
             userId,
-            academic_level: "N/A",
+            class: "N/A",
             points_gamification: 0,
           },
         },
@@ -4718,7 +4718,7 @@ export class AdaptiveLearningService {
           },
           $setOnInsert: {
             userId: test.studentId,
-            academic_level: "N/A",
+            class: "N/A",
             points_gamification: 0,
           },
         },

@@ -3,6 +3,7 @@ import { BrainrushModule } from "./brainrush/brainrush.module";
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AcademicModule } from './academic/academic.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ActivityModule } from './activity/activity.module';
@@ -31,6 +32,7 @@ import { CodebattleModule } from './codebattle/codebattle.module';
     UsersModule,
     ActivityModule,
     AdaptiveLearningModule,
+    AcademicModule,
     ChatModule,
     BrainrushModule,
     SubjectsModule,

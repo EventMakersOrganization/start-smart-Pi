@@ -15,7 +15,7 @@ interface ProfileData {
     status: string;
   };
   profile: {
-    academic_level: string;
+    class: string;
     risk_level: string;
     points_gamification: number;
   } | null;

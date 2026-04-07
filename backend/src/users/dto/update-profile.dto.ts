@@ -15,7 +15,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  academic_level?: string;
+  class?: string;
 
   @IsOptional()
   @IsIn(['LOW', 'MEDIUM', 'HIGH'])

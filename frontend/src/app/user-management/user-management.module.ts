@@ -37,6 +37,7 @@ import { AssignmentSubmissionComponent } from './assignment-submission/assignmen
 import { ProgressReportsComponent } from './progress-reports/progress-reports.component';
 import { InstructorSubjectsComponent } from './instructor-subjects/instructor-subjects.component';
 import { SubjectsManagementComponent } from './subjects-management/subjects-management.component';
+import { ClassManagementComponent } from './class-management/class-management.component';
 
 const routes: Routes = [
   {
@@ -76,6 +77,12 @@ const routes: Routes = [
       {
         path: 'subjects',
         component: SubjectsManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+      {
+        path: 'classes',
+        component: ClassManagementComponent,
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['admin'] },
       },
@@ -237,6 +244,7 @@ const routes: Routes = [
     ProgressReportsComponent,
     InstructorSubjectsComponent,
     SubjectsManagementComponent,
+    ClassManagementComponent,
     InstructorDashboardComponent
   ],
   imports: [

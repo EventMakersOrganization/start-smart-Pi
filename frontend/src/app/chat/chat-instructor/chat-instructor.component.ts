@@ -92,7 +92,7 @@ export class ChatInstructorComponent implements OnInit, OnDestroy, AfterViewChec
   }
 
   loadInstructors() {
-    this.chatApiService.getUsersByRole('instructor').subscribe({
+    this.chatApiService.getAvailableInstructors().subscribe({
       next: (res: any) => {
         console.log('[DEBUG] API response for instructors:', res);
         this.instructors = res || [];
