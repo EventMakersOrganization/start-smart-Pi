@@ -7,6 +7,13 @@ import { ChatRoomComponent } from './chat/chat-room/chat-room.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
+  {
+    path: 'analytics',
+    loadChildren: () =>
+      import('./modules/analytics/analytics.module').then(
+        (m) => m.AnalyticsModule
+      ),
+  },
   { path: 'chat/ai', component: ChatAiComponent },
   { path: 'chat/instructor', component: ChatInstructorComponent },
   { path: 'chat/room', component: ChatRoomComponent },

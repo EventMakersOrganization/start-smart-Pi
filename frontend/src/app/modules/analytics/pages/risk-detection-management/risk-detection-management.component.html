@@ -1,0 +1,341 @@
+<div class="bg-surface font-body text-on-surface min-h-screen">
+  <aside class="h-screen w-64 fixed left-0 top-0 bg-slate-50 dark:bg-slate-900 flex flex-col p-4 space-y-2 font-manrope text-[13px] font-semibold tracking-wide border-r border-surface-container z-40">
+    <div class="mb-8 px-4">
+      <h1 class="text-lg font-extrabold text-blue-900 dark:text-blue-100">Scholar Metric</h1>
+      <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-1">Adaptive Learning System</p>
+    </div>
+
+    <nav class="flex-1 space-y-1">
+      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/analytics/instructor-dashboard">
+        <span class="material-symbols-outlined">dashboard</span>
+        Dashboard
+      </a>
+      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/analytics/deep-analytics">
+        <span class="material-symbols-outlined">analytics</span>
+        Deep Analytics
+      </a>
+      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/analytics/comprehensive-analytics">
+        <span class="material-symbols-outlined">insights</span>
+        Comprehensive Analytics
+      </a>
+      <a class="flex items-center gap-3 bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-lg px-4 py-3 transition-all" routerLink="/analytics/risk-detection">
+        <span class="material-symbols-outlined">warning</span>
+        Risk Detection
+      </a>
+      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/profile">
+        <span class="material-symbols-outlined">assignment</span>
+        Assignments
+      </a>
+      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/analytics/interventions">
+        <span class="material-symbols-outlined">bolt</span>
+        Interventions
+      </a>
+    </nav>
+
+    <div class="mt-auto pt-6 space-y-1">
+      <button class="w-full bg-primary text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2 hover:bg-on-primary-fixed-variant transition-colors mb-4">
+        <span class="material-symbols-outlined text-sm">add</span>
+        Generate Report
+      </button>
+      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/profile">
+        <span class="material-symbols-outlined">settings</span>
+        Settings
+      </a>
+      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" href="#">
+        <span class="material-symbols-outlined">help</span>
+        Support
+      </a>
+    </div>
+  </aside>
+
+  <div class="ml-64 flex flex-col min-h-screen">
+    <header class="sticky top-0 z-30 bg-[#f8f9ff] dark:bg-slate-950 flex justify-between items-center px-8 py-4 border-b border-surface-container-low">
+      <div class="flex items-center gap-6 w-1/3">
+        <div class="relative w-full max-w-md">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+          <input class="w-full bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-400" placeholder="Search students, metrics..." type="text"/>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button class="p-2 text-slate-500 hover:text-primary transition-colors">
+          <span class="material-symbols-outlined">notifications</span>
+        </button>
+        <div class="h-8 w-px bg-surface-container mx-2"></div>
+        <button (click)="navigateToProfile()" class="flex items-center gap-3 pl-2 hover:bg-surface-container-low rounded-xl p-1 transition-colors" title="Go to profile">
+          <div class="text-right hidden sm:block">
+            <p class="text-xs font-bold font-manrope text-blue-900">{{ getInstructorName() }}</p>
+            <p class="text-[10px] text-slate-500">Instructor</p>
+          </div>
+          <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-fixed bg-surface-container-high flex items-center justify-center text-primary font-bold">
+            <img *ngIf="user?.avatar" alt="Instructor Profile Picture" class="w-full h-full object-cover" [src]="user?.avatar"/>
+            <span *ngIf="!user?.avatar">{{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}</span>
+          </div>
+        </button>
+      </div>
+    </header>
+
+    <main class="p-8 space-y-8 max-w-[1600px]">
+      <!-- Page Header -->
+      <div class="header-panel flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-3xl font-black tracking-tight">Risk Detection Management</h1>
+          <p class="mt-1">Create, update, and manage student risk scores.</p>
+        </div>
+        <button 
+          (click)="openCreateModal()"
+          class="primary-action px-6 py-3 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+          <span class="material-symbols-outlined">add</span>
+          Create Risk Score
+        </button>
+      </div>
+
+  <!-- Success Message -->
+  <div *ngIf="successMessage" class="success-state rounded-lg p-4 mb-6 flex items-center justify-between">
+    <p>{{ successMessage }}</p>
+    <button (click)="clearMessages()" class="text-emerald-600 hover:text-emerald-800">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <!-- Error Message -->
+      <div *ngIf="error" class="error-state rounded-lg p-4 mb-6 flex items-center justify-between gap-3">
+        <p>{{ displayError }}</p>
+        <div class="flex items-center gap-3">
+          <a routerLink="/login" class="text-xs font-bold underline">Login</a>
+          <button (click)="clearMessages()" class="text-rose-600 hover:text-rose-800">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state flex items-center justify-center h-64">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <p class="mt-4 text-slate-500">Loading risk scores...</p>
+    </div>
+  </div>
+
+  <!-- Risk Scores Table -->
+  <div *ngIf="!loading" class="table-panel rounded-xl overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="table-head text-xs font-bold uppercase tracking-widest">
+          <tr>
+            <th class="px-6 py-4">Student</th>
+            <th class="px-6 py-4">Score</th>
+            <th class="px-6 py-4">Risk Level</th>
+            <th class="px-6 py-4">Last Updated</th>
+            <th class="px-6 py-4">Created At</th>
+            <th class="px-6 py-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tr *ngIf="riskScores.length === 0">
+            <td colspan="6" class="px-6 py-8 text-center text-slate-500">
+              No risk scores found. Create one to get started.
+            </td>
+          </tr>
+          <tr *ngFor="let riskScore of riskScores" class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="avatar-dot size-8 rounded-full flex items-center justify-center text-xs font-bold">
+                  {{ getUserName(riskScore.user).charAt(0).toUpperCase() }}
+                </div>
+                <span class="text-sm font-bold">{{ getUserName(riskScore.user) }}</span>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <span class="text-sm font-medium">{{ riskScore.score }}%</span>
+            </td>
+            <td class="px-6 py-4">
+              <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase" 
+                    [ngClass]="getRiskBadgeClass(riskScore.riskLevel)">
+                {{ getRiskLabel(riskScore.riskLevel) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm table-muted">
+              {{ formatDate(riskScore.lastUpdated) }}
+            </td>
+            <td class="px-6 py-4 text-sm table-muted">
+              {{ formatDate(riskScore.createdAt) }}
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+                <button 
+                  (click)="openDetailsModal(riskScore)"
+                  class="p-2 action-view rounded-lg transition-colors"
+                  title="View Details">
+                  <span class="material-symbols-outlined text-xl">visibility</span>
+                </button>
+                <button 
+                  (click)="openEditModal(riskScore)"
+                  class="p-2 action-edit rounded-lg transition-colors"
+                  title="Edit">
+                  <span class="material-symbols-outlined text-xl">edit</span>
+                </button>
+                <button 
+                  (click)="deleteRiskScore(riskScore._id!)"
+                  class="p-2 action-delete rounded-lg transition-colors"
+                  title="Delete">
+                  <span class="material-symbols-outlined text-xl">delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create/Edit Modal -->
+  <div *ngIf="showModal" class="fixed inset-0 overlay-backdrop flex items-center justify-center z-50 p-4">
+    <div class="modal-shell rounded-xl max-w-md w-full p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold modal-title">
+          {{ isEditMode ? 'Edit Risk Score' : 'Create Risk Score' }}
+        </h2>
+        <button (click)="closeModal()" class="text-slate-400 hover:text-slate-600">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <form [formGroup]="riskScoreForm" (ngSubmit)="onSubmit()">
+        <!-- User ID Field -->
+        <div class="mb-4">
+          <label class="block text-sm font-bold modal-label mb-2">
+            User ID <span class="text-rose-500">*</span>
+          </label>
+          <input 
+            type="text"
+            formControlName="user"
+            placeholder="Enter User ID or ObjectId"
+            class="w-full px-4 py-2 modal-input rounded-lg"
+            [class.border-rose-500]="riskScoreForm.get('user')?.invalid && riskScoreForm.get('user')?.touched">
+          <p *ngIf="riskScoreForm.get('user')?.invalid && riskScoreForm.get('user')?.touched" 
+             class="text-xs text-rose-500 mt-1">
+            User ID is required
+          </p>
+        </div>
+
+        <!-- Score Field -->
+        <div class="mb-4">
+          <label class="block text-sm font-bold modal-label mb-2">
+            Score (0-100) <span class="text-rose-500">*</span>
+          </label>
+          <input 
+            type="number"
+            formControlName="score"
+            min="0"
+            max="100"
+            placeholder="Enter score"
+            class="w-full px-4 py-2 modal-input rounded-lg"
+            [class.border-rose-500]="riskScoreForm.get('score')?.invalid && riskScoreForm.get('score')?.touched">
+          <p *ngIf="riskScoreForm.get('score')?.invalid && riskScoreForm.get('score')?.touched" 
+             class="text-xs text-rose-500 mt-1">
+            Score must be between 0 and 100
+          </p>
+        </div>
+
+        <!-- Risk Level Field -->
+        <div class="mb-6">
+          <label class="block text-sm font-bold modal-label mb-2">
+            Risk Level <span class="text-rose-500">*</span>
+          </label>
+          <select 
+            formControlName="riskLevel"
+            class="w-full px-4 py-2 modal-input rounded-lg"
+            [class.border-rose-500]="riskScoreForm.get('riskLevel')?.invalid && riskScoreForm.get('riskLevel')?.touched">
+            <option value="">Select risk level</option>
+            <option *ngFor="let level of riskLevels" [value]="level">
+              {{ getRiskLabel(level) }}
+            </option>
+          </select>
+          <p *ngIf="riskScoreForm.get('riskLevel')?.invalid && riskScoreForm.get('riskLevel')?.touched" 
+             class="text-xs text-rose-500 mt-1">
+            Risk level is required
+          </p>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex gap-3">
+          <button 
+            type="button"
+            (click)="closeModal()"
+            class="flex-1 px-4 py-2 secondary-action rounded-lg text-sm font-bold transition-colors">
+            Cancel
+          </button>
+          <button 
+            type="submit"
+            [disabled]="riskScoreForm.invalid"
+            class="flex-1 px-4 py-2 primary-action rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ isEditMode ? 'Update' : 'Create' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Details Modal -->
+  <div *ngIf="showDetailsModal && detailsRiskScore" class="fixed inset-0 overlay-backdrop flex items-center justify-center z-50 p-4">
+    <div class="modal-shell rounded-xl max-w-lg w-full p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold modal-title">Risk Score Details</h2>
+        <button (click)="closeDetailsModal()" class="text-slate-400 hover:text-slate-600">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div class="border-b border-slate-200/80 pb-3">
+          <p class="text-xs font-bold table-muted uppercase tracking-wider mb-1">Student</p>
+          <p class="text-lg font-bold modal-title">{{ getUserName(detailsRiskScore.user) }}</p>
+        </div>
+
+        <div class="border-b border-slate-200/80 pb-3">
+          <p class="text-xs font-bold table-muted uppercase tracking-wider mb-1">Score</p>
+          <p class="text-2xl font-bold text-primary">{{ detailsRiskScore.score }}%</p>
+        </div>
+
+        <div class="border-b border-slate-200/80 pb-3">
+          <p class="text-xs font-bold table-muted uppercase tracking-wider mb-1">Risk Level</p>
+          <span class="inline-block px-4 py-2 rounded-full text-sm font-black uppercase mt-1" 
+                [ngClass]="getRiskBadgeClass(detailsRiskScore.riskLevel)">
+            {{ getRiskLabel(detailsRiskScore.riskLevel) }}
+          </span>
+        </div>
+
+        <div class="border-b border-slate-200/80 pb-3">
+          <p class="text-xs font-bold table-muted uppercase tracking-wider mb-1">Last Updated</p>
+          <p class="text-sm modal-title">{{ formatDate(detailsRiskScore.lastUpdated) }}</p>
+        </div>
+
+        <div class="border-b border-slate-200/80 pb-3">
+          <p class="text-xs font-bold table-muted uppercase tracking-wider mb-1">Created At</p>
+          <p class="text-sm modal-title">{{ formatDate(detailsRiskScore.createdAt) }}</p>
+        </div>
+
+        <div *ngIf="detailsRiskScore._id">
+          <p class="text-xs font-bold table-muted uppercase tracking-wider mb-1">ID</p>
+          <p class="text-xs table-muted font-mono break-all">{{ detailsRiskScore._id }}</p>
+        </div>
+      </div>
+
+      <div class="mt-6 flex gap-3">
+        <button 
+          (click)="closeDetailsModal(); openEditModal(detailsRiskScore)"
+          class="flex-1 px-4 py-2 primary-action rounded-lg text-sm font-bold transition-colors">
+          Edit
+        </button>
+        <button 
+          (click)="closeDetailsModal()"
+          class="flex-1 px-4 py-2 secondary-action rounded-lg text-sm font-bold transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+    </main>
+  </div>
+</div>

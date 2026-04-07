@@ -1,0 +1,73 @@
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+  <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+    <h3 class="font-bold text-lg">Recent Alerts</h3>
+    <div class="flex gap-2">
+      <button class="p-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 hover:text-primary transition-colors">
+        <span class="material-symbols-outlined text-sm">filter_list</span>
+      </button>
+      <button class="p-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 hover:text-primary transition-colors">
+        <span class="material-symbols-outlined text-sm">download</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="p-6 text-center">
+    <div class="flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined animate-spin">refresh</span>
+      <span class="text-slate-500">Loading alerts...</span>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && alerts.length === 0" class="p-6 text-center">
+    <span class="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-700 mb-2 block">check_circle</span>
+    <p class="text-slate-500">No alerts to display</p>
+  </div>
+
+  <!-- Alerts Table -->
+  <div *ngIf="!loading && alerts.length > 0" class="overflow-x-auto">
+    <table class="w-full text-left">
+      <thead class="bg-slate-50/30 dark:bg-slate-800/30 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        <tr>
+          <th class="px-6 py-4">Student</th>
+          <th class="px-6 py-4">Severity</th>
+          <th class="px-6 py-4">Message</th>
+          <th class="px-6 py-4">Timestamp</th>
+          <th class="px-6 py-4">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" *ngFor="let alert of alerts">
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div [ngClass]="['w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold', getAvatarColor((alert.student?.first_name || '') + (alert.student?.last_name || ''))]">
+                {{ getInitials(alert.student?.first_name || '', alert.student?.last_name || '') }}
+              </div>
+              <span class="font-medium">{{ alert.student?.first_name }} {{ alert.student?.last_name }}</span>
+            </div>
+          </td>
+          <td class="px-6 py-4">
+            <span [ngClass]="['px-2 py-1 rounded text-[10px] font-bold uppercase', getSeverityClass(alert.severity)]">
+              {{ alert.severity }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-slate-500">{{ alert.message }}</td>
+          <td class="px-6 py-4 text-slate-400 text-xs">{{ formatDate(getAlertDate(alert.createdAt)) }}</td>
+          <td class="px-6 py-4">
+            <span [ngClass]="['px-2 py-1 rounded-full text-[10px] font-bold', getStatusClass(alert.resolved)]">
+              {{ getStatusText(alert.resolved) }}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="p-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+    <button class="text-sm font-semibold text-primary hover:text-primary/80 flex items-center gap-2">
+      View All Activity <span class="material-symbols-outlined text-sm">arrow_forward</span>
+    </button>
+  </div>
+</div>

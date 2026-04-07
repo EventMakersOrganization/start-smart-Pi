@@ -1,0 +1,44 @@
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+  <div class="flex items-center justify-between mb-6">
+    <h3 class="font-bold text-lg">Risk Distribution</h3>
+    <button class="text-primary text-xs font-semibold hover:underline">View Details</button>
+  </div>
+  
+  <div class="h-64 flex items-end justify-around gap-4 pt-10 px-4">
+    <!-- Low Risk Bar -->
+    <div class="relative group flex flex-col items-center flex-1">
+      <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg h-full absolute -z-0"></div>
+      <div 
+        class="w-full bg-emerald-500 rounded-t-lg transition-all duration-500 z-10 chart-bar-glow"
+        [style.height]="getBarHeight(data.low)">
+      </div>
+      <span class="text-xs font-bold mt-3">Low</span>
+      <span class="text-[10px] text-slate-400 mt-1">{{ data.low }} users</span>
+      <span class="text-xs font-bold text-slate-600 dark:text-slate-400">{{ data.lowPercentage }}%</span>
+    </div>
+
+    <!-- Medium Risk Bar -->
+    <div class="relative group flex flex-col items-center flex-1">
+      <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg h-full absolute -z-0"></div>
+      <div 
+        class="w-full bg-amber-500 rounded-t-lg transition-all duration-500 z-10"
+        [style.height]="getBarHeight(data.medium)">
+      </div>
+      <span class="text-xs font-bold mt-3">Medium</span>
+      <span class="text-[10px] text-slate-400 mt-1">{{ data.medium }} users</span>
+      <span class="text-xs font-bold text-slate-600 dark:text-slate-400">{{ data.mediumPercentage }}%</span>
+    </div>
+
+    <!-- High Risk Bar -->
+    <div class="relative group flex flex-col items-center flex-1">
+      <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg h-full absolute -z-0"></div>
+      <div 
+        class="w-full bg-red-500 rounded-t-lg transition-all duration-500 z-10"
+        [style.height]="getBarHeight(data.high)">
+      </div>
+      <span class="text-xs font-bold mt-3">High</span>
+      <span class="text-[10px] text-slate-400 mt-1">{{ data.high }} users</span>
+      <span class="text-xs font-bold text-slate-600 dark:text-slate-400">{{ data.highPercentage }}%</span>
+    </div>
+  </div>
+</div>
