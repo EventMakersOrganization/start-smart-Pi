@@ -17,7 +17,11 @@ const routes: Routes = [
   { path: 'chat/ai', component: ChatAiComponent },
   { path: 'chat/instructor', component: ChatInstructorComponent },
   { path: 'chat/room', component: ChatRoomComponent },
-  { path: 'brainrush', loadChildren: () => import('./brainrush/brainrush.module').then(m => m.BrainrushModule) }
+  { path: 'brainrush', loadChildren: () => import('./brainrush/brainrush.module').then(m => m.BrainrushModule) },
+  { path: 'codebattle/lobby', loadComponent: () => import('./codebattle/lobby/lobby.component').then(m => m.LobbyComponent) },
+  { path: 'codebattle/battle-lobby', loadComponent: () => import('./codebattle/battle-lobby/battle-lobby.component').then(m => m.BattleLobbyComponent) },
+  { path: 'codebattle/game', loadComponent: () => import('./codebattle/game/game.component').then(m => m.GameComponent) },
+  { path: 'codebattle/results', loadComponent: () => import('./codebattle/results/results.component').then(m => m.ResultsComponent) }
 ];
 
 @NgModule({

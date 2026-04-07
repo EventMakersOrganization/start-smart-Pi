@@ -18,6 +18,7 @@ const activity_module_1 = require("./activity/activity.module");
 const app_controller_1 = require("./app.controller");
 const chat_module_1 = require("./chat/chat.module");
 const subjects_module_1 = require("./subjects/subjects.module");
+const codebattle_module_1 = require("./codebattle/codebattle.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -42,6 +43,7 @@ exports.AppModule = AppModule = __decorate([
             chat_module_1.ChatModule,
             brainrush_module_1.BrainrushModule,
             subjects_module_1.SubjectsModule,
+            codebattle_module_1.CodebattleModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [],
