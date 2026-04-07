@@ -191,4 +191,15 @@ export class ExplainabilityDisplayComponent implements OnInit {
   getDecisionTypeSlug(decision: string): string {
     return decision.toLowerCase().replace(/_/g, '-');
   }
+
+  trackByExplanationId(_: number, item: ExplainabilityLog): string {
+    if (item._id) {
+      return String(item._id);
+    }
+    return `${item.userId}-${item.decision}-${item.createdAt ? new Date(item.createdAt).getTime() : ''}`;
+  }
+
+  trackByFactorName(_: number, factor: ExplainabilityFactor): string {
+    return factor.name;
+  }
 }

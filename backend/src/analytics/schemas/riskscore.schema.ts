@@ -29,3 +29,6 @@ export class RiskScore {
 }
 
 export const RiskScoreSchema = SchemaFactory.createForClass(RiskScore);
+
+RiskScoreSchema.index({ lastUpdated: -1 });
+RiskScoreSchema.index({ riskLevel: 1, lastUpdated: -1 });

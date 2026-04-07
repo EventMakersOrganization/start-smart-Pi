@@ -3,14 +3,21 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { take } from 'rxjs/operators';
+import { BrandLogoComponent } from '../../shared/brand-logo/brand-logo.component';
 import { CodebattleService } from '../services/codebattle.service';
 import { CodebattleSocketService } from '../services/codebattle-socket.service';
 
 @Component({
   selector: 'app-lobby-header',
   standalone: true,
+  imports: [BrandLogoComponent],
   template: `
     <div class="text-center mb-12 animate-in fade-in slide-in-from-top-8 duration-1000">
+      <div class="flex justify-center mb-8">
+        <div class="bg-white/95 rounded-2xl px-4 py-2 shadow-xl border border-white/10">
+          <app-brand-logo variant="compact" [link]="'/student-dashboard'" />
+        </div>
+      </div>
       <div class="flex items-center justify-center gap-6 mb-6">
         <div class="p-4 bg-slate-800/80 rounded-2xl backdrop-blur-xl border border-white/10 shadow-2xl shadow-blue-500/10">
           <span class="text-5xl">⚡</span>

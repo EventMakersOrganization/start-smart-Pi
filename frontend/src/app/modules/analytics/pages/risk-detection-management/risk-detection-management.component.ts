@@ -231,4 +231,12 @@ export class RiskDetectionManagementComponent implements OnInit {
     this.error = null;
     this.successMessage = null;
   }
+
+  trackByRiskScoreId(_: number, item: RiskScore): string {
+    return item._id || this.getUserId(item.user);
+  }
+
+  trackByRiskLevel(_: number, level: string): string {
+    return level;
+  }
 }

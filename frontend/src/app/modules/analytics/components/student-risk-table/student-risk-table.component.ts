@@ -29,4 +29,8 @@ export class StudentRiskTableComponent {
     }
     return 'alert-status resolved';
   }
+
+  trackByStudentUserId(_: number, student: StudentRiskListItem): string {
+    return student.userId;
+  }
 }

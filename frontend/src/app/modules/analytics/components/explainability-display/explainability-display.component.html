@@ -22,7 +22,7 @@
   <div *ngIf="!loading && (explanations && explanations.length > 0)" class="flex flex-col gap-6">
     <!-- Explanation Card -->
     <div
-      *ngFor="let explanation of explanations"
+      *ngFor="let explanation of explanations; trackBy: trackByExplanationId"
       class="bg-surface-container-lowest rounded-xl p-8 flex flex-col md:flex-row gap-8 relative overflow-hidden group transition-all hover:shadow-lg"
     >
       <!-- Gradient Overlay Background -->
@@ -79,7 +79,7 @@
 
         <!-- Contributing Factors with Progress Bars -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-          <div *ngFor="let factor of getTopFactors(explanation.factors)" class="flex flex-col gap-2">
+          <div *ngFor="let factor of getTopFactors(explanation.factors); trackBy: trackByFactorName" class="flex flex-col gap-2">
             <!-- Factor Label & Impact Percentage -->
             <div class="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
               <span>{{ factor.name }}</span>

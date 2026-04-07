@@ -61,6 +61,35 @@ export class AnalyticsController {
     return this.analyticsService.getDashboardData();
   }
 
+  @Get('health')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  async getAnalyticsHealth() {
+    return this.analyticsService.getAnalyticsHealth();
+  }
+
+  @Get('activity-by-hour')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  async getActivityByHour(
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+  ) {
+    return this.analyticsService.getActivityByHour(start, end);
+  }
+
+  @Get('activity-channel-split')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  async getActivityChannelSplit() {
+    return this.analyticsService.getActivityChannelSplit();
+  }
+
+  @Get('ai-events-feed')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  async getAiEventsFeed(
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ) {
+    return this.analyticsService.getAiEventsFeed(limit ?? 20);
+  }
+
   /**
    * Get risk score trends over time
    * Returns aggregated risk data grouped by date

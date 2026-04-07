@@ -1,342 +1,260 @@
-﻿<div class="bg-surface font-body text-on-surface min-h-screen">
-  <aside class="h-screen w-64 fixed left-0 top-0 bg-slate-50 dark:bg-slate-900 flex flex-col p-4 space-y-2 font-manrope text-[13px] font-semibold tracking-wide border-r border-surface-container z-40">
-    <div class="mb-8 px-4">
-      <h1 class="text-lg font-extrabold text-blue-900 dark:text-blue-100">Scholar Metric</h1>
-      <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-1">Adaptive Learning System</p>
+﻿<div class="bg-surface font-body text-on-surface min-h-full w-full">
+  <div class="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto">
+    <div *ngIf="loading" class="rounded-xl border border-outline-variant bg-surface-container-low p-6 text-on-surface-variant">Loading dashboard data...</div>
+    <div *ngIf="error && !loading" class="rounded-xl border border-error bg-error-container p-6 text-on-error-container flex items-center justify-between gap-3">
+      <span>{{ displayError }}</span>
+      <a routerLink="/login" class="text-xs font-bold underline">Login</a>
     </div>
 
-    <nav class="flex-1 space-y-1">
-      <a class="flex items-center gap-3 bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-lg px-4 py-3 transition-all" routerLink="/analytics/instructor-dashboard">
-        <span class="material-symbols-outlined">dashboard</span>
-        Dashboard
-      </a>
-      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/analytics/deep-analytics">
-        <span class="material-symbols-outlined">analytics</span>
-        Deep Analytics
-      </a>
-      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/analytics/comprehensive-analytics">
-        <span class="material-symbols-outlined">insights</span>
-        Comprehensive Analytics
-      </a>
-      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/analytics/risk-detection">
-        <span class="material-symbols-outlined">warning</span>
-        Risk Detection
-      </a>
-      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/profile">
-        <span class="material-symbols-outlined">assignment</span>
-        Assignments
-      </a>
-      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/analytics/interventions">
-        <span class="material-symbols-outlined">bolt</span>
-        Interventions
-      </a>
-    </nav>
-
-    <div class="mt-auto pt-6 space-y-1">
-      <button class="w-full bg-primary text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2 hover:bg-on-primary-fixed-variant transition-colors mb-4">
-        <span class="material-symbols-outlined text-sm">add</span>
-        Generate Report
-      </button>
-      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" routerLink="/profile">
-        <span class="material-symbols-outlined">settings</span>
-        Settings
-      </a>
-      <a class="flex items-center gap-3 text-slate-600 dark:text-slate-400 px-4 py-3 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded-lg transition-all" href="#">
-        <span class="material-symbols-outlined">help</span>
-        Support
-      </a>
-    </div>
-  </aside>
-
-  <div class="ml-64 flex flex-col min-h-screen">
-    <header class="sticky top-0 z-30 bg-[#f8f9ff] dark:bg-slate-950 flex justify-between items-center px-8 py-4 border-b border-surface-container-low">
-      <div class="flex items-center gap-6 w-1/3">
-        <div class="relative w-full max-w-md">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-          <input class="w-full bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-400" placeholder="Search students, metrics..." type="text"/>
+    <ng-container *ngIf="!loading && !error">
+      <div class="flex flex-col md:flex-row md:justify-between md:items-end gap-6">
+        <div class="min-w-0">
+          <h2 class="text-3xl font-extrabold font-manrope text-on-surface tracking-tight">Instructor Dashboard</h2>
+          <p class="text-on-surface-variant font-medium mt-1">Real-time overview of student engagement and risk factors.</p>
+        </div>
+        <div class="flex flex-wrap gap-3 shrink-0">
+          <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest text-primary font-bold rounded-lg text-sm border border-outline-variant/20">
+            <span class="material-symbols-outlined text-sm">calendar_today</span>
+            Last 7 Days
+          </button>
+          <button (click)="exportKpiCsv()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white font-bold rounded-lg text-sm shadow-lg shadow-primary/20 hover:opacity-90">
+            <span class="material-symbols-outlined text-sm">download</span>
+            Export CSV
+          </button>
+          <button (click)="exportKpiExcel()" class="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white font-bold rounded-lg text-sm shadow-lg shadow-slate-700/20 hover:bg-slate-800">
+            <span class="material-symbols-outlined text-sm">table_view</span>
+            Export Excel
+          </button>
         </div>
       </div>
 
-      <div class="flex items-center gap-4">
-        <button class="p-2 text-slate-500 hover:text-primary transition-colors">
-          <span class="material-symbols-outlined">notifications</span>
-        </button>
-        <button class="p-2 text-slate-500 hover:text-primary transition-colors">
-          <span class="material-symbols-outlined">apps</span>
-        </button>
-        <div class="h-8 w-px bg-surface-container mx-2"></div>
-        <button (click)="navigateToProfile()" class="flex items-center gap-3 pl-2 hover:bg-surface-container-low rounded-xl p-1 transition-colors" title="Go to profile">
-          <div class="text-right hidden sm:block">
-            <p class="text-xs font-bold font-manrope text-blue-900">{{ getInstructorName() }}</p>
-            <p class="text-[10px] text-slate-500">Instructor</p>
+      <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <div class="p-2 bg-primary/5 rounded-lg text-primary">
+              <span class="material-symbols-outlined">group</span>
+            </div>
+            <span class="text-secondary text-xs font-bold flex items-center gap-1">
+              Live <span class="material-symbols-outlined text-xs">trending_up</span>
+            </span>
           </div>
-          <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-fixed bg-surface-container-high flex items-center justify-center text-primary font-bold">
-            <img *ngIf="user?.avatar" alt="Instructor Profile Picture" class="w-full h-full object-cover" [src]="user?.avatar"/>
-            <span *ngIf="!user?.avatar">{{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}</span>
-          </div>
-        </button>
-      </div>
-    </header>
-
-    <main class="p-8 space-y-8 max-w-[1600px]">
-      <div *ngIf="loading" class="rounded-xl border border-outline-variant bg-surface-container-low p-6 text-on-surface-variant">Loading dashboard data...</div>
-      <div *ngIf="error && !loading" class="rounded-xl border border-error bg-error-container p-6 text-on-error-container flex items-center justify-between gap-3">
-        <span>{{ displayError }}</span>
-        <a routerLink="/login" class="text-xs font-bold underline">Login</a>
-      </div>
-
-      <ng-container *ngIf="!loading && !error">
-        <div class="flex justify-between items-end">
-          <div>
-            <h2 class="text-3xl font-extrabold font-manrope text-on-surface tracking-tight">Instructor Dashboard</h2>
-            <p class="text-on-surface-variant font-medium mt-1">Real-time overview of student engagement and risk factors.</p>
-          </div>
-          <div class="flex gap-3">
-            <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-highest text-primary font-bold rounded-lg text-sm border border-outline-variant/20">
-              <span class="material-symbols-outlined text-sm">calendar_today</span>
-              Last 7 Days
-            </button>
-            <button (click)="exportKpiCsv()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white font-bold rounded-lg text-sm shadow-lg shadow-primary/20 hover:opacity-90">
-              <span class="material-symbols-outlined text-sm">download</span>
-              Export CSV
-            </button>
-            <button (click)="exportKpiExcel()" class="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white font-bold rounded-lg text-sm shadow-lg shadow-slate-700/20 hover:bg-slate-800">
-              <span class="material-symbols-outlined text-sm">table_view</span>
-              Export Excel
-            </button>
+          <div class="mt-4">
+            <p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider">Total Students</p>
+            <h3 class="text-3xl font-manrope font-extrabold text-on-surface mt-1">{{ dashboard.totalUsers }}</h3>
           </div>
         </div>
 
-        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col justify-between">
-            <div class="flex justify-between items-start">
-              <div class="p-2 bg-primary/5 rounded-lg text-primary">
-                <span class="material-symbols-outlined">group</span>
-              </div>
-              <span class="text-secondary text-xs font-bold flex items-center gap-1">
-                Live <span class="material-symbols-outlined text-xs">trending_up</span>
-              </span>
+        <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <div class="p-2 bg-secondary/5 rounded-lg text-secondary">
+              <span class="material-symbols-outlined">bolt</span>
             </div>
-            <div class="mt-4">
-              <p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider">Total Students</p>
-              <h3 class="text-3xl font-manrope font-extrabold text-on-surface mt-1">{{ dashboard.totalUsers }}</h3>
+            <span class="text-secondary text-xs font-bold flex items-center gap-1">
+              Live <span class="material-symbols-outlined text-xs">trending_up</span>
+            </span>
+          </div>
+          <div class="mt-4">
+            <p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider">Active Students</p>
+            <h3 class="text-3xl font-manrope font-extrabold text-on-surface mt-1">{{ dashboard.activeUsers }}</h3>
+          </div>
+        </div>
+
+        <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <div class="p-2 bg-error/5 rounded-lg text-error">
+              <span class="material-symbols-outlined">priority_high</span>
+            </div>
+            <span class="text-error text-xs font-bold flex items-center gap-1">
+              Watch <span class="material-symbols-outlined text-xs">trending_up</span>
+            </span>
+          </div>
+          <div class="mt-4">
+            <p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider">High Risk Students</p>
+            <h3 class="text-3xl font-manrope font-extrabold text-on-surface mt-1">{{ dashboard.highRiskUsers }}</h3>
+          </div>
+        </div>
+
+        <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <div class="p-2 bg-tertiary/5 rounded-lg text-tertiary">
+              <span class="material-symbols-outlined">notifications_active</span>
+            </div>
+            <span class="text-secondary text-xs font-bold flex items-center gap-1">
+              Live <span class="material-symbols-outlined text-xs">trending_down</span>
+            </span>
+          </div>
+          <div class="mt-4">
+            <p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider">Total Alerts</p>
+            <h3 class="text-3xl font-manrope font-extrabold text-on-surface mt-1">{{ dashboard.totalAlerts }}</h3>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-8 bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm">
+          <div class="flex justify-between items-center mb-8">
+            <div>
+              <h4 class="font-manrope font-bold text-lg text-on-surface">Alerts Trend</h4>
+              <p class="text-xs text-on-surface-variant">Daily system alerts over the past week</p>
+            </div>
+            <div class="flex gap-2">
+              <span class="flex items-center gap-1 text-[10px] font-bold"><span class="w-2 h-2 rounded-full bg-primary"></span> Alerts</span>
             </div>
           </div>
-
-          <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col justify-between">
-            <div class="flex justify-between items-start">
-              <div class="p-2 bg-secondary/5 rounded-lg text-secondary">
-                <span class="material-symbols-outlined">bolt</span>
+          <div class="h-64 relative flex items-end gap-4 px-2">
+            <div class="flex-1 flex flex-col items-center group" *ngFor="let value of alertTrend.values; let i = index; trackBy: trackByTrendIndex">
+              <div class="w-full bg-surface-container-low rounded-t-lg relative h-40">
+                <div class="absolute bottom-0 w-full bg-primary/20 rounded-t-lg" [style.height.%]="getTrendBarHeight(value)"></div>
+                <div class="absolute bottom-0 w-full bg-primary rounded-t-lg" [style.height.%]="getTrendBarHeight(value) * 0.6"></div>
               </div>
-              <span class="text-secondary text-xs font-bold flex items-center gap-1">
-                Live <span class="material-symbols-outlined text-xs">trending_up</span>
-              </span>
+              <span class="text-[10px] font-bold mt-2">{{ alertTrend.labels[i] || 'DAY' }}</span>
             </div>
-            <div class="mt-4">
-              <p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider">Active Students</p>
-              <h3 class="text-3xl font-manrope font-extrabold text-on-surface mt-1">{{ dashboard.activeUsers }}</h3>
+            <div *ngIf="alertTrend.values.length === 0" class="w-full text-center text-sm text-on-surface-variant py-12">No alert trend data available.</div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col">
+          <h4 class="font-manrope font-bold text-lg text-on-surface mb-1">Risk Distribution</h4>
+          <p class="text-xs text-on-surface-variant mb-6">Student health classification</p>
+          <div class="flex-1 flex items-center justify-center relative">
+            <div class="w-48 h-48 rounded-full" [style.background]="getRiskDistributionGradient()"></div>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-2xl font-extrabold font-manrope">{{ getOverallHealth() }}%</span>
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Overall Health</span>
             </div>
           </div>
-
-          <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col justify-between">
-            <div class="flex justify-between items-start">
-              <div class="p-2 bg-error/5 rounded-lg text-error">
-                <span class="material-symbols-outlined">priority_high</span>
-              </div>
-              <span class="text-error text-xs font-bold flex items-center gap-1">
-                Watch <span class="material-symbols-outlined text-xs">trending_up</span>
-              </span>
+          <div class="mt-6 space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-secondary"></span> Low Risk</div>
+              <span class="font-bold">{{ riskDistribution.low }} Students</span>
             </div>
-            <div class="mt-4">
-              <p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider">High Risk Students</p>
-              <h3 class="text-3xl font-manrope font-extrabold text-on-surface mt-1">{{ dashboard.highRiskUsers }}</h3>
+            <div class="flex justify-between items-center text-xs">
+              <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-tertiary"></span> Medium Risk</div>
+              <span class="font-bold">{{ riskDistribution.medium }} Students</span>
             </div>
-          </div>
-
-          <div class="bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col justify-between">
-            <div class="flex justify-between items-start">
-              <div class="p-2 bg-tertiary/5 rounded-lg text-tertiary">
-                <span class="material-symbols-outlined">notifications_active</span>
-              </div>
-              <span class="text-secondary text-xs font-bold flex items-center gap-1">
-                Live <span class="material-symbols-outlined text-xs">trending_down</span>
-              </span>
-            </div>
-            <div class="mt-4">
-              <p class="text-on-surface-variant text-xs font-bold uppercase tracking-wider">Total Alerts</p>
-              <h3 class="text-3xl font-manrope font-extrabold text-on-surface mt-1">{{ dashboard.totalAlerts }}</h3>
+            <div class="flex justify-between items-center text-xs">
+              <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-error"></span> High Risk</div>
+              <span class="font-bold">{{ riskDistribution.high }} Students</span>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div class="lg:col-span-8 bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm">
-            <div class="flex justify-between items-center mb-8">
-              <div>
-                <h4 class="font-manrope font-bold text-lg text-on-surface">Alerts Trend</h4>
-                <p class="text-xs text-on-surface-variant">Daily system alerts over the past week</p>
-              </div>
-              <div class="flex gap-2">
-                <span class="flex items-center gap-1 text-[10px] font-bold"><span class="w-2 h-2 rounded-full bg-primary"></span> Alerts</span>
-              </div>
-            </div>
-            <div class="h-64 relative flex items-end gap-4 px-2">
-              <div class="flex-1 flex flex-col items-center group" *ngFor="let value of alertTrend.values; let i = index">
-                <div class="w-full bg-surface-container-low rounded-t-lg relative h-40">
-                  <div class="absolute bottom-0 w-full bg-primary/20 rounded-t-lg" [style.height.%]="getTrendBarHeight(value)"></div>
-                  <div class="absolute bottom-0 w-full bg-primary rounded-t-lg" [style.height.%]="getTrendBarHeight(value) * 0.6"></div>
-                </div>
-                <span class="text-[10px] font-bold mt-2">{{ alertTrend.labels[i] || 'DAY' }}</span>
-              </div>
-              <div *ngIf="alertTrend.values.length === 0" class="w-full text-center text-sm text-on-surface-variant py-12">No alert trend data available.</div>
+      <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="xl:col-span-2 bg-surface-container-lowest rounded-xl border border-surface-container shadow-sm overflow-hidden">
+          <div class="p-6 border-b border-surface-container flex justify-between items-center">
+            <h4 class="font-manrope font-bold text-lg text-on-surface">Student Risk Watchlist</h4>
+            <div class="flex items-center gap-2">
+              <button (click)="exportStudentRiskCsv()" class="text-primary text-xs font-bold hover:underline">Export CSV</button>
+              <button (click)="exportStudentRiskExcel()" class="text-primary text-xs font-bold hover:underline">Export Excel</button>
+              <button class="text-primary text-xs font-bold hover:underline">View All Students</button>
             </div>
           </div>
-
-          <div class="lg:col-span-4 bg-surface-container-lowest p-6 rounded-xl border border-surface-container shadow-sm flex flex-col">
-            <h4 class="font-manrope font-bold text-lg text-on-surface mb-1">Risk Distribution</h4>
-            <p class="text-xs text-on-surface-variant mb-6">Student health classification</p>
-            <div class="flex-1 flex items-center justify-center relative">
-              <div class="w-48 h-48 rounded-full" [style.background]="getRiskDistributionGradient()"></div>
-              <div class="absolute inset-0 flex flex-col items-center justify-center">
-                <span class="text-2xl font-extrabold font-manrope">{{ getOverallHealth() }}%</span>
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Overall Health</span>
-              </div>
-            </div>
-            <div class="mt-6 space-y-2">
-              <div class="flex justify-between items-center text-xs">
-                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-secondary"></span> Low Risk</div>
-                <span class="font-bold">{{ riskDistribution.low }} Students</span>
-              </div>
-              <div class="flex justify-between items-center text-xs">
-                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-tertiary"></span> Medium Risk</div>
-                <span class="font-bold">{{ riskDistribution.medium }} Students</span>
-              </div>
-              <div class="flex justify-between items-center text-xs">
-                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-error"></span> High Risk</div>
-                <span class="font-bold">{{ riskDistribution.high }} Students</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div class="xl:col-span-2 bg-surface-container-lowest rounded-xl border border-surface-container shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-surface-container flex justify-between items-center">
-              <h4 class="font-manrope font-bold text-lg text-on-surface">Student Risk Watchlist</h4>
-              <div class="flex items-center gap-2">
-                <button (click)="exportStudentRiskCsv()" class="text-primary text-xs font-bold hover:underline">Export CSV</button>
-                <button (click)="exportStudentRiskExcel()" class="text-primary text-xs font-bold hover:underline">Export Excel</button>
-                <button class="text-primary text-xs font-bold hover:underline">View All Students</button>
-              </div>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left">
-                <thead class="bg-surface-container-low text-on-surface-variant text-[11px] font-bold uppercase tracking-wider">
-                  <tr>
-                    <th class="px-6 py-4">Student Name</th>
-                    <th class="px-6 py-4">Risk Score</th>
-                    <th class="px-6 py-4">Status</th>
-                    <th class="px-6 py-4">Alert</th>
-                    <th class="px-6 py-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-surface-container">
-                  <tr class="hover:bg-surface-container-low/50 transition-colors group" *ngFor="let student of studentRiskList">
-                    <td class="px-6 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                          {{ student.name ? (student.name.charAt(0) | uppercase) : 'S' }}
-                        </div>
-                        <div>
-                          <p class="text-sm font-bold text-on-surface">{{ student.name }}</p>
-                          <p class="text-[10px] text-on-surface-variant">{{ student.email }}</p>
-                        </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-surface-container-low text-on-surface-variant text-[11px] font-bold uppercase tracking-wider">
+                <tr>
+                  <th class="px-6 py-4">Student Name</th>
+                  <th class="px-6 py-4">Risk Score</th>
+                  <th class="px-6 py-4">Status</th>
+                  <th class="px-6 py-4">Alert</th>
+                  <th class="px-6 py-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-container">
+                <tr class="hover:bg-surface-container-low/50 transition-colors group" *ngFor="let student of studentRiskList; trackBy: trackByStudentUserId">
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                        {{ student.name ? (student.name.charAt(0) | uppercase) : 'S' }}
                       </div>
-                    </td>
-                    <td class="px-6 py-4">
-                      <div class="flex items-center gap-2">
-                        <div class="w-24 bg-surface-container h-1.5 rounded-full overflow-hidden">
-                          <div class="h-full"
-                               [ngClass]="{
-                                 'bg-error': student.riskLevel === 'high',
-                                 'bg-tertiary': student.riskLevel === 'medium',
-                                 'bg-secondary': student.riskLevel === 'low'
-                               }"
-                               [style.width.%]="student.riskScore"></div>
-                        </div>
-                        <span class="text-xs font-bold"
-                              [ngClass]="{
-                                'text-error': student.riskLevel === 'high',
-                                'text-tertiary': student.riskLevel === 'medium',
-                                'text-secondary': student.riskLevel === 'low'
-                              }">{{ student.riskScore }}%</span>
+                      <div>
+                        <p class="text-sm font-bold text-on-surface">{{ student.name }}</p>
+                        <p class="text-[10px] text-on-surface-variant">{{ student.email }}</p>
                       </div>
-                    </td>
-                    <td class="px-6 py-4">
-                      <span class="px-2 py-1 text-[10px] font-bold rounded-full"
-                            [ngClass]="{
-                              'bg-error-container text-on-error-container': student.riskLevel === 'high',
-                              'bg-tertiary-fixed text-on-tertiary-fixed-variant': student.riskLevel === 'medium',
-                              'bg-secondary-container text-on-secondary-fixed-variant': student.riskLevel === 'low'
-                            }">{{ student.riskLevel | uppercase }}</span>
-                    </td>
-                    <td class="px-6 py-4">
-                      <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;"
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                      <div class="w-24 bg-surface-container h-1.5 rounded-full overflow-hidden">
+                        <div class="h-full"
+                             [ngClass]="{
+                               'bg-error': student.riskLevel === 'high',
+                               'bg-tertiary': student.riskLevel === 'medium',
+                               'bg-secondary': student.riskLevel === 'low'
+                             }"
+                             [style.width.%]="student.riskScore"></div>
+                      </div>
+                      <span class="text-xs font-bold"
                             [ngClass]="{
                               'text-error': student.riskLevel === 'high',
                               'text-tertiary': student.riskLevel === 'medium',
                               'text-secondary': student.riskLevel === 'low'
-                            }">{{ student.riskLevel === 'high' ? 'report' : (student.riskLevel === 'medium' ? 'info' : 'check_circle') }}</span>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                      <button class="p-1 hover:bg-surface-container rounded transition-colors">
-                        <span class="material-symbols-outlined text-on-surface-variant text-lg">more_vert</span>
-                      </button>
-                    </td>
-                  </tr>
-                  <tr *ngIf="studentRiskList.length === 0">
-                    <td colspan="5" class="px-6 py-8 text-center text-sm text-on-surface-variant">No student risk records found.</td>
-                  </tr>
-                </tbody>
-              </table>
+                            }">{{ student.riskScore }}%</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="px-2 py-1 text-[10px] font-bold rounded-full"
+                          [ngClass]="{
+                            'bg-error-container text-on-error-container': student.riskLevel === 'high',
+                            'bg-tertiary-fixed text-on-tertiary-fixed-variant': student.riskLevel === 'medium',
+                            'bg-secondary-container text-on-secondary-fixed-variant': student.riskLevel === 'low'
+                          }">{{ student.riskLevel | uppercase }}</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;"
+                          [ngClass]="{
+                            'text-error': student.riskLevel === 'high',
+                            'text-tertiary': student.riskLevel === 'medium',
+                            'text-secondary': student.riskLevel === 'low'
+                          }">{{ student.riskLevel === 'high' ? 'report' : (student.riskLevel === 'medium' ? 'info' : 'check_circle') }}</span>
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <button class="p-1 hover:bg-surface-container rounded transition-colors">
+                      <span class="material-symbols-outlined text-on-surface-variant text-lg">more_vert</span>
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="studentRiskList.length === 0">
+                  <td colspan="5" class="px-6 py-8 text-center text-sm text-on-surface-variant">No student risk records found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-sm p-6 flex flex-col">
+          <div class="flex justify-between items-center mb-6">
+            <h4 class="font-manrope font-bold text-lg text-on-surface">Recent Alerts</h4>
+            <div class="flex items-center gap-2">
+              <button (click)="exportAlertsCsv()" class="text-primary text-xs font-bold hover:underline">Export CSV</button>
+              <button (click)="exportAlertsExcel()" class="text-primary text-xs font-bold hover:underline">Export Excel</button>
+              <span class="w-5 h-5 bg-error text-white text-[10px] flex items-center justify-center rounded-full font-bold">{{ recentAlerts.length }}</span>
             </div>
           </div>
-
-          <div class="bg-surface-container-lowest rounded-xl border border-surface-container shadow-sm p-6 flex flex-col">
-            <div class="flex justify-between items-center mb-6">
-              <h4 class="font-manrope font-bold text-lg text-on-surface">Recent Alerts</h4>
-              <div class="flex items-center gap-2">
-                <button (click)="exportAlertsCsv()" class="text-primary text-xs font-bold hover:underline">Export CSV</button>
-                <button (click)="exportAlertsExcel()" class="text-primary text-xs font-bold hover:underline">Export Excel</button>
-                <span class="w-5 h-5 bg-error text-white text-[10px] flex items-center justify-center rounded-full font-bold">{{ recentAlerts.length }}</span>
+          <div class="space-y-4 flex-1">
+            <div class="flex gap-4 p-3 hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer" *ngFor="let alert of recentAlerts | slice:0:4; trackBy: trackByRecentAlert">
+              <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                   [ngClass]="{
+                     'bg-error-container text-error': resolveRiskLevel(alert) === 'high',
+                     'bg-tertiary-fixed text-tertiary': resolveRiskLevel(alert) === 'medium',
+                     'bg-secondary-fixed text-secondary': resolveRiskLevel(alert) === 'low'
+                   }">
+                <span class="material-symbols-outlined">{{ resolveRiskLevel(alert) === 'high' ? 'warning' : (resolveRiskLevel(alert) === 'medium' ? 'assignment_late' : 'auto_graph') }}</span>
+              </div>
+              <div>
+                <h5 class="text-sm font-bold text-on-surface">{{ alert.message }}</h5>
+                <p class="text-xs text-on-surface-variant line-clamp-2 mt-0.5">User: {{ resolveAlertUserId(alert) }}</p>
+                <span class="text-[10px] font-medium text-slate-400 mt-2 block">{{ formatTimestamp(alert) }}</span>
               </div>
             </div>
-            <div class="space-y-4 flex-1">
-              <div class="flex gap-4 p-3 hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer" *ngFor="let alert of recentAlerts | slice:0:4">
-                <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
-                     [ngClass]="{
-                       'bg-error-container text-error': resolveRiskLevel(alert) === 'high',
-                       'bg-tertiary-fixed text-tertiary': resolveRiskLevel(alert) === 'medium',
-                       'bg-secondary-fixed text-secondary': resolveRiskLevel(alert) === 'low'
-                     }">
-                  <span class="material-symbols-outlined">{{ resolveRiskLevel(alert) === 'high' ? 'warning' : (resolveRiskLevel(alert) === 'medium' ? 'assignment_late' : 'auto_graph') }}</span>
-                </div>
-                <div>
-                  <h5 class="text-sm font-bold text-on-surface">{{ alert.message }}</h5>
-                  <p class="text-xs text-on-surface-variant line-clamp-2 mt-0.5">User: {{ resolveAlertUserId(alert) }}</p>
-                  <span class="text-[10px] font-medium text-slate-400 mt-2 block">{{ formatTimestamp(alert) }}</span>
-                </div>
-              </div>
-              <div *ngIf="recentAlerts.length === 0" class="text-sm text-on-surface-variant">No recent alerts.</div>
-            </div>
-            <button class="mt-6 w-full py-2 text-xs font-bold text-primary bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors">
-              View History
-            </button>
+            <div *ngIf="recentAlerts.length === 0" class="text-sm text-on-surface-variant">No recent alerts.</div>
           </div>
-        </section>
-      </ng-container>
-    </main>
-
-    <div class="fixed top-0 right-0 w-1/3 h-full bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none -z-10"></div>
+          <button class="mt-6 w-full py-2 text-xs font-bold text-primary bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors">
+            View History
+          </button>
+        </div>
+      </section>
+    </ng-container>
   </div>
 </div>

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { RiskScoreService } from '../../services/riskscore.service';
 import { AlertService } from '../../services/alert.service';
 import { ExplainabilityService } from '../../services/explainability.service';
@@ -12,6 +13,10 @@ import { AuthService } from '../../../../user-management/auth.service';
 })
 export class AdminExplainabilityComponent implements OnInit {
   user = this.authService.getUser();
+
+  get embedInAdminShell(): boolean {
+    return this.router.url.includes('/admin/explainability');
+  }
   riskScores: RiskScore[] = [];
   selectedRiskScore: RiskScore | null = null;
   selectedStudentAlerts: Alert[] = [];
@@ -32,7 +37,8 @@ export class AdminExplainabilityComponent implements OnInit {
     private riskScoreService: RiskScoreService,
     private alertService: AlertService,
     private explainabilityService: ExplainabilityService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -275,5 +281,12 @@ export class AdminExplainabilityComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  trackByExplanationId(_: number, item: ExplainabilityLog): string {
+    if (item._id) {
+      return String(item._id);
+    }
+    return `${item.userId}-${item.decision}-${item.createdAt ? new Date(item.createdAt).getTime() : ''}`;
   }
 }

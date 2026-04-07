@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model, Types } from 'mongoose';
 import { RiskScore, RiskScoreDocument } from './schemas/riskscore.schema';
 import { Alert, AlertDocument } from './schemas/alert.schema';
 import { KpiService } from './services/kpi.service';
@@ -10,12 +10,58 @@ import { Activity, ActivityDocument } from '../activity/schemas/activity.schema'
 import { PredictiveService } from './predictive.service';
 import { InterventionService } from './intervention.service';
 import { IntegrationService } from './integration.service';
+import {
+  ExplainabilityLog,
+  ExplainabilityLogDocument,
+} from './schemas/explainability.schema';
+import { ActivityAction } from '../activity/schemas/activity.schema';
+import {
+  ANALYTICS_CACHE_SCHEMA_VERSION,
+  AnalyticsReadCacheService,
+} from './services/analytics-read-cache.service';
 
 export interface DashboardData {
   totalUsers: number;
   activeUsers: number;
   highRiskUsers: number;
   totalAlerts: number;
+  /** Week-over-week new signups (last 7d vs previous 7d), percent. */
+  totalUsersDeltaPct: number | null;
+  /** Prior 24h vs previous 24h distinct active users, percent. */
+  activeUsersDeltaPct: number | null;
+  /** HIGH risk updates in last 7d vs previous 7d, percent. */
+  highRiskUsersDeltaPct: number | null;
+  /** Alerts created last 7d vs previous 7d, percent. */
+  totalAlertsDeltaPct: number | null;
+  /** Mean risk score 0–100 across riskscore documents. */
+  averageRiskScore: number;
+  /** Explainability logs + alerts created since UTC midnight today. */
+  aiDecisionsToday: number;
+}
+
+export interface ActivityByHourResponse {
+  hourLabels: string[];
+  activityCounts: number[];
+  sessionCounts: number[];
+  /** UTC window for this series (drill-down / linking). */
+  windowStartUtc?: string;
+  windowEndUtc?: string;
+}
+
+export interface ActivityChannelSplitResponse {
+  webPct: number;
+  mobilePct: number;
+  unknownPct: number;
+  total: number;
+}
+
+export interface AiEventFeedItem {
+  id: string;
+  type: 'explainability' | 'alert' | 'risk';
+  title: string;
+  description: string;
+  at: string;
+  source: string;
 }
 
 export interface RiskTrendData {
@@ -96,6 +142,11 @@ export class AnalyticsService {
     private abTestingModel: Model<AbTestingDocument>,
     @InjectModel(Activity.name)
     private activityModel: Model<ActivityDocument>,
+    @InjectModel(ExplainabilityLog.name)
+    private explainabilityLogModel: Model<ExplainabilityLogDocument>,
+    @InjectConnection()
+    private readonly connection: Connection,
+    private readonly readCache: AnalyticsReadCacheService,
     private kpiService: KpiService,
     private predictiveService: PredictiveService,
     private interventionService: InterventionService,
@@ -465,14 +516,312 @@ export class AnalyticsService {
    * Aggregates key metrics for dashboard display
    */
   async getDashboardData(): Promise<DashboardData> {
-    const kpis = await this.kpiService.getAllKpis();
-    
+    const [kpis, deltas, averageRiskScore, aiDecisionsToday] = await Promise.all([
+      this.kpiService.getAllKpis(),
+      this.kpiService.getDashboardDeltas(),
+      this.kpiService.getAverageRiskScorePercent(),
+      this.readCache.getOrSet(
+        `analytics:aiDecisionsToday:${ANALYTICS_CACHE_SCHEMA_VERSION}`,
+        () => this.countAiDecisionsToday(),
+      ),
+    ]);
+
     return {
       totalUsers: kpis.totalUsers.value,
       activeUsers: kpis.activeUsers.value,
       highRiskUsers: kpis.highRiskUsers.value,
       totalAlerts: kpis.totalAlerts.value,
+      totalUsersDeltaPct: deltas.totalUsersDeltaPct,
+      activeUsersDeltaPct: deltas.activeUsersDeltaPct,
+      highRiskUsersDeltaPct: deltas.highRiskUsersDeltaPct,
+      totalAlertsDeltaPct: deltas.totalAlertsDeltaPct,
+      averageRiskScore,
+      aiDecisionsToday,
     };
+  }
+
+  /** Mongo ping + cache stats (memory + optional Redis) for ops dashboards. */
+  async getAnalyticsHealth(): Promise<{
+    ok: boolean;
+    mongo: { ok: boolean; error?: string };
+    cache: {
+      entryCount: number;
+      ttlMs: number;
+      schemaVersion: string;
+      redisEnabled: boolean;
+    };
+  }> {
+    let mongoOk = false;
+    let mongoError: string | undefined;
+    try {
+      if (this.connection.readyState === 1 && this.connection.db) {
+        await this.connection.db.admin().ping();
+        mongoOk = true;
+      } else {
+        mongoError = `MongoDB not connected (readyState=${this.connection.readyState})`;
+      }
+    } catch (e: unknown) {
+      mongoError = e instanceof Error ? e.message : String(e);
+    }
+    return {
+      ok: mongoOk,
+      mongo: { ok: mongoOk, error: mongoError },
+      cache: this.readCache.getStats(),
+    };
+  }
+
+  /** Explainability + alerts since UTC midnight (for “AI decisions today”). */
+  private async countAiDecisionsToday(): Promise<number> {
+    const start = new Date();
+    start.setUTCHours(0, 0, 0, 0);
+    const [logs, alerts] = await Promise.all([
+      this.explainabilityLogModel.countDocuments({ createdAt: { $gte: start } }).exec(),
+      this.alertModel.countDocuments({ createdAt: { $gte: start } }).exec(),
+    ]);
+    return logs + alerts;
+  }
+
+  /**
+   * Hourly activity buckets (UTC). Default: last 24h rolling.
+   * Optional `start` / `end` ISO strings: UTC-aligned window, max 7 days, for drill-down.
+   */
+  async getActivityByHour(startIso?: string, endIso?: string): Promise<ActivityByHourResponse> {
+    const range = this.parseActivityByHourRange(startIso, endIso);
+    const key = range
+      ? `analytics:activityByHour:${range.start.getTime()}:${range.end.getTime()}:${ANALYTICS_CACHE_SCHEMA_VERSION}`
+      : `analytics:activityByHour:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
+    return this.readCache.getOrSet(key, () => this.computeActivityByHour(range));
+  }
+
+  private parseActivityByHourRange(
+    startIso?: string,
+    endIso?: string,
+  ): { start: Date; end: Date } | undefined {
+    if (!startIso?.trim() || !endIso?.trim()) {
+      return undefined;
+    }
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return undefined;
+    }
+    let a = this.alignUtcHour(start);
+    let b = this.alignUtcHour(end);
+    if (a.getTime() >= b.getTime()) {
+      b = new Date(a.getTime() + 60 * 60 * 1000);
+    }
+    const maxSpan = 7 * 24 * 60 * 60 * 1000;
+    if (b.getTime() - a.getTime() > maxSpan) {
+      a = new Date(b.getTime() - maxSpan);
+    }
+    return { start: a, end: b };
+  }
+
+  private alignUtcHour(d: Date): Date {
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), 0, 0, 0));
+  }
+
+  private async computeActivityByHour(range?: { start: Date; end: Date }): Promise<ActivityByHourResponse> {
+    const now = new Date();
+    const hourMs = 60 * 60 * 1000;
+    let bucketStart: Date;
+    let bucketCount: number;
+    let matchUpper: Date;
+
+    if (!range) {
+      const end = this.alignUtcHour(now);
+      bucketStart = new Date(end.getTime() - 24 * hourMs);
+      bucketCount = 24;
+      matchUpper = now;
+    } else {
+      bucketStart = range.start;
+      const spanHours = Math.round((range.end.getTime() - range.start.getTime()) / hourMs);
+      bucketCount = Math.min(168, Math.max(1, spanHours));
+      matchUpper = new Date(Math.min(now.getTime(), bucketStart.getTime() + bucketCount * hourMs));
+    }
+
+    const rows = await this.activityModel
+      .aggregate<{
+        _id: string;
+        activityCounts: number;
+        sessionCounts: number;
+      }>([
+        {
+          $match: {
+            timestamp: { $gte: bucketStart, $lte: matchUpper },
+          },
+        },
+        {
+          $project: {
+            key: {
+              $concat: [
+                { $dateToString: { format: '%Y-%m-%dT', date: '$timestamp', timezone: 'UTC' } },
+                { $dateToString: { format: '%H', date: '$timestamp', timezone: 'UTC' } },
+              ],
+            },
+            isLogin: { $eq: ['$action', ActivityAction.LOGIN] },
+          },
+        },
+        {
+          $group: {
+            _id: '$key',
+            activityCounts: { $sum: 1 },
+            sessionCounts: { $sum: { $cond: ['$isLogin', 1, 0] } },
+          },
+        },
+      ])
+      .exec();
+
+    const map = new Map(rows.map((r) => [r._id, r]));
+    const hourLabels: string[] = [];
+    const activityCounts: number[] = [];
+    const sessionCounts: number[] = [];
+
+    for (let i = 0; i < bucketCount; i++) {
+      const slot = new Date(bucketStart.getTime() + i * hourMs);
+      const slotKey = this.hourKeyUTC(slot);
+      hourLabels.push(`${String(slot.getUTCHours()).padStart(2, '0')}:00`);
+      const row = map.get(slotKey);
+      activityCounts.push(row?.activityCounts ?? 0);
+      sessionCounts.push(row?.sessionCounts ?? 0);
+    }
+
+    const windowEndUtc = new Date(bucketStart.getTime() + bucketCount * hourMs);
+
+    return {
+      hourLabels,
+      activityCounts,
+      sessionCounts,
+      windowStartUtc: bucketStart.toISOString(),
+      windowEndUtc: windowEndUtc.toISOString(),
+    };
+  }
+
+  /** Web vs mobile vs unknown share of activity in the last 7 days. */
+  async getActivityChannelSplit(): Promise<ActivityChannelSplitResponse> {
+    const key = `analytics:channelSplit:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
+    return this.readCache.getOrSet(key, () => this.computeActivityChannelSplit());
+  }
+
+  private async computeActivityChannelSplit(): Promise<ActivityChannelSplitResponse> {
+    const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const rows = await this.activityModel
+      .aggregate<{ _id: string; count: number }>([
+        { $match: { timestamp: { $gte: from } } },
+        {
+          $group: {
+            _id: { $ifNull: ['$channel', 'unknown'] },
+            count: { $sum: 1 },
+          },
+        },
+      ])
+      .exec();
+
+    let web = 0;
+    let mobile = 0;
+    let unknown = 0;
+    for (const r of rows) {
+      if (r._id === 'web') {
+        web += r.count;
+      } else if (r._id === 'mobile') {
+        mobile += r.count;
+      } else {
+        unknown += r.count;
+      }
+    }
+    const total = web + mobile + unknown;
+    if (total === 0) {
+      return { webPct: 0, mobilePct: 0, unknownPct: 100, total: 0 };
+    }
+    return {
+      webPct: Math.round((web / total) * 1000) / 10,
+      mobilePct: Math.round((mobile / total) * 1000) / 10,
+      unknownPct: Math.round((unknown / total) * 1000) / 10,
+      total,
+    };
+  }
+
+  /** Merged explainability, alerts, and recent risk updates for the admin feed. */
+  async getAiEventsFeed(limit: number = 20): Promise<AiEventFeedItem[]> {
+    const safe = Math.min(Math.max(1, limit), 50);
+    const key = `analytics:aiEventsFeed:${ANALYTICS_CACHE_SCHEMA_VERSION}:${safe}`;
+    return this.readCache.getOrSet(key, () => this.computeAiEventsFeed(safe));
+  }
+
+  private async computeAiEventsFeed(safe: number): Promise<AiEventFeedItem[]> {
+    const [logs, alerts, risks] = await Promise.all([
+      this.explainabilityLogModel
+        .find()
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(safe)
+        .lean<ExplainabilityLog[]>()
+        .exec(),
+      this.alertModel
+        .find()
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(safe)
+        .populate('student', 'first_name last_name email')
+        .lean()
+        .exec(),
+      this.riskScoreModel
+        .find()
+        .sort({ lastUpdated: -1, _id: -1 })
+        .limit(safe)
+        .populate('user', 'first_name last_name email')
+        .lean()
+        .exec(),
+    ]);
+
+    const merged: AiEventFeedItem[] = [];
+
+    for (const log of logs) {
+      const id = String((log as any)._id);
+      merged.push({
+        id: `exp-${id}`,
+        type: 'explainability',
+        title: log.decision || 'Explainability decision',
+        description: (log.explanation || '').slice(0, 280),
+        at: (log.createdAt ? new Date(log.createdAt) : new Date()).toISOString(),
+        source: 'Explainability',
+      });
+    }
+
+    for (const alert of alerts as any[]) {
+      merged.push({
+        id: `al-${alert._id}`,
+        type: 'alert',
+        title: 'Risk / system alert',
+        description: alert.message || '',
+        at: (alert.createdAt ? new Date(alert.createdAt) : new Date()).toISOString(),
+        source: 'Alerts',
+      });
+    }
+
+    for (const r of risks as any[]) {
+      const u = r.user;
+      const name = u
+        ? `${u.first_name || ''} ${u.last_name || ''}`.trim()
+        : String(r.user);
+      merged.push({
+        id: `risk-${r._id}`,
+        type: 'risk',
+        title: 'Risk score updated',
+        description: `${name}: score ${Math.round(r.score)} (${r.riskLevel})`,
+        at: (r.lastUpdated ? new Date(r.lastUpdated) : new Date()).toISOString(),
+        source: 'Risk',
+      });
+    }
+
+    merged.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    return merged.slice(0, safe);
+  }
+
+  private hourKeyUTC(d: Date): string {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const h = String(d.getUTCHours()).padStart(2, '0');
+    return `${y}-${m}-${day}T${h}`;
   }
 
   /**

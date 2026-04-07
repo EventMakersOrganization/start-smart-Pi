@@ -21,7 +21,12 @@ const routes: Routes = [
   { path: 'codebattle/lobby', loadComponent: () => import('./codebattle/lobby/lobby.component').then(m => m.LobbyComponent) },
   { path: 'codebattle/battle-lobby', loadComponent: () => import('./codebattle/battle-lobby/battle-lobby.component').then(m => m.BattleLobbyComponent) },
   { path: 'codebattle/game', loadComponent: () => import('./codebattle/game/game.component').then(m => m.GameComponent) },
-  { path: 'codebattle/results', loadComponent: () => import('./codebattle/results/results.component').then(m => m.ResultsComponent) }
+  { path: 'codebattle/results', loadComponent: () => import('./codebattle/results/results.component').then(m => m.ResultsComponent) },
+  {
+    path: 'analytics',
+    loadChildren: () =>
+      import('./modules/analytics/analytics.module').then((m) => m.AnalyticsModule),
+  },
 ];
 
 @NgModule({

@@ -13,9 +13,11 @@ import { AlertThresholdService } from './services/alert-threshold.service';
 import { AlertService } from './alert.service';
 import { EmailService } from '../notification/email.service';
 import { AlertConfigModule } from '../alert-config/alert-config.module';
+import { AnalyticsModule } from './analytics.module';
 
 @Module({
   imports: [
+    AnalyticsModule,
     AlertConfigModule,
     MongooseModule.forFeature([
       { name: RiskScore.name, schema: RiskScoreSchema },

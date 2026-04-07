@@ -83,4 +83,12 @@ export class AlertsTableComponent implements OnInit {
     const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
   }
+
+  trackByAlertId(_: number, alert: Alert): string {
+    if (alert._id) {
+      return String(alert._id);
+    }
+    const t = alert.createdAt;
+    return `${alert.message}-${t ? new Date(t).getTime() : ''}`;
+  }
 }

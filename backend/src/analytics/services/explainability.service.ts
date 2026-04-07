@@ -393,4 +393,14 @@ export class ExplainabilityService {
   private clamp(value: number, min: number, max: number): number {
     return Math.min(max, Math.max(min, value));
   }
+
+  async listRecentLogs(limit = 50): Promise<ExplainabilityLog[]> {
+    const safe = Math.min(Math.max(1, limit), 500);
+    return this.explainabilityLogModel
+      .find()
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(safe)
+      .lean<ExplainabilityLog[]>()
+      .exec();
+  }
 }

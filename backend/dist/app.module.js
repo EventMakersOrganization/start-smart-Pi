@@ -12,6 +12,7 @@ const brainrush_module_1 = require("./brainrush/brainrush.module");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const mongoose_1 = require("@nestjs/mongoose");
+const schedule_1 = require("@nestjs/schedule");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
 const activity_module_1 = require("./activity/activity.module");
@@ -19,6 +20,12 @@ const app_controller_1 = require("./app.controller");
 const chat_module_1 = require("./chat/chat.module");
 const subjects_module_1 = require("./subjects/subjects.module");
 const codebattle_module_1 = require("./codebattle/codebattle.module");
+const analytics_module_1 = require("./analytics/analytics.module");
+const riskscore_module_1 = require("./analytics/riskscore.module");
+const alert_module_1 = require("./analytics/alert.module");
+const alert_config_module_1 = require("./alert-config/alert-config.module");
+const monitoring_module_1 = require("./monitoring/monitoring.module");
+const report_module_1 = require("./report/report.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -29,6 +36,7 @@ exports.AppModule = AppModule = __decorate([
                 isGlobal: true,
                 envFilePath: ".env",
             }),
+            schedule_1.ScheduleModule.forRoot(),
             mongoose_1.MongooseModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 useFactory: async (configService) => ({
@@ -39,6 +47,12 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             activity_module_1.ActivityModule,
+            analytics_module_1.AnalyticsModule,
+            riskscore_module_1.RiskScoreModule,
+            alert_module_1.AlertModule,
+            alert_config_module_1.AlertConfigModule,
+            monitoring_module_1.MonitoringModule,
+            report_module_1.ReportModule,
             adaptive_learning_module_1.AdaptiveLearningModule,
             chat_module_1.ChatModule,
             brainrush_module_1.BrainrushModule,

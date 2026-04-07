@@ -38,7 +38,7 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" *ngFor="let alert of alerts">
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" *ngFor="let alert of alerts; trackBy: trackByAlertId">
           <td class="px-6 py-4">
             <div class="flex items-center gap-3">
               <div [ngClass]="['w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold', getAvatarColor((alert.student?.first_name || '') + (alert.student?.last_name || ''))]">

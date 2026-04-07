@@ -131,4 +131,8 @@ export class AdminUserManagementComponent implements OnInit {
   getAdminCount(): number {
     return this.users.filter(u => u.role.toLowerCase() === 'admin').length;
   }
+
+  trackByUserId(_: number, user: User): string {
+    return user.id;
+  }
 }

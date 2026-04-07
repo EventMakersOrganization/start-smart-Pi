@@ -192,4 +192,12 @@ export class DeepAnalyticsComponent implements OnInit {
     if (this.totalAlerts === 0) return 0;
     return Math.round((this.resolvedAlerts / this.totalAlerts) * 100);
   }
+
+  trackByRiskDistLevel(_: number, row: { level: string }): string {
+    return row.level;
+  }
+
+  trackByAlertDistSeverity(_: number, row: { severity: string }): string {
+    return row.severity;
+  }
 }

@@ -7,7 +7,7 @@ import type { ExplainabilityLog } from '../models/analytics.models';
   providedIn: 'root',
 })
 export class ExplainabilityService {
-  private apiUrl = '/api/analytics/explainability';
+  private readonly apiUrl = 'http://localhost:3000/api/analytics/explainability';
 
   constructor(private http: HttpClient) {}
 

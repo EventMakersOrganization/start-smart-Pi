@@ -1,69 +1,51 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { AuthGuard } from '../../user-management/auth.guard';
-import { RoleGuard } from '../../user-management/role.guard';
-import { InstructorDashboardComponent } from './pages/instructor-dashboard/instructor-dashboard.component';
-import { DeepAnalyticsComponent } from './pages/deep-analytics/deep-analytics.component';
-import { RiskDetectionManagementComponent } from './pages/risk-detection-management/risk-detection-management.component';
-import { InterventionDashboardComponent } from './pages/intervention-dashboard/intervention-dashboard.component';
-import { AdminSystemMetricsDashboardComponent } from './pages/admin-system-metrics-dashboard/admin-system-metrics-dashboard.component';
-import { AdminUserManagementComponent } from './pages/admin-user-management/admin-user-management.component';
-import { AdminExplainabilityComponent } from './pages/admin-explainability/admin-explainability.component';
-import { ComprehensiveAnalyticsDashboardComponent } from './pages/comprehensive-analytics-dashboard/comprehensive-analytics-dashboard.component';
 
 const routes: Routes = [
   {
-    path: 'instructor-dashboard',
-    component: InstructorDashboardComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor', 'admin'] },
-  },
-  {
-    path: 'deep-analytics',
-    component: DeepAnalyticsComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor', 'admin'] },
-  },
-  {
-    path: 'risk-detection',
-    component: RiskDetectionManagementComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor', 'admin'] },
-  },
-  {
-    path: 'interventions',
-    component: InterventionDashboardComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor'] },
-  },
-  {
-    path: 'comprehensive-analytics',
-    component: ComprehensiveAnalyticsDashboardComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor', 'admin'] },
-  },
-  {
     path: 'admin-dashboard',
-    component: AdminSystemMetricsDashboardComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['admin'] },
+    redirectTo: '/admin/system-metrics',
+    pathMatch: 'full',
   },
   {
     path: 'admin-metrics',
-    redirectTo: 'admin-dashboard',
+    redirectTo: '/admin/system-metrics',
     pathMatch: 'full',
   },
   {
     path: 'admin-users',
-    component: AdminUserManagementComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['admin'] },
+    redirectTo: '/admin/students',
+    pathMatch: 'full',
   },
   {
     path: 'admin-explainability',
-    component: AdminExplainabilityComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['admin'] },
+    redirectTo: '/admin/explainability',
+    pathMatch: 'full',
+  },
+  {
+    path: 'instructor-dashboard',
+    redirectTo: '/instructor/dashboard',
+    pathMatch: 'full',
+  },
+  {
+    path: 'deep-analytics',
+    redirectTo: '/instructor/deep-analytics',
+    pathMatch: 'full',
+  },
+  {
+    path: 'risk-detection',
+    redirectTo: '/instructor/risk-detection',
+    pathMatch: 'full',
+  },
+  {
+    path: 'interventions',
+    redirectTo: '/instructor/interventions',
+    pathMatch: 'full',
+  },
+  {
+    path: 'comprehensive-analytics',
+    redirectTo: '/instructor/comprehensive-analytics',
+    pathMatch: 'full',
   },
   { path: '', redirectTo: 'instructor-dashboard', pathMatch: 'full' },
 ];

@@ -1,12 +1,50 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, map, catchError, of } from 'rxjs';
+import { Observable, forkJoin, map, catchError, of, shareReplay } from 'rxjs';
 
 export interface DashboardData {
   totalUsers: number;
   activeUsers: number;
   highRiskUsers: number;
   totalAlerts: number;
+  totalUsersDeltaPct: number | null;
+  activeUsersDeltaPct: number | null;
+  highRiskUsersDeltaPct: number | null;
+  totalAlertsDeltaPct: number | null;
+  averageRiskScore: number;
+  aiDecisionsToday: number;
+}
+
+export interface ActivityByHourResponse {
+  hourLabels: string[];
+  activityCounts: number[];
+  sessionCounts: number[];
+  windowStartUtc?: string;
+  windowEndUtc?: string;
+}
+
+export interface ActivityChannelSplitResponse {
+  webPct: number;
+  mobilePct: number;
+  unknownPct: number;
+  total: number;
+}
+
+export interface AiEventFeedItem {
+  id: string;
+  type: 'explainability' | 'alert' | 'risk';
+  title: string;
+  description: string;
+  at: string;
+  source: string;
+}
+
+export interface AiServiceMonitorSnapshot {
+  ok: boolean;
+  overall?: string;
+  avgLatencyMs?: number;
+  requestsPerMinute?: number;
+  error?: string;
 }
 
 export interface RiskDistributionData {
@@ -130,14 +168,75 @@ export interface UnifiedStudentAnalytics {
 })
 export class AnalyticsService {
   private apiUrl = 'http://localhost:3000/api/analytics';
+  private monitoringUrl = 'http://localhost:3000/api/monitoring';
 
-  constructor(private http: HttpClient) { }
+  /** Memoized observables so repeated subscriptions / navigation reuse one HTTP round-trip. Cleared on logout (see AuthService). */
+  private readonly sharedObservables = new Map<string, Observable<unknown>>();
+
+  constructor(private http: HttpClient) {}
+
+  /**
+   * Drop all shared analytics streams (call on logout so the next session does not see cached data).
+   */
+  clearSharedAnalyticsCache(): void {
+    this.sharedObservables.clear();
+  }
+
+  /**
+   * One shared cold→hot observable per logical key; refCount false keeps last value for route re-entry.
+   */
+  private shareAnalyticsRequest<T>(key: string, factory: () => Observable<T>): Observable<T> {
+    const existing = this.sharedObservables.get(key) as Observable<T> | undefined;
+    if (existing) {
+      return existing;
+    }
+    const obs = factory().pipe(shareReplay({ bufferSize: 1, refCount: false }));
+    this.sharedObservables.set(key, obs);
+    return obs;
+  }
 
   /**
    * Get dashboard KPI data
    */
   getDashboardData(): Observable<DashboardData> {
-    return this.http.get<DashboardData>(`${this.apiUrl}/dashboard`);
+    return this.shareAnalyticsRequest('dashboard', () =>
+      this.http.get<DashboardData>(`${this.apiUrl}/dashboard`),
+    );
+  }
+
+  getActivityByHour(startIso?: string, endIso?: string): Observable<ActivityByHourResponse> {
+    const key =
+      startIso && endIso ? `activityByHour:${startIso}:${endIso}` : 'activityByHour';
+    return this.shareAnalyticsRequest(key, () => {
+      const params: Record<string, string> = {};
+      if (startIso && endIso) {
+        params['start'] = startIso;
+        params['end'] = endIso;
+      }
+      return this.http.get<ActivityByHourResponse>(`${this.apiUrl}/activity-by-hour`, {
+        params: Object.keys(params).length ? params : undefined,
+      });
+    });
+  }
+
+  getActivityChannelSplit(): Observable<ActivityChannelSplitResponse> {
+    return this.shareAnalyticsRequest('activityChannelSplit', () =>
+      this.http.get<ActivityChannelSplitResponse>(`${this.apiUrl}/activity-channel-split`),
+    );
+  }
+
+  getAiEventsFeed(limit: number = 20): Observable<AiEventFeedItem[]> {
+    return this.shareAnalyticsRequest(`aiEventsFeed:${limit}`, () =>
+      this.http.get<AiEventFeedItem[]>(`${this.apiUrl}/ai-events-feed`, {
+        params: { limit: String(limit) },
+      }),
+    );
+  }
+
+  getAiServiceMonitor(): Observable<AiServiceMonitorSnapshot> {
+    return this.shareAnalyticsRequest('aiServiceMonitor', () =>
+      this.http.get<AiServiceMonitorSnapshot>(`${this.monitoringUrl}/ai-service`),
+    );
   }
 
   /**
@@ -145,7 +244,9 @@ export class AnalyticsService {
    * @param days - Number of days to look back (default: 30)
    */
   getRiskTrends(days: number = 30): Observable<RiskTrendData[]> {
-    return this.http.get<RiskTrendData[]>(`${this.apiUrl}/risk-trends?days=${days}`);
+    return this.shareAnalyticsRequest(`riskTrends:${days}`, () =>
+      this.http.get<RiskTrendData[]>(`${this.apiUrl}/risk-trends?days=${days}`),
+    );
   }
 
   /**
@@ -153,62 +254,65 @@ export class AnalyticsService {
    * @param limit - Number of alerts to return (default: 10)
    */
   getRecentAlerts(limit: number = 10): Observable<RecentAlertItem[]> {
-    return this.http.get<RecentAlertItem[]>(`${this.apiUrl}/recent-alerts?limit=${limit}`);
+    return this.shareAnalyticsRequest(`recentAlerts:${limit}`, () =>
+      this.http.get<RecentAlertItem[]>(`${this.apiUrl}/recent-alerts?limit=${limit}`),
+    );
   }
 
   getRiskDistribution(): Observable<RiskDistributionData> {
-    return this.http
-      .get<RiskDistributionData>(`${this.apiUrl}/risk-distribution`)
-      .pipe(
+    return this.shareAnalyticsRequest('riskDistribution', () =>
+      this.http.get<RiskDistributionData>(`${this.apiUrl}/risk-distribution`).pipe(
         catchError(() =>
           this.http.get<RiskDistributionData>('http://localhost:3000/api/analytics/kpis/risk-distribution'),
         ),
-      );
+      ),
+    );
   }
 
   getAlertTrends(days: number = 7): Observable<AlertTrendData> {
     const fetchLimit = Math.max(10, days * 5);
 
-    return this.getRecentAlerts(fetchLimit).pipe(
-      map((alerts) => {
-        const dayBuckets = new Map<string, number>();
-        const labels: string[] = [];
-        const values: number[] = [];
-        const now = new Date();
+    return this.shareAnalyticsRequest(`alertTrends:${days}`, () =>
+      this.getRecentAlerts(fetchLimit).pipe(
+        map((alerts) => {
+          const dayBuckets = new Map<string, number>();
+          const labels: string[] = [];
+          const values: number[] = [];
+          const now = new Date();
 
-        for (let offset = days - 1; offset >= 0; offset--) {
-          const date = new Date(now);
-          date.setDate(now.getDate() - offset);
-          const key = this.toDayKey(date);
-          dayBuckets.set(key, 0);
-          labels.push(date.toLocaleDateString(undefined, { weekday: 'short' }));
-        }
-
-        for (const alert of alerts) {
-          const dateValue = alert.timestamp || alert.createdAt;
-          if (!dateValue) {
-            continue;
+          for (let offset = days - 1; offset >= 0; offset--) {
+            const date = new Date(now);
+            date.setDate(now.getDate() - offset);
+            const key = this.toDayKey(date);
+            dayBuckets.set(key, 0);
+            labels.push(date.toLocaleDateString(undefined, { weekday: 'short' }));
           }
 
-          const key = this.toDayKey(new Date(dateValue));
-          if (dayBuckets.has(key)) {
-            dayBuckets.set(key, (dayBuckets.get(key) || 0) + 1);
+          for (const alert of alerts) {
+            const dateValue = alert.timestamp || alert.createdAt;
+            if (!dateValue) {
+              continue;
+            }
+
+            const key = this.toDayKey(new Date(dateValue));
+            if (dayBuckets.has(key)) {
+              dayBuckets.set(key, (dayBuckets.get(key) || 0) + 1);
+            }
           }
-        }
 
-        for (const key of dayBuckets.keys()) {
-          values.push(dayBuckets.get(key) || 0);
-        }
+          for (const key of dayBuckets.keys()) {
+            values.push(dayBuckets.get(key) || 0);
+          }
 
-        return { labels, values };
-      }),
+          return { labels, values };
+        }),
+      ),
     );
   }
 
   getStudentRiskList(): Observable<StudentRiskListItem[]> {
-    return this.http
-      .get<StudentRiskListItem[]>(`${this.apiUrl}/student-risk-list`)
-      .pipe(
+    return this.shareAnalyticsRequest('studentRiskList', () =>
+      this.http.get<StudentRiskListItem[]>(`${this.apiUrl}/student-risk-list`).pipe(
         catchError(() =>
           forkJoin({
             riskScores: this.http.get<Array<any>>('http://localhost:3000/api/riskscores'),
@@ -245,29 +349,33 @@ export class AnalyticsService {
             catchError(() => of([])),
           ),
         ),
-      );
+      ),
+    );
   }
 
   getInterventions(): Observable<InterventionTrackingItem[]> {
-    return this.http
-      .get<InterventionTrackingItem[]>(`${this.apiUrl}/interventions`)
-      .pipe(
+    return this.shareAnalyticsRequest('interventions', () =>
+      this.http.get<InterventionTrackingItem[]>(`${this.apiUrl}/interventions`).pipe(
         catchError(() =>
           this.getStudentRiskList().pipe(
             map((students) =>
-              (students || []).map((student) => ({
-                userId: student.userId,
-                name: student.name,
-                riskLevel: this.normalizeRiskLevel(student.riskLevel),
-                dropoutProbability: this.mapRiskScoreToProbability(student.riskScore),
-                suggestions: [this.defaultIntervention(student.riskLevel)],
-                status: student.alertStatus === 'Resolved' ? 'applied' : 'pending',
-              } as InterventionTrackingItem)),
+              (students || []).map(
+                (student) =>
+                  ({
+                    userId: student.userId,
+                    name: student.name,
+                    riskLevel: this.normalizeRiskLevel(student.riskLevel),
+                    dropoutProbability: this.mapRiskScoreToProbability(student.riskScore),
+                    suggestions: [this.defaultIntervention(student.riskLevel)],
+                    status: student.alertStatus === 'Resolved' ? 'applied' : 'pending',
+                  }) as InterventionTrackingItem,
+              ),
             ),
             catchError(() => of([])),
           ),
         ),
-      );
+      ),
+    );
   }
 
   markInterventionCompleted(userId: string): Observable<any> {
@@ -280,19 +388,27 @@ export class AnalyticsService {
   }
 
   getRetentionAnalytics(days: number = 30): Observable<RetentionAnalyticsData> {
-    return this.http.get<RetentionAnalyticsData>(`${this.apiUrl}/retention?days=${days}`);
+    return this.shareAnalyticsRequest(`retention:${days}`, () =>
+      this.http.get<RetentionAnalyticsData>(`${this.apiUrl}/retention?days=${days}`),
+    );
   }
 
   getCohortAnalytics(): Observable<CohortAnalyticsItem[]> {
-    return this.http.get<CohortAnalyticsItem[]>(`${this.apiUrl}/cohorts`);
+    return this.shareAnalyticsRequest('cohorts', () =>
+      this.http.get<CohortAnalyticsItem[]>(`${this.apiUrl}/cohorts`),
+    );
   }
 
   getInsights(): Observable<InsightsData> {
-    return this.http.get<InsightsData>(`${this.apiUrl}/insights`);
+    return this.shareAnalyticsRequest('insights', () =>
+      this.http.get<InsightsData>(`${this.apiUrl}/insights`),
+    );
   }
 
   getUnifiedAnalytics(userId: string): Observable<UnifiedStudentAnalytics> {
-    return this.http.get<UnifiedStudentAnalytics>(`${this.apiUrl}/unified/${userId}`);
+    return this.shareAnalyticsRequest(`unified:${userId}`, () =>
+      this.http.get<UnifiedStudentAnalytics>(`${this.apiUrl}/unified/${userId}`),
+    );
   }
 
   private extractUserIdFromAlert(alert: any): string {

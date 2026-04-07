@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AnalyticsController } from './analytics.controller';
 import { ExplainabilityController } from './explainability.controller';
@@ -12,6 +13,10 @@ import { InterventionService } from './intervention.service';
 import { AbTestingService } from './ab-testing.service';
 import { IntegrationService } from './integration.service';
 import { InsightService } from './insight.service';
+import { AnalyticsReadCacheService } from './services/analytics-read-cache.service';
+import { AnalyticsWebhookController } from './analytics-webhook.controller';
+import { AnalyticsWebhookService } from './analytics-webhook.service';
+import { AnalyticsWebhook, AnalyticsWebhookSchema } from './schemas/analytics-webhook.schema';
 import { RiskScore, RiskScoreSchema } from './schemas/riskscore.schema';
 import { Alert, AlertSchema } from './schemas/alert.schema';
 import { AbTesting, AbTestingSchema } from './schemas/ab-testing.schema';
@@ -28,6 +33,7 @@ import {
 
 @Module({
   imports: [
+    HttpModule,
     MongooseModule.forFeature([
       { name: RiskScore.name, schema: RiskScoreSchema },
       { name: Alert.name, schema: AlertSchema },
@@ -36,10 +42,12 @@ import {
       { name: Activity.name, schema: ActivitySchema },
       { name: StudentProfile.name, schema: StudentProfileSchema },
       { name: AbTesting.name, schema: AbTestingSchema },
+      { name: AnalyticsWebhook.name, schema: AnalyticsWebhookSchema },
     ]),
   ],
-  controllers: [AnalyticsController, ExplainabilityController],
+  controllers: [AnalyticsController, ExplainabilityController, AnalyticsWebhookController],
   providers: [
+    AnalyticsReadCacheService,
     AnalyticsService,
     KpiService,
     ExplainabilityService,
@@ -50,8 +58,10 @@ import {
     AbTestingService,
     IntegrationService,
     InsightService,
+    AnalyticsWebhookService,
   ],
   exports: [
+    AnalyticsReadCacheService,
     AnalyticsService,
     ExplainabilityService,
     UsageService,

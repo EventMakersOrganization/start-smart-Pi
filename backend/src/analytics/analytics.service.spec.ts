@@ -1,5 +1,20 @@
 import { AnalyticsService } from './analytics.service';
 
+const mockReadCache = {
+  getOrSet: jest.fn(async (_k: string, fn: () => Promise<any>) => fn()),
+  getStats: jest.fn().mockReturnValue({
+    entryCount: 2,
+    ttlMs: 45000,
+    schemaVersion: 'v1',
+    redisEnabled: false,
+  }),
+};
+
+const mockConnection = {
+  readyState: 1,
+  db: { admin: () => ({ ping: jest.fn().mockResolvedValue({ ok: 1 }) }) },
+};
+
 describe('AnalyticsService engagement scoring', () => {
   const baseUnified = {
     userId: 'u1',
@@ -48,6 +63,9 @@ describe('AnalyticsService engagement scoring', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
+      mockConnection as any,
+      mockReadCache as any,
       {} as any,
       {} as any,
       {} as any,
@@ -208,6 +226,9 @@ describe('AnalyticsService retention analytics', () => {
       {} as any,
       activityModel as any,
       {} as any,
+      mockConnection as any,
+      mockReadCache as any,
+      {} as any,
       {} as any,
       {} as any,
       {} as any,
@@ -297,6 +318,9 @@ describe('AnalyticsService cohort analytics', () => {
       {} as any,
       {} as any,
       {} as any,
+      mockConnection as any,
+      mockReadCache as any,
+      {} as any,
       {} as any,
       {} as any,
       {} as any,
@@ -306,5 +330,170 @@ describe('AnalyticsService cohort analytics', () => {
 
     expect(userModel.aggregate).toHaveBeenCalledTimes(1);
     expect(result).toEqual(expectedRows);
+  });
+});
+
+describe('AnalyticsService activity by hour', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-04-07T15:42:00.000Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('should return 24 hour buckets with labels and zero counts when no activity', async () => {
+    const exec = jest.fn().mockResolvedValue([]);
+    const activityModel = {
+      aggregate: jest.fn().mockReturnValue({ exec }),
+    };
+
+    const service = new AnalyticsService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      activityModel as any,
+      {} as any,
+      mockConnection as any,
+      mockReadCache as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.getActivityByHour();
+
+    expect(result.hourLabels).toHaveLength(24);
+    expect(result.activityCounts).toHaveLength(24);
+    expect(result.sessionCounts).toHaveLength(24);
+    expect(result.activityCounts.every((n) => n === 0)).toBe(true);
+    expect(activityModel.aggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it('should map aggregation rows into the correct UTC hour slot', async () => {
+    const exec = jest.fn().mockResolvedValue([
+      { _id: '2026-04-07T14', activityCounts: 3, sessionCounts: 1 },
+    ]);
+    const activityModel = {
+      aggregate: jest.fn().mockReturnValue({ exec }),
+    };
+
+    const service = new AnalyticsService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      activityModel as any,
+      {} as any,
+      mockConnection as any,
+      mockReadCache as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.getActivityByHour();
+    const idx = result.hourLabels.indexOf('14:00');
+    expect(idx).toBeGreaterThanOrEqual(0);
+    expect(result.activityCounts[idx]).toBe(3);
+    expect(result.sessionCounts[idx]).toBe(1);
+  });
+});
+
+describe('AnalyticsService activity channel split', () => {
+  it('should map web/mobile/unknown counts to percentages', async () => {
+    const exec = jest.fn().mockResolvedValue([
+      { _id: 'web', count: 10 },
+      { _id: 'mobile', count: 30 },
+      { _id: 'unknown', count: 10 },
+    ]);
+    const activityModel = {
+      aggregate: jest.fn().mockReturnValue({ exec }),
+    };
+
+    const service = new AnalyticsService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      activityModel as any,
+      {} as any,
+      mockConnection as any,
+      mockReadCache as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.getActivityChannelSplit();
+
+    expect(result.total).toBe(50);
+    expect(result.webPct).toBe(20);
+    expect(result.mobilePct).toBe(60);
+    expect(result.unknownPct).toBe(20);
+  });
+
+  it('should return 100% unknown when there is no activity', async () => {
+    const exec = jest.fn().mockResolvedValue([]);
+    const activityModel = {
+      aggregate: jest.fn().mockReturnValue({ exec }),
+    };
+
+    const service = new AnalyticsService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      activityModel as any,
+      {} as any,
+      mockConnection as any,
+      mockReadCache as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.getActivityChannelSplit();
+
+    expect(result).toEqual({
+      webPct: 0,
+      mobilePct: 0,
+      unknownPct: 100,
+      total: 0,
+    });
+  });
+});
+
+describe('AnalyticsService health', () => {
+  it('should report mongo ok and cache stats', async () => {
+    const service = new AnalyticsService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      mockConnection as any,
+      mockReadCache as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.getAnalyticsHealth();
+
+    expect(result.ok).toBe(true);
+    expect(result.mongo.ok).toBe(true);
+    expect(result.cache.entryCount).toBe(2);
+    expect(result.cache.ttlMs).toBe(45000);
+    expect(result.cache.schemaVersion).toBe('v1');
+    expect(result.cache.redisEnabled).toBe(false);
   });
 });

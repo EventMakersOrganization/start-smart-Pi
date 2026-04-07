@@ -13,11 +13,11 @@ import {
 import { ExportService } from '../../services/export.service';
 
 @Component({
-  selector: 'app-instructor-dashboard',
+  selector: 'app-analytics-instructor-dashboard',
   templateUrl: './instructor-dashboard.component.html',
   styleUrls: ['./instructor-dashboard.component.css'],
 })
-export class InstructorDashboardComponent implements OnInit {
+export class AnalyticsInstructorDashboardComponent implements OnInit {
   loading = true;
   error: string | null = null;
   user: any = null;
@@ -27,6 +27,12 @@ export class InstructorDashboardComponent implements OnInit {
     activeUsers: 0,
     highRiskUsers: 0,
     totalAlerts: 0,
+    totalUsersDeltaPct: null,
+    activeUsersDeltaPct: null,
+    highRiskUsersDeltaPct: null,
+    totalAlertsDeltaPct: null,
+    averageRiskScore: 0,
+    aiDecisionsToday: 0,
   };
 
   riskDistribution: RiskDistributionData = {
@@ -95,6 +101,12 @@ export class InstructorDashboardComponent implements OnInit {
             activeUsers: 0,
             highRiskUsers: 0,
             totalAlerts: 0,
+            totalUsersDeltaPct: null,
+            activeUsersDeltaPct: null,
+            highRiskUsersDeltaPct: null,
+            totalAlertsDeltaPct: null,
+            averageRiskScore: 0,
+            aiDecisionsToday: 0,
           } as DashboardData),
         ),
       ),
@@ -261,5 +273,21 @@ export class InstructorDashboardComponent implements OnInit {
   private getFilename(prefix: string): string {
     const date = new Date().toISOString().slice(0, 10);
     return `${prefix}-${date}`;
+  }
+
+  trackByTrendIndex(index: number, _value: number): number {
+    return index;
+  }
+
+  trackByStudentUserId(_: number, student: StudentRiskListItem): string {
+    return student.userId;
+  }
+
+  trackByRecentAlert(_: number, alert: RecentAlertItem): string {
+    if (alert._id) {
+      return String(alert._id);
+    }
+    const t = alert.timestamp || alert.createdAt;
+    return `${this.resolveAlertUserId(alert)}-${t ? new Date(t).getTime() : alert.message}`;
   }
 }

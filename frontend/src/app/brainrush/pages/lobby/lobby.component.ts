@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { BrandLogoComponent } from '../../../shared/brand-logo/brand-logo.component';
 import { BrainrushService } from '../../services/brainrush.service';
 import { SocketService } from '../../services/socket.service';
 import { AudioService } from '../../services/audio.service';
@@ -13,9 +14,12 @@ import { AudioService } from '../../services/audio.service';
 @Component({
   selector: 'app-lobby-header',
   standalone: true,
-  imports: [RouterModule],
+  imports: [RouterModule, BrandLogoComponent],
   template: `
     <div class="flex flex-col items-center justify-center text-center space-y-4 mb-12">
+      <div class="bg-white/95 rounded-2xl px-4 py-3 shadow-xl border border-white/30 mb-2">
+        <app-brand-logo variant="compact" [link]="'/student-dashboard'" />
+      </div>
       <div class="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg border border-white/20 text-white">
         <span class="material-symbols-outlined" style="font-size:52px">sports_esports</span>
       </div>

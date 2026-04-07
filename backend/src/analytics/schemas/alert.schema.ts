@@ -62,3 +62,5 @@ export class Alert {
 }
 
 export const AlertSchema = SchemaFactory.createForClass(Alert);
+
+AlertSchema.index({ createdAt: -1 });

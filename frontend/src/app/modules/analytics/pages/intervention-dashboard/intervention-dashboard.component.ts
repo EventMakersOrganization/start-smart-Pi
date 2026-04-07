@@ -145,6 +145,10 @@ export class InterventionDashboardComponent implements OnInit {
     return item.userId;
   }
 
+  trackByIndex(index: number, _item: unknown): number {
+    return index;
+  }
+
   getPrimarySuggestion(item: InterventionTrackingItem): string {
     return item.suggestions?.[0] || 'No suggested intervention';
   }

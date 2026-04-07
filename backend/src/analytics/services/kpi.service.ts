@@ -5,6 +5,10 @@ import { User, UserDocument } from '../../users/schemas/user.schema';
 import { Activity, ActivityDocument } from '../../activity/schemas/activity.schema';
 import { RiskScore, RiskScoreDocument, RiskLevel } from '../schemas/riskscore.schema';
 import { Alert, AlertDocument } from '../schemas/alert.schema';
+import {
+  ANALYTICS_CACHE_SCHEMA_VERSION,
+  AnalyticsReadCacheService,
+} from './analytics-read-cache.service';
 
 export interface KpiResult {
   value: number;
@@ -30,6 +34,7 @@ export class KpiService {
     @InjectModel(Activity.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(RiskScore.name) private riskScoreModel: Model<RiskScoreDocument>,
     @InjectModel(Alert.name) private alertModel: Model<AlertDocument>,
+    private readonly readCache: AnalyticsReadCacheService,
   ) {}
 
   /**
@@ -153,7 +158,12 @@ export class KpiService {
    * Get all KPIs at once for dashboard efficiency
    */
   async getAllKpis() {
-    const [totalUsers, activeUsers, highRiskUsers, totalAlerts, riskDistribution] = 
+    const key = `kpi:allKpis:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
+    return this.readCache.getOrSet(key, () => this.computeAllKpis());
+  }
+
+  private async computeAllKpis() {
+    const [totalUsers, activeUsers, highRiskUsers, totalAlerts, riskDistribution] =
       await Promise.all([
         this.getTotalUsers(),
         this.getActiveUsers(),
@@ -170,5 +180,106 @@ export class KpiService {
       riskDistribution,
       timestamp: new Date(),
     };
+  }
+
+  /**
+   * Percent change vs prior window. Used for dashboard trend badges.
+   * - totalUsersDeltaPct: new signups last 7d vs previous 7d (not total user count).
+   * - activeUsersDeltaPct: distinct active users last 24h vs prior 24h.
+   * - highRiskUsersDeltaPct: HIGH risk rows with lastUpdated in last 7d vs previous 7d.
+   * - totalAlertsDeltaPct: alerts created in last 7d vs previous 7d.
+   */
+  async getDashboardDeltas(): Promise<{
+    totalUsersDeltaPct: number | null;
+    activeUsersDeltaPct: number | null;
+    highRiskUsersDeltaPct: number | null;
+    totalAlertsDeltaPct: number | null;
+  }> {
+    const key = `kpi:dashboardDeltas:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
+    return this.readCache.getOrSet(key, () => this.computeDashboardDeltas());
+  }
+
+  private async computeDashboardDeltas(): Promise<{
+    totalUsersDeltaPct: number | null;
+    activeUsersDeltaPct: number | null;
+    highRiskUsersDeltaPct: number | null;
+    totalAlertsDeltaPct: number | null;
+  }> {
+    const now = Date.now();
+    const ms24 = 24 * 60 * 60 * 1000;
+    const ms7 = 7 * ms24;
+
+    const [
+      activeCurr,
+      activePrev,
+      newUsersCurr,
+      newUsersPrev,
+      alertsCurr,
+      alertsPrev,
+      highRiskCurr,
+      highRiskPrev,
+    ] = await Promise.all([
+      this.countDistinctActiveUsers(new Date(now - ms24), new Date(now)),
+      this.countDistinctActiveUsers(new Date(now - 2 * ms24), new Date(now - ms24)),
+      this.userModel.countDocuments({
+        createdAt: { $gte: new Date(now - ms7), $lte: new Date(now) },
+      }),
+      this.userModel.countDocuments({
+        createdAt: { $gte: new Date(now - 2 * ms7), $lt: new Date(now - ms7) },
+      }),
+      this.alertModel.countDocuments({ createdAt: { $gte: new Date(now - ms7) } }),
+      this.alertModel.countDocuments({
+        createdAt: { $gte: new Date(now - 2 * ms7), $lt: new Date(now - ms7) },
+      }),
+      this.riskScoreModel.countDocuments({
+        riskLevel: RiskLevel.HIGH,
+        lastUpdated: { $gte: new Date(now - ms7) },
+      }),
+      this.riskScoreModel.countDocuments({
+        riskLevel: RiskLevel.HIGH,
+        lastUpdated: { $gte: new Date(now - 2 * ms7), $lt: new Date(now - ms7) },
+      }),
+    ]);
+
+    return {
+      totalUsersDeltaPct: this.deltaPct(newUsersPrev, newUsersCurr),
+      activeUsersDeltaPct: this.deltaPct(activePrev, activeCurr),
+      highRiskUsersDeltaPct: this.deltaPct(highRiskPrev, highRiskCurr),
+      totalAlertsDeltaPct: this.deltaPct(alertsPrev, alertsCurr),
+    };
+  }
+
+  /** Average risk score (0–100) across all risk score documents. */
+  async getAverageRiskScorePercent(): Promise<number> {
+    const key = `kpi:avgRiskPct:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
+    return this.readCache.getOrSet(key, () => this.computeAverageRiskScorePercent());
+  }
+
+  private async computeAverageRiskScorePercent(): Promise<number> {
+    const agg = await this.riskScoreModel
+      .aggregate([{ $group: { _id: null, avg: { $avg: '$score' } } }])
+      .exec();
+    const raw = agg[0]?.avg;
+    if (raw == null || Number.isNaN(raw)) {
+      return 0;
+    }
+    return Math.round(Number(raw));
+  }
+
+  private async countDistinctActiveUsers(from: Date, to: Date): Promise<number> {
+    const ids = await this.activityModel.distinct('userId', {
+      timestamp: { $gte: from, $lte: to },
+    });
+    return ids.length;
+  }
+
+  private deltaPct(previous: number, current: number): number | null {
+    if (previous === 0 && current === 0) {
+      return null;
+    }
+    if (previous === 0) {
+      return current > 0 ? 100 : null;
+    }
+    return Number((((current - previous) / previous) * 100).toFixed(1));
   }
 }

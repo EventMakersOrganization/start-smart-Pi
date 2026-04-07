@@ -7,6 +7,7 @@ import {
   CohortAnalyticsItem,
   InterventionTrackingItem,
   RetentionAnalyticsData,
+  RetentionTrendPoint,
   UnifiedStudentAnalytics,
 } from '../../services/analytics.service';
 
@@ -28,6 +29,12 @@ interface InstructorStudentRow {
   styleUrls: ['./comprehensive-analytics-dashboard.component.css'],
 })
 export class ComprehensiveAnalyticsDashboardComponent implements OnInit {
+  /** True when this page is rendered inside admin or instructor shell (hide duplicate nav/aside). */
+  get embedInParentShell(): boolean {
+    const u = this.router.url.split('?')[0];
+    return u.includes('/admin/comprehensive-analytics') || u.includes('/instructor/comprehensive-analytics');
+  }
+
   loading = true;
   loadingRows = false;
   error: string | null = null;
@@ -232,6 +239,10 @@ export class ComprehensiveAnalyticsDashboardComponent implements OnInit {
 
   trackByStudent(_: number, item: InstructorStudentRow): string {
     return item.userId;
+  }
+
+  trackByTrendPoint(_: number, point: RetentionTrendPoint): string {
+    return point.date;
   }
 
   private loadComprehensiveAnalytics(): void {

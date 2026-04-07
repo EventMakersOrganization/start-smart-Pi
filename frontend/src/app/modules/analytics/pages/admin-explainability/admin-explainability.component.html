@@ -1,11 +1,40 @@
-<div class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen">
-  <nav class="fixed top-0 w-full z-50 bg-surface-container-low shadow-sm flex justify-between items-center px-8 h-16 w-full max-w-full">
-    <div class="flex items-center gap-8">
-      <span class="text-2xl font-extrabold text-blue-900 tracking-tighter font-headline">ExplainAI Admin</span>
-      <div class="hidden md:flex gap-6">
-        <a class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors" routerLink="/analytics/admin-dashboard">Dashboard</a>
-        <a class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors" routerLink="/analytics/admin-users">Reports</a>
-        <a class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors" routerLink="/analytics/admin-explainability">Logs</a>
+<div
+  class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed"
+  [class.min-h-screen]="!embedInAdminShell"
+  [class.min-h-full]="embedInAdminShell"
+>
+  <nav
+    *ngIf="!embedInAdminShell"
+    class="fixed top-0 w-full z-50 bg-surface-container-low shadow-sm flex justify-between items-center px-8 h-16 w-full max-w-full"
+  >
+    <div class="flex items-center gap-6 min-w-0">
+      <app-brand-logo [link]="'/admin/students'" variant="compact" />
+      <span class="text-sm font-extrabold text-blue-900 tracking-tight font-headline hidden sm:inline">Explainability</span>
+      <div class="hidden md:flex gap-6 items-end">
+        <a
+          routerLink="/admin/students"
+          routerLinkActive="text-emerald-700 border-b-2 border-emerald-600 pb-1"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="text-slate-500 hover:text-emerald-700 text-sm font-semibold tracking-tight transition-colors pb-1 border-b-2 border-transparent"
+        >Admin Home</a>
+        <a
+          routerLink="/admin/system-metrics"
+          routerLinkActive="text-blue-700 border-b-2 border-blue-700 pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors pb-1 border-b-2 border-transparent"
+        >Dashboard</a>
+        <a
+          routerLink="/admin/comprehensive-analytics"
+          routerLinkActive="text-blue-700 border-b-2 border-blue-700 pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors pb-1 border-b-2 border-transparent"
+        >Reports</a>
+        <a
+          routerLink="/admin/explainability"
+          routerLinkActive="text-blue-700 border-b-2 border-blue-700 pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors pb-1 border-b-2 border-transparent"
+        >Logs</a>
       </div>
     </div>
     <div class="flex items-center gap-4">
@@ -21,7 +50,10 @@
     </div>
   </nav>
 
-  <aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-surface-container-low border-r border-slate-200 flex flex-col py-4 gap-y-1 z-40">
+  <aside
+    *ngIf="!embedInAdminShell"
+    class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-surface-container-low border-r border-slate-200 flex flex-col py-4 gap-y-1 z-40"
+  >
     <div class="px-6 py-4 mb-4">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center text-white"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">psychology</span></div>
@@ -32,10 +64,30 @@
       </div>
     </div>
     <nav class="flex-1 px-2 space-y-1">
-      <a class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium" routerLink="/analytics/admin-dashboard"><span class="material-symbols-outlined">dashboard</span> Overview</a>
-      <a class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium" routerLink="/analytics/admin-dashboard"><span class="material-symbols-outlined">monitoring</span> System Metrics</a>
-      <a class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium" routerLink="/analytics/admin-users"><span class="material-symbols-outlined">group</span> User Management</a>
-      <a class="flex items-center gap-3 bg-blue-100 text-blue-900 rounded-lg px-4 py-3 mx-2 transition-all active:translate-x-1 duration-150 text-sm font-medium" routerLink="/analytics/admin-explainability"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">psychology</span> AI Explainability</a>
+      <a
+        routerLink="/admin/system-metrics"
+        routerLinkActive="bg-blue-100 text-blue-900 font-semibold shadow-sm"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium"
+      ><span class="material-symbols-outlined">monitoring</span> System Metrics</a>
+      <a
+        routerLink="/admin/comprehensive-analytics"
+        routerLinkActive="bg-blue-100 text-blue-900 font-semibold shadow-sm"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium"
+      ><span class="material-symbols-outlined">insights</span> Comprehensive Analytics</a>
+      <a
+        routerLink="/admin/students"
+        routerLinkActive="bg-blue-100 text-blue-900 font-semibold shadow-sm"
+        [routerLinkActiveOptions]="{ exact: false }"
+        class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium"
+      ><span class="material-symbols-outlined">group</span> Student Directory</a>
+      <a
+        routerLink="/admin/explainability"
+        routerLinkActive="bg-blue-100 text-blue-900 font-semibold shadow-sm"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium"
+      ><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">psychology</span> AI Explainability</a>
     </nav>
     <div class="px-2 pt-4 border-t border-slate-200/50">
       <a class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg text-sm font-medium" href="#"><span class="material-symbols-outlined">help</span> Help Center</a>
@@ -43,7 +95,7 @@
     </div>
   </aside>
 
-  <main class="ml-64 mt-16 p-8 min-h-screen">
+  <main [ngClass]="embedInAdminShell ? 'p-4 md:p-6 min-h-screen' : 'ml-64 mt-16 p-8 min-h-screen'">
     <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
         <span class="text-xs font-bold uppercase tracking-widest text-primary mb-2 block">Intelligence Dashboard</span>
@@ -123,7 +175,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-container-low">
-            <tr class="hover:bg-surface-container-low transition-colors group" *ngFor="let item of filteredExplanations">
+            <tr class="hover:bg-surface-container-low transition-colors group" *ngFor="let item of filteredExplanations; trackBy: trackByExplanationId">
               <td class="py-5 px-4 font-bold text-sm text-primary">{{ item.userId }}</td>
               <td class="py-5 px-4"><span class="bg-primary-fixed text-on-primary-fixed text-[10px] font-bold px-2 py-1 rounded">{{ item.decision }}</span></td>
               <td class="py-5 px-4 text-sm text-on-surface-variant max-w-xs truncate">{{ item.explanation }}</td>
@@ -139,9 +191,12 @@
     </section>
   </main>
 
-  <button class="fixed bottom-8 right-8 signature-gradient text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group">
+  <button
+    *ngIf="!embedInAdminShell"
+    type="button"
+    class="fixed bottom-8 right-8 signature-gradient text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group"
+  >
     <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">add</span>
     <span class="absolute right-full mr-4 bg-on-background text-white text-xs font-bold py-2 px-3 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Manual Risk Flag</span>
   </button>
 </div>
-
