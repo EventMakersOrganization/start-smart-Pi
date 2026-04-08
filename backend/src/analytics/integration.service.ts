@@ -145,7 +145,7 @@ export class IntegrationService {
         averageScore: Number((performanceAverage ?? 0).toFixed(2)),
         completionRate: Number((completionRate ?? 0).toFixed(2)),
         academicLevel:
-          profile?.academic_level ||
+          profile?.class ||
           this.readString(latestPerformance, ['academicLevel', 'level', 'grade']) ||
           'unknown',
         profileRiskLevel: profile?.risk_level || 'UNKNOWN',

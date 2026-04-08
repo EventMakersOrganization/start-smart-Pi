@@ -53,7 +53,7 @@ let UsersService = class UsersService {
             },
             profile: profile
                 ? {
-                    academic_level: profile.academic_level,
+                    class: profile.class ?? profile.academic_level,
                     risk_level: profile.risk_level,
                     points_gamification: profile.points_gamification,
                 }
@@ -72,25 +72,25 @@ let UsersService = class UsersService {
         if (updateProfileDto.phone)
             user.phone = updateProfileDto.phone;
         if (user.role === user_schema_1.UserRole.STUDENT &&
-            (updateProfileDto.academic_level ||
+            (updateProfileDto.class ||
                 updateProfileDto.risk_level ||
                 updateProfileDto.points_gamification !== undefined)) {
             const updateData = {};
-            if (updateProfileDto.academic_level)
-                updateData.academic_level = updateProfileDto.academic_level;
+            if (updateProfileDto.class)
+                updateData.class = updateProfileDto.class;
             if (updateProfileDto.risk_level)
                 updateData.risk_level = updateProfileDto.risk_level;
             if (updateProfileDto.points_gamification !== undefined)
                 updateData.points_gamification = updateProfileDto.points_gamification;
             await this.profileModel
-                .findOneAndUpdate({ userId }, { $set: updateData, $setOnInsert: { userId } }, { new: true, upsert: true, setDefaultsOnInsert: true })
+                .findOneAndUpdate(this.profileLookupFilter(userId), { $set: updateData, $setOnInsert: { userId } }, { new: true, upsert: true, setDefaultsOnInsert: true })
                 .exec();
         }
         await user.save();
         await this.activityService.logActivity(userId, activity_schema_1.ActivityAction.PROFILE_UPDATE);
         return this.getProfile(userId);
     }
-    async getUsersByRole(role) {
+    async getUsersByRole(role, requesterId, requesterRole) {
         let query;
         if (role.toLowerCase() === 'instructor') {
             query = {
@@ -104,6 +104,16 @@ let UsersService = class UsersService {
         }
         const users = await this.userModel.find(query).select('-password').exec();
         if (role.toLowerCase() === 'student') {
+            let requesterClass;
+            if (requesterRole?.toLowerCase() === user_schema_1.UserRole.STUDENT && requesterId) {
+                const requesterProfile = await this.profileModel
+                    .findOne(this.profileLookupFilter(requesterId))
+                    .lean();
+                requesterClass = (requesterProfile?.class ?? requesterProfile?.academic_level)?.toString();
+                if (!requesterClass) {
+                    return [];
+                }
+            }
             const userIds = users.map((u) => u._id);
             const userIdStrings = userIds.map((id) => String(id));
             const objectIds = userIdStrings
@@ -119,8 +129,10 @@ let UsersService = class UsersService {
                 .exec();
             const profileMap = new Map();
             profiles.forEach((p) => profileMap.set(String(p.userId), p));
-            return users.map((u) => {
+            return users
+                .map((u) => {
                 const p = profileMap.get(String(u._id));
+                const userClass = p ? (p.class ?? p.academic_level) : undefined;
                 return {
                     id: u._id,
                     first_name: u.first_name,
@@ -131,10 +143,16 @@ let UsersService = class UsersService {
                     status: u.status,
                     createdAt: u.createdAt,
                     updatedAt: u.updatedAt,
-                    academic_level: p ? p.academic_level : undefined,
+                    class: userClass,
                     risk_level: p ? p.risk_level : undefined,
                     points_gamification: p ? p.points_gamification : undefined,
                 };
+            })
+                .filter((u) => {
+                if (!requesterClass) {
+                    return true;
+                }
+                return u.class === requesterClass && String(u.id) !== String(requesterId);
             });
         }
         return users.map((u) => ({
@@ -175,7 +193,7 @@ let UsersService = class UsersService {
                 status: u.status,
                 createdAt: u.createdAt,
                 updatedAt: u.updatedAt,
-                academic_level: p ? p.academic_level : undefined,
+                academic_level: p ? p.class : undefined,
                 risk_level: p ? p.risk_level : undefined,
                 points_gamification: p ? p.points_gamification : undefined,
             };
@@ -201,18 +219,18 @@ let UsersService = class UsersService {
             user.password = await bcrypt.hash(dto.password, 10);
         await user.save();
         if (user.role === user_schema_1.UserRole.STUDENT &&
-            (dto.academic_level ||
+            (dto.class ||
                 dto.risk_level ||
                 dto.points_gamification !== undefined)) {
             const updateData = {};
-            if (dto.academic_level)
-                updateData.academic_level = dto.academic_level;
+            if (dto.class)
+                updateData.class = dto.class;
             if (dto.risk_level)
                 updateData.risk_level = dto.risk_level;
             if (dto.points_gamification !== undefined)
                 updateData.points_gamification = dto.points_gamification;
             await this.profileModel
-                .findOneAndUpdate({ userId: id }, { $set: updateData, $setOnInsert: { userId: id } }, { new: true, upsert: true, setDefaultsOnInsert: true })
+                .findOneAndUpdate(this.profileLookupFilter(id), { $set: updateData, $setOnInsert: { userId: id } }, { new: true, upsert: true, setDefaultsOnInsert: true })
                 .exec();
         }
         await this.activityService.logActivity(id, activity_schema_1.ActivityAction.PROFILE_UPDATE);
@@ -251,7 +269,7 @@ let UsersService = class UsersService {
         if (user.role === user_schema_1.UserRole.STUDENT) {
             const profile = new this.profileModel({
                 userId: user._id,
-                academic_level: null,
+                class: null,
             });
             await profile.save();
         }

@@ -21,7 +21,7 @@ export declare class UsersService {
             status: UserStatus;
         };
         profile: {
-            academic_level: string;
+            class: any;
             risk_level: "LOW" | "MEDIUM" | "HIGH";
             points_gamification: number;
         };
@@ -37,12 +37,12 @@ export declare class UsersService {
             status: UserStatus;
         };
         profile: {
-            academic_level: string;
+            class: any;
             risk_level: "LOW" | "MEDIUM" | "HIGH";
             points_gamification: number;
         };
     }>;
-    getUsersByRole(role: string): Promise<any[]>;
+    getUsersByRole(role: string, requesterId?: string, requesterRole?: string): Promise<any[]>;
     listAllUsersForAdmin(): Promise<any[]>;
     updateUserById(id: string, dto: any): Promise<{
         success: boolean;

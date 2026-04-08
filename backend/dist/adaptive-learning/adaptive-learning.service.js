@@ -547,7 +547,7 @@ let AdaptiveLearningService = AdaptiveLearningService_1 = class AdaptiveLearning
             },
             $setOnInsert: {
                 userId,
-                academic_level: "N/A",
+                class: "N/A",
                 points_gamification: 0,
             },
         }, {
@@ -3178,7 +3178,7 @@ let AdaptiveLearningService = AdaptiveLearningService_1 = class AdaptiveLearning
             },
             $setOnInsert: {
                 userId: test.studentId,
-                academic_level: "N/A",
+                class: "N/A",
                 points_gamification: 0,
             },
         }, {

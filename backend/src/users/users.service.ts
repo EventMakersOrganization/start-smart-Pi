@@ -212,7 +212,7 @@ export class UsersService {
         status: u.status,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
-        academic_level: p ? p.academic_level : undefined,
+        academic_level: p ? p.class : undefined,
         risk_level: p ? p.risk_level : undefined,
         points_gamification: p ? p.points_gamification : undefined,
       } as any;

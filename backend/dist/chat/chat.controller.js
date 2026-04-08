@@ -26,16 +26,16 @@ let ChatController = class ChatController {
         return this.chatService.createAiSession(req.user.id, body.title);
     }
     async createInstructorSession(req, body) {
-        return this.chatService.createInstructorSession(req.user.id, body.instructorId);
+        return this.chatService.createInstructorSession(req.user.id, body.instructorId, req.user.role);
+    }
+    async getAvailableInstructors(req) {
+        return this.chatService.getAvailableInstructors(req.user.id, req.user.role);
     }
     async createRoom(req, body) {
         if (req.user.role !== "student") {
             throw new common_1.UnauthorizedException("Only students can create group chats.");
         }
-        return this.chatService.createRoom(body.name, [
-            req.user.id,
-            ...body.participants,
-        ]);
+        return this.chatService.createRoomForStudent(req.user.id, body.name, body.participants);
     }
     async getUserSessions(req) {
         return this.chatService.getUserSessions(req.user.id, req.user.role);
@@ -128,6 +128,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "createInstructorSession", null);
+__decorate([
+    (0, common_1.Get)('instructors/available'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "getAvailableInstructors", null);
 __decorate([
     (0, common_1.Post)("room"),
     __param(0, (0, common_1.Request)()),

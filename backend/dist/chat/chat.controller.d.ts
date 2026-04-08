@@ -12,6 +12,17 @@ export declare class ChatController {
     createInstructorSession(req: any, body: {
         instructorId: string;
     }): Promise<any>;
+    getAvailableInstructors(req: any): Promise<{
+        id: any;
+        first_name: any;
+        last_name: any;
+        email: any;
+        phone: any;
+        role: any;
+        status: any;
+        createdAt: any;
+        updatedAt: any;
+    }[]>;
     createRoom(req: any, body: {
         name: string;
         participants: string[];

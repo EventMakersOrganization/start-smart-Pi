@@ -12,6 +12,7 @@ const brainrush_module_1 = require("./brainrush/brainrush.module");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const mongoose_1 = require("@nestjs/mongoose");
+const academic_module_1 = require("./academic/academic.module");
 const schedule_1 = require("@nestjs/schedule");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
@@ -54,6 +55,7 @@ exports.AppModule = AppModule = __decorate([
             monitoring_module_1.MonitoringModule,
             report_module_1.ReportModule,
             adaptive_learning_module_1.AdaptiveLearningModule,
+            academic_module_1.AcademicModule,
             chat_module_1.ChatModule,
             brainrush_module_1.BrainrushModule,
             subjects_module_1.SubjectsModule,
