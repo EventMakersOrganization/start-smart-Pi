@@ -35,7 +35,13 @@ export class ChatController {
     return this.chatService.createInstructorSession(
       req.user.id,
       body.instructorId,
+      req.user.role,
     );
+  }
+
+  @Get('instructors/available')
+  async getAvailableInstructors(@Request() req) {
+    return this.chatService.getAvailableInstructors(req.user.id, req.user.role);
   }
 
   @Post("room")
@@ -46,10 +52,11 @@ export class ChatController {
     if (req.user.role !== "student") {
       throw new UnauthorizedException("Only students can create group chats.");
     }
-    return this.chatService.createRoom(body.name, [
+    return this.chatService.createRoomForStudent(
       req.user.id,
-      ...body.participants,
-    ]);
+      body.name,
+      body.participants,
+    );
   }
 
   @Get("sessions")

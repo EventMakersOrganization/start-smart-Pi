@@ -70,7 +70,18 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix("api");
 
-  await app.listen(3000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  const port = Number(process.env.PORT) || 3000;
+  try {
+    await app.listen(port);
+    console.log(`Application is running on: ${await app.getUrl()}`);
+  } catch (err: unknown) {
+    const code = err && typeof err === "object" && "code" in err ? (err as NodeJS.ErrnoException).code : undefined;
+    if (code === "EADDRINUSE") {
+      console.error(
+        `[Nest] Port ${port} is already in use. Stop the other server on this port, or start with a different port, e.g. set PORT=3001 in the environment.`,
+      );
+    }
+    throw err;
+  }
 }
 bootstrap();

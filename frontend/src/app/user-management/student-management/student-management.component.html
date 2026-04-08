@@ -38,7 +38,7 @@
           <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Role</th>
           <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Phone</th>
           <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Password</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Academic Level</th>
+          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Class</th>
           <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Risk Level</th>
           <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Points</th>
           <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Created</th>
@@ -89,10 +89,10 @@
             <span *ngIf="!editing[s.id]" class="text-slate-400 text-xs italic">••••••••</span>
             <input *ngIf="editing[s.id]" type="password" [(ngModel)]="editModels[s.id].password" class="border-b" placeholder="Set new password" />
           </td>
-          <!-- academic level -->
+          <!-- class -->
           <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.academic_level }}</span>
-            <input *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].academic_level" class="border-b" />
+            <span *ngIf="!editing[s.id]">{{ s.class }}</span>
+            <input *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].class" class="border-b" />
           </td>
           <!-- risk level -->
           <td class="px-6 py-4">

@@ -1,0 +1,101 @@
+<div class="explanations-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex items-center justify-center py-12">
+    <div class="animate-spin">
+      <span class="material-symbols-outlined text-4xl text-primary">
+        refresh
+      </span>
+    </div>
+    <span class="ml-4 text-on-surface-variant font-medium">Loading explanations...</span>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && (!explanations || explanations.length === 0)" class="text-center py-12">
+    <span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4 block opacity-50">
+      psychology
+    </span>
+    <h3 class="text-lg font-bold text-on-surface mb-2">No Explanations Found</h3>
+    <p class="text-on-surface-variant">AI explanations will appear here as decisions are made.</p>
+  </div>
+
+  <!-- Explanations Grid -->
+  <div *ngIf="!loading && (explanations && explanations.length > 0)" class="flex flex-col gap-6">
+    <!-- Explanation Card -->
+    <div
+      *ngFor="let explanation of explanations; trackBy: trackByExplanationId"
+      class="bg-surface-container-lowest rounded-xl p-8 flex flex-col md:flex-row gap-8 relative overflow-hidden group transition-all hover:shadow-lg"
+    >
+      <!-- Gradient Overlay Background -->
+      <div
+        [class]="'absolute top-0 right-0 w-32 h-32 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 ' + getGradientOverlayClass(explanation.riskScore)"
+      ></div>
+
+      <!-- Risk Score Section (Left Column) -->
+      <div class="flex-shrink-0 flex flex-col items-center justify-center w-32">
+        <!-- Large Risk Percentage -->
+        <div
+          [class]="'text-5xl font-extrabold font-headline mb-1 tracking-tighter ' + (explanation.riskScore >= 80 ? 'text-error' : explanation.riskScore >= 50 ? 'text-primary' : 'text-secondary')"
+        >
+          {{ explanation.riskScore }}%
+        </div>
+
+        <!-- Risk Level Badge -->
+        <span
+          [class]="
+            'text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full ' +
+            (explanation.riskScore >= 80
+              ? 'bg-error text-on-error'
+              : explanation.riskScore >= 50
+                ? 'bg-primary-fixed text-on-primary-fixed'
+                : 'bg-secondary-fixed text-on-secondary-fixed')
+          "
+        >
+          {{ getRiskLevelLabel(explanation.riskScore) }}
+        </span>
+
+        <!-- Student ID & Status -->
+        <div class="mt-4 text-center">
+          <div class="text-sm font-bold text-on-surface">
+            {{ formatUserId(explanation.userId) }}
+          </div>
+          <div class="text-[11px] text-on-surface-variant">
+            {{ getEnrollmentStatus(explanation.decision) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Explanation Details Section (Right Column) -->
+      <div class="flex-grow flex flex-col gap-4">
+        <!-- Decision Badge & Explanation Box -->
+        <div class="bg-surface-container-low p-5 rounded-lg border-l-4 transition-all" [class]="'border-' + (explanation.riskScore >= 80 ? 'error' : explanation.riskScore >= 50 ? 'primary' : 'secondary')">
+          <h3 class="text-sm font-bold text-on-surface mb-2 flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg">auto_awesome</span>
+            AI Reasoning
+          </h3>
+          <p class="text-sm leading-relaxed text-on-surface-variant font-body">
+            {{ explanation.explanation }}
+          </p>
+        </div>
+
+        <!-- Contributing Factors with Progress Bars -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+          <div *ngFor="let factor of getTopFactors(explanation.factors); trackBy: trackByFactorName" class="flex flex-col gap-2">
+            <!-- Factor Label & Impact Percentage -->
+            <div class="flex justify-between text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+              <span>{{ factor.name }}</span>
+              <span>{{ factor.impact }}%</span>
+            </div>
+
+            <!-- Factor Progress Bar -->
+            <div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+              <div
+                [class]="'h-full rounded-full transition-all ' + getFactorBarColorClass(explanation.riskScore)"
+                [style.width.%]="factor.impact"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

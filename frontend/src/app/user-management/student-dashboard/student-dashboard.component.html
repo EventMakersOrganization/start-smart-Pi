@@ -1,19 +1,58 @@
-<div class="flex min-h-screen">
+<div class="flex flex-col min-h-screen bg-background-light dark:bg-background-dark">
+  <!-- Full-width top navbar (above sidebar; same pattern as instructor shell) -->
+  <header *ngIf="showDashboardShell()"
+    class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-8 flex items-center justify-between gap-4 w-full shrink-0">
+    <div class="shrink-0">
+      <app-brand-logo [link]="'/student-dashboard'" variant="compact" />
+    </div>
+    <div class="flex items-center flex-1 max-w-xl min-w-0">
+      <div class="relative w-full">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+        <input
+          class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-slate-500"
+          placeholder="Search courses, skills, or mentors..." type="text" />
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <button
+        class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
+        <span class="material-symbols-outlined">notifications</span>
+        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+      </button>
+      <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
+      <div class="flex items-center gap-3">
+        <div class="text-right">
+          <p class="text-sm font-bold leading-none">{{ user?.first_name }} {{ user?.last_name }}</p>
+          <p class="text-xs text-primary font-medium capitalize">{{ user?.role || 'student' }}</p>
+          <p class="text-[11px] font-semibold text-slate-500 leading-tight mt-0.5">
+            {{ user?.class || 'Class not set' }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div
+            class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold">
+            {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
+          </div>
+          <button (click)="openProfileSidebar()"
+            class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+            Account
+          </button>
+          <button (click)="logout()" class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 min-h-0 overflow-hidden" *ngIf="showDashboardShell()">
   <!-- Sidebar Navigation -->
-  <aside *ngIf="showDashboardShell()"
-    class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col fixed h-full">
-    <div class="p-6 flex items-center gap-3">
-      <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-        <span class="material-symbols-outlined text-2xl">auto_awesome</span>
-      </div>
-      <div>
-        <h1 class="font-bold text-xl tracking-tight text-primary">
-          StartSmart
-        </h1>
-        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">
-          Adaptive Learning
-        </p>
-      </div>
+  <aside
+    class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 overflow-y-auto min-h-0">
+    <div class="p-6 pb-4">
+      <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">
+        Adaptive Learning
+      </p>
     </div>
     <nav class="flex-1 px-4 py-4 space-y-1">
       <a (click)="activeNav = 'dashboard'" routerLink="/student-dashboard" [class]="
@@ -120,52 +159,9 @@
   <!-- Main Content Area -->
   <main [class]="
       showDashboardShell()
-        ? 'flex-1 ml-64 min-h-screen bg-background-light dark:bg-background-dark'
+        ? 'flex-1 ml-h min-h-screen bg-background-light dark:bg-background-dark'
         : 'flex-1 min-h-screen bg-background-light dark:bg-background-dark'
     ">
-    <!-- Top Navbar -->
-    <header *ngIf="showDashboardShell()"
-      class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between">
-      <div class="flex items-center flex-1 max-w-xl">
-        <div class="relative w-full">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-          <input
-            class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-slate-500"
-            placeholder="Search courses, skills, or mentors..." type="text" />
-        </div>
-      </div>
-      <div class="flex items-center gap-4">
-        <button
-          class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
-          <span class="material-symbols-outlined">notifications</span>
-          <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
-        <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
-        <div class="flex items-center gap-3">
-          <div class="text-right">
-            <p class="text-sm font-bold leading-none">{{ user?.first_name }} {{ user?.last_name }}</p>
-            <p class="text-xs text-primary font-medium capitalize">{{ user?.role || 'student' }}</p>
-            <p class="text-[11px] font-semibold text-slate-500 leading-tight mt-0.5">
-              {{ user?.academic_level || 'Academic level not set' }}
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <div
-              class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold">
-              {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
-            </div>
-            <button (click)="openProfileSidebar()"
-              class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
-              Account
-            </button>
-            <button (click)="logout()" class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600">
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
-
     <div class="p-8 space-y-8 max-w-7xl mx-auto" *ngIf="showDashboardShell() && !isSubPageView()">
       <!-- Welcome Header -->
       <section class="flex flex-wrap items-end justify-between gap-4">
@@ -520,14 +516,15 @@
       </div>
     </div>
 
-    <div class="p-8 max-w-7xl mx-auto" *ngIf="showDashboardShell() && isSubPageView()">
-      <router-outlet></router-outlet>
-    </div>
-
-    <div *ngIf="!showDashboardShell()">
+    <div class="p-8 max-w-7xl mx-auto" *ngIf="isSubPageView()">
       <router-outlet></router-outlet>
     </div>
   </main>
+  </div>
+
+  <div *ngIf="!showDashboardShell()" class="flex-1 min-h-screen">
+    <router-outlet></router-outlet>
+  </div>
   <!-- AI Quick-Access Floating Button -->
   <div class="fixed bottom-8 right-8 z-40" *ngIf="showDashboardShell()">
     <button routerLink="/chat/ai"
@@ -568,7 +565,7 @@
         </h3>
         <p class="text-primary font-semibold text-sm capitalize">{{ user?.role || 'student' }}</p>
         <p class="text-xs font-semibold text-slate-500 mt-1">
-          {{ user?.academic_level || 'Academic level not set' }}
+          {{ user?.class || 'Class not set' }}
         </p>
       </div>
       <div class="px-6 mb-8">

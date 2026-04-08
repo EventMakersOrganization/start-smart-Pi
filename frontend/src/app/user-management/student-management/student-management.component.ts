@@ -8,7 +8,7 @@ interface UserRow {
   email: string;
   role: string;
   status: string;
-  academic_level?: string;
+  class?: string;
   risk_level?: string;
   points_gamification?: number;
   phone?: string;
@@ -69,7 +69,10 @@ export class StudentManagementComponent implements OnInit {
 
   loadStudents() {
     this.http.get<UserRow[]>('http://localhost:3000/api/admin/students').subscribe({
-      next: data => this.students = data,
+      next: data => this.students = data.map((student: any) => ({
+        ...student,
+        class: student.class ?? student.academic_level ?? '',
+      })),
       error: () => this.error = 'Failed to load students'
     });
   }
@@ -81,7 +84,7 @@ export class StudentManagementComponent implements OnInit {
       last_name: s.last_name,
       email: s.email,
       phone: s.phone || '',
-      academic_level: s.academic_level || '',
+      class: s.class || '',
       risk_level: s.risk_level || 'LOW',
       points_gamification: s.points_gamification || 0,
       status: s.status,
@@ -107,6 +110,11 @@ export class StudentManagementComponent implements OnInit {
     this.http.put(`http://localhost:3000/api/admin/user/${id}`, body).subscribe({
       next: () => {
         this.success = 'Updated successfully';
+        this.students = this.students.map((student) =>
+          student.id === id
+            ? { ...student, ...body, class: body.class ?? student.class }
+            : student,
+        );
         this.cancelEdit(id);
         this.loadStudents();
         setTimeout(() => this.success = '', 3000);

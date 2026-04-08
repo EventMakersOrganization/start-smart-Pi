@@ -1,0 +1,202 @@
+<div
+  class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed"
+  [class.min-h-screen]="!embedInAdminShell"
+  [class.min-h-full]="embedInAdminShell"
+>
+  <nav
+    *ngIf="!embedInAdminShell"
+    class="fixed top-0 w-full z-50 bg-surface-container-low shadow-sm flex justify-between items-center px-8 h-16 w-full max-w-full"
+  >
+    <div class="flex items-center gap-6 min-w-0">
+      <app-brand-logo [link]="'/admin/students'" variant="compact" />
+      <span class="text-sm font-extrabold text-blue-900 tracking-tight font-headline hidden sm:inline">Explainability</span>
+      <div class="hidden md:flex gap-6 items-end">
+        <a
+          routerLink="/admin/students"
+          routerLinkActive="text-emerald-700 border-b-2 border-emerald-600 pb-1"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="text-slate-500 hover:text-emerald-700 text-sm font-semibold tracking-tight transition-colors pb-1 border-b-2 border-transparent"
+        >Admin Home</a>
+        <a
+          routerLink="/admin/system-metrics"
+          routerLinkActive="text-blue-700 border-b-2 border-blue-700 pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors pb-1 border-b-2 border-transparent"
+        >Dashboard</a>
+        <a
+          routerLink="/admin/comprehensive-analytics"
+          routerLinkActive="text-blue-700 border-b-2 border-blue-700 pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors pb-1 border-b-2 border-transparent"
+        >Reports</a>
+        <a
+          routerLink="/admin/explainability"
+          routerLinkActive="text-blue-700 border-b-2 border-blue-700 pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-blue-600 text-sm font-semibold tracking-tight transition-colors pb-1 border-b-2 border-transparent"
+        >Logs</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="relative hidden lg:block">
+        <input [(ngModel)]="searchQuery" (input)="onSearchChange()" class="bg-surface-container-highest border-none rounded-full px-4 py-2 text-sm w-64 focus:ring-2 focus:ring-primary/30 transition-all" placeholder="Search insights..." type="text"/>
+      </div>
+      <button class="p-2 text-blue-800 hover:bg-blue-50 transition-colors rounded-full active:scale-95 duration-200"><span class="material-symbols-outlined">notifications</span></button>
+      <button class="p-2 text-blue-800 hover:bg-blue-50 transition-colors rounded-full active:scale-95 duration-200"><span class="material-symbols-outlined">settings</span></button>
+      <button type="button" routerLink="/profile" title="Open profile" class="h-8 w-8 rounded-full bg-primary-fixed overflow-hidden flex items-center justify-center text-primary text-xs font-bold hover:ring-2 hover:ring-primary/30 transition-all">
+        <img *ngIf="user?.avatar" alt="Admin User Profile" class="h-full w-full object-cover" [src]="user?.avatar"/>
+        <span *ngIf="!user?.avatar">{{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}</span>
+      </button>
+    </div>
+  </nav>
+
+  <aside
+    *ngIf="!embedInAdminShell"
+    class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-surface-container-low border-r border-slate-200 flex flex-col py-4 gap-y-1 z-40"
+  >
+    <div class="px-6 py-4 mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center text-white"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">psychology</span></div>
+        <div>
+          <h2 class="text-lg font-bold text-blue-900 font-headline leading-tight">Admin Console</h2>
+          <p class="text-xs text-slate-500 font-medium">System Control</p>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 px-2 space-y-1">
+      <a
+        routerLink="/admin/system-metrics"
+        routerLinkActive="bg-blue-100 text-blue-900 font-semibold shadow-sm"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium"
+      ><span class="material-symbols-outlined">monitoring</span> System Metrics</a>
+      <a
+        routerLink="/admin/comprehensive-analytics"
+        routerLinkActive="bg-blue-100 text-blue-900 font-semibold shadow-sm"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium"
+      ><span class="material-symbols-outlined">insights</span> Comprehensive Analytics</a>
+      <a
+        routerLink="/admin/students"
+        routerLinkActive="bg-blue-100 text-blue-900 font-semibold shadow-sm"
+        [routerLinkActiveOptions]="{ exact: false }"
+        class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium"
+      ><span class="material-symbols-outlined">group</span> Student Directory</a>
+      <a
+        routerLink="/admin/explainability"
+        routerLinkActive="bg-blue-100 text-blue-900 font-semibold shadow-sm"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg active:translate-x-1 duration-150 text-sm font-medium"
+      ><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">psychology</span> AI Explainability</a>
+    </nav>
+    <div class="px-2 pt-4 border-t border-slate-200/50">
+      <a class="flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg text-sm font-medium" href="#"><span class="material-symbols-outlined">help</span> Help Center</a>
+      <button (click)="logout()" class="w-full text-left flex items-center gap-3 text-slate-600 px-4 py-3 mx-2 hover:bg-slate-200 transition-all rounded-lg text-sm font-medium"><span class="material-symbols-outlined">logout</span> Sign Out</button>
+    </div>
+  </aside>
+
+  <main [ngClass]="embedInAdminShell ? 'p-4 md:p-6 min-h-screen' : 'ml-64 mt-16 p-8 min-h-screen'">
+    <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-widest text-primary mb-2 block">Intelligence Dashboard</span>
+        <h1 class="text-4xl font-extrabold font-headline text-on-surface tracking-tight">AI Explainability &amp; Risk Analysis</h1>
+        <p class="text-on-surface-variant mt-2 max-w-2xl">Interpreting predictive modeling results for student attrition and academic struggle indicators.</p>
+      </div>
+      <div class="flex items-center gap-3 bg-surface-container-low p-2 rounded-xl">
+        <div class="flex items-center bg-surface-container-lowest rounded-lg px-3 py-2 shadow-sm border border-outline-variant/10">
+          <span class="material-symbols-outlined text-sm mr-2 text-primary">filter_list</span>
+          <select [(ngModel)]="selectedRiskFilter" (change)="onRiskFilterChange()" class="bg-transparent border-none text-sm font-medium focus:ring-0 p-0 pr-8">
+            <option value="all">All Risk Levels</option>
+            <option value="high">High Risk (&gt;80%)</option>
+            <option value="medium">Medium Risk (50-80%)</option>
+            <option value="low">Low Risk (&lt;50%)</option>
+          </select>
+        </div>
+        <button (click)="refreshData()" class="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2">
+          <span class="material-symbols-outlined text-lg">refresh</span> Update All
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-12 gap-6">
+      <div class="col-span-12 lg:col-span-8 flex flex-col gap-6">
+        <app-explainability-display [explanations]="filteredExplanations" [loading]="loadingExplanations"></app-explainability-display>
+      </div>
+
+      <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+        <div class="signature-gradient p-8 rounded-xl text-white flex flex-col gap-6 shadow-xl">
+          <div>
+            <h3 class="text-lg font-bold font-headline mb-1">Model Confidence</h3>
+            <p class="text-blue-100 text-xs">Based on 1.2M training points</p>
+          </div>
+          <div class="flex items-end gap-4"><span class="text-5xl font-extrabold tracking-tighter">94.2%</span><div class="flex items-center text-secondary-fixed text-sm font-bold mb-1"><span class="material-symbols-outlined text-sm">trending_up</span> +0.8%</div></div>
+          <div class="h-24 w-full opacity-30 mt-4 flex items-end gap-1"><div class="w-full bg-white rounded-t-sm" style="height: 40%"></div><div class="w-full bg-white rounded-t-sm" style="height: 60%"></div><div class="w-full bg-white rounded-t-sm" style="height: 45%"></div><div class="w-full bg-white rounded-t-sm" style="height: 80%"></div><div class="w-full bg-white rounded-t-sm" style="height: 95%"></div><div class="w-full bg-white rounded-t-sm" style="height: 70%"></div><div class="w-full bg-white rounded-t-sm" style="height: 85%"></div></div>
+        </div>
+
+        <div class="bg-surface-container-low p-6 rounded-xl flex flex-col gap-4 border border-outline-variant/10">
+          <h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest">Risk Distribution</h3>
+          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-error flex items-center justify-center text-xs font-bold text-error">12%</div><div class="flex-1"><div class="text-sm font-bold">Critical (80-100)</div><div class="text-xs text-on-surface-variant">42 students flagged</div></div></div>
+          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-primary flex items-center justify-center text-xs font-bold text-primary">28%</div><div class="flex-1"><div class="text-sm font-bold">Watchlist (50-79)</div><div class="text-xs text-on-surface-variant">104 students flagged</div></div></div>
+          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-secondary flex items-center justify-center text-xs font-bold text-secondary">60%</div><div class="flex-1"><div class="text-sm font-bold">Stable (&lt;50)</div><div class="text-xs text-on-surface-variant">218 students monitor</div></div></div>
+        </div>
+
+        <div class="bg-tertiary text-white p-6 rounded-xl relative overflow-hidden">
+          <div class="absolute -right-4 -bottom-4 opacity-10"><span class="material-symbols-outlined text-9xl">campaign</span></div>
+          <h3 class="text-lg font-bold font-headline mb-2">Automated Outreach</h3>
+          <p class="text-sm text-tertiary-fixed opacity-80 mb-6">42 high-risk students are eligible for AI-assisted personalized check-ins.</p>
+          <button class="w-full py-3 bg-tertiary-fixed text-tertiary-fixed-variant font-bold rounded-lg hover:bg-white transition-colors">Start Bulk Campaign</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="mt-12 bg-surface-container-lowest rounded-2xl p-8 shadow-sm">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h2 class="text-xl font-bold font-headline text-on-surface">Decision Audit Log</h2>
+          <p class="text-sm text-on-surface-variant">Detailed historical AI decision record</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 bg-surface-container-low text-primary text-sm font-bold rounded-lg hover:bg-surface-container-high transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-lg">download</span> Export CSV</button>
+          <button (click)="refreshData()" class="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-lg">refresh</span> Update All</button>
+        </div>
+      </div>
+
+      <div *ngIf="error" class="bg-error-container text-on-error-container rounded-lg p-3 mb-4">{{ error }}</div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-surface-container">
+              <th class="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">User ID</th>
+              <th class="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">AI Decision</th>
+              <th class="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Explanation Snippet</th>
+              <th class="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Impact</th>
+              <th class="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-right">Timestamp</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-container-low">
+            <tr class="hover:bg-surface-container-low transition-colors group" *ngFor="let item of filteredExplanations; trackBy: trackByExplanationId">
+              <td class="py-5 px-4 font-bold text-sm text-primary">{{ item.userId }}</td>
+              <td class="py-5 px-4"><span class="bg-primary-fixed text-on-primary-fixed text-[10px] font-bold px-2 py-1 rounded">{{ item.decision }}</span></td>
+              <td class="py-5 px-4 text-sm text-on-surface-variant max-w-xs truncate">{{ item.explanation }}</td>
+              <td class="py-5 px-4"><div class="flex items-center gap-2"><div class="h-1.5 w-16 bg-surface-container-highest rounded-full"><div class="h-full bg-primary rounded-full" [style.width.%]="item.riskScore"></div></div><span class="text-xs font-bold text-on-surface-variant">{{ item.riskScore }}%</span></div></td>
+              <td class="py-5 px-4 text-right text-xs text-on-surface-variant">{{ formatDate(item.createdAt) }}</td>
+            </tr>
+            <tr *ngIf="!loadingExplanations && filteredExplanations.length === 0">
+              <td colspan="5" class="py-8 text-center text-on-surface-variant">No explainability records found for current filters.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <button
+    *ngIf="!embedInAdminShell"
+    type="button"
+    class="fixed bottom-8 right-8 signature-gradient text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 group"
+  >
+    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">add</span>
+    <span class="absolute right-full mr-4 bg-on-background text-white text-xs font-bold py-2 px-3 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Manual Risk Flag</span>
+  </button>
+</div>

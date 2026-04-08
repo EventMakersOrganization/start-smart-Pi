@@ -27,7 +27,7 @@ export class AdminUpdateUserDto {
 
   @IsOptional()
   @IsString()
-  academic_level?: string;
+  class?: string;
 
   @IsOptional()
   @IsString()

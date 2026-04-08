@@ -12,6 +12,7 @@ import { JwtInterceptor } from './user-management/jwt.interceptor';
 import { SocialLoginModule, SocialAuthServiceConfig, GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { environment } from '../environments/environment';
 
+import { SharedModule } from './shared/shared.module';
 import { ChatAiComponent } from './chat/chat-ai/chat-ai.component';
 import { ChatInstructorComponent } from './chat/chat-instructor/chat-instructor.component';
 import { ChatRoomComponent } from './chat/chat-room/chat-room.component';
@@ -31,6 +32,7 @@ import { chatMarkdownOptionsFactory } from './chat/markdown-options.factory';
     HttpClientModule,
     BrowserAnimationsModule,
     UserManagementModule,
+    SharedModule,
     SocialLoginModule,
     FormsModule,
     MarkdownModule.forRoot({

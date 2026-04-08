@@ -1,0 +1,413 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { User, UserDocument, UserRole } from '../users/schemas/user.schema';
+import { Subject, SubjectDocument } from '../subjects/schemas/subject.schema';
+import { StudentProfile, StudentProfileDocument } from '../users/schemas/student-profile.schema';
+import { CreateSchoolClassDto } from './dto/create-school-class.dto';
+import { UpdateSchoolClassDto } from './dto/update-school-class.dto';
+import { ManageClassStudentDto } from './dto/manage-class-student.dto';
+import { ManageClassSubjectDto } from './dto/manage-class-subject.dto';
+import { SchoolClass, SchoolClassDocument } from './schemas/school-class.schema';
+import { ClassEnrollment, ClassEnrollmentDocument } from './schemas/class-enrollment.schema';
+import { ClassSubject, ClassSubjectDocument } from './schemas/class-subject.schema';
+
+type ClassStudentResponse = {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  email: string;
+  status?: string;
+  class?: string;
+};
+
+type ClassSubjectResponse = {
+  id: string;
+  code: string;
+  title: string;
+  description?: string;
+  instructors: Array<{
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    role?: string;
+  }>;
+};
+
+@Injectable()
+export class AcademicService {
+  constructor(
+    @InjectModel(SchoolClass.name)
+    private schoolClassModel: Model<SchoolClassDocument>,
+    @InjectModel(ClassEnrollment.name)
+    private classEnrollmentModel: Model<ClassEnrollmentDocument>,
+    @InjectModel(ClassSubject.name)
+    private classSubjectModel: Model<ClassSubjectDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Subject.name) private subjectModel: Model<SubjectDocument>,
+    @InjectModel(StudentProfile.name)
+    private studentProfileModel: Model<StudentProfileDocument>,
+  ) {}
+
+  private normalizeCode(value: string): string {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/_+/g, '_');
+  }
+
+  private async generateUniqueClassCode(name: string): Promise<string> {
+    const base = this.normalizeCode(name) || 'CLASS';
+    let candidate = base;
+    let suffix = 2;
+
+    while (await this.schoolClassModel.exists({ code: candidate })) {
+      candidate = `${base}_${suffix}`;
+      suffix += 1;
+    }
+
+    return candidate;
+  }
+
+  private toObjectId(id: string): Types.ObjectId {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid identifier');
+    }
+
+    return new Types.ObjectId(id);
+  }
+
+  private async findStudentById(studentId: string) {
+    const student = await this.userModel
+      .findById(studentId)
+      .select('first_name last_name email role status')
+      .exec();
+
+    if (!student || String(student.role).toLowerCase() !== UserRole.STUDENT) {
+      throw new BadRequestException('Student not found');
+    }
+
+    return student;
+  }
+
+  private async findClassById(classId: string) {
+    const schoolClass = await this.schoolClassModel.findById(classId).exec();
+    if (!schoolClass) {
+      throw new NotFoundException('Class not found');
+    }
+
+    return schoolClass;
+  }
+
+  private async findSubjectById(subjectId: string) {
+    const subject = await this.subjectModel
+      .findById(subjectId)
+      .populate('instructors', 'first_name last_name email role')
+      .exec();
+
+    if (!subject) {
+      throw new NotFoundException('Subject not found');
+    }
+
+    return subject;
+  }
+
+  private profileLookupFilter(userId: string) {
+    if (Types.ObjectId.isValid(userId)) {
+      return { $or: [{ userId }, { userId: new Types.ObjectId(userId) }] } as any;
+    }
+
+    return { userId } as any;
+  }
+
+  private async updateStudentProfileClass(studentId: string, className: string | null) {
+    await this.studentProfileModel
+      .findOneAndUpdate(
+        this.profileLookupFilter(studentId),
+        { $set: { class: className }, $setOnInsert: { userId: studentId } },
+        { new: true, upsert: true, setDefaultsOnInsert: true },
+      )
+      .exec();
+  }
+
+  private async getClassStudents(classId: string): Promise<ClassStudentResponse[]> {
+    const enrollments = await this.classEnrollmentModel
+      .find({ schoolClassId: this.toObjectId(classId) })
+      .populate('studentId', 'first_name last_name email status role')
+      .sort({ createdAt: -1 })
+      .lean<any[]>()
+      .exec();
+
+    return enrollments
+      .map((enrollment) => enrollment.studentId)
+      .filter(Boolean)
+      .map((student: any) => ({
+        id: String(student._id),
+        first_name: student.first_name,
+        last_name: student.last_name,
+        email: student.email,
+        status: student.status,
+        class: student.class,
+      }));
+  }
+
+  private async getClassSubjects(classId: string): Promise<ClassSubjectResponse[]> {
+    const links = await this.classSubjectModel
+      .find({ schoolClassId: this.toObjectId(classId) })
+      .populate({
+        path: 'subjectId',
+        populate: { path: 'instructors', select: 'first_name last_name email role' },
+      })
+      .sort({ createdAt: -1 })
+      .lean<any[]>()
+      .exec();
+
+    return links
+      .map((link) => link.subjectId)
+      .filter(Boolean)
+      .map((subject: any) => ({
+        id: String(subject._id),
+        code: subject.code,
+        title: subject.title,
+        description: subject.description,
+        instructors: Array.isArray(subject.instructors)
+          ? subject.instructors.map((instructor: any) => ({
+              id: String(instructor._id),
+              first_name: instructor.first_name,
+              last_name: instructor.last_name,
+              email: instructor.email,
+              role: instructor.role,
+            }))
+          : [],
+      }));
+  }
+
+  private async toResponse(schoolClass: SchoolClassDocument) {
+    const classId = String(schoolClass._id);
+    const [students, subjects] = await Promise.all([
+      this.getClassStudents(classId),
+      this.getClassSubjects(classId),
+    ]);
+
+    return {
+      id: classId,
+      code: schoolClass.code,
+      name: schoolClass.name,
+      description: schoolClass.description,
+      academicYear: schoolClass.academicYear,
+      section: schoolClass.section,
+      level: schoolClass.level,
+      capacity: schoolClass.capacity,
+      active: schoolClass.active,
+      studentCount: students.length,
+      subjectCount: subjects.length,
+      students,
+      subjects,
+      createdAt: schoolClass.createdAt,
+      updatedAt: schoolClass.updatedAt,
+    };
+  }
+
+  async findAll() {
+    const classes = await this.schoolClassModel.find().sort({ createdAt: -1 }).exec();
+    return Promise.all(classes.map((schoolClass) => this.toResponse(schoolClass)));
+  }
+
+  async findOne(id: string) {
+    const schoolClass = await this.schoolClassModel.findById(id).exec();
+    if (!schoolClass) {
+      throw new NotFoundException('Class not found');
+    }
+
+    return this.toResponse(schoolClass);
+  }
+
+  async create(dto: CreateSchoolClassDto) {
+    const name = String(dto.name || '').trim();
+    if (!name) {
+      throw new BadRequestException('Class name is required');
+    }
+
+    const code = await this.generateUniqueClassCode(name);
+    const schoolClass = await this.schoolClassModel.create({
+      code,
+      name,
+      description: dto.description?.trim() || '',
+      academicYear: dto.academicYear?.trim() || undefined,
+      section: dto.section?.trim() || undefined,
+      level: dto.level?.trim() || undefined,
+      capacity: dto.capacity ?? 0,
+      active: dto.active ?? true,
+    });
+
+    return this.toResponse(schoolClass);
+  }
+
+  async update(id: string, dto: UpdateSchoolClassDto) {
+    const schoolClass = await this.findClassById(id);
+    const previousName = schoolClass.name;
+
+    if (dto.name !== undefined) {
+      const nextName = String(dto.name || '').trim();
+      if (!nextName) {
+        throw new BadRequestException('Class name cannot be empty');
+      }
+      schoolClass.name = nextName;
+    }
+
+    if (dto.description !== undefined) {
+      schoolClass.description = dto.description?.trim() || '';
+    }
+    if (dto.academicYear !== undefined) {
+      schoolClass.academicYear = dto.academicYear?.trim() || undefined;
+    }
+    if (dto.section !== undefined) {
+      schoolClass.section = dto.section?.trim() || undefined;
+    }
+    if (dto.level !== undefined) {
+      schoolClass.level = dto.level?.trim() || undefined;
+    }
+    if (dto.capacity !== undefined) {
+      schoolClass.capacity = dto.capacity;
+    }
+    if (dto.active !== undefined) {
+      schoolClass.active = dto.active;
+    }
+
+    await schoolClass.save();
+
+    if (previousName !== schoolClass.name) {
+      const enrollments = await this.classEnrollmentModel
+        .find({ schoolClassId: schoolClass._id })
+        .exec();
+      await Promise.all(
+        enrollments.map((enrollment) =>
+          this.updateStudentProfileClass(String(enrollment.studentId), schoolClass.name),
+        ),
+      );
+    }
+
+    return this.toResponse(schoolClass);
+  }
+
+  async remove(id: string) {
+    const schoolClass = await this.findClassById(id);
+    const classId = schoolClass._id;
+
+    const enrollments = await this.classEnrollmentModel.find({ schoolClassId: classId }).exec();
+    await Promise.all(
+      enrollments.map((enrollment) =>
+        this.updateStudentProfileClass(String(enrollment.studentId), null),
+      ),
+    );
+
+    await Promise.all([
+      this.classEnrollmentModel.deleteMany({ schoolClassId: classId }).exec(),
+      this.classSubjectModel.deleteMany({ schoolClassId: classId }).exec(),
+      schoolClass.deleteOne(),
+    ]);
+
+    return { success: true };
+  }
+
+  async enrollStudent(classId: string, dto: ManageClassStudentDto) {
+    const schoolClass = await this.findClassById(classId);
+    const student = await this.findStudentById(dto.studentId);
+
+    const existingEnrollment = await this.classEnrollmentModel
+      .findOne({ studentId: student._id })
+      .exec();
+
+    if (existingEnrollment && String(existingEnrollment.schoolClassId) === String(schoolClass._id)) {
+      await this.updateStudentProfileClass(String(student._id), schoolClass.name);
+      return this.toResponse(schoolClass);
+    }
+
+    if (existingEnrollment && String(existingEnrollment.schoolClassId) !== String(schoolClass._id)) {
+      await this.classEnrollmentModel.deleteOne({ _id: existingEnrollment._id }).exec();
+    }
+
+    await this.classEnrollmentModel.findOneAndUpdate(
+      { schoolClassId: schoolClass._id, studentId: student._id },
+      {
+        $set: {
+          schoolClassId: schoolClass._id,
+          studentId: student._id,
+          enrolledAt: new Date(),
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+
+    await this.updateStudentProfileClass(String(student._id), schoolClass.name);
+
+    return this.toResponse(schoolClass);
+  }
+
+  async removeStudent(classId: string, studentId: string) {
+    const schoolClass = await this.findClassById(classId);
+    const student = await this.findStudentById(studentId);
+
+    await this.classEnrollmentModel
+      .deleteOne({ schoolClassId: schoolClass._id, studentId: student._id })
+      .exec();
+
+    const profile = await this.studentProfileModel
+      .findOne(this.profileLookupFilter(studentId))
+      .exec();
+
+    if (profile && String((profile as any).class || '') === schoolClass.name) {
+      await this.updateStudentProfileClass(String(student._id), null);
+    }
+
+    return this.toResponse(schoolClass);
+  }
+
+  async linkSubject(classId: string, dto: ManageClassSubjectDto) {
+    const schoolClass = await this.findClassById(classId);
+    const subject = await this.findSubjectById(dto.subjectId);
+
+    await this.classSubjectModel.findOneAndUpdate(
+      { schoolClassId: schoolClass._id, subjectId: subject._id },
+      {
+        $set: {
+          schoolClassId: schoolClass._id,
+          subjectId: subject._id,
+          linkedAt: new Date(),
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+
+    return this.toResponse(schoolClass);
+  }
+
+  async unlinkSubject(classId: string, subjectId: string) {
+    const schoolClass = await this.findClassById(classId);
+    const subject = await this.findSubjectById(subjectId);
+
+    await this.classSubjectModel
+      .deleteOne({ schoolClassId: schoolClass._id, subjectId: subject._id })
+      .exec();
+
+    return this.toResponse(schoolClass);
+  }
+
+  async getClassesForStudent(studentId: string) {
+    const student = await this.findStudentById(studentId);
+    const enrollment = await this.classEnrollmentModel
+      .findOne({ studentId: student._id })
+      .populate('schoolClassId')
+      .exec();
+
+    if (!enrollment?.schoolClassId) {
+      return null;
+    }
+
+    return this.toResponse(enrollment.schoolClassId as any);
+  }
+}

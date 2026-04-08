@@ -1,10 +1,18 @@
+# --- Build / compiler output (do not commit) ---
 dist/
+backend/dist/
+frontend/dist/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# --- Python bytecode & caches ---
 __pycache__/
 *.pyc
 *.pkl
+
+# --- Local data / logs ---
 *.sqlite3
 *.log
-*.tsbuildinfo
 *.bin
 *.map
 
@@ -35,4 +43,5 @@ embedding_query_cache/
 ai-service/logs/
 ai-service/response_cache/
 ai-service/chroma_db/
-backend/dist/
+# Local backup snapshots (often huge; regenerate from source)
+ai-service/backup/

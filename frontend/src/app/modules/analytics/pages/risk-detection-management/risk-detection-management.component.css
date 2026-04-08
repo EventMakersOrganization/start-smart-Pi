@@ -1,0 +1,198 @@
+.risk-detection-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(16, 185, 129, 0.1), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(59, 130, 246, 0.08), transparent 28%),
+    linear-gradient(160deg, #f8fafc 0%, #eef2ff 42%, #ecfeff 100%);
+}
+
+.header-panel {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(16, 185, 129, 0.14);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 14px 34px -26px rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(8px);
+}
+
+.header-panel h1 {
+  color: #0f172a;
+}
+
+.header-panel p {
+  color: #475569;
+}
+
+.primary-action {
+  background: linear-gradient(135deg, #0ea5e9, #10b981);
+  color: #f8fafc;
+  box-shadow: 0 12px 24px -16px rgba(14, 165, 233, 0.85);
+}
+
+.primary-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px -16px rgba(14, 165, 233, 0.8);
+}
+
+.secondary-action {
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(255, 255, 255, 0.9);
+  color: #334155;
+}
+
+.secondary-action:hover {
+  background: #f8fafc;
+}
+
+.success-state {
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0.05));
+  color: #065f46;
+}
+
+.error-state {
+  border: 1px solid rgba(244, 63, 94, 0.28);
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.14), rgba(251, 113, 133, 0.06));
+  color: #9f1239;
+}
+
+.loading-state {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 1rem;
+}
+
+.table-panel {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(14, 165, 233, 0.14);
+  box-shadow: 0 16px 34px -24px rgba(15, 23, 42, 0.55);
+}
+
+.table-head {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(16, 185, 129, 0.08));
+  color: #64748b;
+}
+
+.table-muted {
+  color: #64748b;
+}
+
+.avatar-dot {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(16, 185, 129, 0.18));
+  color: #0369a1;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+.action-view {
+  color: #0369a1;
+}
+
+.action-view:hover {
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.action-edit {
+  color: #047857;
+}
+
+.action-edit:hover {
+  background: rgba(16, 185, 129, 0.13);
+}
+
+.action-delete {
+  color: #be123c;
+}
+
+.action-delete:hover {
+  background: rgba(244, 63, 94, 0.12);
+}
+
+.overlay-backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.modal-shell {
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  box-shadow: 0 20px 44px -24px rgba(15, 23, 42, 0.7);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-title {
+  color: #0f172a;
+}
+
+.modal-label {
+  color: #334155;
+}
+
+.modal-input {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: rgba(14, 165, 233, 0.7);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.17);
+}
+
+.material-symbols-outlined {
+  font-size: 20px;
+  line-height: 1;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+tbody tr {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+tbody tr:hover {
+  background: rgba(248, 250, 252, 0.9);
+  transform: translateX(2px);
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(14, 165, 233, 0.35);
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 165, 233, 0.55);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .risk-detection-page {
+    padding: 1rem;
+  }
+
+  .header-panel {
+    padding: 1rem;
+  }
+
+  .primary-action {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

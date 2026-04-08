@@ -12,7 +12,6 @@ import { ProfileComponent } from './profile/profile.component';
 import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard.component';
 import { StudentManagementComponent } from './student-management/student-management.component';
 import { TeacherManagementComponent } from './teacher-management/teacher-management.component';
-import { InstructorDashboardComponent } from './instructor-dashboard/instructor-dashboard.component';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { RoleGuard } from './role.guard';
@@ -37,6 +36,19 @@ import { AssignmentSubmissionComponent } from './assignment-submission/assignmen
 import { ProgressReportsComponent } from './progress-reports/progress-reports.component';
 import { InstructorSubjectsComponent } from './instructor-subjects/instructor-subjects.component';
 import { SubjectsManagementComponent } from './subjects-management/subjects-management.component';
+import { ClassManagementComponent } from './class-management/class-management.component';
+import { InstructorShellComponent } from './instructor-shell/instructor-shell.component';
+import { AnalyticsSharedModule } from '../modules/analytics/analytics-shared.module';
+import { SharedModule } from '../shared/shared.module';
+import { AdminSystemMetricsDashboardComponent } from '../modules/analytics/pages/admin-system-metrics-dashboard/admin-system-metrics-dashboard.component';
+import { AdminExplainabilityComponent } from '../modules/analytics/pages/admin-explainability/admin-explainability.component';
+import { ComprehensiveAnalyticsDashboardComponent } from '../modules/analytics/pages/comprehensive-analytics-dashboard/comprehensive-analytics-dashboard.component';
+import { AnalyticsInstructorDashboardComponent } from '../modules/analytics/pages/instructor-dashboard/instructor-dashboard.component';
+import { DeepAnalyticsComponent } from '../modules/analytics/pages/deep-analytics/deep-analytics.component';
+import { RiskDetectionManagementComponent } from '../modules/analytics/pages/risk-detection-management/risk-detection-management.component';
+import { InterventionDashboardComponent } from '../modules/analytics/pages/intervention-dashboard/intervention-dashboard.component';
+import { ReportBuilderComponent } from '../modules/analytics/pages/report-builder/report-builder.component';
+import { InstructorDashboardComponent } from './instructor-dashboard/instructor-dashboard.component';
 
 const routes: Routes = [
   {
@@ -76,6 +88,35 @@ const routes: Routes = [
       {
         path: 'subjects',
         component: SubjectsManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+      {
+        path: 'classes',
+        component: ClassManagementComponent,
+      },
+      {
+
+        path: 'system-metrics',
+        component: AdminSystemMetricsDashboardComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+      {
+        path: 'explainability',
+        component: AdminExplainabilityComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+      {
+        path: 'comprehensive-analytics',
+        component: ComprehensiveAnalyticsDashboardComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'] },
+      },
+      {
+        path: 'report-builder',
+        component: ReportBuilderComponent,
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['admin'] },
       },
@@ -166,29 +207,61 @@ const routes: Routes = [
     pathMatch: 'full',
   },
 
-  // instructor dashboard
   {
-    path: 'instructor/dashboard',
-    component: InstructorDashboardComponent,
+    path: 'instructor',
+    component: InstructorShellComponent,
     canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor'] },
+    data: { roles: ['instructor', 'admin'] },
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        component: AnalyticsInstructorDashboardComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'] },
+      },
+      {
+        path: 'deep-analytics',
+        component: DeepAnalyticsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'] },
+      },
+      {
+        path: 'risk-detection',
+        component: RiskDetectionManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'] },
+      },
+      {
+        path: 'interventions',
+        component: InterventionDashboardComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'] },
+      },
+      {
+        path: 'comprehensive-analytics',
+        component: ComprehensiveAnalyticsDashboardComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'] },
+      },
+      {
+        path: 'subjects',
+        component: InstructorSubjectsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'] },
+      },
+      {
+        path: 'subjects/:id',
+        component: InstructorSubjectsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'] },
+      },
+    ],
   },
   {
     path: 'instructor/assignments',
     redirectTo: 'instructor/dashboard',
     pathMatch: 'full',
-  },
-  {
-    path: 'instructor/subjects',
-    component: InstructorSubjectsComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor'] },
-  },
-  {
-    path: 'instructor/subjects/:id',
-    component: InstructorSubjectsComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor'] },
   },
   {
     path: 'goal-setting',
@@ -218,7 +291,7 @@ const routes: Routes = [
     StudentDashboardComponent,
     StudentManagementComponent,
     TeacherManagementComponent,
-    InstructorDashboardComponent,
+    InstructorShellComponent,
     LevelTestComponent,
     LevelTestResultComponent,
     ProgressChartsComponent,
@@ -237,6 +310,7 @@ const routes: Routes = [
     ProgressReportsComponent,
     InstructorSubjectsComponent,
     SubjectsManagementComponent,
+    ClassManagementComponent,
     InstructorDashboardComponent
   ],
   imports: [
@@ -244,6 +318,8 @@ const routes: Routes = [
     ReactiveFormsModule,
     FormsModule,
     HttpClientModule,
+    AnalyticsSharedModule,
+    SharedModule,
     RouterModule.forChild(routes),
   ],
   providers: [

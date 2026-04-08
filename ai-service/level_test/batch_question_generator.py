@@ -446,7 +446,9 @@ def generate_all_subjects_parallel(
     t0 = time.perf_counter()
     results: dict[str, list[dict]] = {}
 
-    with ThreadPoolExecutor(max_workers=min(_MAX_WORKERS, len(subjects))) as pool:
+    # Ensure max_workers is at least 1 to avoid ValueError
+    max_workers = max(1, min(_MAX_WORKERS, len(subjects)))
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
         futures = {}
         for s in subjects:
             key = s["key"]

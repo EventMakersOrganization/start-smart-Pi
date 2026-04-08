@@ -594,7 +594,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         this.user = {
           ...(this.user || {}),
           ...(data?.user || {}),
-          academic_level: data?.profile?.academic_level,
+          class: data?.profile?.class ?? data?.profile?.academic_level,
           risk_level: data?.profile?.risk_level,
           points_gamification: data?.profile?.points_gamification,
         };

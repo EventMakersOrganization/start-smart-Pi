@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { BrandLogoComponent } from '../../../shared/brand-logo/brand-logo.component';
 import { StatsService } from '../../services/stats.service';
 import { catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -8,7 +9,7 @@ import { of } from 'rxjs';
 @Component({
     selector: 'app-solo-dashboard',
     standalone: true,
-    imports: [CommonModule, RouterModule],
+    imports: [CommonModule, RouterModule, BrandLogoComponent],
     templateUrl: './solo-dashboard.component.html',
     styles: [`
     .stat-card {

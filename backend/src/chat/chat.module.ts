@@ -10,7 +10,11 @@ import { ChatInstructor, ChatInstructorSchema } from './schemas/chat-instructor.
 import { ChatRoom, ChatRoomSchema } from './schemas/chat-room.schema';
 import { ChatMessage, ChatMessageSchema } from './schemas/chat-message.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { StudentProfile, StudentProfileSchema } from '../users/schemas/student-profile.schema';
 import { AuthModule } from '../auth/auth.module';
+import { SchoolClass, SchoolClassSchema } from '../academic/schemas/school-class.schema';
+import { ClassSubject, ClassSubjectSchema } from '../academic/schemas/class-subject.schema';
+import { Subject, SubjectSchema } from '../subjects/schemas/subject.schema';
 
 @Module({
   imports: [
@@ -21,6 +25,10 @@ import { AuthModule } from '../auth/auth.module';
       { name: ChatRoom.name, schema: ChatRoomSchema },
       { name: ChatMessage.name, schema: ChatMessageSchema },
       { name: User.name, schema: UserSchema },
+      { name: StudentProfile.name, schema: StudentProfileSchema },
+      { name: SchoolClass.name, schema: SchoolClassSchema },
+      { name: ClassSubject.name, schema: ClassSubjectSchema },
+      { name: Subject.name, schema: SubjectSchema },
     ]),
     AuthModule,
   ],

@@ -15,7 +15,7 @@ interface ProfileData {
     status: string;
   };
   profile: {
-    academic_level: string;
+    class: string;
     risk_level: string;
     points_gamification: number;
   } | null;
@@ -129,6 +129,14 @@ export class ProfileComponent implements OnInit {
         }
       });
     }
+  }
+
+  /** Route for brand logo / home navigation in the profile header. */
+  homeDashboardLink(): string {
+    const user = this.authService.getUser();
+    if (user?.role === 'instructor') return '/instructor/dashboard';
+    if (user?.role === 'admin') return '/admin/students';
+    return '/student-dashboard';
   }
 
   navigateBack() {

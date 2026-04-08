@@ -11,7 +11,7 @@ export class StudentProfile {
   userId: Types.ObjectId;
 
   @Prop({ type: String, default: null })
-  academic_level: string;
+  class: string;
 
   @Prop({
     type: String,
