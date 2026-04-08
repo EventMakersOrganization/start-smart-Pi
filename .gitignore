@@ -45,3 +45,10 @@ ai-service/response_cache/
 ai-service/chroma_db/
 # Local backup snapshots (often huge; regenerate from source)
 ai-service/backup/
+
+# Backend user uploads (course files — do not commit)
+backend/uploads/
+
+# Local-only folders (not tracked)
+docs/
+scripts/
