@@ -49,6 +49,10 @@ export class QuizSubmission {
   @Prop({ required: true })
   scorePercentage: number;
 
+  /** Optional 0–1 confidence from proctoring / trust pipeline; omitted => full weight in progress. */
+  @Prop({ required: false, min: 0, max: 1 })
+  trustScore?: number;
+
   @Prop({ type: [QuizAnswerSchema], default: [] })
   answers: QuizAnswer[];
 
