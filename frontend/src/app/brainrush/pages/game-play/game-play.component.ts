@@ -214,22 +214,26 @@ interface Question {
       <!-- ── MAIN CONTENT ── -->
       <div class="flex-1 flex flex-col items-center justify-center px-4 py-8 max-w-3xl w-full mx-auto">
 
-        <!-- Feedback Banner -->
-        <div *ngIf="feedbackState"
-          class="w-full mb-6 text-center py-4 px-6 rounded-2xl font-black text-2xl shadow-2xl border-2 fade-slide-in"
-          [ngClass]="feedbackState === 'correct' ? 'bg-green-500/30 border-green-400' : 'bg-red-500/30 border-red-400'">
-          <span *ngIf="feedbackState === 'correct'">🎉 Correct! +{{ lastPointsEarned }} pts</span>
-          <span *ngIf="feedbackState === 'wrong'">😔 Wrong! Answer: "{{ currentQuestion?.correctAnswer }}"</span>
-        </div>
-
-        <!-- Players Answered List (Multiplayer) -->
-        <div *ngIf="isMultiplayer && !feedbackState" class="w-full flex justify-center gap-2 mb-6 flex-wrap fade-slide-in">
-          <div *ngFor="let p of roomPlayers" 
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border"
-            [ngClass]="answeredPlayers.includes(p.socketId) ? 'bg-green-500/20 border-green-400 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-white/5 border-white/10 text-white/40'">
-            <span>{{ p.avatar }}</span>
-            <span>{{ p.username }}</span>
-            <span *ngIf="answeredPlayers.includes(p.socketId)" class="material-symbols-outlined text-[14px]">check_circle</span>
+        <!-- ── FEEDBACK & STATUS CONTAINER (Fixed height to prevent layout shift) ── -->
+        <div class="w-full h-24 mb-6 relative flex items-center justify-center">
+          
+          <!-- Feedback Banner (Solo/Non-Overlay states) -->
+          <div *ngIf="feedbackState && !multiplayerLeaderboard"
+            class="absolute inset-0 text-center py-4 px-6 rounded-2xl font-black text-2xl shadow-2xl border-2 fade-slide-in flex items-center justify-center z-10"
+            [ngClass]="feedbackState === 'correct' ? 'bg-green-500/30 border-green-400' : 'bg-red-500/30 border-red-400'">
+            <span *ngIf="feedbackState === 'correct'">🎉 Correct! +{{ lastPointsEarned }} pts</span>
+            <span *ngIf="feedbackState === 'wrong'">😔 Wrong! Answer: "{{ currentQuestion?.correctAnswer }}"</span>
+          </div>
+  
+          <!-- Players Answered List (Multiplayer - only when no feedback yet) -->
+          <div *ngIf="isMultiplayer && !feedbackState" class="absolute inset-x-0 flex justify-center gap-2 flex-wrap fade-slide-in z-0">
+            <div *ngFor="let p of roomPlayers" 
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border"
+              [ngClass]="answeredPlayers.includes(p.socketId) ? 'bg-green-500/20 border-green-400 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-white/5 border-white/10 text-white/40'">
+              <span>{{ p.avatar }}</span>
+              <span>{{ p.username }}</span>
+              <span *ngIf="answeredPlayers.includes(p.socketId)" class="material-symbols-outlined text-[14px]">check_circle</span>
+            </div>
           </div>
         </div>
 
@@ -279,29 +283,63 @@ interface Question {
             <div class="h-full bg-gradient-to-r from-blue-400 to-purple-400 rounded-full transition-all duration-700"
               [style.width.%]="progressPct"></div>
           </div>
+        </div>
       </div>
       
-      <!-- ── MULTIPLAYER LEADERBOARD OVERLAY ── -->
-      <div *ngIf="multiplayerLeaderboard && feedbackState" 
-        class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-white/10 border border-white/20 rounded-3xl p-8 max-w-md w-full shadow-2xl fade-slide-in">
-          <h3 class="text-2xl font-black text-center mb-6">Round Results</h3>
-          <div class="space-y-4 mb-8">
+      <div *ngIf="multiplayerLeaderboard" 
+        class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 transition-all duration-500 overflow-y-auto">
+        <div class="bg-gray-900/90 border border-white/10 rounded-[2.5rem] p-10 max-w-xl w-full shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] fade-slide-in relative overflow-hidden">
+          
+          <!-- Background Glow Effect inside overlay -->
+          <div class="absolute -top-24 -right-24 w-64 h-64 bg-purple-600/20 blur-[100px] pointer-events-none rounded-full"></div>
+          <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-pink-600/20 blur-[100px] pointer-events-none rounded-full"></div>
+
+          <!-- Round Summary Status -->
+          <div class="text-center mb-8">
+            <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-[0.2em] mb-4"
+              [ngClass]="feedbackState === 'correct' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'">
+              {{ feedbackState === 'correct' ? 'Round Won! ✨' : 'Round Lost 💀' }}
+            </div>
+            <h3 class="text-4xl font-black text-white">Round Rankings</h3>
+          </div>
+
+          <!-- Rankings List -->
+          <div class="space-y-3 mb-10">
             <div *ngFor="let p of multiplayerLeaderboard; let i = index" 
-              class="flex items-center gap-4 bg-white/5 p-3 rounded-2xl border border-white/10"
-              [ngClass]="{'border-yellow-400/50': i === 0}">
-              <span class="w-8 font-black text-white/40">#{{ i + 1 }}</span>
-              <span class="text-xl">{{ p.avatar }}</span>
-              <div class="flex-1">
-                <div class="font-bold">{{ p.username }}</div>
-                <div class="text-xs text-white/50">{{ p.score }} pts</div>
+              class="flex items-center gap-5 p-4 rounded-3xl transition-all border group"
+              [ngClass]="i === 0 ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-white/5 border-white/5 hover:bg-white/10'">
+              
+              <div class="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg"
+                 [ngClass]="i === 0 ? 'bg-yellow-400 text-yellow-950 shadow-lg shadow-yellow-400/20' : 'bg-white/10 text-white/40'">
+                {{ i + 1 }}
               </div>
-              <span *ngIf="p.isCorrect" class="text-green-400 material-symbols-outlined">check_circle</span>
-              <span *ngIf="!p.isCorrect" class="text-red-400 material-symbols-outlined">cancel</span>
+
+              <div class="text-3xl grayscale-[0.3] group-hover:grayscale-0 transition-all">{{ p.avatar }}</div>
+
+              <div class="flex-1">
+                <div class="font-black text-lg flex items-center gap-2">
+                  {{ p.username }}
+                  <span *ngIf="p.socketId === socketService.socketId" class="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold">YOU</span>
+                </div>
+                <div class="text-xs font-bold text-white/40 uppercase tracking-widest">{{ p.score }} points</div>
+              </div>
+
+              <div class="flex items-center">
+                <span *ngIf="p.isCorrect" class="text-green-400 bg-green-400/20 p-1.5 rounded-full material-symbols-outlined text-[20px]">check</span>
+                <span *ngIf="!p.isCorrect" class="text-red-400 bg-red-400/20 p-1.5 rounded-full material-symbols-outlined text-[20px]">close</span>
+              </div>
             </div>
           </div>
-          <div class="text-center text-white/40 text-sm font-bold uppercase tracking-widest animate-pulse">
-            Next question starting soon...
+
+          <div class="flex flex-col items-center gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-2 h-2 rounded-full bg-blue-400 animate-bounce"></div>
+              <div class="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style="animation-delay: 0.1s"></div>
+              <div class="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+            <div class="text-white/40 text-xs font-black uppercase tracking-[0.3em]">
+              Synchronizing next round...
+            </div>
           </div>
         </div>
       </div>
@@ -365,7 +403,7 @@ export class GamePlayComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private service: BrainrushService,
-    private socketService: SocketService,
+    public socketService: SocketService,
     private scoringService: ScoringService,
     private audio: AudioService
   ) { }

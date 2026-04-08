@@ -287,14 +287,17 @@ export class SoloConfigComponent implements OnInit {
               </button>
             </div>
           </div>
-          <div>
+          <div class="relative">
             <label class="block text-sm font-bold text-gray-700 mb-2">Topic</label>
-            <select [(ngModel)]="createTopic"
+            <div *ngIf="loadingTopics" class="flex items-center gap-2 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+              <div class="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+              <span class="text-xs font-bold text-gray-400 italic">Scanning courses...</span>
+            </div>
+            <select *ngIf="!loadingTopics" [(ngModel)]="createTopic"
               class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-cyan-400">
-              <option value="data_structures">Data Structures</option>
-              <option value="algorithms">Algorithms</option>
-              <option value="oop">OOP</option>
-              <option value="web_dev">Web Development</option>
+              <optgroup label="AI Recommended">
+                <option *ngFor="let t of topics" [value]="t.value">{{ t.label }}</option>
+              </optgroup>
             </select>
           </div>
           <div>
@@ -322,7 +325,7 @@ export class SoloConfigComponent implements OnInit {
           <p *ngIf="createError" class="text-red-500 text-sm font-semibold">{{ createError }}</p>
 
           <button id="generate-room-code-btn"
-            [disabled]="!createUsername.trim() || creating"
+            [disabled]="!createUsername.trim() || creating || loadingTopics"
             (click)="onCreate()"
             class="w-full py-4 bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2">
             <svg *ngIf="creating" class="spinner w-5 h-5" fill="none" viewBox="0 0 24 24">
@@ -388,21 +391,57 @@ export class SoloConfigComponent implements OnInit {
     </div>
   `
 })
-export class TeamConfigComponent implements OnDestroy {
+export class TeamConfigComponent implements OnInit, OnDestroy {
   @Output() create = new EventEmitter<{ username: string; avatar: string; topic: string; difficulty: string; totalQuestions: number }>();
   @Output() join = new EventEmitter<{ roomCode: string; username: string; avatar: string }>();
 
   avatars = ['🎮', '🚀', '🧠', '⚡', '🦉', '🦊', '🐼', '🐱', '🐶', '👻', '👾', '🔥'];
   selectedAvatar = '🎮';
 
-  constructor(private audio: AudioService) { }
+  topics: any[] = [];
+  loadingTopics = true;
+
+  constructor(private audio: AudioService, private service: BrainrushService) { }
+
+  ngOnInit() {
+    this.loadTopics();
+  }
+
+  loadTopics() {
+    this.loadingTopics = true;
+    this.service.getSubjects().subscribe({
+      next: (res: any) => {
+        const subjects: string[] = res.subjects || [];
+        if (subjects.length > 0) {
+          this.topics = subjects.map((s: string, i: number) => ({
+            label: s,
+            value: s,
+            recommended: i === 0
+          }));
+          this.createTopic = this.topics[0].value;
+          this.loadingTopics = false;
+        } else {
+          this.useFallbackTopics();
+        }
+      },
+      error: () => this.useFallbackTopics()
+    });
+  }
+
+  useFallbackTopics() {
+    this.topics = [
+      { label: 'Programmation Procédurale 1', value: 'Programmation Procédurale 1', recommended: true }
+    ];
+    this.createTopic = this.topics[0].value;
+    this.loadingTopics = false;
+  }
 
   playClick() { this.audio.playSFX('click'); }
 
 
   // Create fields
   createUsername = '';
-  createTopic = 'data_structures';
+  createTopic = '';
   createDifficulty = 'medium';
   createCount = 10;
   creating = false;
