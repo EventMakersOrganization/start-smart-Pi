@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Subscription, filter, forkJoin, of } from 'rxjs';
+import { Subscription, filter, forkJoin, of, interval } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
   AdaptiveLearningService,
@@ -22,6 +22,9 @@ import {
   GoalSettings,
   LearningAnalyticsResponse,
 } from '../adaptive-learning.service';
+import { WebinarService } from '../../webinar/services/webinar.service';
+import { ToastService } from '../../shared/services/toast.service';
+import { Webinar } from '../../webinar/services/webinar.interface';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -230,7 +233,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private http: HttpClient,
     private adaptiveService: AdaptiveLearningService,
-  ) {}
+    private webinarService: WebinarService,
+    private toastService: ToastService,
+  ) { }
 
   private collectRoles(): string[] {
     const normalized = new Set<string>();
@@ -313,8 +318,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       const forceAnalyticsRefresh = this.consumeForceAnalyticsRefreshFlag();
       this.loadUserInfo();
       this.loadAdaptiveData(forceAnalyticsRefresh);
+      this.checkUpcomingWebinars();
+      // Periodically check every 5 minutes
+      this.refreshWebinarsSubscription = interval(300000).subscribe(() => this.checkUpcomingWebinars());
     }
   }
+
+  private refreshWebinarsSubscription?: Subscription;
 
   ngOnDestroy(): void {
     if (this.relativeClockHandle) {
@@ -323,6 +333,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
     this.routerEventsSubscription?.unsubscribe();
     this.recommendationsSubscription?.unsubscribe();
+    this.refreshWebinarsSubscription?.unsubscribe();
   }
 
   private mapRecommendationCards(recommendations: any[]): any[] {
@@ -333,10 +344,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
       const reason = this.cleanRecommendationText(
         rec?.rationale ||
-          rec?.reason ||
-          rec?.description ||
-          rec?.relevant_material_preview ||
-          rec?.action,
+        rec?.reason ||
+        rec?.description ||
+        rec?.relevant_material_preview ||
+        rec?.action,
       );
 
       const successProbability = this.normalizePercent(
@@ -350,9 +361,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         reason: reason || 'Updated from your latest progress.',
         level: this.cleanRecommendationText(
           rec?.priority ||
-            rec?.type ||
-            rec?.category ||
-            rec?.suggestedDifficulty,
+          rec?.type ||
+          rec?.category ||
+          rec?.suggestedDifficulty,
         ),
         duration:
           Number.isFinite(effortHours) && effortHours > 0
@@ -485,8 +496,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       : [];
     const weakFromConcepts = Array.isArray(this.conceptWeaknesses)
       ? this.conceptWeaknesses
-          .map((item: any) => String(item?.concept || '').trim())
-          .filter((item: string) => !!item)
+        .map((item: any) => String(item?.concept || '').trim())
+        .filter((item: string) => !!item)
       : [];
 
     const weaknesses = Array.from(
@@ -500,11 +511,11 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       sourceRecommendations.length > 0
         ? sourceRecommendations
         : weaknesses.slice(0, 6).map((topic) => ({
-            subject: topic,
-            focus_topics: [topic],
-            priority: 'high',
-            rationale: `Reinforce ${topic} through guided practice.`,
-          }));
+          subject: topic,
+          focus_topics: [topic],
+          priority: 'high',
+          rationale: `Reinforce ${topic} through guided practice.`,
+        }));
 
     return {
       ...profile,
@@ -599,7 +610,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           points_gamification: data?.profile?.points_gamification,
         };
       },
-      error: () => {},
+      error: () => { },
     });
   }
 
@@ -716,7 +727,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           this.buildTopicRings();
         }
       },
-      error: () => {},
+      error: () => { },
     });
 
     // ── Charger recommandations (AI service + fallback backend) ──
@@ -1958,5 +1969,44 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   onRecommendationViewed(id: string): void {
     const rec = this.recommendations.find((r) => r._id === id);
     if (rec) rec.isViewed = true;
+  }
+
+  private checkUpcomingWebinars() {
+    this.webinarService.getWebinars().subscribe(webinars => {
+      const now = new Date();
+      webinars.forEach(w => {
+        const startTime = new Date(w.scheduledStartTime);
+        const diffMs = startTime.getTime() - now.getTime();
+        const diffMins = diffMs / (1000 * 60);
+
+        // Notify if starting in less than 15 mins but hasn't started yet
+        if (diffMins > 0 && diffMins <= 15) {
+          const msg = `Webinar "${w.title}" starts in ${Math.round(diffMins)} minutes!`;
+          this.toastService.show(msg, 'info', `/webinar/list`, 'Join Soon');
+          this.addAlert(msg, 'info', `/webinar/list`);
+        } else if (w.status === 'live') {
+          const msg = `Webinar "${w.title}" is LIVE now!`;
+          this.toastService.show(msg, 'success', `/webinar/live/${w._id}`, 'Join Now');
+          this.addAlert(msg, 'success', `/webinar/live/${w._id}`);
+        }
+      });
+    });
+  }
+
+  private addAlert(message: string, type: string, link: string) {
+    if (!this.alerts.find(a => a.message === message)) {
+      this.alerts.unshift({
+        message,
+        type,
+        link,
+        time: new Date(),
+        icon: type === 'success' ? 'live_tv' : 'schedule'
+      });
+    }
+  }
+
+  showNotifications = false;
+  toggleNotifications() {
+    this.showNotifications = !this.showNotifications;
   }
 }

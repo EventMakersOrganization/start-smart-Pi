@@ -18,6 +18,7 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { CodebattleModule } from './codebattle/codebattle.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { ReportModule } from './report/report.module';
+import { WebinarModule } from './webinar/webinar.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ReportModule } from './report/report.module';
     BrainrushModule,
     SubjectsModule,
     CodebattleModule,
+    WebinarModule,
   ],
   controllers: [AppController],
   providers: [],

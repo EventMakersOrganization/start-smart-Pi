@@ -1,0 +1,97 @@
+<div class="webinar-container">
+    <!-- Admin/Instructor Call to Action -->
+    <div *ngIf="userRole === 'admin' || userRole === 'instructor'" class="admin-actions">
+        <button class="btn-create" routerLink="/webinar/admin-create">
+            <span class="material-symbols-outlined">add</span> Schedule Webinar
+        </button>
+    </div>
+
+    <!-- Netflix-Style Hero Section (First Live or First Upcoming) -->
+    <div class="hero"
+        [style.background-image]="'url(' + (getHeroWebinar()?.thumbnailUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop') + ')'">
+        <div class="hero-content" *ngIf="getHeroWebinar() as hero">
+            <span class="live-indicator" *ngIf="hero.status === 'live'">● LIVE</span>
+            <h1>{{ hero.title }}</h1>
+            <p>{{ hero.description | slice:0:150 }}{{ hero.description.length > 150 ? '...' : '' }}</p>
+            <div class="hero-actions">
+                <button class="btn-netflix primary"
+                    [routerLink]="hero.status === 'live' ? ['/webinar/live', hero._id] : '/webinar/list'">
+                    <span class="material-symbols-outlined">{{ hero.status === 'live' ? 'play_arrow' : 'info' }}</span>
+                    {{ hero.status === 'live' ? 'Join Live Now' : 'Remind Me' }}
+                </button>
+                <button class="btn-netflix secondary">
+                    <span class="material-symbols-outlined">info</span>
+                    More Info
+                </button>
+            </div>
+        </div>
+        <div class="hero-content" *ngIf="!getHeroWebinar()">
+            <h1>StartSmart <span style="color: #E50914;">TV</span></h1>
+            <p>Master the latest technologies with real-time interactive webinars from industry experts.</p>
+        </div>
+    </div>
+
+    <main class="content-rows">
+        <!-- LIVE NOW ROW -->
+        <section *ngIf="liveWebinars.length > 0" class="section">
+            <h2 class="section-title">Trending Live Now</h2>
+            <div class="card-row">
+                <div *ngFor="let webinar of liveWebinars" class="netflix-card"
+                    [style.background-image]="'url(' + (webinar.thumbnailUrl || 'assets/default-webinar.jpg') + ')'"
+                    [routerLink]="['/webinar/live', webinar._id]">
+                    <div class="card-overlay">
+                        <div class="card-info">
+                            <h3>{{ webinar.title }}</h3>
+                            <p>with {{ webinar.instructorName }}</p>
+                            <div class="card-meta">
+                                <span class="meta-item" style="color: #46d369;">98% Match</span>
+                                <span class="meta-item">LIVE</span>
+                                <span class="meta-item">4K</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- UPCOMING SESSIONS ROW -->
+        <section class="section">
+            <h2 class="section-title">Upcoming for You</h2>
+            <div class="card-row">
+                <div *ngFor="let webinar of upcomingWebinars" class="netflix-card"
+                    [style.background-image]="'url(' + (webinar.thumbnailUrl || 'assets/default-webinar.jpg') + ')'">
+                    <div class="card-overlay">
+                        <div class="card-info">
+                            <h3>{{ webinar.title }}</h3>
+                            <p>{{ webinar.scheduledStartTime | date:'medium' }}</p>
+                            <div class="card-meta">
+                                <span class="meta-item">{{ getCountdown(webinar.scheduledStartTime) }}</span>
+                                <span class="meta-item">HD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAST WEBINARS ROW -->
+        <section class="section">
+            <h2 class="section-title">Rewatch Famous Sessions</h2>
+            <div class="card-row">
+                <div *ngFor="let webinar of pastWebinars" class="netflix-card"
+                    [style.background-image]="'url(' + (webinar.thumbnailUrl || 'assets/default-webinar.jpg') + ')'">
+                    <div class="card-overlay">
+                        <div class="card-info">
+                            <h3>{{ webinar.title }}</h3>
+                            <p>{{ webinar.instructorName }}</p>
+                            <div class="card-meta">
+                                <span class="meta-item">RECAP</span>
+                                <span class="meta-item">ENDED</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>

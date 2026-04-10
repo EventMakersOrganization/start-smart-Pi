@@ -1,0 +1,133 @@
+<div class="live-webinar-wrapper">
+    <!-- Netflix-Style Video Player -->
+    <main class="theater-mode">
+        <div class="video-container glass-fx">
+            <div class="stream-overlay">
+                <span class="live-pill" *ngIf="webinar?.status === 'live'">LIVE</span>
+                <div class="webinar-title-overlay">
+                    <h2>{{ webinar?.title }}</h2>
+                    <p>with {{ webinar?.instructorName }}</p>
+                </div>
+            </div>
+
+            <!-- WebRTC Video Elements -->
+            <video id="remoteVideo" autoplay playsinline class="main-video"></video>
+            <video id="localVideo" autoplay muted playsinline class="self-preview" *ngIf="isBroadcasting"></video>
+
+            <div class="video-placeholder" *ngIf="!isBroadcasting && webinar?.status !== 'live'">
+                <span class="material-symbols-outlined"
+                    style="font-size:5rem;color:rgba(255,255,255,0.1)">live_tv</span>
+                <p>Waiting for Broadcaster...</p>
+            </div>
+
+            <!-- Reaction Layer -->
+            <div class="reactions-layer">
+                <div *ngFor="let r of reactions" class="floating-emoji" [ngStyle]="{'left': '40%'}">
+                    {{ r.reaction === 'heart' ? '❤️' : r.reaction === 'clap' ? '👏' : r.reaction === 'fire' ? '🔥' :
+                    '😮' }}
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 PERMANENT CONTROL BAR — ALWAYS VISIBLE FOR INSTRUCTORS/ADMIN
+                 ============================================================ -->
+            <div class="control-bar">
+                <!-- Left side: Live status / go live -->
+                <div class="cb-left">
+                    <button *ngIf="!isBroadcasting" (click)="startBroadcast()" class="cb-go-live">
+                        <span class="material-symbols-outlined">videocam</span>
+                        Go Live
+                    </button>
+                    <span *ngIf="isBroadcasting" class="cb-live-badge">● BROADCASTING</span>
+                </div>
+
+                <!-- Center: Media Controls — always visible -->
+                <div class="cb-center"
+                    *ngIf="currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'instructor'">
+                    <!-- Mic Toggle -->
+                    <div class="cb-btn-wrap">
+                        <button class="cb-btn" [class.cb-btn-off]="isMicMuted" (click)="toggleMic()"
+                            [disabled]="!isBroadcasting">
+                            <span class="material-symbols-outlined">{{ isMicMuted ? 'mic_off' : 'mic' }}</span>
+                        </button>
+                        <span>{{ isMicMuted ? 'Unmute' : 'Mute' }}</span>
+                    </div>
+
+                    <!-- Camera Toggle -->
+                    <div class="cb-btn-wrap">
+                        <button class="cb-btn" [class.cb-btn-off]="isCameraOff" (click)="toggleCamera()"
+                            [disabled]="!isBroadcasting">
+                            <span class="material-symbols-outlined">{{ isCameraOff ? 'videocam_off' : 'videocam'
+                                }}</span>
+                        </button>
+                        <span>{{ isCameraOff ? 'Cam Off' : 'Camera' }}</span>
+                    </div>
+
+                    <!-- Screen Share -->
+                    <div class="cb-btn-wrap">
+                        <button class="cb-btn" [class.cb-btn-active]="isScreenSharing" (click)="toggleScreenShare()"
+                            [disabled]="!isBroadcasting">
+                            <span class="material-symbols-outlined">{{ isScreenSharing ? 'stop_screen_share' :
+                                'screen_share' }}</span>
+                        </button>
+                        <span>{{ isScreenSharing ? 'Stop Share' : 'Share Screen' }}</span>
+                    </div>
+
+                    <div class="cb-divider"></div>
+
+                    <!-- Record -->
+                    <div class="cb-btn-wrap">
+                        <button class="cb-btn" [class.cb-btn-rec]="isRecording"
+                            (click)="isRecording ? stopRecording() : startRecording()" [disabled]="!isBroadcasting">
+                            <span class="material-symbols-outlined">{{ isRecording ? 'stop_circle' :
+                                'fiber_manual_record' }}</span>
+                        </button>
+                        <span>{{ isRecording ? 'Stop Rec' : 'Record' }}</span>
+                    </div>
+                </div>
+
+                <!-- Right: Reactions -->
+                <div class="cb-right">
+                    <button class="cb-emoji" (click)="sendReaction('heart')">❤️</button>
+                    <button class="cb-emoji" (click)="sendReaction('clap')">👏</button>
+                    <button class="cb-emoji" (click)="sendReaction('fire')">🔥</button>
+                    <button class="cb-emoji" (click)="sendReaction('wow')">😮</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Watching now -->
+        <div class="session-info">
+            <div class="participants-list">
+                <span class="watching-label">Watching Now</span>
+                <div class="avatars">
+                    <div *ngFor="let p of participants | slice:0:5" class="user-avatar" [title]="p.username">
+                        {{ p.username[0] }}
+                    </div>
+                    <span *ngIf="participants.length > 5">+{{ participants.length - 5 }}</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Sidebar Chat -->
+    <aside class="chat-sidebar">
+        <div class="chat-header">
+            <h3>Live Chat</h3>
+        </div>
+        <div class="chat-history">
+            <div *ngFor="let msg of messages" class="chat-msg" [ngClass]="{'self': msg.userId === currentUser.id}">
+                <span class="sender">{{ msg.username }}</span>
+                <p class="body">{{ msg.message }}</p>
+                <span class="time">{{ msg.timestamp | date:'shortTime' }}</span>
+            </div>
+        </div>
+        <div class="chat-input-box">
+            <input type="text" [(ngModel)]="newMessageText" placeholder="Say something..."
+                (keyup.enter)="sendMessage()">
+            <button (click)="sendMessage()">
+                <span class="material-symbols-outlined">send</span>
+            </button>
+        </div>
+    </aside>
+</div>

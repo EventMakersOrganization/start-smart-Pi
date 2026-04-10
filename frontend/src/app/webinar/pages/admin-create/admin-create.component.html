@@ -1,0 +1,41 @@
+<div class="admin-wrapper">
+    <div class="glass-form">
+        <h2>Create <span class="gradient-text">New Webinar</span></h2>
+        <form (ngSubmit)="onSubmit()">
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" [(ngModel)]="webinar.title" name="title" required
+                    placeholder="e.g. Masterclass in Angular">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea [(ngModel)]="webinar.description" name="description" required rows="3"></textarea>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label>Instructor Name</label>
+                    <input type="text" [(ngModel)]="webinar.instructorName" name="instructorName" required>
+                </div>
+                <div class="form-group">
+                    <label>Duration (min)</label>
+                    <input type="number" [(ngModel)]="webinar.durationMinutes" name="durationMinutes" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Scheduled Date & Time</label>
+                <input type="datetime-local" [(ngModel)]="webinar.scheduledStartTime" name="scheduledStartTime"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label>Thumbnail URL</label>
+                <input type="text" [(ngModel)]="webinar.thumbnailUrl" name="thumbnailUrl" placeholder="https://...">
+            </div>
+
+            <button type="submit" class="btn-submit">Launch Scheduled Webinar</button>
+        </form>
+    </div>
+</div>

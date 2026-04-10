@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth.service';
+import { WebinarService } from '../../webinar/services/webinar.service';
+import { Webinar } from '../../webinar/services/webinar.interface';
 
 @Component({
   selector: 'app-instructor-shell',
@@ -17,11 +19,21 @@ export class InstructorShellComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private http: HttpClient,
-  ) {}
+    private webinarService: WebinarService,
+  ) { }
+
+  liveWebinar: Webinar | null = null;
 
   ngOnInit(): void {
     this.user = this.authService.getUser();
     this.loadProfile();
+    this.checkLiveWebinar();
+  }
+
+  checkLiveWebinar() {
+    this.webinarService.getWebinars().subscribe(webinars => {
+      this.liveWebinar = webinars.find(w => w.status === 'live') || null;
+    });
   }
 
   loadProfile(): void {
