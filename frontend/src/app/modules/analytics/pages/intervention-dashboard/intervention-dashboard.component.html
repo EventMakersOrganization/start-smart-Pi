@@ -66,8 +66,30 @@
           <div class="p-6 border-b border-surface-container-low flex justify-between items-center bg-white">
             <h2 class="text-lg font-bold font-headline">Active Interventions</h2>
             <div class="flex gap-2">
-              <span class="px-3 py-1 bg-surface-container text-primary text-xs font-bold rounded-full">All Courses</span>
-              <span class="px-3 py-1 bg-surface-container-low text-on-surface-variant text-xs font-bold rounded-full">High Priority</span>
+              <button
+                type="button"
+                (click)="setPriorityFilter('all')"
+                class="px-3 py-1 text-xs font-bold rounded-full"
+                [ngClass]="priorityFilter === 'all' ? 'bg-surface-container text-primary' : 'bg-surface-container-low text-on-surface-variant'"
+              >
+                All Priority
+              </button>
+              <button
+                type="button"
+                (click)="setPriorityFilter('high')"
+                class="px-3 py-1 text-xs font-bold rounded-full"
+                [ngClass]="priorityFilter === 'high' ? 'bg-error-container text-on-error-container' : 'bg-surface-container-low text-on-surface-variant'"
+              >
+                High Priority
+              </button>
+              <button
+                type="button"
+                (click)="setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')"
+                class="px-3 py-1 text-xs font-bold rounded-full"
+                [ngClass]="statusFilter === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-surface-container-low text-on-surface-variant'"
+              >
+                Pending
+              </button>
             </div>
           </div>
 
@@ -84,13 +106,13 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-surface-container-low">
-                <tr class="hover:bg-blue-50/30 transition-colors group" *ngFor="let item of interventions; trackBy: trackByUserId">
+                <tr class="hover:bg-blue-50/30 transition-colors group" *ngFor="let item of filteredInterventions; trackBy: trackByUserId">
                   <td class="px-6 py-5">
                     <div class="flex items-center gap-3">
                       <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-xs">{{ getInitials(item.name) }}</div>
                       <div>
                         <p class="font-bold text-sm">{{ item.name }}</p>
-                        <p class="text-xs text-outline">General Cohort</p>
+                        <p class="text-xs text-outline">ID: {{ item.userId }}</p>
                       </div>
                     </div>
                   </td>
@@ -127,7 +149,7 @@
                     </div>
                   </td>
                 </tr>
-                <tr *ngIf="interventions.length === 0">
+                <tr *ngIf="filteredInterventions.length === 0">
                   <td colspan="6" class="px-6 py-8 text-center text-sm text-on-surface-variant">No interventions found.</td>
                 </tr>
               </tbody>
@@ -135,18 +157,10 @@
           </div>
 
           <div class="px-6 py-4 bg-surface-container-low/30 border-t border-surface-container-low flex justify-between items-center">
-            <p class="text-xs text-on-surface-variant font-medium">Showing 1 to {{ interventions.length }} of {{ totalInterventions }} interventions</p>
-            <div class="flex gap-1">
-              <button class="p-1 rounded hover:bg-surface-container text-on-surface-variant">
-                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-              </button>
-              <button class="w-6 h-6 rounded bg-primary text-on-primary text-xs font-bold flex items-center justify-center">1</button>
-              <button class="w-6 h-6 rounded hover:bg-surface-container text-xs font-bold flex items-center justify-center">2</button>
-              <button class="w-6 h-6 rounded hover:bg-surface-container text-xs font-bold flex items-center justify-center">3</button>
-              <button class="p-1 rounded hover:bg-surface-container text-on-surface-variant">
-                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-              </button>
-            </div>
+            <p class="text-xs text-on-surface-variant font-medium">Showing {{ filteredCount }} of {{ totalInterventions }} interventions</p>
+            <p class="text-xs text-on-surface-variant font-semibold">
+              Completion: {{ completionRate }}%
+            </p>
           </div>
         </div>
 
@@ -157,9 +171,10 @@
               Impact of Interventions
             </h3>
             <div class="h-48 flex items-end gap-4 px-4 pt-4 border-b border-surface-container">
-              <div class="flex-1 flex flex-col items-center gap-2" *ngFor="let col of [35, 50, 45, 70, completionRate]; trackBy: trackByIndex">
-                <div class="w-full bg-primary-fixed rounded-t-lg transition-all hover:bg-primary-container" [style.height.%]="col"></div>
-                <span class="text-[10px] font-bold text-outline">{{ col === completionRate ? 'Current' : 'Week' }}</span>
+              <div class="flex-1 flex flex-col items-center gap-2" *ngFor="let col of impactSeries; trackBy: trackByIndex">
+                <div class="w-full bg-primary-fixed rounded-t-lg transition-all hover:bg-primary-container" [style.height.%]="col.height"></div>
+                <span class="text-[10px] font-bold text-outline">{{ col.label }}</span>
+                <span class="text-[10px] font-semibold text-slate-500">{{ col.value }}</span>
               </div>
             </div>
             <p class="text-xs text-on-surface-variant mt-4 italic">Intervention completion correlates with improved student retention and lower projected dropout risk.</p>

@@ -17,6 +17,16 @@ export class CreateModuleDto {
     @IsNumber()
     @IsOptional()
     order?: number;
+
+    @ApiPropertyOptional({ description: 'Public URL path under /uploads/subjects/cours/…' })
+    @IsString()
+    @IsOptional()
+    fileUrl?: string;
+
+    @ApiPropertyOptional({ description: 'Original file name from teacher folder' })
+    @IsString()
+    @IsOptional()
+    fileName?: string;
 }
 
 export class CreateCourseDto {

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 export interface SubjectQuizQuestion {
   question: string;
@@ -84,6 +84,22 @@ export class SubjectsService {
     return this.http
       .get<any>(`${this.apiUrl}/${id}`)
       .pipe(map(normalizeSubjectItem));
+  }
+
+  /**
+   * Aggregate progress for the logged-in student (JWT): average module % (exercises, quizzes, content).
+   */
+  getSubjectLearningProgress(subjectId: string): Observable<{
+    percent: number;
+    moduleCount: number;
+  }> {
+    return this.http
+      .get<{ percent: number; moduleCount: number }>(
+        `${this.apiUrl}/${encodeURIComponent(subjectId)}/learning-progress`,
+      )
+      .pipe(
+        catchError(() => of({ percent: 0, moduleCount: 0 })),
+      );
   }
 
   createSubject(payload: {

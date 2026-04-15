@@ -3,7 +3,7 @@ import { AuthService } from '../auth.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subscription, filter, forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import {
   AdaptiveLearningService,
   ClassifyDifficultyBatchResponse,
@@ -22,6 +22,10 @@ import {
   GoalSettings,
   LearningAnalyticsResponse,
 } from '../adaptive-learning.service';
+import {
+  SubjectItem as DbSubjectItem,
+  SubjectsService,
+} from '../subjects.service';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -185,8 +189,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   classifyBatchError = '';
   classifyBatchResult: ClassifyDifficultyBatchResponse | null = null;
 
-  // Stats
+  // Stats — `progress` = average score from real learning activities in the selected period (not level test)
   progress = 0;
+  /** Latest level test score from profile (shown separately from course progress). */
+  levelTestScore = 0;
   performance = 0;
   completedModules = 0;
   totalModules = 20;
@@ -221,6 +227,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   // Topic scores pour les progress rings
   topicRings: any[] = [];
+  subjectProgressRings: Array<{ name: string; score: number }> = [];
   learningProgressPeriod: 'weekly' | 'monthly' = 'weekly';
 
   suggestedCourses: any[] = [];
@@ -230,6 +237,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private http: HttpClient,
     private adaptiveService: AdaptiveLearningService,
+    private subjectsService: SubjectsService,
   ) {}
 
   private collectRoles(): string[] {
@@ -327,8 +335,14 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   private mapRecommendationCards(recommendations: any[]): any[] {
     return (recommendations || []).slice(0, 6).map((rec, index) => {
+      const subjectRaw = String(rec?.subject || '').trim();
+      const fromContent = String(rec?.recommendedContent || '').split(/[—\-]/)[0];
       const title = this.cleanRecommendationText(
-        rec?.title || rec?.subject || rec?.topic || rec?.name,
+        rec?.title ||
+          subjectRaw ||
+          fromContent ||
+          rec?.topic ||
+          rec?.name,
       );
 
       const reason = this.cleanRecommendationText(
@@ -344,9 +358,14 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       );
       const effortHours = Number(rec?.estimated_effort_hours);
 
+      const subjectKey =
+        subjectRaw ||
+        String(rec?.topic || rec?.name || title || '').trim();
+
       return {
         id: rec?._id || rec?.id || `rec-${index}`,
         title: title || `Recommendation ${index + 1}`,
+        subjectKey,
         reason: reason || 'Updated from your latest progress.',
         level: this.cleanRecommendationText(
           rec?.priority ||
@@ -360,6 +379,24 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
             : `${successProbability}% success`,
       };
     });
+  }
+
+  navigateToRecommendedCourse(course: {
+    subjectKey?: string;
+    title?: string;
+  }): void {
+    const q = String(course?.subjectKey || course?.title || '').trim();
+    if (!q) {
+      this.router.navigate(['/student-dashboard/my-courses']);
+      return;
+    }
+    this.router.navigate(['/student-dashboard/my-courses'], {
+      queryParams: { subject: q },
+    });
+  }
+
+  navigateToMyCoursesRecommendations(): void {
+    this.router.navigate(['/student-dashboard/my-courses']);
   }
 
   private cleanRecommendationText(value: unknown): string {
@@ -606,6 +643,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   loadAdaptiveData(forceAnalyticsRefresh = false): void {
     const userId = this.user._id || this.user.id;
 
+    this.loadSubjectProgressRings();
     this.loadLearningAnalytics(userId, forceAnalyticsRefresh);
     this.loadPaceAnalytics(userId, forceAnalyticsRefresh);
     this.loadConceptsAnalytics(userId, forceAnalyticsRefresh);
@@ -658,8 +696,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.adaptiveService.getProfile(userId).subscribe({
       next: (data) => {
         this.adaptiveProfile = data;
-        this.progress = data.progress || 0;
+        this.levelTestScore =
+          Number(data?.levelTestScore ?? data?.level_test_score ?? 0) || 0;
         this.adaptiveLoading = false;
+        this.refreshCourseProgressDisplay();
         this.buildTopicRings();
         this.updateAlerts();
         this.loadAdaptiveInsights(userId);
@@ -713,6 +753,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
           this.completedModules = data.filter((p: any) => p.score >= 70).length;
           this.learningStreak = this.calculateStreak(data);
+          this.refreshCourseProgressDisplay();
+          this.buildTopicRings();
+        } else {
+          this.refreshCourseProgressDisplay();
           this.buildTopicRings();
         }
       },
@@ -1561,7 +1605,34 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     const normalized = String(period || '').toLowerCase();
     this.learningProgressPeriod =
       normalized === 'monthly' ? 'monthly' : 'weekly';
+    this.refreshCourseProgressDisplay();
     this.buildTopicRings();
+  }
+
+  /**
+   * Headline %: average score on course-learning performances in the selected period.
+   * Excludes level-test rows so the test does not count as course progress.
+   */
+  private refreshCourseProgressDisplay(): void {
+    if (this.subjectProgressRings.length > 0) {
+      const total = this.subjectProgressRings.reduce(
+        (sum, item) => sum + Number(item.score || 0),
+        0,
+      );
+      this.progress = Math.round(total / this.subjectProgressRings.length);
+      return;
+    }
+
+    const scoped = this.getCourseLearningPerformancesForPeriod();
+    if (scoped.length === 0) {
+      this.progress = 0;
+      return;
+    }
+    const total = scoped.reduce(
+      (sum: number, p: any) => sum + Number(p?.score ?? 0),
+      0,
+    );
+    this.progress = Math.round(total / scoped.length);
   }
 
   getRingDashoffset(score: unknown): number {
@@ -1617,6 +1688,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Performances for rings / progress: exclude level-test so UI reflects course work only. */
+  private getCourseLearningPerformancesForPeriod(): any[] {
+    return this.getPerformancesForSelectedPeriod().filter(
+      (p: any) => String(p?.source || '').toLowerCase() !== 'level-test',
+    );
+  }
+
   // ── Construit les anneaux par topic ──
   buildTopicRings(): void {
     const colors = [
@@ -1626,7 +1704,16 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       'text-purple-500',
     ];
 
-    const scopedPerformances = this.getPerformancesForSelectedPeriod();
+    if (this.subjectProgressRings.length > 0) {
+      this.topicRings = this.subjectProgressRings.map((item, i) => ({
+        name: item.name,
+        score: item.score,
+        color: colors[i % colors.length],
+      }));
+      return;
+    }
+
+    const scopedPerformances = this.getCourseLearningPerformancesForPeriod();
 
     if (scopedPerformances.length > 0) {
       // Grouper par topic
@@ -1646,15 +1733,15 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           color: colors[i % colors.length],
         }));
     } else if (this.adaptiveProfile) {
-      // Fallback : strengths/weaknesses du profil
+      // Topics from level test — show 0% until there is real course activity
       const allTopics = [
         ...(this.adaptiveProfile.strengths || []).map((t: string) => ({
           name: t,
-          score: 80,
+          score: 0,
         })),
         ...(this.adaptiveProfile.weaknesses || []).map((t: string) => ({
           name: t,
-          score: 35,
+          score: 0,
         })),
       ].slice(0, 4);
 
@@ -1662,17 +1749,68 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         ...t,
         color: colors[i % colors.length],
       }));
+    } else {
+      this.topicRings = [];
     }
+  }
 
-    // Fallback si vide
-    if (this.topicRings.length === 0) {
-      this.topicRings = [
-        { name: 'Mathematics', score: 0, color: colors[0] },
-        { name: 'Sciences', score: 0, color: colors[1] },
-        { name: 'Literature', score: 0, color: colors[2] },
-        { name: 'Economics', score: 0, color: colors[3] },
-      ];
-    }
+  private loadSubjectProgressRings(): void {
+    this.subjectsService
+      .getSubjects()
+      .pipe(catchError(() => of([] as DbSubjectItem[])))
+      .subscribe({
+        next: (subjects) => {
+          const rows = (Array.isArray(subjects) ? subjects : [])
+            .map((subject) => ({
+              id: String(subject?._id || subject?.id || '').trim(),
+              name: String(subject?.title || '').trim(),
+            }))
+            .filter((subject) => !!subject.id && !!subject.name);
+
+          if (rows.length === 0) {
+            this.subjectProgressRings = [];
+            this.buildTopicRings();
+            this.refreshCourseProgressDisplay();
+            return;
+          }
+
+          forkJoin(
+            rows.map((subject) =>
+              this.subjectsService.getSubjectLearningProgress(subject.id).pipe(
+                map((progress) => ({
+                  name: subject.name,
+                  score: Math.max(
+                    0,
+                    Math.min(100, Number(progress?.percent ?? 0)),
+                  ),
+                })),
+                catchError(() =>
+                  of({
+                    name: subject.name,
+                    score: 0,
+                  }),
+                ),
+              ),
+            ),
+          ).subscribe({
+            next: (ringRows: Array<{ name: string; score: number }>) => {
+              this.subjectProgressRings = ringRows;
+              this.buildTopicRings();
+              this.refreshCourseProgressDisplay();
+            },
+            error: () => {
+              this.subjectProgressRings = [];
+              this.buildTopicRings();
+              this.refreshCourseProgressDisplay();
+            },
+          });
+        },
+        error: () => {
+          this.subjectProgressRings = [];
+          this.buildTopicRings();
+          this.refreshCourseProgressDisplay();
+        },
+      });
   }
 
   updateAlerts(): void {
@@ -1754,7 +1892,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   private buildProfileFallbackLevelTestResult(userId: string): any {
     const profile = this.adaptiveProfile || {};
-    const totalScore = Number(profile?.progress ?? 0) || 0;
+    const totalScore =
+      Number(
+        profile?.levelTestScore ??
+          profile?.level_test_score ??
+          profile?.progress ??
+          0,
+      ) || 0;
     const resultLevel = profile?.level || 'beginner';
     const strengths = Array.isArray(profile?.strengths)
       ? profile.strengths
@@ -1893,8 +2037,6 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return (
       this.router.url.includes('/student-dashboard/level-test') ||
       this.router.url.includes('/student-dashboard/level-test-result') ||
-      this.router.url.includes('/student-dashboard/goal-setting') ||
-      this.router.url.includes('/student-dashboard/badges') ||
       this.router.url.includes('/student-dashboard/my-courses') ||
       this.router.url.includes('/student-dashboard/performance') ||
       this.router.url.includes('/student-dashboard/learning-path') ||
@@ -1903,16 +2045,6 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   private syncActiveNavFromUrl(url: string = this.router.url): void {
-    if (url.includes('/student-dashboard/goal-setting')) {
-      this.activeNav = 'goal-setting';
-      return;
-    }
-
-    if (url.includes('/student-dashboard/badges')) {
-      this.activeNav = 'badges';
-      return;
-    }
-
     if (url.includes('/student-dashboard/level-test-result')) {
       this.activeNav = 'level-test-result';
       return;

@@ -28,6 +28,22 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
     });
+
+    // If a valid session already exists, keep user out of login page.
+    if (this.authService.isAuthenticated()) {
+      const role = String(this.authService.getUser()?.role || '')
+        .trim()
+        .toLowerCase();
+      if (role === 'admin') {
+        this.router.navigate(['/admin']);
+      } else if (role === 'instructor' || role === 'teacher') {
+        this.router.navigate(['/instructor/dashboard']);
+      } else if (role === 'student') {
+        this.router.navigate(['/student-dashboard']);
+      } else {
+        this.router.navigate(['/profile']);
+      }
+    }
   }
 
   togglePassword() {

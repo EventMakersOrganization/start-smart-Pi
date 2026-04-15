@@ -18,6 +18,7 @@
     <h2 class="font-bold text-lg">My Profile</h2>
     <button
       (click)="closeProfileDrawer()"
+      aria-label="Close profile drawer"
       class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full cursor-pointer"
     >
       <span class="material-symbols-outlined text-slate-500">close</span>
@@ -238,10 +239,40 @@
           <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
             {{ subject.name }}
           </h3>
-          <p class="text-sm text-slate-500 mb-6">
+          <p class="text-sm text-slate-500 mb-4">
             {{ subject.count }} chapter{{ subject.count > 1 ? "s" : "" }}
             available
           </p>
+          <div *ngIf="subject.subjectDbId" class="mb-6">
+            <div
+              *ngIf="!subject.progressLoaded"
+              class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse"
+              aria-hidden="true"
+            ></div>
+            <div *ngIf="subject.progressLoaded" class="space-y-1.5">
+              <div
+                class="flex justify-between text-xs text-slate-500 dark:text-slate-400"
+              >
+                <span>Course progress</span>
+                <span class="font-bold text-slate-700 dark:text-slate-200">{{
+                  (subject.progressPercent ?? 0) | number: "1.0-2"
+                }}%</span>
+              </div>
+              <div
+                class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"
+                role="progressbar"
+                aria-label="Subject learning progress"
+                [attr.aria-valuenow]="subject.progressPercent ?? 0"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div
+                  class="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-[width] duration-300"
+                  [style.width.%]="subject.progressPercent ?? 0"
+                ></div>
+              </div>
+            </div>
+          </div>
           <button
             (click)="openSubject(subject)"
             class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors"
@@ -259,7 +290,11 @@
           >menu_book</span
         >
         <h3 class="text-xl font-bold text-slate-700 mb-2">No subjects found</h3>
-        <p>Courses are empty for now.</p>
+        <p>
+          Subjects show up when you are enrolled in a class and your class has
+          subjects assigned. If you are not in a class yet, ask your
+          administrator to assign you.
+        </p>
       </div>
     </section>
 
@@ -700,6 +735,7 @@
           <div
             *ngIf="quizSubmitMessage"
             class="mt-4 rounded-xl border px-4 py-3 text-sm"
+            aria-live="polite"
             [ngClass]="
               quizSubmitted
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
@@ -882,8 +918,10 @@
               Deposer votre fichier de reponse (PDF/Word)
             </p>
             <input
+              id="quiz-response-file"
               type="file"
               accept=".pdf,.doc,.docx"
+              aria-label="Upload quiz response file"
               (change)="onQuizResponseFileSelected($event)"
               class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700"
             />
@@ -910,6 +948,7 @@
           <div
             *ngIf="quizFileSubmitMessage"
             class="mt-4 rounded-xl border px-4 py-3 text-sm"
+            aria-live="polite"
             [ngClass]="
               quizFileSubmitted
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
@@ -1088,6 +1127,36 @@
           <div class="mt-8 border-t border-slate-200 pt-6">
             <h5 class="text-3xl font-bold text-slate-900 mb-4">Remise</h5>
 
+            <div
+              *ngIf="selectedPrositSubmission"
+              class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm"
+            >
+              <p class="font-semibold text-emerald-800">
+                Remise deja deposee le
+                {{ selectedPrositSubmission.submittedAt | date: "short" }}.
+              </p>
+              <p class="text-emerald-700 mt-1">
+                Statut:
+                {{
+                  selectedPrositSubmission.status === "graded"
+                    ? "Corrigee"
+                    : "En attente de correction"
+                }}
+              </p>
+              <p
+                *ngIf="selectedPrositSubmission.status === 'graded'"
+                class="text-emerald-800 mt-1"
+              >
+                Note: {{ selectedPrositSubmission.grade || 0 }}/20
+              </p>
+              <p
+                *ngIf="selectedPrositSubmission.feedback"
+                class="text-emerald-800 mt-1"
+              >
+                Feedback: {{ selectedPrositSubmission.feedback }}
+              </p>
+            </div>
+
             <div class="rounded-xl border border-slate-200 bg-white mb-6">
               <div
                 class="border-b border-slate-200 px-3 py-2 flex flex-wrap items-center gap-1"
@@ -1171,7 +1240,9 @@
               </p>
               <p class="text-xl font-semibold text-slate-700 mb-3">ou bien</p>
               <input
+                id="prosit-file-upload"
                 type="file"
+                aria-label="Upload prosit submission file"
                 (change)="onPrositSubmissionFileSelected($event)"
                 class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700"
               />
@@ -1185,12 +1256,18 @@
 
             <div class="mt-5 flex items-center gap-3">
               <button
+                type="button"
+                [disabled]="prositSubmitting"
                 (click)="submitProsit()"
-                class="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
+                class="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Valider
+                {{ prositSubmitting ? "Envoi..." : "Valider" }}
               </button>
-              <span class="text-sm text-slate-600" *ngIf="prositSubmitMessage">
+              <span
+                class="text-sm text-slate-600"
+                *ngIf="prositSubmitMessage"
+                aria-live="polite"
+              >
                 {{ prositSubmitMessage }}
               </span>
             </div>
@@ -1239,6 +1316,8 @@
 <!-- AI Chat Button (floating) -->
 <div class="fixed bottom-8 right-8 z-30">
   <button
+    type="button"
+    aria-label="Open AI assistant"
     class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"
   >
     <span class="material-symbols-outlined text-3xl">psychology</span>

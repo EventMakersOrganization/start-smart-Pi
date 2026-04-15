@@ -1,7 +1,10 @@
 <!-- overall layout cribbed from provided HTML template -->
 <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
   <!-- Top Navigation Bar -->
-  <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 py-3 sticky top-0 z-50">
+  <header
+    role="banner"
+    class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 py-3 sticky top-0 z-50"
+  >
     <div class="flex items-center gap-8">
       <div class="flex items-center gap-3 text-primary">
         <app-brand-logo [link]="'/admin/students'" variant="header" />
@@ -11,7 +14,7 @@
         <input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-400 text-slate-700 dark:text-slate-200" placeholder="Global search..." type="text"/>
       </div>
     </div>
-    <nav class="flex items-center gap-6">
+    <nav class="flex items-center gap-6" aria-label="Admin top navigation">
       <a routerLink="/admin/students" routerLinkActive="text-primary border-b-2 border-primary" class="text-sm font-semibold pb-1" [routerLinkActiveOptions]="{ exact: false }">Users</a>
       <a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1" href="#">Learning Paths</a>
       <a
@@ -40,9 +43,12 @@
     </div>
   </header>
 
-  <main class="flex flex-1 overflow-hidden">
+  <main id="main-content" tabindex="-1" class="flex flex-1 overflow-hidden">
     <!-- Sidebar Navigation -->
-    <aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 gap-2">
+    <aside
+      aria-label="Admin sidebar"
+      class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 gap-2"
+    >
       <div class="mb-4 px-2">
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</p>
       </div>
@@ -81,7 +87,10 @@
     </aside>
 
     <!-- Main Content Area -->
-    <section class="flex-1 flex flex-col min-w-0 bg-background-light dark:bg-background-dark">
+    <section
+      aria-label="Admin content"
+      class="flex-1 flex flex-col min-w-0 bg-background-light dark:bg-background-dark"
+    >
       <router-outlet></router-outlet>
     </section>
   </main>

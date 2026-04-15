@@ -9,6 +9,11 @@ body {
   font-family: 'Space Grotesk', sans-serif;
 }
 
+:focus-visible {
+  outline: 2px solid #1152d4;
+  outline-offset: 2px;
+}
+
 .glass-effect {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(10px);

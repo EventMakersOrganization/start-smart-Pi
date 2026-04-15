@@ -134,6 +134,12 @@ _TOPIC_STOPWORDS = frozenset(
 )
 
 
+_TOPIC_NOISE = frozenset({
+    "module", "chapitre", "chapter", "partie", "section", "cours",
+    "introduction", "conclusion", "resume", "annexe",
+})
+
+
 def _topic_keywords_from_slot(slot_topic: str) -> list[str]:
     t = re.sub(r"^\s*[\d.]+\s*[-–—]\s*", "", (slot_topic or "").strip())
     t = re.sub(r"\([^)]*\)", " ", t)
@@ -145,6 +151,8 @@ def _topic_keywords_from_slot(slot_topic: str) -> list[str]:
     seen: set[str] = set()
     for w in words:
         if w in _TOPIC_STOPWORDS:
+            continue
+        if w in _TOPIC_NOISE:
             continue
         if len(w) == 2 and w not in allow_short:
             continue
@@ -241,10 +249,37 @@ def topic_slot_aligned(q: dict[str, Any], slot_topic: str) -> bool:
     return True
 
 
+def _looks_non_french_level_test(q: dict[str, Any]) -> bool:
+    """True if question/options/explanation look Spanish or English-only (not French)."""
+    parts = [
+        str(q.get("question") or ""),
+        " ".join(str(x) for x in (q.get("options") or [])),
+        str(q.get("explanation") or ""),
+    ]
+    blob = " ".join(parts)
+    if "¿" in blob or "¡" in blob:
+        return True
+    if re.search(
+        r"\b(cuando|cuándo|cuál|cuáles|cómo|por\s+qué|dónde|qué\s+medida|"
+        r"para\s+evitar|utilizando|usar\s+consultas|implementar\s+control)\b",
+        blob,
+        re.IGNORECASE,
+    ):
+        return True
+    qst = str(q.get("question") or "").strip()
+    if re.match(r"^(What|Which|How|When|Where|Why)\b", qst, re.IGNORECASE) and not re.search(
+        r"[éèêëàâùûôîïç]", qst
+    ):
+        return True
+    return False
+
+
 def reject_level_test_question(
     q: dict[str, Any],
     slot_topic: str | None = None,
     course_context: str | None = None,
+    *,
+    require_french: bool = False,
 ) -> str | None:
     if not isinstance(q, dict):
         return "not a dict"
@@ -253,6 +288,9 @@ def reject_level_test_question(
         return "options not length 4"
     if not q.get("question") or not q.get("correct_answer"):
         return "missing question or correct_answer"
+
+    if require_french and _looks_non_french_level_test(q):
+        return "non_french_language"
 
     on = [_strip_accents(str(x)).lower().strip() for x in opts]
     cn = _strip_accents(str(q.get("correct_answer") or "")).lower().strip()
@@ -311,13 +349,6 @@ def reject_level_test_question(
         str(q.get("question") or "")
     ):
         return "language_mismatch_expected_french"
-
-    # Catch self-contradicting "switch/default" items (general C rule: at most one default label).
-    # Common failure: "only one default if there is no default" (nonsense).
-    if "switch" in qt and "defaut" in qt:
-        ca = _strip_accents(str(q.get("correct_answer") or "")).lower()
-        if "n'a pas" in ca and "default" in ca:
-            return "illogical_switch_default_rule"
 
     if not (
         slot_topic and _slot_topic_is_workflow_etapes_chapter(slot_topic)

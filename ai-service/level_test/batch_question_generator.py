@@ -1,7 +1,7 @@
 """
 High-performance batch question generator for the level test.
 
-Batch: ONE LLM call per logical subject (typically 5 MCQs) + parallel subjects.
+Batch: ONE LLM call per logical subject (typically 2 MCQs) + parallel subjects.
 Includes quality filtering, topic-slot alignment, and cache bypass support.
 """
 from __future__ import annotations
@@ -68,7 +68,7 @@ def _cache_key(
     question_course_ids: list[str] | None = None,
     diversity_seed: str | None = None,
 ) -> str:
-    version = "v14_topic_shuffle_session_diversity"
+    version = "v16_2q_fr"
     cid = "|".join(sorted(course_ids)) if course_ids else ""
     qcid = "|".join(question_course_ids or [])
     seed = (diversity_seed or "").strip()
@@ -256,7 +256,12 @@ def _quality_ok(
 
     canonicalize_correct_answer_in_place(q)
 
-    if reject_level_test_question(q, slot_topic=slot_topic, course_context=context) is not None:
+    if (
+        reject_level_test_question(
+            q, slot_topic=slot_topic, course_context=context, require_french=True
+        )
+        is not None
+    ):
         return False
     if slot_topic is not None and not topic_slot_aligned(q, slot_topic):
         return False
@@ -288,10 +293,40 @@ def _regen_single_question(
             topic=topic,
             diversity_seed=diversity_seed,
         )
-        if isinstance(q, dict):
+        if isinstance(q, dict) and q.get("question") and q.get("options"):
             return q
-    except Exception:
-        return None
+    except Exception as exc:
+        logger.warning("_regen_single_question failed for %s/%s: %s", subject_title, topic, exc)
+    return None
+
+
+def _simple_llm_fallback(
+    subject_title: str,
+    topic: str,
+    diff: str,
+) -> dict[str, Any] | None:
+    """Minimal prompt fallback — French only, no RAG."""
+    prompt = (
+        f"Rédige UNE question à choix multiples sur « {topic} » pour la matière « {subject_title} ».\n"
+        f"Difficulté : {diff}.\n"
+        f"Tout le texte (énoncé, 4 options, explication) doit être en FRANÇAIS uniquement.\n"
+        f"Règles : 4 options, 1 bonne réponse, courte explication.\n"
+        f"Réponds UNIQUEMENT en JSON strict : {{\"question\": ..., \"options\": [...], "
+        f"\"correct_answer\": ..., \"difficulty\": \"{diff}\", \"explanation\": ..., \"topic\": \"{topic}\"}}\n"
+        f"JSON:"
+    )
+    try:
+        raw = _generate_level_test_llm(prompt, output_questions=1)
+        items = _extract_json_array(raw)
+        for q in items:
+            if (q.get("question") and isinstance(q.get("options"), list)
+                    and len(q["options"]) == 4 and q.get("correct_answer")):
+                canonicalize_correct_answer_in_place(q)
+                q.setdefault("topic", topic)
+                q.setdefault("difficulty", diff)
+                return q
+    except Exception as exc:
+        logger.warning("_simple_llm_fallback failed for %s/%s: %s", subject_title, topic, exc)
     return None
 
 
@@ -299,7 +334,7 @@ def generate_batch_for_subject(
     subject_title: str,
     topics: list[str],
     difficulties: list[str],
-    count: int = 5,
+    count: int = 2,
     rag_service: RAGService | None = None,
     course_ids: list[str] | None = None,
     question_course_ids: list[str] | None = None,
@@ -362,6 +397,8 @@ def generate_batch_for_subject(
     for i, q in enumerate(questions):
         slot_topic = topics[min(i, len(topics) - 1)] if topics else None
         if not _quality_ok(q, context, slot_topic=slot_topic):
+            logger.info("Batch Q#%d for %s rejected by quality filter (topic=%s)",
+                        i, subject_title, slot_topic)
             continue
         sig = _question_signature(q)
         if sig in seen:
@@ -374,29 +411,22 @@ def generate_batch_for_subject(
         for i in range(len(questions), count):
             topic = topics[i] if i < len(topics) else topics[i % len(topics)]
             diff = difficulties[i] if i < len(difficulties) else "medium"
-            strict_ctx = context
             slot_cid = ""
             if question_course_ids and i < len(question_course_ids):
                 slot_cid = str(question_course_ids[i] or "").strip()
-            if slot_cid and course_ids and hasattr(rag_service, "get_context_for_course_ids"):
-                strict_ctx = rag_service.get_context_for_course_ids(
-                    f"{subject_title} {topic}".strip(),
-                    [slot_cid],
-                    max_chunks=8,
-                ) or context
-            picked = None
-            # One call here is already up to 3 internal attempts; keep total retries bounded.
-            for _ in range(1):
-                picked = _regen_single_question(
-                    subject_title,
-                    topic,
-                    diff,
-                    diversity_seed=diversity_seed,
-                )
-                if picked and _quality_ok(picked, strict_ctx, slot_topic=topic):
-                    break
+
+            picked = _regen_single_question(
+                subject_title, topic, diff, diversity_seed=diversity_seed,
+            )
+
             if not picked:
-                picked = _fallback_question(subject_title, topic, diff, context=strict_ctx)
+                logger.info("Regen failed for %s slot %d, trying simple LLM fallback", subject_title, i)
+                picked = _simple_llm_fallback(subject_title, topic, diff)
+
+            if not picked:
+                logger.warning("All LLM attempts failed for %s slot %d, using static fallback", subject_title, i)
+                picked = _fallback_question(subject_title, topic, diff, context=context)
+
             if slot_cid:
                 picked["course_id"] = slot_cid
             questions.append(picked)
@@ -446,7 +476,6 @@ def generate_all_subjects_parallel(
     t0 = time.perf_counter()
     results: dict[str, list[dict]] = {}
 
-    # Ensure max_workers is at least 1 to avoid ValueError
     max_workers = max(1, min(_MAX_WORKERS, len(subjects)))
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         futures = {}
@@ -457,7 +486,7 @@ def generate_all_subjects_parallel(
                 subject_title=s["title"],
                 topics=s["topics"],
                 difficulties=s["difficulties"],
-                count=s.get("count", 5),
+                count=s.get("count", 2),
                 rag_service=rag_service,
                 course_ids=s.get("course_ids"),
                 question_course_ids=s.get("question_course_ids"),
@@ -483,6 +512,9 @@ def generate_all_subjects_parallel(
     return results
 
 
+_FALLBACK_IDX = 0
+
+
 def _fallback_question(
     subject: str,
     slot_topic: str,
@@ -490,60 +522,54 @@ def _fallback_question(
     context: str = "",
 ) -> dict:
     """
-    Last-resort filler that stays in French (this project’s default) and avoids
-    generic "Concept A" placeholders.
+    Absolute last-resort filler. Rotates through varied patterns so no two
+    fallbacks look identical within the same test session.
     """
-    # Avoid title-only questions; anchor to a technical term from context AND keep topic alignment.
-    t = (slot_topic or "ce chapitre").strip()
-    s = (subject or "ce cours").strip()
-    norm = _strip_accents(context or "").lower()
-    m = re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*", norm)
-    # Filter generic document words so we don't ask "à quoi sert chapitre ?"
-    generic = {
-        "dans", "pour", "avec", "les", "des", "une", "un", "du", "de", "la", "le",
-        "cours", "chapitre", "module", "section", "titre", "partie", "page",
-        "exemple", "figure", "programme", "table", "annexe",
-        # Too generic to build a useful MCQ
-        "operation", "operations", "operateur", "operateurs", "chaine", "chaines",
-        "donnee", "donnees", "structure", "structures", "fonction", "fonctions",
-    }
-    candidates = [x for x in m if len(x) >= 3 and x not in generic]
-    topic_words = [
-        w
-        for w in re.findall(r"[a-zA-Zàâäéèêëïîôùûç]{3,}", _strip_accents(t).lower())
-        if w not in generic
+    global _FALLBACK_IDX
+    t = (slot_topic or "general").strip()
+    s = (subject or "this course").strip()
+
+    patterns = [
+        {
+            "question": f"Quel est le rôle principal de « {t} » dans {s} ?",
+            "options": [
+                f"Assurer une fonction centrale du cours {s}",
+                f"Servir uniquement à l’affichage graphique",
+                f"Gérer exclusivement le matériel externe",
+                f"N’avoir aucun rôle défini dans {s}",
+            ],
+            "correct_answer": f"Assurer une fonction centrale du cours {s}",
+            "explanation": f"« {t} » joue un rôle important dans {s}, comme présenté dans le cours.",
+        },
+        {
+            "question": f"Laquelle des affirmations décrit le mieux « {t} » ?",
+            "options": [
+                f"Une notion clé de {s} liée à {t}",
+                f"Une technique obsolète sans usage actuel",
+                f"Un concept qui n’appartient pas à ce domaine",
+                f"Une idée purement décorative sans application",
+            ],
+            "correct_answer": f"Une notion clé de {s} liée à {t}",
+            "explanation": f"« {t} » fait partie des objectifs d’apprentissage de {s}.",
+        },
+        {
+            "question": f"Comment « {t} » contribue-t-il aux objectifs de {s} ?",
+            "options": [
+                f"Il répond à un objectif d’apprentissage de {s}",
+                f"Il ne sert qu’au bonus facultatif",
+                f"Il contredit les principes de {s}",
+                f"Il est sans lien avec les objectifs de {s}",
+            ],
+            "correct_answer": f"Il répond à un objectif d’apprentissage de {s}",
+            "explanation": f"« {t} » soutient les objectifs du cours {s}.",
+        },
     ]
-    candidates = candidates[:50] + topic_words
 
-    q_text = ""
-    good = ""
-    for term in candidates:
-        cand = {
-            "question": f"Dans {s}, à quoi sert « {term} » (ou que signifie-t-il) ?",
-            "options": [],
-            "correct_answer": "",
-            "explanation": "",
-            "topic": t,
-        }
-        if topic_slot_aligned(cand, t):
-            q_text = cand["question"]
-            good = f"Définition/usage correct de « {term} »"
-            break
+    fallback = patterns[_FALLBACK_IDX % len(patterns)]
+    _FALLBACK_IDX += 1
 
-    if not q_text:
-        concept = " ".join(topic_words[:3]).strip() or "ce concept"
-        q_text = f"Dans {s}, quel énoncé est correct concernant {concept} ?"
-        good = "Énoncé correct selon le cours"
     return {
-        "question": q_text,
-        "options": [
-            good,
-            "Confusion fréquente (définition ou usage incorrect)",
-            "Assertion contredite par le cours",
-            "Exemple incorrect (syntaxe/usage)",
-        ],
-        "correct_answer": good,
-        "explanation": "",
+        **fallback,
         "difficulty": difficulty,
         "topic": t,
         "type": "MCQ",

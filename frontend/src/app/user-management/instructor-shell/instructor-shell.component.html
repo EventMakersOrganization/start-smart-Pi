@@ -2,13 +2,14 @@
   class="flex flex-col min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100"
 >
   <header
+    role="banner"
     class="flex items-center justify-between border-b border-primary/10 bg-white dark:bg-slate-900 px-8 py-3 sticky top-0 z-30"
   >
     <div class="flex items-center gap-8">
       <div class="flex items-center gap-3 text-primary">
         <app-brand-logo [link]="'/instructor/dashboard'" variant="header" />
       </div>
-      <nav class="hidden md:flex items-center gap-6">
+      <nav class="hidden md:flex items-center gap-6" aria-label="Instructor top navigation">
         <a
           routerLink="/instructor/dashboard"
           [ngClass]="
@@ -97,6 +98,7 @@
 
   <div class="flex flex-1 overflow-hidden min-h-0">
     <aside
+      aria-label="Instructor sidebar"
       class="w-64 border-r border-primary/10 bg-white dark:bg-slate-900 p-6 hidden lg:flex lg:flex-col gap-8 shrink-0 overflow-y-auto"
     >
       <div class="flex flex-col gap-2">
@@ -140,6 +142,14 @@
         </a>
         <a
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+          routerLink="/instructor/progress-reports"
+          routerLinkActive="bg-primary/10 text-primary"
+        >
+          <span class="material-symbols-outlined">family_restroom</span>
+          <span class="text-sm font-medium">Progress Reports</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
           routerLink="/instructor/interventions"
           routerLinkActive="bg-primary/10 text-primary"
         >
@@ -178,31 +188,35 @@
         >
           My Courses
         </p>
-        <div class="space-y-1">
+        <div class="space-y-1" *ngIf="assignedSubjects.length > 0; else noAssignedSubjects">
           <div
+            *ngFor="let subject of assignedSubjects"
             class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
           >
-            <span>CS101 Intro</span>
+            <span class="truncate pr-2">{{ subject.title }}</span>
             <span class="size-2 rounded-full bg-green-500"></span>
           </div>
-          <div
-            class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
-          >
-            <span>AI Ethics</span>
-            <span class="size-2 rounded-full bg-yellow-500"></span>
-          </div>
         </div>
+        <ng-template #noAssignedSubjects>
+          <p class="px-3 py-2 text-xs text-slate-500">No assigned subjects yet.</p>
+        </ng-template>
       </div>
       <div class="mt-auto bg-primary/5 rounded-xl p-4 border border-primary/10">
-        <p class="text-xs font-bold text-primary mb-1">New AI Insight</p>
+        <p class="text-xs font-bold text-primary mb-1">Live Risk Insight</p>
         <p class="text-[11px] text-slate-500">
-          3 students are struggling with Module 4 Quiz. Consider a review
-          session.
+          {{ topRiskMessage }}
+          <span *ngIf="criticalCases > 0" class="block mt-1 font-semibold text-red-600">
+            {{ criticalCases }} critical case{{ criticalCases > 1 ? 's' : '' }}.
+          </span>
         </p>
       </div>
     </aside>
 
-    <main class="flex-1 overflow-y-auto min-w-0 bg-background-light dark:bg-background-dark">
+    <main
+      id="main-content"
+      tabindex="-1"
+      class="flex-1 overflow-y-auto min-w-0 bg-background-light dark:bg-background-dark"
+    >
       <router-outlet></router-outlet>
     </main>
   </div>

@@ -2,7 +2,7 @@
 Adaptive level-test engine (v2 — logical subject grouping).
 
 - Courses that share the same MongoDB `subject` field are treated as ONE logical subject.
-- One logical subject gets a pool of QUESTIONS_PER_SUBJECT MCQs, sampled across its chapters/modules.
+- One logical subject gets a pool of QUESTIONS_PER_SUBJECT MCQs (2), sampled across its chapters/modules.
 - Questions are pre-generated in parallel on start_test; submit_answer is instant.
 """
 from __future__ import annotations
@@ -33,7 +33,7 @@ if not logger.handlers:
     logger.addHandler(_h)
 
 DIFFICULTIES = ["easy", "medium", "hard"]
-QUESTIONS_PER_SUBJECT = 5
+QUESTIONS_PER_SUBJECT = 2
 _COLLECTION = "level_test_sessions"
 
 
@@ -487,9 +487,8 @@ class AdaptiveLevelTest:
 
     @staticmethod
     def _initial_difficulty_sequence() -> list[str]:
-        """Starting difficulties for the 5 questions per subject.
-        Start medium, cover all levels so scoring has differentiated weights."""
-        return ["medium", "medium", "easy", "hard", "medium"]
+        """Starting difficulties for the 2 questions per subject."""
+        return ["medium", "hard"]
 
     @staticmethod
     def _adapt_difficulty(current: str, is_correct: bool) -> str:
@@ -502,18 +501,20 @@ class AdaptiveLevelTest:
 
     @staticmethod
     def _fallback_question(subject: str, topic: str, difficulty: str) -> dict:
+        t = (topic or "général").strip()
+        s = (subject or "ce cours").strip()
         return {
-            "question": f"What is an important concept related to '{topic}' in {subject}?",
+            "question": f"Concernant « {t} » dans {s}, quelle affirmation est correcte ?",
             "options": [
-                f"Concept A about {topic}",
-                f"Concept B about {topic}",
-                f"Concept C about {topic}",
-                f"Concept D about {topic}",
+                f"« {t} » correspond à ce qui est présenté dans le cours pour {s}.",
+                f"« {t} » n’a aucun lien avec les objectifs de {s}.",
+                f"« {t} » est une notion obsolète sans usage actuel.",
+                f"« {t} » désigne uniquement un titre de chapitre sans contenu.",
             ],
-            "correct_answer": f"Concept A about {topic}",
-            "explanation": f"This is a fallback question about {topic}.",
+            "correct_answer": f"« {t} » correspond à ce qui est présenté dans le cours pour {s}.",
+            "explanation": f"D’après le cours sur {s}, la première option décrit correctement {t}.",
             "difficulty": difficulty,
-            "topic": topic,
+            "topic": t,
             "type": "MCQ",
         }
 

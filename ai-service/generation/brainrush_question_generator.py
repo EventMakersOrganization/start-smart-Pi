@@ -16,7 +16,7 @@ from difflib import SequenceMatcher
 from typing import Any
 
 from core import config
-from core.db_connection import get_all_courses
+from core.db_connection import get_all_courses, get_course_by_id
 from core.rag_service import RAGService
 from generation.brainrush_errors import BrainRushGroundingError
 from generation.level_test_quality import reject_level_test_question, topic_slot_aligned
@@ -38,6 +38,8 @@ except Exception:  # noqa: BLE001
 # Minimum retrieved characters before calling the LLM (strict RAG grounding)
 MIN_BRAINRUSH_CONTEXT_CHARS = 120
 _GROUNDING_CONFIDENCE_MIN = 0.55
+_THIN_CONTEXT_THRESHOLD = 1000
+_THIN_CONTEXT_GROUNDING_MIN = 0.20
 _MAX_MCQ_ATTEMPTS = 8
 _MAX_TF_ATTEMPTS = 8
 _MAX_DD_ATTEMPTS = 8
@@ -182,7 +184,9 @@ def brainrush_mcq_passes_level_test(
         return False
     q2 = dict(q)
     canonicalize_correct_answer_in_place(q2)
-    reason = reject_level_test_question(q2, slot_topic=slot_topic, course_context=course_content or "")
+    reason = reject_level_test_question(
+        q2, slot_topic=slot_topic, course_context=course_content or "", require_french=True,
+    )
     if reason is not None:
         logger.debug("brainrush level-test reject: %s", reason)
         return False
@@ -712,8 +716,46 @@ def calculate_estimated_time_seconds(questions: list[dict[str, Any]]) -> int:
     return total + 60
 
 
-def _passes_grounding_gate(validation: dict[str, Any]) -> bool:
-    return float(validation.get("confidence") or 0.0) >= _GROUNDING_CONFIDENCE_MIN
+def _passes_grounding_gate(validation: dict[str, Any], *, thin_context: bool = False) -> bool:
+    threshold = _THIN_CONTEXT_GROUNDING_MIN if thin_context else _GROUNDING_CONFIDENCE_MIN
+    return float(validation.get("confidence") or 0.0) >= threshold
+
+
+def _mongo_course_text_for_brainrush(course_id: str | None) -> str:
+    """
+    Build grounding text from MongoDB when Chroma has few/no chunks (e.g. not embedded yet).
+    Avoids pulling unrelated subjects via global vector search.
+    """
+    cid = str(course_id or "").strip()
+    if not cid:
+        return ""
+    doc = get_course_by_id(cid)
+    if not doc or not isinstance(doc, dict):
+        return ""
+    parts: list[str] = []
+    t = (doc.get("title") or "").strip()
+    d = (doc.get("description") or "").strip()
+    if t:
+        parts.append(f"Chapitre / cours : {t}")
+    if d:
+        parts.append(d)
+    for i, m in enumerate(doc.get("modules") or []):
+        if not isinstance(m, dict):
+            continue
+        mt = (m.get("title") or "").strip()
+        md = (m.get("description") or "").strip()
+        fu = (m.get("fileUrl") or "").strip()
+        fn = (m.get("fileName") or "").strip()
+        if not mt and not md:
+            continue
+        block = f"— Module {i + 1} : {mt}" if mt else f"— Module {i + 1}"
+        if md:
+            block += f"\n{md}"
+        if fu or fn:
+            block += f"\n(fichier : {fn or fu})"
+        parts.append(block)
+    out = "\n\n".join(parts).strip()
+    return out[:24000]
 
 
 def _fetch_brainrush_context(
@@ -723,10 +765,10 @@ def _fetch_brainrush_context(
     course_id_hint: str | None,
 ) -> str:
     """
-    Same retrieval contract as level_test.batch_question_generator:
-    with course_id: get_context_for_course_ids(..., max_chunks=10), then if empty
-    get_context_for_query(..., max_chunks=8); without course_id: get_context_for_query(8).
-    Tries a few query variants and keeps the longest block until MIN_BRAINRUSH_CONTEXT_CHARS.
+    With ``course_id_hint``: search Chroma **only** for that course's chunks, then merge with
+    MongoDB chapter/module text. **Never** fall back to global ``get_context_for_query`` when a
+    course is scoped — that was mixing in other subjects (e.g. Programmation) when BD had no
+    embeddings yet.
     """
     subject_s = (subject or "").strip()
     topic_s = (topic or "").strip()
@@ -745,129 +787,100 @@ def _fetch_brainrush_context(
             seen.add(q)
             ordered.append(q)
 
+    cid = str(course_id_hint).strip() if course_id_hint else ""
+    mongo_blob = _mongo_course_text_for_brainrush(cid) if cid else ""
+
     def _one_block(qtext: str) -> str:
         qtext = (qtext or "").strip()
         if not qtext:
             return ""
-        cid = str(course_id_hint).strip() if course_id_hint else ""
         if cid:
-            block = (rag.get_context_for_course_ids(qtext, [cid], max_chunks=10) or "").strip()
-            if not block:
-                block = (rag.get_context_for_query(qtext, max_chunks=8) or "").strip()
-        else:
-            block = (rag.get_context_for_query(qtext, max_chunks=8) or "").strip()
-        return block
+            return (rag.get_context_for_course_ids(qtext, [cid], max_chunks=10) or "").strip()
+        return (rag.get_context_for_query(qtext, max_chunks=8) or "").strip()
 
     best = ""
     for qtext in ordered:
         block = _one_block(qtext)
         if len(block) > len(best):
             best = block
-        if len(best) >= MIN_BRAINRUSH_CONTEXT_CHARS:
+        if len(best) >= MIN_BRAINRUSH_CONTEXT_CHARS and not cid:
             return best
+
+    if cid:
+        merged = best
+        if mongo_blob:
+            merged = f"{best}\n\n---\n\n{mongo_blob}".strip() if best else mongo_blob
+        return merged[:32000]
+
     return best
 
 
+_BRAINRUSH_FALLBACK_MCQ_IDX = 0
+
+
 def _brainrush_fallback_mcq_from_rag(subject: str, topic: str, difficulty: str, context: str) -> dict[str, Any]:
-    """
-    Level-test-style last resort: anchor to a term from RAG context (see batch_question_generator._fallback_question).
-    Options kept under BRAINRUSH_MAX_OPTION_LEN.
-    """
-    t = (topic or "ce chapitre").strip()
+    """French-only fallback MCQ — rotates patterns, works for any subject."""
+    global _BRAINRUSH_FALLBACK_MCQ_IDX
+    t = (topic or "ce thème").strip()
     s = (subject or "ce cours").strip()
-    norm = _strip_accents_br(context or "").lower()
-    m = re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*", norm)
-    generic = {
-        "dans",
-        "pour",
-        "avec",
-        "les",
-        "des",
-        "une",
-        "un",
-        "du",
-        "de",
-        "la",
-        "le",
-        "cours",
-        "chapitre",
-        "module",
-        "section",
-        "titre",
-        "partie",
-        "page",
-        "exemple",
-        "figure",
-        "programme",
-        "table",
-        "annexe",
-        "operation",
-        "operations",
-        "operateur",
-        "operateurs",
-        "chaine",
-        "chaines",
-        "donnee",
-        "donnees",
-        "structure",
-        "structures",
-        "fonction",
-        "fonctions",
-    }
-    candidates = [x for x in m if len(x) >= 3 and x.lower() not in generic]
-    topic_words = [
-        w
-        for w in re.findall(r"[a-zA-Zàâäéèêëïîôùûç]{3,}", _strip_accents_br(t).lower())
-        if w.lower() not in generic
+
+    patterns = [
+        {
+            "question": f"Quel est le rôle principal de « {t} » dans {s} ?",
+            "options": [
+                f"Assurer une fonction clé de {s}",
+                "Servir uniquement à l'affichage",
+                "Gérer le matériel externe",
+                f"N'avoir aucun rôle dans {s}",
+            ],
+            "correct_answer": f"Assurer une fonction clé de {s}",
+            "explanation": f"« {t} » joue un rôle important dans {s}.",
+        },
+        {
+            "question": f"Laquelle décrit le mieux « {t} » ?",
+            "options": [
+                f"Une notion clé de {s}",
+                "Une technique obsolète",
+                "Un concept d'un autre domaine",
+                "Une idée sans application",
+            ],
+            "correct_answer": f"Une notion clé de {s}",
+            "explanation": f"« {t} » est étudié dans {s}.",
+        },
+        {
+            "question": f"Comment « {t} » contribue-t-il à {s} ?",
+            "options": [
+                f"Il répond à un objectif de {s}",
+                "Il ne sert qu'au bonus",
+                f"Il contredit les principes de {s}",
+                f"Il est sans rapport avec {s}",
+            ],
+            "correct_answer": f"Il répond à un objectif de {s}",
+            "explanation": f"« {t} » soutient les objectifs de {s}.",
+        },
     ]
-    candidates = (candidates + topic_words)[:80]
 
-    q_text = ""
-    good = ""
-    for term in candidates:
-        term_s = (term or "")[:24]
-        cand = {
-            "question": f"Dans {s}, à quoi sert « {term_s} » ?",
-            "options": [],
-            "correct_answer": "",
-            "topic": t,
-        }
-        if topic_slot_aligned(cand, t):
-            q_text = cand["question"]
-            good = f"Usage/définition corrects ({term_s})"
-            break
+    fb = patterns[_BRAINRUSH_FALLBACK_MCQ_IDX % len(patterns)]
+    _BRAINRUSH_FALLBACK_MCQ_IDX += 1
 
-    if not q_text:
-        concept = " ".join(topic_words[:3]).strip() or "ce sujet"
-        q_text = f"Dans {s}, quel énoncé décrit le mieux {concept} ?"
-        good = "Énoncé conforme au cours"
-
-    good = good[:BRAINRUSH_MAX_OPTION_LEN]
     return {
         "type": "MCQ",
-        "question": q_text[:BRAINRUSH_MAX_QUESTION_LEN],
-        "options": [
-            good,
-            "Erreur fréquente (usage ou définition)",
-            "Affirmation fausse vs le cours",
-            "Exemple ou syntaxe incorrects",
-        ],
-        "correct_answer": good,
-        "explanation": "Révisez le passage du cours correspondant à ce thème.",
+        "question": fb["question"][:BRAINRUSH_MAX_QUESTION_LEN],
+        "options": [o[:BRAINRUSH_MAX_OPTION_LEN] for o in fb["options"]],
+        "correct_answer": fb["correct_answer"][:BRAINRUSH_MAX_OPTION_LEN],
+        "explanation": fb["explanation"],
         "difficulty": difficulty,
         "topic": t,
     }
 
 
 def _brainrush_fallback_tf_stem(topic: str) -> tuple[str, str]:
-    """Non-meta technical V/F when LLM fails (no syllabus/title trivia)."""
-    tl = (topic or "").lower()
-    if "chaîne" in tl or "chaine" in tl or "string" in tl or "caract" in tl:
-        return (
-            "En C, un littéral de chaîne nécessite un espace pour le '\\0' final en mémoire.",
-            "Vrai",
-        )
-    return ("En C, sizeof(char) vaut 1 octet.", "Vrai")
+    """Generic French V/F fallback when LLM fails — works for any subject."""
+    t = (topic or "ce concept").strip()
+    return (
+        f"« {t} » est une notion étudiée dans le programme du cours.",
+        "Vrai",
+    )
 
 
 def _call_brainrush_llm(prompt: str) -> str:
@@ -917,47 +930,50 @@ def _build_gamified_mcq_prompt(
     if len(ref) > 3200:
         ref = ref[:3200]
     seed_line = (
-        f"\nSESSION_ID: {diversity_seed}\nEach question MUST differ from previous ones: pick different angles, "
-        "numbers, and code snippets within the same topic; do not repeat the same question stem pattern.\n"
+        f"\nSESSION_ID: {diversity_seed}\nChaque question DOIT différer des précédentes : varie les angles, "
+        "les exemples et les scénarios ; ne répète pas le même patron de question.\n"
         if diversity_seed
         else ""
     )
-    lang_hint = "Write EVERYTHING in French (question, options, explanation)." if _looks_like_french_ref(ref) else "Same language as the reference."
-    return f"""You are an expert C programming teacher writing a quiz question.
+    return f"""Tu es un expert en évaluation pédagogique qui rédige des quiz rapides pour un jeu éducatif (BrainRush).
 
-Generate exactly ONE multiple-choice question. {lang_hint}
+Génère exactement UNE question à choix multiples EN FRANÇAIS UNIQUEMENT.
 
-Subject: {subject}
-Topic: {topic}
-Difficulty: {difficulty}
+Matière : {subject}
+Thème : {topic}
+Difficulté : {difficulty}
 
-STRICT RULES — violating any rule makes the question INVALID:
+RÈGLES STRICTES — toute violation rend la question INVALIDE :
 
-1. QUESTION STYLE:
-   - Ask about CONCEPTS, BEHAVIOUR, or MEANING — e.g. "What does this code print?", "What is the difference between X and Y?", "Which statement about X is correct?"
-   - Do NOT ask step ordering ("première étape", "dernière étape", "quel est l'ordre").
-   - Do NOT copy a code block from the reference and ask "what is this?". Write your OWN short example if needed.
-   - Keep the question SHORT (1-2 sentences, under 150 characters if no code). If you include code, keep it under 3 lines.
+1. LANGUE :
+   - Tout le texte (énoncé, 4 options, explication) DOIT être rédigé en français.
+   - Les noms de commandes, fonctions, mots-clés techniques ou extraits de code peuvent rester en anglais.
 
-2. OPTIONS:
-   - Exactly 4 options, exactly 1 correct. All 4 must be plausible and roughly the same length.
-   - Do NOT use full sentences as options when short phrases work. Keep each option under 80 characters.
-   - No catch-all ("toutes les réponses", "aucune de ces réponses").
-   - Each option must be clearly different from the others.
+2. STYLE DE QUESTION :
+   - Teste la COMPRÉHENSION : définitions, distinctions, cause-effet, application d'une règle, interprétation
+     d'un résultat, comparaison de deux concepts, ou identification d'une erreur.
+   - NE demande PAS l'ordre des étapes ("première étape", "dernière étape", "quel est l'ordre").
+   - NE copie PAS un passage du cours en demandant "est-ce vrai ?". Reformule et applique.
+   - Question COURTE (1-2 phrases, max 150 caractères sans code). Si tu inclus du code, max 3 lignes.
 
-3. CORRECTNESS:
-   - The correct_answer MUST be factually correct according to C language rules.
-   - If asking about code output, mentally execute the code step by step before answering.
-   - Common traps to avoid: int A[5]=={{1,2,3}} is VALID in C (remaining = 0). for loop CAN execute 0 times. main() IS required in C. scanf is in stdio.h not string.h.
-   - The explanation must justify WHY the correct answer is right and briefly say why the others are wrong.
+3. OPTIONS :
+   - Exactement 4 options, 1 seule correcte. Les 4 doivent être plausibles et de longueur similaire.
+   - Préfère des phrases courtes (< 80 caractères par option).
+   - Pas de "toutes les réponses" ni "aucune de ces réponses".
+   - Chaque option clairement différente des autres.
 
-4. correct_answer must be character-for-character identical to one of the four options.
+4. EXACTITUDE :
+   - La réponse correcte DOIT être factuellement juste selon le cours.
+   - Pour du code : exécute mentalement chaque étape avant de répondre.
+   - L'explication justifie POURQUOI la bonne réponse est correcte.
 
-REFERENCE MATERIAL (use as knowledge source, do NOT copy examples verbatim):
+5. correct_answer doit être identique caractère par caractère à l'une des quatre options.
+
+MATÉRIEL DE RÉFÉRENCE (source de vérité, ne copie pas les exemples mot à mot) :
 {ref}
 {seed_line}
-OUTPUT — strict JSON only, no markdown, no extra text before or after the JSON:
-{{"question":"Your question here","options":["option1","option2","option3","option4"],"correct_answer":"option1","explanation":"Your explanation here","difficulty":"{difficulty}","topic":"{topic}"}}
+SORTIE — JSON strict uniquement, pas de markdown, pas de texte avant ou après le JSON :
+{{"question":"Ta question ici","options":["option1","option2","option3","option4"],"correct_answer":"option1","explanation":"Ton explication ici","difficulty":"{difficulty}","topic":"{topic}"}}
 JSON:"""
 
 
@@ -974,34 +990,30 @@ def _build_gamified_tf_prompt(
         if diversity_seed
         else ""
     )
-    lang_hint = "Write EVERYTHING in French (question, explanation)." if _looks_like_french_ref(ref) else "Same language as the reference."
-    return f"""You are an expert C programming teacher writing a True/False quiz question. {lang_hint}
+    return f"""Tu es un expert en évaluation pédagogique pour un jeu éducatif rapide (BrainRush).
 
-Generate exactly ONE True/False statement about the topic below.
+Génère exactement UNE affirmation Vrai/Faux EN FRANÇAIS UNIQUEMENT.
 
-Subject: {subject}
-Topic: {topic}
-Difficulty: {difficulty}
+Matière : {subject}
+Thème : {topic}
+Difficulté : {difficulty}
 
-STRICT RULES:
+RÈGLES STRICTES :
 
-1. The statement must be a clear, unambiguous technical fact about C programming — e.g. how a construct behaves, what a function does, what a type means.
-2. Do NOT ask about document structure, step ordering, or course organization.
-3. Do NOT write an empty or vague statement. Be specific and concrete.
-4. CORRECTNESS IS CRITICAL:
-   - for loop CAN execute 0 times (condition checked BEFORE first iteration). Only do-while always executes at least once.
-   - main() IS the mandatory entry point in standard C.
-   - scanf() is declared in stdio.h, NOT string.h.
-   - int A[5] = {{1,2,3}} is valid C: remaining elements are initialized to 0.
-   - Verify your statement against C language rules before answering.
-5. Options must be exactly ["Vrai", "Faux"]. correct_answer must be exactly "Vrai" or "Faux".
-6. Explanation: 1-2 sentences justifying the answer with a concrete reason.
+1. L'affirmation doit être un fait technique clair et non ambigu lié au thème — ex. comment un mécanisme fonctionne,
+   ce qu'une fonction/commande fait, ce qu'un concept signifie.
+2. NE demande PAS la structure du document, l'ordre des étapes ou l'organisation du cours.
+3. L'affirmation doit être précise et concrète (pas vague).
+4. EXACTITUDE CRITIQUE : vérifie l'affirmation selon les règles du domaine avant de répondre.
+5. Options : exactement ["Vrai", "Faux"]. correct_answer : exactement "Vrai" ou "Faux".
+6. Explication : 1-2 phrases justifiant la réponse avec une raison concrète.
+7. Tout le texte (affirmation + explication) doit être en français.
 
-REFERENCE MATERIAL (use as knowledge source):
+MATÉRIEL DE RÉFÉRENCE (source de vérité) :
 {ref}
 {seed}
-OUTPUT — strict JSON only, no markdown, no extra text before or after the JSON:
-{{"question":"Your statement here","options":["Vrai","Faux"],"correct_answer":"Vrai","explanation":"Your explanation here","difficulty":"{difficulty}","topic":"{topic}"}}
+SORTIE — JSON strict uniquement, pas de markdown :
+{{"question":"Ton affirmation ici","options":["Vrai","Faux"],"correct_answer":"Vrai","explanation":"Ton explication ici","difficulty":"{difficulty}","topic":"{topic}"}}
 JSON:"""
 
 
@@ -1017,30 +1029,30 @@ def _build_gamified_dd_prompt(
     strict_line = (
         "\nSTRICT: 3 pairs; labels taken from text (real names); no Item1/MatchA.\n" if strict else ""
     )
-    lang_hint = "Write EVERYTHING in French." if _looks_like_french_ref(ref) else "Same language as the reference."
-    return f"""You are an expert assessment designer for a fast-paced educational game (BrainRush).
+    return f"""Tu es un expert en évaluation pédagogique pour un jeu éducatif rapide (BrainRush).
 
-Generate exactly ONE drag-and-drop matching question using ONLY the reference material below.
+Génère exactement UNE question de type glisser-déposer (matching) EN FRANÇAIS UNIQUEMENT,
+en utilisant UNIQUEMENT le matériel de référence ci-dessous.
 
-Subject: {subject}
-Topic: {topic}
-Difficulty: {difficulty}
+Matière : {subject}
+Thème : {topic}
+Difficulté : {difficulty}
 {strict_line}
-Rules:
-- All labels (items, matches) must be traceable in the reference.
-- {lang_hint}
-- 3 or 4 pairs (same count for items and matches).
-- Each label must be a CONCRETE term from the reference (function names, concepts, keywords).
-- Forbidden: "Item 1", "Item 2", "Match A", "Concept X", generic numbering.
-- correct_pairs keys must exactly equal items strings; values must exactly equal matches strings.
+Règles :
+- Tous les labels (items, matches) doivent être traçables dans le matériel de référence.
+- Tout le texte doit être en français (sauf noms techniques / commandes).
+- 3 ou 4 paires (même nombre d'items et de matches).
+- Chaque label doit être un terme CONCRET du cours (noms de fonctions, concepts, mots-clés).
+- Interdit : "Item 1", "Item 2", "Match A", "Concept X", numérotation générique.
+- Les clés de correct_pairs doivent correspondre exactement aux items ; les valeurs aux matches.
 
-REFERENCE MATERIAL (only source of truth):
+MATÉRIEL DE RÉFÉRENCE (source de vérité) :
 ---
 {ref}
 ---
 
-OUTPUT (strict JSON only — no markdown fences, no extra text):
-{{"question":"Short instruction in French","items":["term1","term2","term3"],"matches":["desc A","desc B","desc C"],"correct_pairs":{{"term1":"desc A","term2":"desc B","term3":"desc C"}},"explanation":"...","difficulty":"{difficulty}","topic":"{topic}"}}
+SORTIE (JSON strict uniquement — pas de markdown) :
+{{"question":"Instruction courte en français","items":["terme1","terme2","terme3"],"matches":["desc A","desc B","desc C"],"correct_pairs":{{"terme1":"desc A","terme2":"desc B","terme3":"desc C"}},"explanation":"...","difficulty":"{difficulty}","topic":"{topic}"}}
 JSON:"""
 
 
@@ -1064,12 +1076,17 @@ class BrainRushQuestionGenerator:
     ) -> dict[str, Any]:
         try:
             course_content = _fetch_brainrush_context(self.rag_service, subject, topic, course_id_hint)
+            thin_ctx = len(course_content.strip()) < _THIN_CONTEXT_THRESHOLD
             if len(course_content.strip()) < MIN_BRAINRUSH_CONTEXT_CHARS:
-                # Relaxed Mode: If no RAG content is found, use LLM knowledge for this question.
                 course_content = f"(Aucun support de cours trouvé. Utilise tes connaissances générales sur {subject}/{topic} pour générer cette question.)"
+                thin_ctx = True
+
+            max_attempts = 4 if thin_ctx else _MAX_MCQ_ATTEMPTS
+            if thin_ctx:
+                logger.info("brainrush mcq thin-context mode for subject=%s topic=%s (relaxed grounding)", subject, topic)
 
             if use_gamified:
-                for attempt in range(_MAX_MCQ_ATTEMPTS):
+                for attempt in range(max_attempts):
                     prompt = _build_gamified_mcq_prompt(
                         subject,
                         topic,
@@ -1096,11 +1113,12 @@ class BrainRushQuestionGenerator:
                         pairs = val_dict.get("correct_pairs") or {}
                         val_dict["correct_answer"] = " ".join(str(v) for v in pairs.values())[:200]
                     validation = self.hallucination_guard.verify_question_validity(val_dict, course_content or "")
-                    if not _passes_grounding_gate(validation):
+                    if not _passes_grounding_gate(validation, thin_context=thin_ctx):
                         logger.warning(
-                            "brainrush mcq grounding rejected: issues=%s conf=%s",
+                            "brainrush mcq grounding rejected: issues=%s conf=%s thin=%s",
                             validation.get("issues"),
                             validation.get("confidence"),
+                            thin_ctx,
                         )
                         continue
                     opts_raw = data.get("options", ["A", "B", "C", "D"])
@@ -1128,7 +1146,8 @@ class BrainRushQuestionGenerator:
                     if not validate_brainrush_game_rules(q, question_type="MCQ"):
                         logger.info("brainrush mcq failed game rules, attempt %s", attempt + 1)
                         continue
-                    if not brainrush_mcq_passes_level_test(q, course_content or "", topic):
+                    skip_level_test = thin_ctx and attempt >= 2
+                    if not skip_level_test and not brainrush_mcq_passes_level_test(q, course_content or "", topic):
                         reason = reject_level_test_question(q, slot_topic=topic, course_context=course_content or "")
                         aligned = topic_slot_aligned(q, topic)
                         logger.info(
@@ -1145,7 +1164,7 @@ class BrainRushQuestionGenerator:
                 data = self._extract_and_validate_json(response)
                 val_dict = dict(data)
                 validation = self.hallucination_guard.verify_question_validity(val_dict, course_content or "")
-                if not _passes_grounding_gate(validation):
+                if not _passes_grounding_gate(validation, thin_context=thin_ctx):
                     raise BrainRushGroundingError("Non-gamified MCQ failed hallucination guard.")
                 q = {
                     "type": "MCQ",
@@ -1182,12 +1201,14 @@ class BrainRushQuestionGenerator:
     ) -> dict[str, Any]:
         try:
             course_content = _fetch_brainrush_context(self.rag_service, subject, topic, course_id_hint)
+            thin_ctx = len(course_content.strip()) < _THIN_CONTEXT_THRESHOLD
             if len(course_content.strip()) < MIN_BRAINRUSH_CONTEXT_CHARS:
-                # Relaxed Mode: If no RAG content is found, use LLM knowledge for this question.
                 course_content = f"(Aucun support de cours trouvé. Utilise tes connaissances générales sur {subject}/{topic} pour générer cette question.)"
+                thin_ctx = True
 
+            max_attempts = 4 if thin_ctx else _MAX_TF_ATTEMPTS
             if use_gamified:
-                for attempt in range(_MAX_TF_ATTEMPTS):
+                for attempt in range(max_attempts):
                     ds = f"{diversity_seed}|tf{attempt}" if diversity_seed else f"tf{attempt}"
                     prompt = _build_gamified_tf_prompt(subject, topic, difficulty, course_content, ds)
                     logger.info(
@@ -1207,11 +1228,12 @@ class BrainRushQuestionGenerator:
                         pairs = val_dict.get("correct_pairs") or {}
                         val_dict["correct_answer"] = " ".join(str(v) for v in pairs.values())[:200]
                     validation = self.hallucination_guard.verify_question_validity(val_dict, course_content or "")
-                    if not _passes_grounding_gate(validation):
+                    if not _passes_grounding_gate(validation, thin_context=thin_ctx):
                         logger.warning(
-                            "brainrush tf grounding rejected: issues=%s conf=%s",
+                            "brainrush tf grounding rejected: issues=%s conf=%s thin=%s",
                             validation.get("issues"),
                             validation.get("confidence"),
+                            thin_ctx,
                         )
                         continue
                     opts_raw = data.get("options") or ["Vrai", "Faux"]
@@ -1265,7 +1287,7 @@ class BrainRushQuestionGenerator:
                     pairs = val_dict.get("correct_pairs") or {}
                     val_dict["correct_answer"] = " ".join(str(v) for v in pairs.values())[:200]
                 validation = self.hallucination_guard.verify_question_validity(val_dict, course_content or "")
-                if not _passes_grounding_gate(validation):
+                if not _passes_grounding_gate(validation, thin_context=thin_ctx):
                     raise BrainRushGroundingError("Non-gamified True/False failed hallucination guard.")
                 opts_raw = data.get("options") or ["Vrai", "Faux"]
                 olist = []
@@ -1682,7 +1704,9 @@ class BrainRushQuestionGenerator:
         cid = str(course_id_hint).strip() if course_id_hint else ""
         if cid:
             ctx = (self.rag_service.get_context_for_course_ids(query, [cid], max_chunks=8) or "").strip()
-        if not ctx:
+            if not ctx:
+                ctx = _mongo_course_text_for_brainrush(cid)
+        else:
             ctx = (self.rag_service.get_context_for_query(query, max_chunks=8) or "").strip()
         base = _brainrush_fallback_mcq_from_rag(subject, topic, difficulty, ctx)
         return {

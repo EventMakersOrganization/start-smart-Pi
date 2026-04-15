@@ -1,11 +1,15 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from '../auth.service';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
 import { QuizSubmissionService } from '../quiz-submission.service';
+import {
+  PrositSubmissionResponse,
+  PrositSubmissionService,
+} from '../prosit-submission.service';
 import {
   SubjectChapterContent,
   SubjectItem as DbSubjectItem,
@@ -43,6 +47,9 @@ interface SubjectItem {
   loaded?: boolean;
   source?: 'subject' | 'course_title';
   includeAllTitles?: boolean;
+  /** Average module % from `/api/subjects/:id/learning-progress` (set when subjectDbId exists). */
+  progressPercent?: number;
+  progressLoaded?: boolean;
 }
 
 interface CourseContentResource {
@@ -116,6 +123,7 @@ interface QuizFileSubmissionViewModel {
 
 interface PrositViewModel {
   title: string;
+  subjectTitle?: string;
   chapterTitle: string;
   subChapterTitle: string;
   fileUrl: string | null;
@@ -213,10 +221,13 @@ export class MyCoursesComponent implements OnInit {
   };
   activeFolderBySubchapter: Record<string, FolderKey> = {};
   selectedProsit: PrositViewModel | null = null;
+  selectedPrositSubmission: PrositSubmissionResponse | null = null;
+  prositSubmissionsByKey: Record<string, PrositSubmissionResponse> = {};
   selectedPrositSubmissionFile: File | null = null;
   selectedPrositReportText = '';
   selectedPrositReportHtml = '';
   prositSubmitMessage = '';
+  prositSubmitting = false;
   selectedQuiz: QuizViewModel | null = null;
   selectedQuizFile: QuizFileViewModel | null = null;
   selectedQuizResponseFile: File | null = null;
@@ -244,7 +255,9 @@ export class MyCoursesComponent implements OnInit {
     private adaptiveService: AdaptiveLearningService,
     private subjectsService: SubjectsService,
     private quizSubmissionService: QuizSubmissionService,
+    private prositSubmissionService: PrositSubmissionService,
     private router: Router,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
@@ -252,7 +265,14 @@ export class MyCoursesComponent implements OnInit {
     this.loadCourses();
     this.loadPreviousQuizSubmissions();
     this.loadPreviousQuizFileSubmissions();
+    this.loadPreviousPrositSubmissions();
     this.checkDarkMode();
+
+    this.route.queryParamMap.subscribe(() => {
+      if (this.subjects.length > 0) {
+        this.tryOpenSubjectFromRecommendationQuery();
+      }
+    });
   }
 
   private loadPreviousQuizSubmissions(): void {
@@ -296,6 +316,33 @@ export class MyCoursesComponent implements OnInit {
     });
   }
 
+  private loadPreviousPrositSubmissions(): void {
+    const studentId = String(this.user?.id || this.user?._id || '').trim();
+    if (!studentId) {
+      return;
+    }
+
+    this.prositSubmissionService.getStudentPrositSubmissions(studentId).subscribe({
+      next: (res) => {
+        const rows = Array.isArray(res?.submissions) ? res.submissions : [];
+        for (const submission of rows) {
+          const key = this.buildPrositSubmissionKey(
+            submission?.subjectTitle,
+            submission?.chapterTitle,
+            submission?.subChapterTitle,
+            submission?.prositTitle,
+          );
+          if (key) {
+            this.prositSubmissionsByKey[key] = submission;
+          }
+        }
+      },
+      error: () => {
+        console.warn('Could not load previous prosit submissions');
+      },
+    });
+  }
+
   private checkDarkMode(): void {
     this.darkMode = document.documentElement.classList.contains('dark');
   }
@@ -308,7 +355,51 @@ export class MyCoursesComponent implements OnInit {
       .subscribe((dbSubjects) => {
         this.applySubjectsFromDatabase(dbSubjects);
         this.subjectsLoading = false;
+        this.tryOpenSubjectFromRecommendationQuery();
       });
+  }
+
+  /**
+   * Open the subject matching `?subject=` from the student dashboard recommendation cards.
+   */
+  private tryOpenSubjectFromRecommendationQuery(): void {
+    const hint = (this.route.snapshot.queryParamMap.get('subject') || '')
+      .trim()
+      .toLowerCase();
+    if (!hint || !this.subjects?.length) {
+      return;
+    }
+
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+
+    const nh = normalize(hint);
+
+    const match =
+      this.subjects.find((s) => normalize(s.name) === nh) ||
+      this.subjects.find(
+        (s) =>
+          normalize(s.name).includes(nh) || nh.includes(normalize(s.name)),
+      ) ||
+      this.subjects.find((s) => {
+        const nn = normalize(s.name);
+        return nh.split(/\s+/).some((w) => w.length > 2 && nn.includes(w));
+      });
+
+    if (match) {
+      this.openSubject(match);
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { subject: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
   }
 
   private applySubjectsFromDatabase(dbSubjects: DbSubjectItem[]): void {
@@ -382,11 +473,64 @@ export class MyCoursesComponent implements OnInit {
         courses,
         color: colors[index % colors.length],
         loaded: true,
+        progressLoaded: false,
       };
     });
 
     this.courses = this.subjects.flatMap((subject) => subject.courses);
     this.viewMode = 'subjects';
+    this.loadSubjectProgressBars();
+  }
+
+  private loadSubjectProgressBars(): void {
+    const withIds = this.subjects.filter((s) => !!s.subjectDbId?.trim());
+    if (withIds.length === 0) {
+      return;
+    }
+    forkJoin(
+      withIds.map((s) =>
+        this.subjectsService.getSubjectLearningProgress(s.subjectDbId!),
+      ),
+    ).subscribe((results) => {
+      withIds.forEach((s, i) => {
+        const p = results[i]?.percent;
+        s.progressPercent = Number.isFinite(p)
+          ? Math.round(Math.max(0, Math.min(100, p)) * 100) / 100
+          : 0;
+        s.progressLoaded = true;
+      });
+      this.subjects = [...this.subjects];
+    });
+  }
+
+  private refreshSelectedSubjectProgress(): void {
+    const sid = String(this.selectedSubject?.subjectDbId || '').trim();
+    if (!sid) {
+      return;
+    }
+    this.subjectsService.getSubjectLearningProgress(sid).subscribe({
+      next: (res) => {
+        const p = Number(res?.percent);
+        const normalized = Number.isFinite(p)
+          ? Math.round(Math.max(0, Math.min(100, p)) * 100) / 100
+          : 0;
+        this.subjects = this.subjects.map((s) =>
+          String(s.subjectDbId || '').trim() === sid
+            ? { ...s, progressPercent: normalized, progressLoaded: true }
+            : s,
+        );
+        if (this.selectedSubject && String(this.selectedSubject.subjectDbId || '').trim() === sid) {
+          this.selectedSubject = {
+            ...this.selectedSubject,
+            progressPercent: normalized,
+            progressLoaded: true,
+          };
+        }
+      },
+      error: () => {
+        // keep previous value on transient failures
+      },
+    });
   }
 
   private loadSubjectsFromCourseTitlesOrFallback(): void {
@@ -565,11 +709,11 @@ export class MyCoursesComponent implements OnInit {
   }
 
   private mapToCourseItems(sourceCourses: any[]): CourseItem[] {
-    const thumbs = [
-      'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-    ];
+          const thumbs = [
+            'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
+            'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80',
+            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+          ];
 
     return (sourceCourses || []).map((course: any, index: number) => {
       const modules = Array.isArray(course?.modules)
@@ -582,19 +726,19 @@ export class MyCoursesComponent implements OnInit {
             .sort((a: CourseModule, b: CourseModule) => a.order - b.order)
         : [];
 
-      return {
-        id: course?._id || course?.id || String(index + 1),
+              return {
+                id: course?._id || course?.id || String(index + 1),
         chapterOrder: Number(course?.order ?? index),
-        title: course?.title || `Course ${index + 1}`,
+                title: course?.title || `Course ${index + 1}`,
         description: course?.description || '',
-        instructor:
-          course?.instructorId?.name ||
-          course?.instructor?.name ||
-          'Enseignant',
+                instructor:
+                  course?.instructorId?.name ||
+                  course?.instructor?.name ||
+                  'Enseignant',
         subject: this.extractSubject(course),
         modules,
         moduleCount: modules.length,
-        thumbnail: thumbs[index % thumbs.length],
+                thumbnail: thumbs[index % thumbs.length],
       };
     });
   }
@@ -874,6 +1018,7 @@ export class MyCoursesComponent implements OnInit {
     this.selectedSubject = null;
     this.selectedCourse = null;
     this.viewMode = 'subjects';
+    this.loadSubjectProgressBars();
   }
 
   openCourse(course: CourseItem): void {
@@ -938,6 +1083,7 @@ export class MyCoursesComponent implements OnInit {
     this.courseExercises = [];
     this.courseQuizzes = [];
     this.selectedProsit = null;
+    this.selectedPrositSubmission = null;
     this.selectedPrositSubmissionFile = null;
     this.selectedPrositReportText = '';
     this.selectedPrositReportHtml = '';
@@ -956,6 +1102,7 @@ export class MyCoursesComponent implements OnInit {
 
   backToChapterContent(): void {
     this.selectedProsit = null;
+    this.selectedPrositSubmission = null;
     this.selectedPrositSubmissionFile = null;
     this.selectedPrositReportText = '';
     this.selectedPrositReportHtml = '';
@@ -1401,6 +1548,7 @@ export class MyCoursesComponent implements OnInit {
       next: () => {
         this.quizSubmitted = true;
         this.quizSubmitMessage = `Quiz ${this.selectedQuiz!.title} pret pour validation (${this.getQuizAnsweredCount()}/${this.selectedQuiz!.questions.length} reponses).`;
+        this.refreshSelectedSubjectProgress();
         this.backToChapterContentFromQuiz();
       },
       error: (err) => {
@@ -1586,6 +1734,7 @@ export class MyCoursesComponent implements OnInit {
 
     this.selectedProsit = {
       title: item.title,
+      subjectTitle: this.selectedCourse?.subject || '',
       chapterTitle: this.selectedCourse?.title || 'Chapter',
       subChapterTitle: module.title,
       fileUrl: this.getItemUrl(item),
@@ -1598,6 +1747,13 @@ export class MyCoursesComponent implements OnInit {
     this.selectedPrositReportText = '';
     this.selectedPrositReportHtml = '';
     this.prositSubmitMessage = '';
+    const key = this.buildPrositSubmissionKey(
+      this.selectedProsit.subjectTitle,
+      this.selectedProsit.chapterTitle,
+      this.selectedProsit.subChapterTitle,
+      this.selectedProsit.title,
+    );
+    this.selectedPrositSubmission = key ? this.prositSubmissionsByKey[key] : null;
     this.viewMode = 'prosit';
   }
 
@@ -1636,6 +1792,16 @@ export class MyCoursesComponent implements OnInit {
   }
 
   submitProsit(): void {
+    if (!this.selectedProsit) {
+      return;
+    }
+
+    if (this.prositEditor?.nativeElement) {
+      const el = this.prositEditor.nativeElement;
+      this.selectedPrositReportText = String(el.innerText || '').trim();
+      this.selectedPrositReportHtml = String(el.innerHTML || '');
+    }
+
     const reportText = String(this.selectedPrositReportText || '').trim();
     if (!this.selectedPrositSubmissionFile && !reportText) {
       this.prositSubmitMessage =
@@ -1643,17 +1809,108 @@ export class MyCoursesComponent implements OnInit {
       return;
     }
 
-    if (this.selectedPrositSubmissionFile && reportText) {
-      this.prositSubmitMessage = `Compte rendu (${this.prositReportWordCount} mots) et fichier (${this.selectedPrositSubmissionFile.name}) prets pour validation.`;
+    const studentId = String(
+      this.user?._id || this.user?.id || '',
+    ).trim();
+    if (!studentId) {
+      this.prositSubmitMessage =
+        'Session invalide. Reconnectez-vous puis reessayez.';
       return;
+    }
+
+    const studentName = String(
+      this.user?.name ||
+        `${this.user?.first_name || ''} ${this.user?.last_name || ''}`.trim() ||
+        'Student',
+    ).trim();
+    const studentEmail = String(this.user?.email || '').trim();
+    if (!studentEmail) {
+      this.prositSubmitMessage =
+        'Email du compte manquant. Reconnectez-vous puis reessayez.';
+      return;
+    }
+
+    const form = new FormData();
+    form.append('prositTitle', this.selectedProsit.title);
+    form.append('chapterTitle', this.selectedProsit.chapterTitle);
+    form.append('subChapterTitle', this.selectedProsit.subChapterTitle);
+    const subjectTitle = String(this.selectedCourse?.subject || '').trim();
+    if (subjectTitle) {
+      form.append('subjectTitle', subjectTitle);
+    }
+    form.append('studentId', studentId);
+    form.append('studentName', studentName);
+    form.append('studentEmail', studentEmail);
+
+    if (reportText) {
+      form.append('reportText', reportText);
+      form.append('reportHtml', this.selectedPrositReportHtml || '');
+      form.append('wordCount', String(this.prositReportWordCount));
+    }
+
+    if (this.selectedProsit.dueDate) {
+      form.append('dueDate', this.selectedProsit.dueDate);
     }
 
     if (this.selectedPrositSubmissionFile) {
-      this.prositSubmitMessage = `Fichier pret pour validation: ${this.selectedPrositSubmissionFile.name}`;
-      return;
+      form.append('file', this.selectedPrositSubmissionFile);
     }
 
-    this.prositSubmitMessage = `Compte rendu pret pour validation (${this.prositReportWordCount} mots).`;
+    this.prositSubmitting = true;
+    this.prositSubmitMessage = '';
+
+    this.prositSubmissionService.submitProsit(form).subscribe({
+      next: (res) => {
+        this.prositSubmitting = false;
+        const saved = res?.submission;
+        if (saved) {
+          const key = this.buildPrositSubmissionKey(
+            saved.subjectTitle,
+            saved.chapterTitle,
+            saved.subChapterTitle,
+            saved.prositTitle,
+          );
+          if (key) {
+            this.prositSubmissionsByKey[key] = saved;
+            this.selectedPrositSubmission = saved;
+          }
+        }
+        this.selectedPrositSubmissionFile = null;
+        this.refreshSelectedSubjectProgress();
+        this.prositSubmitMessage =
+          res?.message ||
+          'Rendu enregistre avec succes. Vous pouvez revenir au chapitre.';
+      },
+      error: (err) => {
+        this.prositSubmitting = false;
+        const body = err?.error;
+        const raw =
+          body?.message ??
+          body?.error ??
+          err?.message ??
+          "Erreur lors de l'envoi.";
+        const msg = Array.isArray(raw) ? raw.join(' ') : String(raw);
+        this.prositSubmitMessage = msg || "Erreur lors de l'envoi de la remise.";
+      },
+    });
+  }
+
+  private buildPrositSubmissionKey(
+    subjectTitle: string | undefined,
+    chapterTitle: string | undefined,
+    subChapterTitle: string | undefined,
+    prositTitle: string | undefined,
+  ): string {
+    const parts = [subjectTitle, chapterTitle, subChapterTitle, prositTitle].map(
+      (v) =>
+        String(v || '')
+          .trim()
+          .toLowerCase(),
+    );
+    if (!parts.some((p) => !!p)) {
+      return '';
+    }
+    return parts.join('|');
   }
 
   getPrositFileUrl(): string | null {

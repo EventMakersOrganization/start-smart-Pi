@@ -244,36 +244,15 @@ def extract_key_terms(text: str, min_length: int = 4) -> list[str]:
         "from",
     }
     terms = [t for t in tokens if len(t) >= min_length and t not in common_words]
-    c_keywords = [
-        "for",
-        "while",
-        "do",
-        "if",
-        "else",
-        "switch",
-        "case",
-        "break",
-        "continue",
-        "return",
-        "int",
-        "char",
-        "float",
-        "double",
-        "printf",
-        "scanf",
-        "malloc",
-        "free",
-        "null",
-        "true",
-        "false",
-        "const",
-        "static",
-        "pointer",
-        "pointeur",
-        "string",
-    ]
-    for kw in c_keywords:
-        if kw in norm:
+    _SHORT_TECH = {
+        "for", "while", "do", "if", "else", "switch", "case", "break",
+        "return", "int", "char", "float", "tcp", "udp", "ip", "dns",
+        "sql", "api", "ram", "rom", "lan", "wan", "ssh", "tls", "ssl",
+        "vm", "os", "cpu", "gpu", "nat", "vpc", "iam", "kpi", "wbs",
+        "saas", "paas", "iaas", "acid", "crud", "rest", "null",
+    }
+    for kw in _SHORT_TECH:
+        if re.search(rf"\b{kw}\b", norm):
             terms.append(kw)
     out: list[str] = []
     seen: set[str] = set()
@@ -292,7 +271,9 @@ def validate_question_quality(
 ) -> bool:
     canonicalize_correct_answer_in_place(question_dict)
     issues: list[str] = []
-    r = reject_level_test_question(question_dict, slot_topic=topic, course_context=course_content)
+    r = reject_level_test_question(
+        question_dict, slot_topic=topic, course_context=course_content, require_french=True
+    )
     if r:
         issues.append(f"Rejected pattern: {r}")
     if topic and str(topic).strip() and not topic_slot_aligned(question_dict, str(topic).strip()):
@@ -311,9 +292,7 @@ def validate_question_quality(
         issues.append("Options are not distinct enough.")
 
     course_terms = extract_key_terms(course_content, min_length=3)
-    if not course_terms:
-        issues.append("No key terms extracted from course content.")
-    else:
+    if course_terms:
         combined = f"{q_text} {options_text} {correct_norm}"
         if not any(term in combined for term in course_terms):
             issues.append("Question/options don't seem grounded in provided course content.")
@@ -401,36 +380,14 @@ def generate_level_test_question(
             base_prompt
             + "\n\nSESSION / DIVERSITY: "
             + str(diversity_seed).strip()
-            + "\nInstruction: this session must differ from other runs — vary scenario, numbers, and code "
-            "identifiers; do not reuse generic templates; stay faithful to the course content and topic."
+            + "\nInstruction: cette session doit différer des autres — varie angles et exemples; "
+            "reste fidèle au contenu et au sujet. Tout le texte de la question doit être en français."
         )
 
-    subject_l = str(subject).lower()
-    topic_l = str(topic).lower()
-    topic_norm = _strip_accents(topic_l)
-    c_mode = ("programmation" in subject_l) or ("c" in topic_l) or (" c" in topic_l)
-    c_guidance = ""
-    if c_mode:
-        if "etape" in topic_norm or "etapes" in topic_norm:
-            c_guidance = (
-                "Pour ce thème (code source vers exécutable): une question sur le rôle de la compilation, "
-                "de l'édition de liens ou de l'exécution — ne pas demander la première/deuxième/n-ième étape."
-            )
-        elif "variable" in topic_l or "variables" in topic_l:
-            c_guidance = "Pour le sujet C/variables: teste une syntaxe exacte ou une règle précise."
-        elif "fonction" in topic_l:
-            c_guidance = "Pour le sujet C/fonctions: teste la syntaxe ou le rôle précis de return/paramètres."
-        elif "pointeur" in topic_l or "pointer" in topic_l:
-            c_guidance = "Pour le sujet C/pointeurs: teste la signification de & et *."
-        else:
-            c_guidance = "Pour le sujet C: évite les questions génériques; utilise des règles/syntaxes concrètes."
-
-    c_text = f"C guidance: {c_guidance}\n" if c_guidance else ""
     prompt = (
         f"{base_prompt}\n\n"
         f"COURSE CONTENT (from ChromaDB / course database via RAG):\n{course_content}\n\n"
-        f"Return STRICT JSON only (no markdown fences).\n"
-        f"{c_text}"
+        f"Return STRICT JSON only (no markdown fences). French only for question, options, explanation.\n"
     )
 
     invalid_json_count = 0

@@ -39,6 +39,19 @@ import {
   GoalSettings,
   GoalSettingsDocument,
 } from "./schemas/goal-settings.schema";
+import {
+  QuizSubmission,
+  QuizSubmissionDocument,
+} from "../subjects/schemas/quiz-submission.schema";
+import {
+  QuizFileSubmission,
+  QuizFileSubmissionDocument,
+  QuizFileSubmissionStatus,
+} from "../subjects/schemas/quiz-file-submission.schema";
+import {
+  PrositSubmission,
+  PrositSubmissionDocument,
+} from "../prosits/schemas/prosit-submission.schema";
 
 @Injectable()
 export class AdaptiveLearningService {
@@ -71,6 +84,12 @@ export class AdaptiveLearningService {
     private playerSessionModel: Model<PlayerSessionDocument>,
     @InjectModel(GoalSettings.name)
     private goalSettingsModel: Model<GoalSettingsDocument>,
+    @InjectModel(QuizSubmission.name)
+    private quizSubmissionModel: Model<QuizSubmissionDocument>,
+    @InjectModel(QuizFileSubmission.name)
+    private quizFileSubmissionModel: Model<QuizFileSubmissionDocument>,
+    @InjectModel(PrositSubmission.name)
+    private prositSubmissionModel: Model<PrositSubmissionDocument>,
   ) {}
 
   // ══════════════════════════════════
@@ -170,6 +189,7 @@ export class AdaptiveLearningService {
     summary: {
       currentLevel: string;
       progress: number;
+      levelTestScore: number;
       strengths: string[];
       weaknesses: string[];
       riskLevel: string;
@@ -327,7 +347,9 @@ export class AdaptiveLearningService {
       profile,
       summary: {
         currentLevel: profile?.level || levelTest?.resultLevel || "beginner",
-        progress: Number(profile?.progress ?? levelTest?.totalScore ?? 0) || 0,
+        progress: Number(profile?.progress ?? 0) || 0,
+        levelTestScore:
+          Number(profile?.levelTestScore ?? levelTest?.totalScore ?? 0) || 0,
         strengths: Array.isArray(profile?.strengths) ? profile.strengths : [],
         weaknesses: Array.isArray(profile?.weaknesses)
           ? profile.weaknesses
@@ -853,12 +875,16 @@ export class AdaptiveLearningService {
         ? profile.overall_level
         : "beginner";
 
-    const progressRaw = Number(
-      profile?.overall_mastery ?? profile?.totalScore ?? 0,
-    );
-    const progress = Math.max(
+    const levelTestMastery = Math.max(
       0,
-      Math.min(100, Number.isFinite(progressRaw) ? progressRaw : 0),
+      Math.min(
+        100,
+        Number.isFinite(
+          Number(profile?.overall_mastery ?? profile?.totalScore ?? 0),
+        )
+          ? Number(profile?.overall_mastery ?? profile?.totalScore ?? 0)
+          : 0,
+      ),
     );
 
     const strengths = Array.isArray(profile?.strengths)
@@ -880,7 +906,11 @@ export class AdaptiveLearningService {
       : [];
 
     const riskLevel =
-      progress >= 70 ? "LOW" : progress >= 40 ? "MEDIUM" : "HIGH";
+      levelTestMastery >= 70
+        ? "LOW"
+        : levelTestMastery >= 40
+          ? "MEDIUM"
+          : "HIGH";
 
     const updated = await this.profileModel
       .findOneAndUpdate(
@@ -888,7 +918,7 @@ export class AdaptiveLearningService {
         {
           $set: {
             level,
-            progress,
+            levelTestScore: levelTestMastery,
             strengths,
             weaknesses,
             levelTestCompleted: true,
@@ -1036,10 +1066,158 @@ export class AdaptiveLearningService {
   async findPerformanceByStudent(
     studentId: string,
   ): Promise<StudentPerformance[]> {
-    return this.performanceModel
-      .find({ studentId })
-      .sort({ attemptDate: -1 })
-      .exec();
+    const [adaptiveRows, quizRows, quizFileRows, prositRows] =
+      await Promise.all([
+        this.performanceModel.find({ studentId }).lean().exec(),
+        this.quizSubmissionModel
+          .find({ studentId })
+          .sort({ submittedAt: -1 })
+          .lean()
+          .exec(),
+        this.quizFileSubmissionModel
+          .find({
+            studentId,
+            status: QuizFileSubmissionStatus.GRADED,
+            grade: { $ne: null },
+          })
+          .sort({ gradedAt: -1, submittedAt: -1 })
+          .lean()
+          .exec(),
+        this.prositSubmissionModel
+          .find({
+            studentId,
+            status: { $in: ["graded", "reviewed"] },
+            grade: { $ne: null },
+          })
+          .sort({ gradedAt: -1, submittedAt: -1 })
+          .lean()
+          .exec(),
+      ]);
+
+    const normalizedAdaptive = (adaptiveRows || []).map((row: any) =>
+      this.normalizePerformanceRow(row),
+    );
+
+    const normalizedQuiz = (quizRows || []).map((row: any) => {
+      const score = Number(row?.scorePercentage ?? 0);
+      return this.normalizePerformanceRow({
+        studentId: String(row?.studentId || studentId),
+        exerciseId: String(row?.quizId || row?._id || "quiz"),
+        score,
+        timeSpent: 0,
+        attemptDate: row?.submittedAt || row?.createdAt,
+        source: "quiz",
+        topic:
+          String(
+            row?.subjectTitle ||
+              row?.chapterTitle ||
+              row?.subChapterTitle ||
+              "general",
+          ).trim() ||
+          "general",
+        difficulty: this.estimateDifficultyFromScore(score),
+      });
+    });
+
+    const normalizedQuizFiles = (quizFileRows || []).map((row: any) => {
+      const score = Math.max(0, Math.min(100, Number(row?.grade ?? 0)));
+      return this.normalizePerformanceRow({
+        studentId: String(row?.studentId || studentId),
+        exerciseId: String(row?.quizId || row?._id || "quiz-file"),
+        score,
+        timeSpent: 0,
+        attemptDate: row?.gradedAt || row?.submittedAt || row?.createdAt,
+        source: "quiz",
+        topic:
+          String(
+            row?.subjectTitle ||
+              row?.chapterTitle ||
+              row?.subChapterTitle ||
+              "general",
+          ).trim() ||
+          "general",
+        difficulty: this.estimateDifficultyFromScore(score),
+      });
+    });
+
+    const normalizedProsits = (prositRows || []).map((row: any) => {
+      const rawGrade = Number(row?.grade ?? 0);
+      const score = rawGrade <= 20 ? rawGrade * 5 : rawGrade;
+      return this.normalizePerformanceRow({
+        studentId: String(row?.studentId || studentId),
+        exerciseId: String(row?.prositTitle || row?._id || "prosit"),
+        score: Math.max(0, Math.min(100, score)),
+        timeSpent: 0,
+        attemptDate: row?.gradedAt || row?.submittedAt || row?.createdAt,
+        source: "exercise",
+        topic:
+          String(
+            row?.subjectTitle ||
+              row?.chapterTitle ||
+              row?.subChapterTitle ||
+              "general",
+          ).trim() ||
+          "general",
+        difficulty: this.estimateDifficultyFromScore(score),
+      });
+    });
+
+    const combined = [
+      ...normalizedAdaptive,
+      ...normalizedQuiz,
+      ...normalizedQuizFiles,
+      ...normalizedProsits,
+    ];
+
+    const deduped = new Map<string, any>();
+    combined.forEach((item) => {
+      const objectId = String(item?._id || "").trim();
+      const dateIso = new Date(item.attemptDate).toISOString();
+      const key = objectId
+        ? `id:${objectId}`
+        : `${item.source}:${item.exerciseId}:${dateIso}:${item.topic}:${item.score}`;
+      if (!deduped.has(key)) {
+        deduped.set(key, item);
+      }
+    });
+
+    return Array.from(deduped.values()).sort(
+      (a: any, b: any) =>
+        new Date(b.attemptDate).getTime() - new Date(a.attemptDate).getTime(),
+    ) as StudentPerformance[];
+  }
+
+  private estimateDifficultyFromScore(
+    score: number,
+  ): "beginner" | "intermediate" | "advanced" {
+    if (score >= 85) {
+      return "advanced";
+    }
+    if (score >= 60) {
+      return "intermediate";
+    }
+    return "beginner";
+  }
+
+  private normalizePerformanceRow(row: any): any {
+    return {
+      _id: row?._id,
+      studentId: String(row?.studentId || ""),
+      exerciseId: String(row?.exerciseId || "exercise"),
+      score: Math.max(0, Math.min(100, Number(row?.score ?? 0))),
+      timeSpent: Math.max(0, Number(row?.timeSpent ?? 0)),
+      attemptDate:
+        row?.attemptDate || row?.submittedAt || row?.gradedAt || row?.createdAt,
+      source: String(row?.source || "exercise"),
+      topic: String(
+        row?.subjectTitle ||
+          row?.topic ||
+          row?.chapterTitle ||
+          row?.subChapterTitle ||
+          "general",
+      ),
+      difficulty: String(row?.difficulty || "beginner"),
+    };
   }
 
   async updatePerformance(
@@ -4712,7 +4890,7 @@ export class AdaptiveLearningService {
             strengths: detectedStrengths.map((s: any) => s.topic),
             weaknesses: detectedWeaknesses.map((w: any) => w.topic),
             levelTestCompleted: true,
-            progress: totalScore,
+            levelTestScore: totalScore,
             risk_level:
               totalScore >= 70 ? "LOW" : totalScore >= 40 ? "MEDIUM" : "HIGH",
           },
@@ -4887,8 +5065,10 @@ export class AdaptiveLearningService {
 
     // 🔴 Priorité 1 : 3 exercices de remédiation (weaknesses)
     for (const weakness of sortedWeaknesses.slice(0, 3)) {
+      const topicLabel = String(weakness.topic || "").trim();
       const rec = await this.recommendationModel.create({
         studentId,
+        subject: topicLabel,
         recommendedContent: `${weakness.topic} — ${currentLevel} remediation exercises`,
         reason: `Based on your level test, you scored ${weakness.score}% in ${weakness.topic} (${weakness.correct}/${weakness.total} correct). Let's strengthen this area with targeted exercises.`,
         contentType: "exercise",
@@ -4910,8 +5090,10 @@ export class AdaptiveLearningService {
           : "advanced";
 
     for (const strength of sortedStrengths.slice(0, 2)) {
+      const topicLabel = String(strength.topic || "").trim();
       const rec = await this.recommendationModel.create({
         studentId,
+        subject: topicLabel,
         recommendedContent: `${strength.topic} — ${nextLevel} challenge exercises`,
         reason: `Excellent work in ${strength.topic}! You achieved ${strength.score}% on the level test (${strength.correct}/${strength.total} correct). Ready to level up with advanced challenges?`,
         contentType: "course",

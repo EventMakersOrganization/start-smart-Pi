@@ -193,11 +193,13 @@ def test_passes_grounding_gate_requires_valid_and_confidence() -> None:
     assert _passes_grounding_gate({"is_valid": True, "confidence": 0.55}) is True
     assert _passes_grounding_gate({"is_valid": True, "confidence": 0.50}) is False
     assert _passes_grounding_gate({"is_valid": False, "confidence": 0.60}) is True
+    assert _passes_grounding_gate({"is_valid": False, "confidence": 0.30}, thin_context=True) is True
+    assert _passes_grounding_gate({"is_valid": False, "confidence": 0.15}, thin_context=True) is False
 
 
 @patch("generation.brainrush_question_generator._fetch_brainrush_context")
 def test_generate_mcq_raises_when_confidence_below_threshold(mock_fetch: object) -> None:
-    long_ctx = "x" * (MIN_BRAINRUSH_CONTEXT_CHARS + 40)
+    long_ctx = "x" * 1200
     mock_fetch.return_value = long_ctx
     json_line = (
         '{"question":"Quel mot?","options":["a","b","c","d"],'
@@ -213,16 +215,38 @@ def test_generate_mcq_raises_when_confidence_below_threshold(mock_fetch: object)
             gen.generate_mcq("Prog", "easy", "loops", use_gamified=True)
 
 
-@patch("generation.brainrush_question_generator._fetch_brainrush_context")
-def test_generate_mcq_raises_on_short_context(mock_fetch: object) -> None:
-    mock_fetch.return_value = "short"
+@patch("generation.brainrush_question_generator._fetch_brainrush_context", return_value="short")
+@patch(
+    "generation.brainrush_question_generator._call_brainrush_llm",
+    return_value='{"question":"Q?","options":["a","b","c","d"],"correct_answer":"a","explanation":"e"}',
+)
+def test_generate_mcq_raises_on_short_context(mock_llm: object, mock_fetch: object) -> None:
+    """Short RAG triggers thin-context mode; still raises if confidence below thin threshold."""
     gen = BrainRushQuestionGenerator()
-    with pytest.raises(BrainRushGroundingError):
-        gen.generate_mcq("Prog", "easy", "loops", use_gamified=True)
+    with patch.object(
+        gen.hallucination_guard,
+        "verify_question_validity",
+        return_value={"is_valid": False, "confidence": 0.1, "issues": ["rejected", "more", "issues", "extra"]},
+    ):
+        with pytest.raises(BrainRushGroundingError):
+            gen.generate_mcq("Prog", "easy", "loops", use_gamified=True)
 
 
 def test_fetch_brainrush_context_uses_best_length() -> None:
     rag = MagicMock()
     rag.get_context_for_query.side_effect = lambda q, max_chunks: "y" * 400 if max_chunks >= 8 else "ab"
     out = _fetch_brainrush_context(rag, "S", "T", None)
+    assert len(out) >= MIN_BRAINRUSH_CONTEXT_CHARS
+
+
+def test_fetch_brainrush_context_scoped_course_never_calls_global_search() -> None:
+    """Regression: global get_context_for_query pulled unrelated subjects (e.g. Prog) when BD had no chunks."""
+    rag = MagicMock()
+    rag.get_context_for_course_ids.return_value = ""
+    with patch(
+        "generation.brainrush_question_generator._mongo_course_text_for_brainrush",
+        return_value="m" * 400,
+    ):
+        out = _fetch_brainrush_context(rag, "Base de données", "SGA", "507f1f77bcf86cd799439011")
+    rag.get_context_for_query.assert_not_called()
     assert len(out) >= MIN_BRAINRUSH_CONTEXT_CHARS

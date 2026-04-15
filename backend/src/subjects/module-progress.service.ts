@@ -326,4 +326,52 @@ export class ModuleProgressService {
   async countQuizAttempts(studentId: string, quizId: string): Promise<number> {
     return this.quizSubmissionModel.countDocuments({ studentId, quizId }).exec();
   }
+
+  /**
+   * Average of per-module `finalProgressPercent` across all subchapters (70/25/5 formula).
+   */
+  async getSubjectAggregateProgressPercent(
+    studentId: string,
+    subjectId: string,
+  ): Promise<{ percent: number; moduleCount: number }> {
+    if (!Types.ObjectId.isValid(subjectId) || !Types.ObjectId.isValid(studentId)) {
+      throw new NotFoundException("Invalid id");
+    }
+
+    const subject = await this.subjectModel.findById(subjectId).exec();
+    if (!subject) {
+      throw new NotFoundException("Subject not found");
+    }
+
+    const percents: number[] = [];
+    for (const ch of subject.chapters || []) {
+      const chapterOrder = Number(ch.order ?? 0);
+      for (const sc of ch.subChapters || []) {
+        const subChapterOrder = Number(sc.order ?? 0);
+        try {
+          const mod = await this.getModuleProgressForStudent(
+            subjectId,
+            chapterOrder,
+            subChapterOrder,
+            studentId,
+          );
+          const p = Number(mod?.finalProgressPercent ?? 0);
+          if (Number.isFinite(p)) {
+            percents.push(Math.max(0, Math.min(100, p)));
+          }
+        } catch {
+          // skip malformed modules
+        }
+      }
+    }
+
+    if (percents.length === 0) {
+      return { percent: 0, moduleCount: 0 };
+    }
+    const sum = percents.reduce((a, b) => a + b, 0);
+    return {
+      percent: Math.round((sum / percents.length) * 100) / 100,
+      moduleCount: percents.length,
+    };
+  }
 }

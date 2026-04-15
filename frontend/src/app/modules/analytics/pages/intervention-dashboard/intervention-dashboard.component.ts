@@ -17,6 +17,9 @@ export class InterventionDashboardComponent implements OnInit {
   user: any = null;
   interventions: InterventionTrackingItem[] = [];
   selectedIntervention: InterventionTrackingItem | null = null;
+  impactSeries: Array<{ label: string; value: number; height: number }> = [];
+  priorityFilter: 'all' | 'high' = 'all';
+  statusFilter: 'all' | 'pending' | 'applied' = 'all';
 
   constructor(
     private analyticsService: AnalyticsService,
@@ -31,6 +34,22 @@ export class InterventionDashboardComponent implements OnInit {
 
   get totalInterventions(): number {
     return this.interventions.length;
+  }
+
+  get filteredInterventions(): InterventionTrackingItem[] {
+    return this.interventions.filter((item) => {
+      if (this.priorityFilter === 'high' && item.riskLevel !== 'high') {
+        return false;
+      }
+      if (this.statusFilter !== 'all' && item.status !== this.statusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  get filteredCount(): number {
+    return this.filteredInterventions.length;
   }
 
   get completedInterventions(): number {
@@ -71,6 +90,7 @@ export class InterventionDashboardComponent implements OnInit {
     this.analyticsService.getInterventions().subscribe({
       next: (rows) => {
         this.interventions = rows || [];
+        this.buildImpactSeries();
         this.loading = false;
       },
       error: (err) => {
@@ -151,5 +171,35 @@ export class InterventionDashboardComponent implements OnInit {
 
   getPrimarySuggestion(item: InterventionTrackingItem): string {
     return item.suggestions?.[0] || 'No suggested intervention';
+  }
+
+  private buildImpactSeries(): void {
+    const total = Math.max(1, this.interventions.length);
+    const high = this.interventions.filter((item) => item.riskLevel === 'high').length;
+    const medium = this.interventions.filter((item) => item.riskLevel === 'medium').length;
+    const low = this.interventions.filter((item) => item.riskLevel === 'low').length;
+    const pending = this.pendingInterventions;
+    const applied = this.completedInterventions;
+
+    const rows = [
+      { label: 'High Risk', value: high },
+      { label: 'Medium Risk', value: medium },
+      { label: 'Low Risk', value: low },
+      { label: 'Pending', value: pending },
+      { label: 'Applied', value: applied },
+    ];
+
+    this.impactSeries = rows.map((row) => ({
+      ...row,
+      height: Math.max(10, Math.round((row.value / total) * 100)),
+    }));
+  }
+
+  setPriorityFilter(next: 'all' | 'high'): void {
+    this.priorityFilter = next;
+  }
+
+  setStatusFilter(next: 'all' | 'pending' | 'applied'): void {
+    this.statusFilter = next;
   }
 }

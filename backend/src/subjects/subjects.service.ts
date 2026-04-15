@@ -1,7 +1,12 @@
 import {
   Logger
 } from "@nestjs/common";
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../users/schemas/user.schema';
@@ -55,6 +60,9 @@ import {
 } from "./schemas/quiz-file-submission.schema";
 import { SubmitQuizFileDto } from "./dto/submit-quiz-file.dto";
 import { GradeQuizFileSubmissionDto } from "./dto/grade-quiz-file-submission.dto";
+import { ClassEnrollment, ClassEnrollmentDocument } from "../academic/schemas/class-enrollment.schema";
+import { ClassSubject, ClassSubjectDocument } from "../academic/schemas/class-subject.schema";
+import { UserRole } from "../users/schemas/user.schema";
 
 @Injectable()
 export class SubjectsService {
@@ -78,7 +86,78 @@ export class SubjectsService {
     @InjectModel(QuizFileSubmission.name)
     private quizFileSubmissionModel: Model<QuizFileSubmissionDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(ClassEnrollment.name)
+    private classEnrollmentModel: Model<ClassEnrollmentDocument>,
+    @InjectModel(ClassSubject.name)
+    private classSubjectModel: Model<ClassSubjectDocument>,
   ) {}
+
+  private async assertStudentHasSubjectAccess(
+    studentId: string,
+    subjectId: string,
+  ): Promise<void> {
+    if (!Types.ObjectId.isValid(subjectId)) {
+      throw new NotFoundException('Subject not found');
+    }
+    const enrollment = await this.classEnrollmentModel
+      .findOne({ studentId: new Types.ObjectId(studentId) })
+      .exec();
+    if (!enrollment) {
+      throw new ForbiddenException(
+        'You must be enrolled in a class to view subjects',
+      );
+    }
+    const linked = await this.classSubjectModel
+      .exists({
+        schoolClassId: enrollment.schoolClassId,
+        subjectId: new Types.ObjectId(subjectId),
+      })
+      .exec();
+    if (!linked) {
+      throw new ForbiddenException(
+        'This subject is not assigned to your class',
+      );
+    }
+  }
+
+  async ensureStudentHasSubjectAccess(
+    studentId: string,
+    subjectId: string,
+  ): Promise<void> {
+    await this.assertStudentHasSubjectAccess(studentId, subjectId);
+  }
+
+  private async findAllForEnrolledStudent(studentId: string) {
+    const enrollment = await this.classEnrollmentModel
+      .findOne({ studentId: new Types.ObjectId(studentId) })
+      .exec();
+    if (!enrollment) {
+      return [];
+    }
+    const links = await this.classSubjectModel
+      .find({ schoolClassId: enrollment.schoolClassId })
+      .select('subjectId')
+      .lean()
+      .exec();
+    const ids = [
+      ...new Set(
+        links
+          .map((l) => l.subjectId)
+          .filter((id) => id != null)
+          .map((id) => String(id)),
+      ),
+    ].filter((id) => Types.ObjectId.isValid(id));
+    if (ids.length === 0) {
+      return [];
+    }
+    const subjects = await this.subjectModel
+      .find({ _id: { $in: ids.map((id) => new Types.ObjectId(id)) } })
+      .sort({ createdAt: -1 })
+      .populate('instructors', 'first_name last_name email role')
+      .exec();
+
+    return subjects.map((subject) => this.toResponse(subject));
+  }
 
   /** Course documents still use a single `instructorId`; mirror the first subject instructor. */
   private primaryCourseInstructorId(
@@ -1376,7 +1455,19 @@ export class SubjectsService {
     return this.findOne(subject._id.toString());
   }
 
-  async findAll(instructorId?: string) {
+  async findAll(
+    instructorId?: string,
+    user?: { id?: string; userId?: string; role?: string },
+  ) {
+    const role = String(user?.role ?? '').toLowerCase();
+    if (role === UserRole.STUDENT) {
+      const studentId = String(user?.id || user?.userId || '').trim();
+      if (!studentId) {
+        return [];
+      }
+      return this.findAllForEnrolledStudent(studentId);
+    }
+
     const filter: FilterQuery<SubjectDocument> = {};
     if (instructorId && Types.ObjectId.isValid(instructorId)) {
       filter.instructors = new Types.ObjectId(instructorId);
@@ -1390,7 +1481,10 @@ export class SubjectsService {
     return subjects.map((subject) => this.toResponse(subject));
   }
 
-  async findOne(id: string) {
+  async findOne(
+    id: string,
+    user?: { id?: string; userId?: string; role?: string },
+  ) {
     const subject = await this.subjectModel
       .findById(id)
       .populate('instructors', 'first_name last_name email role')
@@ -1398,6 +1492,15 @@ export class SubjectsService {
 
     if (!subject) {
       throw new NotFoundException('Subject not found');
+    }
+
+    const role = String(user?.role ?? '').toLowerCase();
+    if (role === UserRole.STUDENT) {
+      const studentId = String(user?.id || user?.userId || '').trim();
+      if (!studentId) {
+        throw new ForbiddenException('Student context required');
+      }
+      await this.assertStudentHasSubjectAccess(studentId, id);
     }
 
     return this.toResponse(subject);

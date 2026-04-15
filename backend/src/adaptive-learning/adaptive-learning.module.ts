@@ -35,6 +35,18 @@ import {
   GoalSettings,
   GoalSettingsSchema,
 } from "./schemas/goal-settings.schema";
+import {
+  QuizSubmission,
+  QuizSubmissionSchema,
+} from "../subjects/schemas/quiz-submission.schema";
+import {
+  QuizFileSubmission,
+  QuizFileSubmissionSchema,
+} from "../subjects/schemas/quiz-file-submission.schema";
+import {
+  PrositSubmission,
+  PrositSubmissionSchema,
+} from "../prosits/schemas/prosit-submission.schema";
 
 @Module({
   imports: [
@@ -86,6 +98,18 @@ import {
       {
         name: GoalSettings.name,
         schema: GoalSettingsSchema,
+      },
+      {
+        name: QuizSubmission.name,
+        schema: QuizSubmissionSchema,
+      },
+      {
+        name: QuizFileSubmission.name,
+        schema: QuizFileSubmissionSchema,
+      },
+      {
+        name: PrositSubmission.name,
+        schema: PrositSubmissionSchema,
       },
     ]),
   ],

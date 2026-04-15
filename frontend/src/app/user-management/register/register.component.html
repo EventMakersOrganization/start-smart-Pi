@@ -47,24 +47,24 @@
       <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-5">
         <div class="space-y-1">
           <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="first_name">First
-            Name</label>
+            Name (required)</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span class="material-symbols-outlined text-slate-400 text-xl">person</span>
             </div>
-            <input autocomplete="given-name" formControlName="first_name" id="first_name" required type="text"
+            <input autocomplete="given-name" formControlName="first_name" id="first_name" required aria-required="true" type="text"
               placeholder=""
               class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
           </div>
         </div>
         <div class="space-y-1">
           <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="last_name">Last
-            Name</label>
+            Name (required)</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span class="material-symbols-outlined text-slate-400 text-xl">person</span>
             </div>
-            <input autocomplete="family-name" formControlName="last_name" id="last_name" required type="text"
+            <input autocomplete="family-name" formControlName="last_name" id="last_name" required aria-required="true" type="text"
               placeholder=""
               class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
           </div>
@@ -81,52 +81,58 @@
         </div>
         <div class="space-y-1">
           <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="email">Email
-            address</label>
+            address (required)</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span class="material-symbols-outlined text-slate-400 text-xl">mail</span>
             </div>
-            <input autocomplete="email" formControlName="email" id="email" required type="email"
+            <input autocomplete="email" formControlName="email" id="email" required aria-required="true" type="email"
               placeholder="name@esprit.tn"
               class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
           </div>
         </div>
         <div class="space-y-1">
           <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="password">Create
-            Password</label>
+            Password (required)</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span class="material-symbols-outlined text-slate-400 text-xl">lock</span>
             </div>
-            <input autocomplete="new-password" formControlName="password" id="password" required
+            <input autocomplete="new-password" formControlName="password" id="password" required aria-required="true"
               [type]="showPassword ? 'text' : 'password'" placeholder="••••••••"
               class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
+            <button
+              type="button"
+              [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
               (click)="togglePassword()">
               <span
                 class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors">{{
                 showPassword ? 'visibility_off' : 'visibility' }}</span>
-            </div>
+            </button>
           </div>
           <p *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
             class="text-xs text-red-500 mt-1">Password must be at least 6 characters.</p>
         </div>
         <div class="space-y-1">
           <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="confirm_password">Confirm
-            Password</label>
+            Password (required)</label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span class="material-symbols-outlined text-slate-400 text-xl">lock_clock</span>
             </div>
-            <input autocomplete="new-password" formControlName="confirm_password" id="confirm_password" required
+            <input autocomplete="new-password" formControlName="confirm_password" id="confirm_password" required aria-required="true"
               [type]="showConfirm ? 'text' : 'password'" placeholder="••••••••"
               class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
+            <button
+              type="button"
+              [attr.aria-label]="showConfirm ? 'Hide confirm password' : 'Show confirm password'"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
               (click)="toggleConfirm()">
               <span
                 class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors">{{
                 showConfirm ? 'visibility_off' : 'visibility' }}</span>
-            </div>
+            </button>
           </div>
           <p *ngIf="registerForm.get('confirm_password')?.hasError('passwordMismatch') && registerForm.get('confirm_password')?.touched"
             class="text-xs text-red-500 mt-1">Passwords do not match.</p>
@@ -151,8 +157,8 @@
         </button>
       </form>
 
-      <p *ngIf="successMessage" class="text-green-600 text-center">{{ successMessage }}</p>
-      <p *ngIf="errorMessage" class="text-red-500 text-center">{{ errorMessage }}</p>
+      <p *ngIf="successMessage" class="text-green-600 text-center" aria-live="polite">{{ successMessage }}</p>
+      <p *ngIf="errorMessage" class="text-red-500 text-center" role="alert" aria-live="assertive">{{ errorMessage }}</p>
 
       <p class="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
         Already have an account? <a routerLink="/login" class="font-bold text-primary hover:underline">Sign in</a>

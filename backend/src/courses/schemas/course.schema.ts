@@ -13,6 +13,13 @@ export class Module {
 
     @Prop({ default: 0 })
     order: number;
+
+    /** Public path e.g. /uploads/subjects/cours/… after copying from teacher folder */
+    @Prop({ required: false })
+    fileUrl?: string;
+
+    @Prop({ required: false })
+    fileName?: string;
 }
 
 export const ModuleSchema = SchemaFactory.createForClass(Module);

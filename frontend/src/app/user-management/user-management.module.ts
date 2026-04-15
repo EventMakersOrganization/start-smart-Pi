@@ -53,24 +53,37 @@ import { InstructorDashboardComponent } from './instructor-dashboard/instructor-
 const routes: Routes = [
   {
     path: 'progress-reports',
-    component: ProgressReportsComponent,
-    canActivate: [AuthGuard],
+    redirectTo: 'student-dashboard/progress-reports',
+    pathMatch: 'full',
   },
   {
     path: 'progress-reports/:studentId',
-    component: ProgressReportsComponent,
-    canActivate: [AuthGuard],
+    redirectTo: 'student-dashboard/progress-reports/:studentId',
+    pathMatch: 'full',
   },
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-  { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'reset-password', component: ResetPasswordComponent },
-  { path: 'profile', component: ProfileComponent, canActivate: [AuthGuard] },
+  { path: 'login', component: LoginComponent, data: { title: 'Login' } },
+  { path: 'register', component: RegisterComponent, data: { title: 'Register' } },
+  {
+    path: 'forgot-password',
+    component: ForgotPasswordComponent,
+    data: { title: 'Forgot Password' },
+  },
+  {
+    path: 'reset-password',
+    component: ResetPasswordComponent,
+    data: { title: 'Reset Password' },
+  },
+  {
+    path: 'profile',
+    component: ProfileComponent,
+    canActivate: [AuthGuard],
+    data: { title: 'Profile' },
+  },
   {
     path: 'admin',
     component: AdminDashboardComponent,
     canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['admin'] },
+    data: { roles: ['admin'], title: 'Admin' },
     children: [
       { path: '', redirectTo: 'students', pathMatch: 'full' },
       {
@@ -126,49 +139,37 @@ const routes: Routes = [
     path: 'student-dashboard',
     component: StudentDashboardComponent,
     canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['student'] },
+    data: { roles: ['student'], title: 'Student Dashboard' },
     children: [
       {
         path: 'level-test',
         component: LevelTestComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Level Test' },
       },
       {
         path: 'level-test-result',
         component: LevelTestResultComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
-      },
-      {
-        path: 'goal-setting',
-        component: GoalSettingComponent,
-        canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
-      },
-      {
-        path: 'badges',
-        component: BadgeDisplayComponent,
-        canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Level Test Result' },
       },
       {
         path: 'my-courses',
         component: MyCoursesComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'My Courses' },
       },
       {
         path: 'performance',
         component: PerformanceHistoryComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Performance' },
       },
       {
         path: 'learning-path',
         component: LearningPathComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Learning Path' },
       },
       {
         path: 'assignments',
@@ -184,7 +185,7 @@ const routes: Routes = [
         path: 'continue-learning/:courseId',
         component: ContinueLearningComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Continue Learning' },
       },
     ],
   },
@@ -211,7 +212,7 @@ const routes: Routes = [
     path: 'instructor',
     component: InstructorShellComponent,
     canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor', 'admin'] },
+    data: { roles: ['instructor', 'admin'], title: 'Instructor' },
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
@@ -256,6 +257,18 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['instructor'] },
       },
+      {
+        path: 'progress-reports',
+        component: ProgressReportsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'], title: 'Progress Reports' },
+      },
+      {
+        path: 'progress-reports/:studentId',
+        component: ProgressReportsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'], title: 'Progress Reports' },
+      },
     ],
   },
   {
@@ -264,13 +277,33 @@ const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    path: 'student-dashboard/goal-setting',
+    redirectTo: 'profile',
+    pathMatch: 'full',
+  },
+  {
+    path: 'student-dashboard/progress-reports',
+    redirectTo: 'instructor/progress-reports',
+    pathMatch: 'full',
+  },
+  {
+    path: 'student-dashboard/progress-reports/:studentId',
+    redirectTo: 'instructor/progress-reports/:studentId',
+    pathMatch: 'full',
+  },
+  {
+    path: 'student-dashboard/badges',
+    redirectTo: 'profile',
+    pathMatch: 'full',
+  },
+  {
     path: 'goal-setting',
-    redirectTo: 'student-dashboard/goal-setting',
+    redirectTo: 'profile',
     pathMatch: 'full',
   },
   {
     path: 'badges',
-    redirectTo: 'student-dashboard/badges',
+    redirectTo: 'profile',
     pathMatch: 'full',
   },
   {

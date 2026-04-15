@@ -2,6 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth.service';
+import { AnalyticsService, InterventionTrackingItem } from '../../modules/analytics/services/analytics.service';
+import { SubjectItem, SubjectsService } from '../subjects.service';
+import { catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-instructor-shell',
@@ -12,16 +15,23 @@ export class InstructorShellComponent implements OnInit {
   user: any;
   profileData: any = null;
   showProfileSidebar = false;
+  assignedSubjects: SubjectItem[] = [];
+  criticalCases = 0;
+  topRiskMessage = 'No critical learning alerts right now.';
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private http: HttpClient,
+    private analyticsService: AnalyticsService,
+    private subjectsService: SubjectsService,
   ) {}
 
   ngOnInit(): void {
     this.user = this.authService.getUser();
     this.loadProfile();
+    this.loadAssignedSubjects();
+    this.loadInsightCard();
   }
 
   loadProfile(): void {
@@ -69,5 +79,42 @@ export class InstructorShellComponent implements OnInit {
 
   get subjectsSectionActive(): boolean {
     return this.router.url.includes('/instructor/subjects');
+  }
+
+  private loadAssignedSubjects(): void {
+    const instructorId = String(this.user?._id || this.user?.id || '').trim();
+    this.subjectsService
+      .getSubjects(instructorId || undefined)
+      .pipe(catchError(() => of([] as SubjectItem[])))
+      .subscribe((subjects) => {
+        this.assignedSubjects = Array.isArray(subjects) ? subjects.slice(0, 4) : [];
+      });
+  }
+
+  private loadInsightCard(): void {
+    this.analyticsService
+      .getInterventions()
+      .pipe(catchError(() => of([] as InterventionTrackingItem[])))
+      .subscribe((rows) => {
+        const interventions = Array.isArray(rows) ? rows : [];
+        const critical = interventions.filter(
+          (item) => item.status === 'pending' && item.riskLevel === 'high',
+        );
+        this.criticalCases = critical.length;
+
+        if (critical.length === 0) {
+          this.topRiskMessage = 'No critical learning alerts right now.';
+          return;
+        }
+
+        const top = critical
+          .slice(0, 2)
+          .map((item) => item.name)
+          .filter((name) => !!name)
+          .join(', ');
+        this.topRiskMessage = top
+          ? `${critical.length} high-risk students pending: ${top}.`
+          : `${critical.length} high-risk students need follow-up.`;
+      });
   }
 }

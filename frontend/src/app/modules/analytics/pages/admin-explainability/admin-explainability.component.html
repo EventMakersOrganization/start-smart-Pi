@@ -126,24 +126,32 @@
       <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
         <div class="signature-gradient p-8 rounded-xl text-white flex flex-col gap-6 shadow-xl">
           <div>
-            <h3 class="text-lg font-bold font-headline mb-1">Model Confidence</h3>
-            <p class="text-blue-100 text-xs">Based on 1.2M training points</p>
+            <h3 class="text-lg font-bold font-headline mb-1">Explainability Coverage</h3>
+            <p class="text-blue-100 text-xs">Students with logged AI explanations</p>
           </div>
-          <div class="flex items-end gap-4"><span class="text-5xl font-extrabold tracking-tighter">94.2%</span><div class="flex items-center text-secondary-fixed text-sm font-bold mb-1"><span class="material-symbols-outlined text-sm">trending_up</span> +0.8%</div></div>
-          <div class="h-24 w-full opacity-30 mt-4 flex items-end gap-1"><div class="w-full bg-white rounded-t-sm" style="height: 40%"></div><div class="w-full bg-white rounded-t-sm" style="height: 60%"></div><div class="w-full bg-white rounded-t-sm" style="height: 45%"></div><div class="w-full bg-white rounded-t-sm" style="height: 80%"></div><div class="w-full bg-white rounded-t-sm" style="height: 95%"></div><div class="w-full bg-white rounded-t-sm" style="height: 70%"></div><div class="w-full bg-white rounded-t-sm" style="height: 85%"></div></div>
+          <div class="flex items-end gap-4">
+            <span class="text-5xl font-extrabold tracking-tighter">{{ explainabilityCoverage }}%</span>
+            <div class="flex items-center text-secondary-fixed text-sm font-bold mb-1">
+              <span class="material-symbols-outlined text-sm">groups</span>
+              {{ explanations.length }} logs
+            </div>
+          </div>
+          <div class="h-24 w-full opacity-30 mt-4 flex items-end gap-1">
+            <div *ngFor="let bar of modelTrendBars" class="w-full bg-white rounded-t-sm" [style.height.%]="bar"></div>
+          </div>
         </div>
 
         <div class="bg-surface-container-low p-6 rounded-xl flex flex-col gap-4 border border-outline-variant/10">
           <h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest">Risk Distribution</h3>
-          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-error flex items-center justify-center text-xs font-bold text-error">12%</div><div class="flex-1"><div class="text-sm font-bold">Critical (80-100)</div><div class="text-xs text-on-surface-variant">42 students flagged</div></div></div>
-          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-primary flex items-center justify-center text-xs font-bold text-primary">28%</div><div class="flex-1"><div class="text-sm font-bold">Watchlist (50-79)</div><div class="text-xs text-on-surface-variant">104 students flagged</div></div></div>
-          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-secondary flex items-center justify-center text-xs font-bold text-secondary">60%</div><div class="flex-1"><div class="text-sm font-bold">Stable (&lt;50)</div><div class="text-xs text-on-surface-variant">218 students monitor</div></div></div>
+          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-error flex items-center justify-center text-xs font-bold text-error">{{ highRiskPercentage }}%</div><div class="flex-1"><div class="text-sm font-bold">Critical (80-100)</div><div class="text-xs text-on-surface-variant">{{ highRiskStudents }} students flagged</div></div></div>
+          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-primary flex items-center justify-center text-xs font-bold text-primary">{{ mediumRiskPercentage }}%</div><div class="flex-1"><div class="text-sm font-bold">Watchlist (50-79)</div><div class="text-xs text-on-surface-variant">{{ mediumRiskStudents }} students flagged</div></div></div>
+          <div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full border-4 border-secondary flex items-center justify-center text-xs font-bold text-secondary">{{ lowRiskPercentage }}%</div><div class="flex-1"><div class="text-sm font-bold">Stable (&lt;50)</div><div class="text-xs text-on-surface-variant">{{ lowRiskStudents }} students monitor</div></div></div>
         </div>
 
         <div class="bg-tertiary text-white p-6 rounded-xl relative overflow-hidden">
           <div class="absolute -right-4 -bottom-4 opacity-10"><span class="material-symbols-outlined text-9xl">campaign</span></div>
           <h3 class="text-lg font-bold font-headline mb-2">Automated Outreach</h3>
-          <p class="text-sm text-tertiary-fixed opacity-80 mb-6">42 high-risk students are eligible for AI-assisted personalized check-ins.</p>
+          <p class="text-sm text-tertiary-fixed opacity-80 mb-6">{{ outreachEligibleCount }} high-risk students are eligible for AI-assisted personalized check-ins.</p>
           <button class="w-full py-3 bg-tertiary-fixed text-tertiary-fixed-variant font-bold rounded-lg hover:bg-white transition-colors">Start Bulk Campaign</button>
         </div>
       </div>

@@ -9,6 +9,10 @@ import {
   QuizSubmissionService,
 } from '../quiz-submission.service';
 import {
+  PrositSubmissionResponse,
+  PrositSubmissionService,
+} from '../prosit-submission.service';
+import {
   SubjectItem,
   SubjectChapter,
   SubjectChapterContent,
@@ -64,6 +68,11 @@ interface QuizFilePreviewState {
   type: string;
 }
 
+interface PrositGradeFormModel {
+  grade: number | null;
+  feedback: string;
+}
+
 @Component({
   selector: 'app-instructor-subjects',
   templateUrl: './instructor-subjects.component.html',
@@ -114,9 +123,13 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   selectedQuizFile: File | null = null;
   uploadingChapterFile = false;
   loadingQuizFileSubmissions = false;
+  loadingPrositSubmissions = false;
   gradingQuizSubmissionId: string | null = null;
+  gradingPrositSubmissionId: string | null = null;
   instructorQuizFileSubmissions: QuizFileSubmissionResponse[] = [];
+  instructorPrositSubmissions: PrositSubmissionResponse[] = [];
   quizFileGradeForms: Record<string, QuizFileGradeFormModel> = {};
+  prositGradeForms: Record<string, PrositGradeFormModel> = {};
   expandedQuizSubmissionId: string | null = null;
   quizFilePreviews: Record<string, QuizFilePreviewState> = {};
 
@@ -160,6 +173,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private subjectsService: SubjectsService,
     private quizSubmissionService: QuizSubmissionService,
+    private prositSubmissionService: PrositSubmissionService,
   ) {}
 
   ngOnInit(): void {
@@ -222,6 +236,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
       next: (subject) => {
         this.selectedSubject = this.normalizeContentFolders(subject);
         this.loadInstructorQuizFileSubmissions();
+        this.loadInstructorPrositSubmissions();
         this.expandedChapterOrder = null;
         this.expandedSubChapterKey = null;
         this.chapterForm = {
@@ -263,6 +278,37 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     });
   }
 
+  private loadInstructorPrositSubmissions(): void {
+    const instructorId = String(this.user?.id || this.user?._id || '').trim();
+    if (!instructorId) {
+      this.loadingPrositSubmissions = false;
+      return;
+    }
+
+    this.loadingPrositSubmissions = true;
+    this.prositSubmissionService
+      .getInstructorPrositSubmissions(instructorId)
+      .subscribe({
+        next: (res) => {
+          const rows = Array.isArray(res?.submissions) ? res.submissions : [];
+          this.instructorPrositSubmissions = rows;
+          for (const row of rows) {
+            this.prositGradeForms[row._id] = {
+              grade:
+                typeof row.grade === 'number' && Number.isFinite(row.grade)
+                  ? Number(row.grade)
+                  : null,
+              feedback: String(row.feedback || ''),
+            };
+          }
+          this.loadingPrositSubmissions = false;
+        },
+        error: () => {
+          this.loadingPrositSubmissions = false;
+        },
+      });
+  }
+
   getSelectedSubjectQuizFileSubmissions(): QuizFileSubmissionResponse[] {
     const currentSubjectTitle = String(
       this.selectedSubject?.title || '',
@@ -272,6 +318,16 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     }
 
     return this.instructorQuizFileSubmissions.filter(
+      (row) => String(row.subjectTitle || '').trim() === currentSubjectTitle,
+    );
+  }
+
+  getSelectedSubjectPrositSubmissions(): PrositSubmissionResponse[] {
+    const currentSubjectTitle = String(this.selectedSubject?.title || '').trim();
+    if (!currentSubjectTitle) {
+      return [];
+    }
+    return this.instructorPrositSubmissions.filter(
       (row) => String(row.subjectTitle || '').trim() === currentSubjectTitle,
     );
   }
@@ -297,6 +353,70 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     const lastName = String(student?.last_name || '').trim();
     const fullName = `${firstName} ${lastName}`.trim();
     return fullName || String(student?.email || 'Etudiant').trim();
+  }
+
+  getPrositSubmissionFileUrl(submission: PrositSubmissionResponse): string | null {
+    const path = String(submission?.filePath || '').trim();
+    if (!path) {
+      return null;
+    }
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+    if (path.startsWith('/')) {
+      return `http://localhost:3000${path}`;
+    }
+    return null;
+  }
+
+  getPrositGradeForm(submissionId: string): PrositGradeFormModel {
+    if (!this.prositGradeForms[submissionId]) {
+      this.prositGradeForms[submissionId] = { grade: null, feedback: '' };
+    }
+    return this.prositGradeForms[submissionId];
+  }
+
+  gradePrositSubmission(submission: PrositSubmissionResponse): void {
+    const form = this.getPrositGradeForm(submission._id);
+    const grade = Number(form.grade);
+    if (!Number.isFinite(grade) || grade < 0 || grade > 20) {
+      this.error = 'La note du prosit doit etre entre 0 et 20.';
+      return;
+    }
+
+    this.gradingPrositSubmissionId = submission._id;
+    this.error = '';
+
+    this.prositSubmissionService
+      .gradePrositSubmission(submission._id, {
+        grade,
+        feedback: String(form.feedback || '').trim() || undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          const updated = res?.submission;
+          if (updated) {
+            this.instructorPrositSubmissions = this.instructorPrositSubmissions.map(
+              (row) => (row._id === updated._id ? updated : row),
+            );
+            this.prositGradeForms[updated._id] = {
+              grade:
+                typeof updated.grade === 'number'
+                  ? updated.grade
+                  : Number(form.grade),
+              feedback: String(updated.feedback || form.feedback || ''),
+            };
+          }
+          this.gradingPrositSubmissionId = null;
+        },
+        error: (err) => {
+          this.error =
+            err?.error?.message ||
+            err?.error?.detail ||
+            'Impossible de noter cette remise prosit.';
+          this.gradingPrositSubmissionId = null;
+        },
+      });
   }
 
   toggleSubmissionPreview(submission: QuizFileSubmissionResponse): void {

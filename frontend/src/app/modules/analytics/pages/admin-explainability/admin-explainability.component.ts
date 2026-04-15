@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { RiskScoreService } from '../../services/riskscore.service';
 import { AlertService } from '../../services/alert.service';
 import { ExplainabilityService } from '../../services/explainability.service';
@@ -20,6 +22,7 @@ export class AdminExplainabilityComponent implements OnInit {
   riskScores: RiskScore[] = [];
   selectedRiskScore: RiskScore | null = null;
   selectedStudentAlerts: Alert[] = [];
+  unresolvedAlerts: Alert[] = [];
   explanations: ExplainabilityLog[] = [];
   filteredExplanations: ExplainabilityLog[] = [];
   
@@ -42,7 +45,7 @@ export class AdminExplainabilityComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadExplanations();
+    this.refreshData();
   }
 
   loadExplanations(): void {
@@ -170,8 +173,39 @@ export class AdminExplainabilityComponent implements OnInit {
   }
 
   refreshData(): void {
-    this.loadExplanations();
-    this.loadRiskScores();
+    this.loading = true;
+    this.error = '';
+    this.loadingExplanations = true;
+
+    forkJoin({
+      explanations: this.explainabilityService
+        .getRecentExplanations(100)
+        .pipe(catchError(() => of([] as ExplainabilityLog[]))),
+      riskScores: this.riskScoreService
+        .getAllRiskScores()
+        .pipe(catchError(() => of([] as RiskScore[]))),
+      unresolvedAlerts: this.alertService
+        .getUnresolvedAlerts()
+        .pipe(catchError(() => of([] as Alert[]))),
+    }).subscribe({
+      next: ({ explanations, riskScores, unresolvedAlerts }) => {
+        this.explanations = explanations;
+        this.riskScores = riskScores;
+        this.unresolvedAlerts = unresolvedAlerts;
+        this.applyFilters();
+        this.loading = false;
+        this.loadingExplanations = false;
+
+        if (this.riskScores.length > 0) {
+          this.selectRiskScore(this.riskScores[0]);
+        }
+      },
+      error: () => {
+        this.error = 'Failed to load explainability dashboard data.';
+        this.loading = false;
+        this.loadingExplanations = false;
+      },
+    });
   }
 
   /**
@@ -261,6 +295,77 @@ export class AdminExplainabilityComponent implements OnInit {
    */
   getHighRiskCount(): number {
     return this.explanations.filter((e) => e.riskScore >= 80).length;
+  }
+
+  get highRiskStudents(): number {
+    return this.riskScores.filter((r) => this.getRiskLevel(r.score) === 'high').length;
+  }
+
+  get mediumRiskStudents(): number {
+    return this.riskScores.filter((r) => this.getRiskLevel(r.score) === 'medium').length;
+  }
+
+  get lowRiskStudents(): number {
+    return this.riskScores.filter((r) => this.getRiskLevel(r.score) === 'low').length;
+  }
+
+  get totalStudentsWithRisk(): number {
+    return this.riskScores.length;
+  }
+
+  get highRiskPercentage(): number {
+    if (this.totalStudentsWithRisk === 0) return 0;
+    return Math.round((this.highRiskStudents / this.totalStudentsWithRisk) * 100);
+  }
+
+  get mediumRiskPercentage(): number {
+    if (this.totalStudentsWithRisk === 0) return 0;
+    return Math.round((this.mediumRiskStudents / this.totalStudentsWithRisk) * 100);
+  }
+
+  get lowRiskPercentage(): number {
+    if (this.totalStudentsWithRisk === 0) return 0;
+    return Math.round((this.lowRiskStudents / this.totalStudentsWithRisk) * 100);
+  }
+
+  get explainabilityCoverage(): number {
+    if (this.totalStudentsWithRisk === 0) return 0;
+    const explainedUsers = new Set(this.explanations.map((e) => String(e.userId || '').trim()).filter((v) => !!v));
+    return Math.round((explainedUsers.size / this.totalStudentsWithRisk) * 100);
+  }
+
+  get outreachEligibleCount(): number {
+    const highRiskUserIds = new Set(
+      this.riskScores
+        .filter((r) => this.getRiskLevel(r.score) === 'high')
+        .map((r) => {
+          if (typeof r.user === 'string') return r.user;
+          return String(r.user?._id || r.user?.id || '');
+        })
+        .filter((id) => !!id),
+    );
+
+    const unresolvedHighSeverity = new Set(
+      this.unresolvedAlerts
+        .filter((a) => String(a.severity || '').toLowerCase() === 'high')
+        .map((a) => {
+          if (typeof a.student === 'string') return a.student;
+          return String(a.student?._id || a.student?.id || '');
+        })
+        .filter((id) => !!id),
+    );
+
+    return Array.from(highRiskUserIds).filter((id) => unresolvedHighSeverity.has(id)).length;
+  }
+
+  get modelTrendBars(): number[] {
+    return [
+      Math.max(5, this.lowRiskPercentage),
+      Math.max(5, this.mediumRiskPercentage),
+      Math.max(5, this.highRiskPercentage),
+      Math.max(5, this.explainabilityCoverage),
+      Math.max(5, this.getAverageRiskScore()),
+    ];
   }
 
   /**

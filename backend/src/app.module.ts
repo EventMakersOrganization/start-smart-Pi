@@ -18,6 +18,7 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { CodebattleModule } from './codebattle/codebattle.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { ReportModule } from './report/report.module';
+import { PrositsModule } from './prosits/prosits.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ReportModule } from './report/report.module';
     ChatModule,
     BrainrushModule,
     SubjectsModule,
+    PrositsModule,
     CodebattleModule,
   ],
   controllers: [AppController],

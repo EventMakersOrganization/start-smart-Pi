@@ -225,6 +225,11 @@
         <div
           *ngFor="let q of testData?.questions; let i = index"
           (click)="goToQuestion(i)"
+          (keydown.enter)="goToQuestion(i)"
+          (keydown.space)="$event.preventDefault(); goToQuestion(i)"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="'Go to question ' + (i + 1)"
           [ngClass]="getNavigationItemClass(i)"
           class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
         >
@@ -305,12 +310,17 @@
     <div class="flex items-center gap-2 flex-wrap max-w-xs justify-center">
       <div
         *ngFor="let q of testData?.questions; let i = index"
+        role="button"
+        tabindex="0"
+        [attr.aria-label]="'Jump to question ' + (i + 1)"
         [class.bg-primary]="currentQuestionIndex === i"
         [class.bg-slate-200]="currentQuestionIndex !== i && !answers[i]"
         [class.dark:bg-slate-700]="currentQuestionIndex !== i && !answers[i]"
         [class.bg-green-400]="currentQuestionIndex !== i && answers[i]"
         class="h-1.5 w-6 rounded-full transition-colors cursor-pointer"
         (click)="goToQuestion(i)"
+        (keydown.enter)="goToQuestion(i)"
+        (keydown.space)="$event.preventDefault(); goToQuestion(i)"
       ></div>
     </div>
 

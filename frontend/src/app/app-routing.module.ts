@@ -9,21 +9,60 @@ const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   {
     path: 'analytics',
+    data: { title: 'Analytics' },
     loadChildren: () =>
       import('./modules/analytics/analytics.module').then(
         (m) => m.AnalyticsModule
       ),
   },
-  { path: 'chat/ai', component: ChatAiComponent },
-  { path: 'chat/instructor', component: ChatInstructorComponent },
-  { path: 'chat/room', component: ChatRoomComponent },
-  { path: 'brainrush', loadChildren: () => import('./brainrush/brainrush.module').then(m => m.BrainrushModule) },
-  { path: 'codebattle/lobby', loadComponent: () => import('./codebattle/lobby/lobby.component').then(m => m.LobbyComponent) },
-  { path: 'codebattle/battle-lobby', loadComponent: () => import('./codebattle/battle-lobby/battle-lobby.component').then(m => m.BattleLobbyComponent) },
-  { path: 'codebattle/game', loadComponent: () => import('./codebattle/game/game.component').then(m => m.GameComponent) },
-  { path: 'codebattle/results', loadComponent: () => import('./codebattle/results/results.component').then(m => m.ResultsComponent) },
+  { path: 'chat/ai', component: ChatAiComponent, data: { title: 'AI Chat' } },
+  {
+    path: 'chat/instructor',
+    component: ChatInstructorComponent,
+    data: { title: 'Instructor Chat' },
+  },
+  {
+    path: 'chat/room',
+    component: ChatRoomComponent,
+    data: { title: 'Chat Room' },
+  },
+  {
+    path: 'brainrush',
+    data: { title: 'Brainrush' },
+    loadChildren: () =>
+      import('./brainrush/brainrush.module').then((m) => m.BrainrushModule),
+  },
+  {
+    path: 'codebattle/lobby',
+    data: { title: 'Codebattle Lobby' },
+    loadComponent: () =>
+      import('./codebattle/lobby/lobby.component').then((m) => m.LobbyComponent),
+  },
+  {
+    path: 'codebattle/battle-lobby',
+    data: { title: 'Codebattle Battle Lobby' },
+    loadComponent: () =>
+      import('./codebattle/battle-lobby/battle-lobby.component').then(
+        (m) => m.BattleLobbyComponent,
+      ),
+  },
+  {
+    path: 'codebattle/game',
+    data: { title: 'Codebattle Game' },
+    loadComponent: () =>
+      import('./codebattle/game/game.component').then((m) => m.GameComponent),
+  },
+  {
+    path: 'codebattle/results',
+    data: { title: 'Codebattle Results' },
+    loadComponent: () =>
+      import('./codebattle/results/results.component').then(
+        (m) => m.ResultsComponent,
+      ),
+  },
   {
     path: 'analytics',
+    data: { title: 'Analytics' },
     loadChildren: () =>
       import('./modules/analytics/analytics.module').then((m) => m.AnalyticsModule),
   },

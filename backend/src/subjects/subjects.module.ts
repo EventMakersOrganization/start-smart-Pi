@@ -28,6 +28,17 @@ import {
   QuizFileSubmission,
   QuizFileSubmissionSchema,
 } from "./schemas/quiz-file-submission.schema";
+import {
+  StudentSubchapterEngagement,
+  StudentSubchapterEngagementSchema,
+} from "./schemas/student-subchapter-engagement.schema";
+import {
+  PrositSubmission,
+  PrositSubmissionSchema,
+} from "../prosits/schemas/prosit-submission.schema";
+import { ModuleProgressService } from "./module-progress.service";
+import { ClassEnrollment, ClassEnrollmentSchema } from "../academic/schemas/class-enrollment.schema";
+import { ClassSubject, ClassSubjectSchema } from "../academic/schemas/class-subject.schema";
 
 @Module({
   imports: [
@@ -54,14 +65,27 @@ import {
     MongooseModule.forFeature([
       { name: QuizFileSubmission.name, schema: QuizFileSubmissionSchema },
     ]),
+    MongooseModule.forFeature([
+      {
+        name: StudentSubchapterEngagement.name,
+        schema: StudentSubchapterEngagementSchema,
+      },
+    ]),
+    MongooseModule.forFeature([
+      { name: PrositSubmission.name, schema: PrositSubmissionSchema },
+    ]),
     forwardRef(() => AuthModule),
     MongooseModule.forFeature([
       { name: Subject.name, schema: SubjectSchema },
       { name: User.name, schema: UserSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: ClassEnrollment.name, schema: ClassEnrollmentSchema },
+      { name: ClassSubject.name, schema: ClassSubjectSchema },
+    ]),
   ],
   controllers: [SubjectsController],
-  providers: [SubjectsService],
-  exports: [SubjectsService],
+  providers: [SubjectsService, ModuleProgressService],
+  exports: [SubjectsService, ModuleProgressService],
 })
 export class SubjectsModule {}

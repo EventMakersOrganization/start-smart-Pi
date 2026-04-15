@@ -55,16 +55,42 @@ export class KpiService {
    */
   async getActiveUsers(): Promise<KpiResult> {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
-    // Get distinct user IDs with activity in last 24 hours
-    const activeUserIds = await this.activityModel
-      .distinct('userId', {
-        timestamp: { $gte: twentyFourHoursAgo },
-      })
+
+    // Count only active IDs that still exist in users collection.
+    // This prevents stale/orphaned activity rows from making Active Users > Total Users.
+    const [row] = await this.activityModel
+      .aggregate<{ count: number }>([
+        {
+          $match: {
+            timestamp: { $gte: twentyFourHoursAgo },
+          },
+        },
+        {
+          $group: {
+            _id: '$userId',
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        {
+          $match: {
+            user: { $ne: [] },
+          },
+        },
+        {
+          $count: 'count',
+        },
+      ])
       .exec();
-    
+
     return {
-      value: activeUserIds.length,
+      value: Number(row?.count || 0),
       label: 'Active Users (24h)',
       timestamp: new Date(),
     };

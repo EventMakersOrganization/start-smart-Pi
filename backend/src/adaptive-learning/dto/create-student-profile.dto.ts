@@ -30,6 +30,12 @@ export class CreateStudentProfileDto {
   progress?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  levelTestScore?: number;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   strengths?: string[];

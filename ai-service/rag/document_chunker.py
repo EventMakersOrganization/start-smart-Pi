@@ -122,8 +122,8 @@ def chunk_course_content(course_dict: dict) -> list[dict]:
             },
         })
 
-    # Module chunks: one per module if large; combine small consecutive modules
-    min_module_chars = 200
+    # One chunk per module (teacher courses store one file per module; merging hid that in RAG/UI).
+    min_module_chars = 0
     buffer = []
     buffer_names = []
     chunk_index = len(chunks_out)

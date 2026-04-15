@@ -47,6 +47,10 @@ export class StudentProfile {
   @Prop({ default: 0, min: 0, max: 100 })
   progress: number;
 
+  /** Latest level-test score (0–100); separate from course-learning `progress`. */
+  @Prop({ default: 0, min: 0, max: 100 })
+  levelTestScore: number;
+
   @Prop({ type: [String], default: [] })
   strengths: string[];
 

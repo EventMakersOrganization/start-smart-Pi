@@ -19,6 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/schemas/user.schema';
 import { SubjectsService } from './subjects.service';
+import { ModuleProgressService } from "./module-progress.service";
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { AddChapterDto } from "./dto/add-chapter.dto";
@@ -41,7 +42,10 @@ const getUploadsDir = (...segments: string[]): string =>
 @ApiTags("subjects")
 @Controller("subjects")
 export class SubjectsController {
-  constructor(private readonly subjectsService: SubjectsService) {}
+  constructor(
+    private readonly subjectsService: SubjectsService,
+    private readonly moduleProgressService: ModuleProgressService,
+  ) {}
 
   @Post("upload-file")
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -115,16 +119,46 @@ export class SubjectsController {
   }
 
   @Get()
-  @ApiOperation({ summary: "Get all subjects with optional instructor filter" })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      "List subjects (instructor/admin: optional instructor filter; student: subjects linked to their class)",
+  })
   @ApiQuery({ name: "instructorId", required: false, type: String })
-  findAll(@Query("instructorId") instructorId?: string) {
-    return this.subjectsService.findAll(instructorId);
+  findAll(@Query("instructorId") instructorId?: string, @Req() req?: any) {
+    return this.subjectsService.findAll(instructorId, req?.user);
+  }
+
+  @Get(":id/learning-progress")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.STUDENT)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      "Aggregate learning progress for the current student (average module %, 70/25/5)",
+  })
+  async getSubjectLearningProgress(@Param("id") subjectId: string, @Req() req: any) {
+    const studentId = req?.user?.id || req?.user?.userId || req?.user?._id;
+    if (!studentId) {
+      throw new BadRequestException("Student context required");
+    }
+    await this.subjectsService.ensureStudentHasSubjectAccess(
+      String(studentId),
+      subjectId,
+    );
+    return this.moduleProgressService.getSubjectAggregateProgressPercent(
+      String(studentId),
+      subjectId,
+    );
   }
 
   @Get(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Get a subject by ID" })
-  findOne(@Param("id") id: string) {
-    return this.subjectsService.findOne(id);
+  findOne(@Param("id") id: string, @Req() req?: any) {
+    return this.subjectsService.findOne(id, req?.user);
   }
 
   @Post(":id/chapters")

@@ -7,11 +7,21 @@ from langchain_core.prompts import PromptTemplate
 # Level test — rubric + JSON contract (single + batch)
 # ---------------------------------------------------------------------------
 
+LEVEL_TEST_FRENCH_RULE = """
+LANGUE OBLIGATOIRE — FRANÇAIS UNIQUEMENT (pour toute la plateforme StartSmart) :
+- Rédige l’intégralité de la question, des 4 options et de l’explication en français correct.
+- N’utilise AUCUNE autre langue (pas d’espagnol, d’anglais pour l’énoncé, etc.), même si le matériel
+  de référence ci-dessous est en une autre langue : traduis le sens en français pour la question.
+- Les extraits de code, noms de commandes SQL, ou identifiants techniques peuvent rester tels quels.
+""".strip()
+
 LEVEL_TEST_ASSESSMENT_RUBRIC = """
 You are an expert assessment designer.
 
 Generate multiple-choice questions (MCQs) using ONLY the reference material in this prompt
 (course content from the knowledge base). Do not rely on outside facts.
+
+""" + LEVEL_TEST_FRENCH_RULE + """
 
 General principles:
 - Each question tests one clear idea: definitions, distinctions, applying a rule, reading code,
@@ -24,7 +34,6 @@ General principles:
 - For programming (C, control flow, types): double-check semantics before output JSON.
 - Avoid trivial “identify the symbol” items (e.g. “quel opérateur est / ?”). Prefer behaviour questions
   (ex: division entière vs réelle selon le type, précédence, effet de `break`, portée d’une variable, etc.).
-- Same language as the reference (French or English). If the reference is French, write EVERYTHING in French.
 - Exactly 4 options; exactly 1 correct; short explanation (1–3 sentences).
 - No catch-all options (“none/all of the above”, or equivalent).
 - Each row lists a topic string. The question MUST address that topic.
@@ -33,9 +42,14 @@ General principles:
 """.strip()
 
 LEVEL_TEST_QUALITY_RULES = """
-Checklist before output:
+Mandatory checklist before outputting JSON:
+- Tout le texte (question, options, explication) est en français (sauf code / identifiants techniques).
 - `correct_answer` is character-for-character identical to one of the four `options`.
-- The question matches the given topic; the explanation justifies the chosen option.
+- The question directly addresses the given topic (not a neighbouring topic).
+- The explanation justifies WHY the correct option is right, referencing the course material.
+- No option is a meta-label like "Correct definition" or "Confusion fréquente" — each is a
+  specific factual or technical statement.
+- The question is NOT a copy-paste of a sentence from the reference with "is this true?".
 """.strip()
 
 LEVEL_TEST_JSON_OUTPUT_CONTRACT = """
@@ -53,13 +67,14 @@ LEVEL_TEST_QUESTION_TEMPLATE = PromptTemplate(
     input_variables=["subject", "difficulty", "topic"],
     template="""You are an expert assessment designer.
 
-Generate exactly ONE level-test multiple-choice question.
+Generate exactly ONE level-test multiple-choice question. Write EVERYTHING in French (question, options, explanation).
 
 Subject: {subject}
 Difficulty level: {difficulty}
 Topic / concept to target: {topic}
 
 The course content will follow in a section labelled COURSE CONTENT. Base the question ONLY on that content.
+Translate any non-French reference into French for the question wording.
 """,
 )
 
@@ -115,7 +130,7 @@ def build_level_test_batch_prompt(
         f"{LEVEL_TEST_ASSESSMENT_RUBRIC}\n\n"
         f"{LEVEL_TEST_QUALITY_RULES}\n\n"
         f"Subject: {subject}\n\n"
-        f"Generate exactly {count} MCQs. One row per item:\n{topic_difficulty_specs}\n\n"
+        f"Generate exactly {count} MCQs in French only. One row per item:\n{topic_difficulty_specs}\n\n"
         "Coverage: each row lists topic and difficulty — question i MUST address topic i only.\n"
         "Topic coverage: rows use different chapter/module topics where listed; spread across them "
         "and avoid asking the same subtopic twice.\n\n"

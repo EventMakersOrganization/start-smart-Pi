@@ -13,6 +13,14 @@ export class CreateRecommendationDto {
   reason: string;
 
   @IsOptional()
+  @IsString()
+  subject?: string;
+
+  @IsOptional()
+  @IsString()
+  priority?: string;
+
+  @IsOptional()
   @IsEnum(['course', 'exercise', 'topic'])
   contentType?: string;
 
