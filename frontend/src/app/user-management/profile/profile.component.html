@@ -211,6 +211,84 @@
       </form>
     </div>
 
+    <!-- Face Authentication Card -->
+    <div
+      class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">Face Authentication</h3>
+        <p class="text-sm text-slate-500 mt-0.5">Use your face to quickly sign in to your account.</p>
+      </div>
+      <div class="p-8 space-y-6">
+        <div
+          class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-2xl">face</span>
+            <div>
+              <p class="text-sm font-bold text-slate-900 dark:text-slate-100">Biometric Login</p>
+              <p class="text-xs text-slate-500">Configure facial recognition for easy access.</p>
+            </div>
+          </div>
+          <button (click)="toggleFaceRegistration()"
+            class="px-4 py-2 bg-primary/10 text-primary text-sm font-bold rounded-lg hover:bg-primary/20 transition-all">
+            {{ isFaceRegActive ? 'Cancel' : 'Setup Face Login' }}
+          </button>
+        </div>
+
+        <div class="relative flex items-center gap-4 my-4">
+          <div class="flex-grow h-px bg-slate-200 dark:bg-slate-800"></div>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Or Upload Image</span>
+          <div class="flex-grow h-px bg-slate-200 dark:bg-slate-800"></div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4">
+          <label
+            class="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
+            <span
+              class="material-symbols-outlined text-3xl text-slate-400 group-hover:text-primary mb-2">upload_file</span>
+            <span class="text-sm font-semibold text-slate-600 dark:text-slate-400">Cliquez pour choisir une photo</span>
+            <input type="file" (change)="onFileSelected($event)" accept="image/*" class="hidden"
+              [disabled]="isFaceLoading">
+          </label>
+        </div>
+
+        <div *ngIf="isFaceRegActive" class="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div
+            class="relative rounded-2xl overflow-hidden bg-black aspect-video flex items-center justify-center border-2 border-primary shadow-xl">
+            <video #video autoplay muted playsinline class="w-full h-full object-cover"></video>
+
+            <div *ngIf="isFaceLoading"
+              class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white gap-2">
+              <span class="material-symbols-outlined animate-spin text-4xl">refresh</span>
+              <p class="text-sm font-medium">Processing...</p>
+            </div>
+
+            <div *ngIf="cameraError && !isFaceLoading"
+              class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-red-400 p-4 text-center">
+              <span class="material-symbols-outlined text-4xl mb-2">videocam_off</span>
+              <p class="text-sm">{{ cameraError }}</p>
+            </div>
+          </div>
+
+          <div class="flex justify-center">
+            <button (click)="captureFace()" [disabled]="isFaceLoading"
+              class="flex items-center gap-2 px-8 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-all shadow-lg shadow-primary/20">
+              <span class="material-symbols-outlined">camera</span>
+              Enregistrer mon visage
+            </button>
+          </div>
+        </div>
+
+        <p *ngIf="faceSuccess"
+          class="text-emerald-600 text-sm font-medium flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
+          <span class="material-symbols-outlined text-sm">check_circle</span>{{ faceSuccess }}
+        </p>
+        <p *ngIf="faceError"
+          class="text-red-500 text-sm font-medium flex items-center gap-2 bg-red-50 dark:bg-red-500/10 p-4 rounded-xl border border-red-100 dark:border-red-500/20">
+          <span class="material-symbols-outlined text-sm">error</span>{{ faceError }}
+        </p>
+      </div>
+    </div>
+
     <!-- Danger Zone -->
     <div
       class="bg-white dark:bg-slate-900 rounded-2xl border border-red-200 dark:border-red-900/30 overflow-hidden shadow-sm">

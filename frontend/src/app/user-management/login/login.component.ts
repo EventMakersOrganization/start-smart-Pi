@@ -1,7 +1,8 @@
-import { Component, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
+import { FaceRecognitionService } from '../face-recognition.service';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
 import { environment } from '../../../environments/environment';
 
@@ -21,6 +22,7 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private faceRecognitionService: FaceRecognitionService,
     private adaptiveService: AdaptiveLearningService,
     private router: Router,
   ) {
@@ -28,6 +30,94 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
     });
+  }
+
+  isFaceLoginActive = false;
+  isFaceLoading = false;
+  cameraError = '';
+  faceDetectionInterval: any;
+
+  @ViewChild('video') videoElement!: any;
+
+  async toggleFaceLogin() {
+    this.isFaceLoginActive = !this.isFaceLoginActive;
+    if (this.isFaceLoginActive) {
+      this.isFaceLoading = true;
+      this.cameraError = '';
+      try {
+        await this.faceRecognitionService.loadModels();
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        this.videoElement.nativeElement.srcObject = stream;
+        this.isFaceLoading = false;
+        this.startFaceDetection();
+      } catch (err: any) {
+        if (err.name === 'NotAllowedError') {
+          this.cameraError = 'Camera access denied. Please allow camera permissions.';
+        } else if (err.name === 'NotFoundError') {
+          this.cameraError = 'No camera found on this device.';
+        } else {
+          this.cameraError = `Camera Error: ${err.message || err.name || 'Unknown error'}`;
+        }
+        this.isFaceLoading = false;
+      }
+    } else {
+      this.stopFaceDetection();
+    }
+  }
+
+  private startFaceDetection() {
+    this.faceDetectionInterval = setInterval(async () => {
+      if (this.isSubmitting) return;
+
+      const detection = await this.faceRecognitionService.detectFace(this.videoElement.nativeElement);
+      if (detection) {
+        this.isSubmitting = true;
+        this.authService.loginWithFace(detection.descriptor).subscribe({
+          next: () => {
+            this.handleLoginSuccess();
+            this.stopFaceDetection();
+          },
+          error: (err) => {
+            console.log('Face match failed', err);
+            this.isSubmitting = false;
+          }
+        });
+      }
+    }, 2000);
+  }
+
+  private stopFaceDetection() {
+    if (this.faceDetectionInterval) {
+      clearInterval(this.faceDetectionInterval);
+    }
+    if (this.videoElement?.nativeElement?.srcObject) {
+      const tracks = this.videoElement.nativeElement.srcObject.getTracks();
+      tracks.forEach((track: any) => track.stop());
+    }
+    this.isFaceLoginActive = false;
+  }
+
+  private handleLoginSuccess() {
+    const user = this.authService.getUser();
+    if (user?.role === 'student') {
+      const userId = user._id || user.id;
+      this.adaptiveService.getProfile(userId).subscribe({
+        next: (profile) => {
+          if (!profile || !profile.level) {
+            this.router.navigate(['/level-test']);
+          } else {
+            this.router.navigate(['/student-dashboard']);
+          }
+        },
+        error: () => this.router.navigate(['/level-test']),
+      });
+    } else if (user?.role === 'instructor') {
+      this.router.navigate(['/instructor/dashboard']);
+    } else if (user?.role === 'admin') {
+      this.router.navigate(['/admin']);
+    } else {
+      this.router.navigate(['/profile']);
+    }
   }
 
   togglePassword() {
@@ -119,26 +209,7 @@ export class LoginComponent {
 
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
-          const user = this.authService.getUser();
-          if (user.role === 'student') {
-            const userId = user._id || user.id;
-            this.adaptiveService.getProfile(userId).subscribe({
-              next: (profile) => {
-                if (!profile || !profile.level) {
-                  this.router.navigate(['/level-test']);
-                } else {
-                  this.router.navigate(['/student-dashboard']);
-                }
-              },
-              error: () => this.router.navigate(['/level-test']),
-            });
-          } else if (user.role === 'instructor') {
-            this.router.navigate(['/instructor/dashboard']);
-          } else if (user.role === 'admin') {
-            this.router.navigate(['/admin']);
-          } else {
-            this.router.navigate(['/profile']);
-          }
+          this.handleLoginSuccess();
           // isSubmitting flag will be reset on navigation
         },
         error: (error) => {

@@ -18,10 +18,10 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
     private activityService: ActivityService,
-  ) {}
+  ) { }
 
   async register(createUserDto: CreateUserDto): Promise<{ message: string }> {
-    const { email, password, first_name, last_name, phone } = createUserDto;
+    const { email, password, first_name, last_name, phone, faceDescriptor } = createUserDto;
 
     // Check if user already exists
     const existingUser = await this.userModel.findOne({ email });
@@ -40,6 +40,7 @@ export class AuthService {
       email,
       password: hashedPassword,
       role: UserRole.STUDENT, // Default role
+      faceDescriptor,
     });
 
     await user.save();
@@ -133,9 +134,9 @@ export class AuthService {
 
     const channel = req
       ? classifyChannelFromHeaders(
-          req.headers['user-agent'],
-          req.headers['x-client-channel'] as string | undefined,
-        )
+        req.headers['user-agent'],
+        req.headers['x-client-channel'] as string | undefined,
+      )
       : undefined;
     await this.activityService.logActivity(user._id, ActivityAction.LOGIN, {
       channel,
@@ -223,5 +224,48 @@ export class AuthService {
     await user.save({ validateBeforeSave: false });
 
     return { message: 'Password has been reset. You can log in with your new password.' };
+  }
+
+  async registerFace(userId: string, faceDescriptor: number[]) {
+    const user = await this.userModel.findOneAndUpdate(
+      { _id: userId },
+      { $set: { faceDescriptor } },
+      { new: true }
+    ).exec();
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return { message: 'Face registered successfully' };
+  }
+
+  async loginWithFace(descriptor: number[], req?: Request) {
+    // This is a naive implementation: fetch all users with face descriptors and compare
+    // In a real production app with many users, you'd use a vector database
+    const users = await this.userModel.find({ faceDescriptor: { $exists: true, $not: { $size: 0 } } }).select('+faceDescriptor');
+
+    let bestMatchUser = null;
+    let minDistance = 1.0; // Max possible distance is usually less but 1.0 is a good starting point
+
+    for (const user of users) {
+      const distance = this.euclideanDistance(descriptor, user.faceDescriptor);
+      if (distance < minDistance) {
+        minDistance = distance;
+        bestMatchUser = user;
+      }
+    }
+
+    // Threshold for face-api.js is typically around 0.6
+    if (bestMatchUser && minDistance < 0.6) {
+      return this.login(bestMatchUser.toObject(), req);
+    }
+
+    throw new BadRequestException('Face not recognized');
+  }
+
+  private euclideanDistance(arr1: number[], arr2: number[]): number {
+    return Math.sqrt(
+      arr1.reduce((sum, val, i) => sum + Math.pow(val - arr2[i], 2), 0)
+    );
   }
 }

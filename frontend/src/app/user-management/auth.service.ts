@@ -36,7 +36,7 @@ export class AuthService {
     }
   }
 
-  register(user: { first_name: string; last_name: string; phone?: string; email: string; password: string }): Observable<any> {
+  register(user: { first_name: string; last_name: string; phone?: string; email: string; password: string; faceDescriptor?: number[] }): Observable<any> {
     return this.http.post(`${this.apiUrl}/auth/register`, user);
   }
 
@@ -66,6 +66,23 @@ export class AuthService {
 
   resetPassword(token: string, password: string): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.apiUrl}/auth/reset-password`, { token, password });
+  }
+
+  loginWithFace(descriptor: number[] | Float32Array): Observable<LoginResponse> {
+    // face-api.js descriptors are Float32Array, which needs to be converted to Array for JSON
+    const descriptorArray = Array.from(descriptor);
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login/face`, { descriptor: descriptorArray }).pipe(
+      tap(response => {
+        localStorage.setItem(this.tokenKey, response.token);
+        localStorage.setItem('userRole', response.user.role);
+        this.userSubject.next(response.user);
+      })
+    );
+  }
+
+  registerFace(userId: string, descriptor: number[] | Float32Array): Observable<any> {
+    const descriptorArray = Array.from(descriptor);
+    return this.http.post(`${this.apiUrl}/auth/register-face`, { userId, descriptor: descriptorArray });
   }
 
   logout() {

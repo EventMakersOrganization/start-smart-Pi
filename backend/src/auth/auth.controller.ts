@@ -7,7 +7,7 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   async register(@Body() createUserDto: CreateUserDto) {
@@ -33,5 +33,15 @@ export class AuthController {
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.password);
+  }
+
+  @Post('login/face')
+  async loginFace(@Body('descriptor') descriptor: number[], @Request() req) {
+    return this.authService.loginWithFace(descriptor, req);
+  }
+
+  @Post('register-face')
+  async registerFace(@Body('userId') userId: string, @Body('descriptor') descriptor: number[]) {
+    return this.authService.registerFace(userId, descriptor);
   }
 }

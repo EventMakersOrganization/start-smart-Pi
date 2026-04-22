@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { AuthService } from '../auth.service';
+import { FaceRecognitionService } from '../face-recognition.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 
 interface ProfileData {
   user: {
@@ -56,6 +57,7 @@ export class ProfileComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private faceRecognitionService: FaceRecognitionService,
     private http: HttpClient,
     private router: Router
   ) {
@@ -70,6 +72,119 @@ export class ProfileComponent implements OnInit {
       new_password: ['', [Validators.required, Validators.minLength(6)]],
       confirm_password: ['', [Validators.required]]
     }, { validators: passwordMatch });
+  }
+
+  // Face Registration properties
+  isFaceRegActive = false;
+  isFaceLoading = false;
+  cameraError = '';
+  faceSuccess = '';
+  faceError = '';
+  @ViewChild('video') videoElement!: any;
+
+  async toggleFaceRegistration() {
+    this.isFaceRegActive = !this.isFaceRegActive;
+    if (this.isFaceRegActive) {
+      this.isFaceLoading = true;
+      this.cameraError = '';
+      try {
+        await this.faceRecognitionService.loadModels();
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        this.videoElement.nativeElement.srcObject = stream;
+        this.isFaceLoading = false;
+      } catch (err: any) {
+        if (err.name === 'NotAllowedError') {
+          this.cameraError = 'Camera access denied. Please allow camera permissions.';
+        } else if (err.name === 'NotFoundError') {
+          this.cameraError = 'No camera found on this device.';
+        } else {
+          this.cameraError = `Camera Error: ${err.message || err.name || 'Unknown error'}`;
+        }
+        this.isFaceLoading = false;
+      }
+    } else {
+      this.stopWebcam();
+    }
+  }
+
+  async captureFace() {
+    if (this.isFaceLoading || !this.videoElement) return;
+
+    this.isFaceLoading = true;
+    try {
+      const detection = await this.faceRecognitionService.detectFace(this.videoElement.nativeElement);
+      if (detection) {
+        const user = this.authService.getUser();
+        const userId = user.id || user._id;
+        this.authService.registerFace(userId, detection.descriptor).subscribe({
+          next: () => {
+            this.faceSuccess = 'Face registered successfully!';
+            this.stopWebcam();
+            setTimeout(() => this.faceSuccess = '', 3000);
+          },
+          error: (err) => {
+            this.faceError = `Server Error: ${err.error?.message || err.message || 'Failed to register face'}`;
+            this.isFaceLoading = false;
+          }
+        });
+      } else {
+        this.faceError = 'No face detected. Please try again.';
+        this.isFaceLoading = false;
+      }
+    } catch (err: any) {
+      this.faceError = `Detection Error: ${err.message || 'Error during face detection'}`;
+      this.isFaceLoading = false;
+    }
+  }
+
+  private stopWebcam() {
+    if (this.videoElement?.nativeElement?.srcObject) {
+      const tracks = this.videoElement.nativeElement.srcObject.getTracks();
+      tracks.forEach((track: any) => track.stop());
+    }
+    this.isFaceRegActive = false;
+    this.isFaceLoading = false;
+  }
+
+  async onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    this.isFaceLoading = true;
+    this.faceError = '';
+    this.faceSuccess = '';
+
+    try {
+      await this.faceRecognitionService.loadModels();
+
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+
+      img.onload = async () => {
+        const descriptor = await this.faceRecognitionService.getFaceDescriptorFromImage(img);
+        if (descriptor) {
+          const user = this.authService.getUser();
+          const userId = user.id || user._id;
+          this.authService.registerFace(userId, descriptor).subscribe({
+            next: () => {
+              this.faceSuccess = 'Face registration from image successful!';
+              this.isFaceLoading = false;
+              setTimeout(() => this.faceSuccess = '', 3000);
+            },
+            error: (err) => {
+              this.faceError = `Server Error: ${err.error?.message || err.message || 'Failed to register face'}`;
+              this.isFaceLoading = false;
+            }
+          });
+        } else {
+          this.faceError = 'No face detected in the uploaded image.';
+          this.isFaceLoading = false;
+        }
+      };
+    } catch (err) {
+      this.faceError = 'Error processing image.';
+      this.isFaceLoading = false;
+    }
   }
 
   ngOnInit() {

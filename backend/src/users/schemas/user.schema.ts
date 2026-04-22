@@ -65,6 +65,9 @@ export class User {
 
   @Prop({ select: false })
   passwordResetExpires?: Date;
+
+  @Prop({ type: [Number], select: false })
+  faceDescriptor?: number[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
