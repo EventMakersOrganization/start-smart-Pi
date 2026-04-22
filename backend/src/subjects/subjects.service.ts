@@ -1,18 +1,16 @@
-import {
-  Logger
-} from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { User, UserDocument } from '../users/schemas/user.schema';
-import { Subject, SubjectDocument } from './schemas/subject.schema';
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { UpdateSubjectDto } from './dto/update-subject.dto';
+} from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model, Types } from "mongoose";
+import { User, UserDocument } from "../users/schemas/user.schema";
+import { Subject, SubjectDocument } from "./schemas/subject.schema";
+import { CreateSubjectDto } from "./dto/create-subject.dto";
+import { UpdateSubjectDto } from "./dto/update-subject.dto";
 import { randomUUID } from "crypto";
 import { FilterQuery } from "mongoose";
 import { AddChapterDto } from "./dto/add-chapter.dto";
@@ -60,8 +58,14 @@ import {
 } from "./schemas/quiz-file-submission.schema";
 import { SubmitQuizFileDto } from "./dto/submit-quiz-file.dto";
 import { GradeQuizFileSubmissionDto } from "./dto/grade-quiz-file-submission.dto";
-import { ClassEnrollment, ClassEnrollmentDocument } from "../academic/schemas/class-enrollment.schema";
-import { ClassSubject, ClassSubjectDocument } from "../academic/schemas/class-subject.schema";
+import {
+  ClassEnrollment,
+  ClassEnrollmentDocument,
+} from "../academic/schemas/class-enrollment.schema";
+import {
+  ClassSubject,
+  ClassSubjectDocument,
+} from "../academic/schemas/class-subject.schema";
 import { UserRole } from "../users/schemas/user.schema";
 
 @Injectable()
@@ -97,14 +101,14 @@ export class SubjectsService {
     subjectId: string,
   ): Promise<void> {
     if (!Types.ObjectId.isValid(subjectId)) {
-      throw new NotFoundException('Subject not found');
+      throw new NotFoundException("Subject not found");
     }
     const enrollment = await this.classEnrollmentModel
       .findOne({ studentId: new Types.ObjectId(studentId) })
       .exec();
     if (!enrollment) {
       throw new ForbiddenException(
-        'You must be enrolled in a class to view subjects',
+        "You must be enrolled in a class to view subjects",
       );
     }
     const linked = await this.classSubjectModel
@@ -115,7 +119,7 @@ export class SubjectsService {
       .exec();
     if (!linked) {
       throw new ForbiddenException(
-        'This subject is not assigned to your class',
+        "This subject is not assigned to your class",
       );
     }
   }
@@ -136,7 +140,7 @@ export class SubjectsService {
     }
     const links = await this.classSubjectModel
       .find({ schoolClassId: enrollment.schoolClassId })
-      .select('subjectId')
+      .select("subjectId")
       .lean()
       .exec();
     const ids = [
@@ -153,7 +157,7 @@ export class SubjectsService {
     const subjects = await this.subjectModel
       .find({ _id: { $in: ids.map((id) => new Types.ObjectId(id)) } })
       .sort({ createdAt: -1 })
-      .populate('instructors', 'first_name last_name email role')
+      .populate("instructors", "first_name last_name email role")
       .exec();
 
     return subjects.map((subject) => this.toResponse(subject));
@@ -195,7 +199,6 @@ export class SubjectsService {
 
     return candidate;
   }
-
 
   private async ensureContentIds(subject: SubjectDocument): Promise<void> {
     let changed = false;
@@ -827,8 +830,13 @@ export class SubjectsService {
 
     this.validateFolderTypeCompatibility(folder, type);
 
-    if ((type === "video" || type === "link") && !url) {
-      throw new BadRequestException("URL is required for link/video content");
+    if (type === "link" && !url) {
+      throw new BadRequestException("URL is required for link content");
+    }
+    if (type === "video" && !fileName && !url) {
+      throw new BadRequestException(
+        "A video file or URL is required for video content",
+      );
     }
 
     const hasQuizQuestions = quizQuestions.length > 0;
@@ -1104,8 +1112,13 @@ export class SubjectsService {
 
     this.validateFolderTypeCompatibility(folder, type);
 
-    if ((type === "video" || type === "link") && !url) {
-      throw new BadRequestException("URL is required for link/video content");
+    if (type === "link" && !url) {
+      throw new BadRequestException("URL is required for link content");
+    }
+    if (type === "video" && !fileName && !url) {
+      throw new BadRequestException(
+        "A video file or URL is required for video content",
+      );
     }
 
     const hasQuizQuestions =
@@ -1285,7 +1298,6 @@ export class SubjectsService {
     );
   }
 
-
   async submitQuiz(
     studentId: string,
     submitQuizDto: SubmitQuizDto,
@@ -1438,8 +1450,6 @@ export class SubjectsService {
     return submission.save();
   }
 
-
-
   async create(dto: CreateSubjectDto) {
     const instructorIds = this.normalizeIds(dto.instructorIds);
     await this.assertAllInstructorsExist(instructorIds);
@@ -1448,7 +1458,7 @@ export class SubjectsService {
     const subject = await this.subjectModel.create({
       code,
       title: dto.title,
-      description: dto.description || '',
+      description: dto.description || "",
       instructors: instructorIds.map((id) => new Types.ObjectId(id)),
     });
 
@@ -1459,9 +1469,9 @@ export class SubjectsService {
     instructorId?: string,
     user?: { id?: string; userId?: string; role?: string },
   ) {
-    const role = String(user?.role ?? '').toLowerCase();
+    const role = String(user?.role ?? "").toLowerCase();
     if (role === UserRole.STUDENT) {
-      const studentId = String(user?.id || user?.userId || '').trim();
+      const studentId = String(user?.id || user?.userId || "").trim();
       if (!studentId) {
         return [];
       }
@@ -1475,7 +1485,7 @@ export class SubjectsService {
     const subjects = await this.subjectModel
       .find(filter)
       .sort({ createdAt: -1 })
-      .populate('instructors', 'first_name last_name email role')
+      .populate("instructors", "first_name last_name email role")
       .exec();
 
     return subjects.map((subject) => this.toResponse(subject));
@@ -1487,18 +1497,18 @@ export class SubjectsService {
   ) {
     const subject = await this.subjectModel
       .findById(id)
-      .populate('instructors', 'first_name last_name email role')
+      .populate("instructors", "first_name last_name email role")
       .exec();
 
     if (!subject) {
-      throw new NotFoundException('Subject not found');
+      throw new NotFoundException("Subject not found");
     }
 
-    const role = String(user?.role ?? '').toLowerCase();
+    const role = String(user?.role ?? "").toLowerCase();
     if (role === UserRole.STUDENT) {
-      const studentId = String(user?.id || user?.userId || '').trim();
+      const studentId = String(user?.id || user?.userId || "").trim();
       if (!studentId) {
-        throw new ForbiddenException('Student context required');
+        throw new ForbiddenException("Student context required");
       }
       await this.assertStudentHasSubjectAccess(studentId, id);
     }
@@ -1509,7 +1519,7 @@ export class SubjectsService {
   async update(id: string, dto: UpdateSubjectDto) {
     const subject = await this.subjectModel.findById(id);
     if (!subject) {
-      throw new NotFoundException('Subject not found');
+      throw new NotFoundException("Subject not found");
     }
 
     if (dto.title !== undefined) {
@@ -1521,7 +1531,9 @@ export class SubjectsService {
     if (dto.instructorIds !== undefined) {
       const instructorIds = this.normalizeIds(dto.instructorIds);
       await this.assertAllInstructorsExist(instructorIds);
-      subject.instructors = instructorIds.map((instructorId) => new Types.ObjectId(instructorId));
+      subject.instructors = instructorIds.map(
+        (instructorId) => new Types.ObjectId(instructorId),
+      );
     }
 
     await subject.save();
@@ -1532,7 +1544,7 @@ export class SubjectsService {
   async remove(id: string) {
     const deleted = await this.subjectModel.findByIdAndDelete(id).exec();
     if (!deleted) {
-      throw new NotFoundException('Subject not found');
+      throw new NotFoundException("Subject not found");
     }
 
     return { success: true };
@@ -1540,7 +1552,7 @@ export class SubjectsService {
 
   private normalizeIds(ids: string[]) {
     if (!Array.isArray(ids) || ids.length === 0) {
-      throw new BadRequestException('At least one instructor is required');
+      throw new BadRequestException("At least one instructor is required");
     }
 
     return [...new Set(ids.map((id) => id?.trim()).filter(Boolean))];
@@ -1554,7 +1566,9 @@ export class SubjectsService {
     });
 
     if (instructors.length !== instructorIds.length) {
-      throw new BadRequestException('One or more selected instructors are invalid');
+      throw new BadRequestException(
+        "One or more selected instructors are invalid",
+      );
     }
   }
 
@@ -1566,13 +1580,15 @@ export class SubjectsService {
       name: subject.title,
       description: subject.description,
       chapters: subject.chapters || [],
-      instructors: ((subject as any).instructors || []).map((instructor: any) => ({
-        id: instructor._id,
-        first_name: instructor.first_name,
-        last_name: instructor.last_name,
-        email: instructor.email,
-        role: instructor.role,
-      })),
+      instructors: ((subject as any).instructors || []).map(
+        (instructor: any) => ({
+          id: instructor._id,
+          first_name: instructor.first_name,
+          last_name: instructor.last_name,
+          email: instructor.email,
+          role: instructor.role,
+        }),
+      ),
       createdAt: (subject as any).createdAt,
       updatedAt: (subject as any).updatedAt,
     };

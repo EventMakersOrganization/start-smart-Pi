@@ -10,13 +10,22 @@ import { resolve } from "path";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS early so static assets under /uploads are readable by frontend preview fetch.
-  app.enableCors();
+  // Enable CORS for Angular frontend with credentials (no wildcard allowed)
+  app.enableCors({
+    origin: "http://localhost:4200",
+    credentials: true,
+  });
 
   // Allow cross-origin resource loading for uploaded documents (PDF/DOCX previews).
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "frame-ancestors": ["'self'", "http://localhost:4200"],
+        },
+      },
     }),
   );
 
@@ -75,7 +84,10 @@ async function bootstrap() {
     await app.listen(port);
     console.log(`Application is running on: ${await app.getUrl()}`);
   } catch (err: unknown) {
-    const code = err && typeof err === "object" && "code" in err ? (err as NodeJS.ErrnoException).code : undefined;
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? (err as NodeJS.ErrnoException).code
+        : undefined;
     if (code === "EADDRINUSE") {
       console.error(
         `[Nest] Port ${port} is already in use. Stop the other server on this port, or start with a different port, e.g. set PORT=3001 in the environment.`,

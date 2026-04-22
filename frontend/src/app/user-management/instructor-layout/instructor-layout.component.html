@@ -119,6 +119,16 @@
           <span class="material-symbols-outlined">menu_book</span>
           <span class="text-sm font-medium">Subjects</span>
         </a>
+
+         <a
+          routerLink="/instructor/subjects"
+          routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+        >
+          <span class="material-symbols-outlined">class</span>
+          <span class="text-sm font-medium">My cLasses</span>
+        </a>
         <a
           routerLink="/instructor/progress-reports"
           routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20"
@@ -145,27 +155,7 @@
           <span class="text-sm font-medium">Conversations</span>
         </a>
       </div>
-      <div class="flex flex-col gap-2">
-        <p
-          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2"
-        >
-          My Courses
-        </p>
-        <div class="space-y-1">
-          <div
-            class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
-          >
-            <span>CS101 Intro</span>
-            <span class="size-2 rounded-full bg-green-500"></span>
-          </div>
-          <div
-            class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
-          >
-            <span>AI Ethics</span>
-            <span class="size-2 rounded-full bg-yellow-500"></span>
-          </div>
-        </div>
-      </div>
+   
       <div class="mt-auto bg-primary/5 rounded-xl p-4 border border-primary/10">
         <p class="text-xs font-bold text-primary mb-1">New AI Insight</p>
         <p class="text-[11px] text-slate-500">

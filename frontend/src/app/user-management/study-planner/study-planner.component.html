@@ -1,23 +1,29 @@
 <section
-  class="w-full rounded-2xl border border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-4 md:p-6"
+  class="w-full rounded-3xl glass-effect bg-gradient-to-br from-cyan-50/80 via-white/90 to-emerald-50/80 dark:from-cyan-900/40 dark:via-slate-900/60 dark:to-emerald-900/40 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-fade-in-up"
 >
   <div
-    class="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+    class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between animate-fade-in-up animate-delay-200"
   >
-    <div>
-      <h2 class="text-xl font-bold text-slate-800 md:text-2xl">
-        Study Schedule Planner
-      </h2>
-      <p class="text-sm text-slate-600">
-        Planification intelligente basée sur la spaced repetition
-      </p>
+    <div class="flex items-center gap-3">
+      <span
+        class="material-symbols-outlined text-cyan-500 text-3xl bg-cyan-100 rounded-full p-2 shadow-glow"
+        >calendar_month</span
+      >
+      <div>
+        <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">
+          Study Schedule Planner
+        </h2>
+        <p class="text-sm text-slate-600">
+          Planification intelligente basée sur la spaced repetition
+        </p>
+      </div>
     </div>
-
     <button
       type="button"
       (click)="autoPlanWeek()"
-      class="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+      class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-white px-5 py-2 text-base font-bold shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-200 animate-bounce-soft"
     >
+      <span class="material-symbols-outlined text-lg mr-1">auto_mode</span>
       Auto-Plan My Week
     </button>
   </div>
@@ -36,79 +42,124 @@
     Chargement du planning...
   </div>
 
-  <div class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-    <div class="rounded-xl border border-red-100 bg-white p-4 shadow-sm">
+  <div
+    class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3 animate-fade-in-up animate-delay-300"
+  >
+    <div
+      class="rounded-2xl glass-effect bg-gradient-to-br from-red-50/80 via-white/90 to-red-100/80 dark:from-red-900/40 dark:via-slate-900/60 dark:to-red-900/40 p-5 shadow-xl flex flex-col items-center"
+    >
+      <span
+        class="material-symbols-outlined text-red-500 text-2xl bg-red-100 rounded-full p-2 mb-2"
+        >warning</span
+      >
       <p class="text-xs uppercase tracking-wide text-slate-500">
         Topics Overdue
       </p>
-      <p class="mt-2 text-2xl font-bold text-red-600">{{ stats.overdue }}</p>
+      <p class="mt-2 text-3xl font-extrabold text-red-600">
+        {{ stats.overdue }}
+      </p>
     </div>
-
-    <div class="rounded-xl border border-amber-100 bg-white p-4 shadow-sm">
+    <div
+      class="rounded-2xl glass-effect bg-gradient-to-br from-amber-50/80 via-white/90 to-amber-100/80 dark:from-amber-900/40 dark:via-slate-900/60 dark:to-amber-900/40 p-5 shadow-xl flex flex-col items-center"
+    >
+      <span
+        class="material-symbols-outlined text-amber-500 text-2xl bg-amber-100 rounded-full p-2 mb-2"
+        >event</span
+      >
       <p class="text-xs uppercase tracking-wide text-slate-500">Due Today</p>
-      <p class="mt-2 text-2xl font-bold text-amber-600">{{ stats.dueToday }}</p>
+      <p class="mt-2 text-3xl font-extrabold text-amber-600">
+        {{ stats.dueToday }}
+      </p>
     </div>
-
-    <div class="rounded-xl border border-sky-100 bg-white p-4 shadow-sm">
+    <div
+      class="rounded-2xl glass-effect bg-gradient-to-br from-sky-50/80 via-white/90 to-sky-100/80 dark:from-sky-900/40 dark:via-slate-900/60 dark:to-sky-900/40 p-5 shadow-xl flex flex-col items-center"
+    >
+      <span
+        class="material-symbols-outlined text-sky-500 text-2xl bg-sky-100 rounded-full p-2 mb-2"
+        >calendar_today</span
+      >
       <p class="text-xs uppercase tracking-wide text-slate-500">This Week</p>
-      <p class="mt-2 text-2xl font-bold text-sky-600">{{ stats.thisWeek }}</p>
+      <p class="mt-2 text-3xl font-extrabold text-sky-600">
+        {{ stats.thisWeek }}
+      </p>
     </div>
   </div>
 
-  <div class="mb-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
-    <div class="mb-4 flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-slate-800">Today's Plan</h3>
+  <div
+    class="mb-8 rounded-3xl glass-effect border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-white/90 to-cyan-50/80 dark:from-slate-900/60 dark:to-cyan-900/40 p-6 md:p-7 shadow-xl animate-fade-in-up animate-delay-400"
+  >
+    <div class="mb-5 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span
+          class="material-symbols-outlined text-emerald-500 text-xl bg-emerald-100 rounded-full p-1"
+          >today</span
+        >
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">
+          Today's Plan
+        </h3>
+      </div>
       <span class="text-xs text-slate-500">Durée par session: ~30 min</span>
     </div>
 
     <div
       *ngIf="todaySessions.length === 0"
-      class="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500"
+      class="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 bg-white/70 dark:bg-slate-900/40 animate-fade-in-up animate-delay-500"
     >
       Aucun topic planifié pour aujourd'hui.
     </div>
 
     <div
       *ngIf="todaySessions.length > 0"
-      class="grid grid-cols-1 gap-3 lg:grid-cols-2"
+      class="grid grid-cols-1 gap-4 lg:grid-cols-2"
     >
       <article
-        *ngFor="let session of todaySessions"
-        class="rounded-xl border bg-white p-4 shadow-sm"
+        *ngFor="let session of todaySessions; let i = index"
+        class="rounded-2xl glass-effect border bg-gradient-to-br from-white/90 to-emerald-50/80 dark:from-slate-900/60 dark:to-emerald-900/40 p-5 shadow-lg animate-fade-in-up"
         [ngClass]="
           isOverdue(session)
             ? 'border-red-300 ring-1 ring-red-200'
-            : 'border-slate-200'
+            : 'border-slate-200 dark:border-slate-700'
         "
+        [style.animationDelay]="0.5 + i * 0.1 + 's'"
       >
         <div class="mb-3 flex items-start justify-between gap-2">
           <div class="flex items-center gap-2">
             <span
-              class="h-3 w-3 rounded-full"
+              class="h-3 w-3 rounded-full shadow-glow"
               [ngStyle]="{ backgroundColor: getTopicColor(session.topic) }"
             ></span>
-            <h4 class="text-sm font-semibold text-slate-800">
+            <h4 class="text-base font-semibold text-slate-800 dark:text-white">
               {{ session.topic }}
             </h4>
           </div>
           <span
-            class="rounded-full px-2 py-1 text-xs font-medium"
+            class="rounded-full px-2 py-1 text-xs font-bold shadow-md"
             [ngClass]="getUrgencyBadgeClass(session.urgency)"
           >
             {{ session.urgency }}
           </span>
         </div>
 
-        <div class="mb-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+        <div
+          class="mb-3 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300"
+        >
           <p>
+            <span
+              class="material-symbols-outlined text-xs align-middle mr-1 text-slate-400"
+              >score</span
+            >
             Score précédent:
-            <span class="font-semibold text-slate-800"
+            <span class="font-semibold text-slate-800 dark:text-white"
               >{{ session.lastScore }}%</span
             >
           </p>
           <p>
+            <span
+              class="material-symbols-outlined text-xs align-middle mr-1 text-slate-400"
+              >timer</span
+            >
             Durée estimée:
-            <span class="font-semibold text-slate-800"
+            <span class="font-semibold text-slate-800 dark:text-white"
               >{{ session.estimatedMinutes }} min</span
             >
           </p>
@@ -116,61 +167,86 @@
 
         <button
           type="button"
-          class="w-full rounded-lg px-3 py-2 text-sm font-semibold transition"
+          class="w-full rounded-xl px-3 py-2 text-sm font-bold transition-all duration-200 shadow-md mt-2"
           [ngClass]="
             session.completed
-              ? 'cursor-not-allowed bg-emerald-100 text-emerald-700'
-              : 'bg-slate-900 text-white hover:bg-slate-700'
+              ? 'cursor-not-allowed bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+              : 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:scale-105 hover:shadow-xl'
           "
           [disabled]="session.completed"
           (click)="markSessionCompleted(session)"
         >
+          <span class="material-symbols-outlined text-base align-middle mr-1">{{
+            session.completed ? "check_circle" : "play_circle"
+          }}</span>
           {{ session.completed ? "Session Completed" : "Start Session" }}
         </button>
       </article>
     </div>
   </div>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
-    <h3 class="mb-4 text-lg font-semibold text-slate-800">Weekly Calendar</h3>
-
-    <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
+  <div
+    class="rounded-3xl glass-effect border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-white/90 to-cyan-50/80 dark:from-slate-900/60 dark:to-cyan-900/40 p-6 md:p-7 shadow-xl animate-fade-in-up animate-delay-500"
+  >
+    <div class="mb-5 flex items-center gap-2">
+      <span
+        class="material-symbols-outlined text-sky-500 text-xl bg-sky-100 rounded-full p-1"
+        >calendar_view_week</span
+      >
+      <h3 class="text-xl font-bold text-slate-800 dark:text-white">
+        Weekly Calendar
+      </h3>
+    </div>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
       <div
-        *ngFor="let day of weekColumns"
-        class="min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-3"
+        *ngFor="let day of weekColumns; let i = index"
+        class="min-h-[180px] rounded-2xl glass-effect border bg-gradient-to-br from-slate-50/80 via-white/90 to-cyan-50/80 dark:from-slate-900/40 dark:via-slate-900/60 dark:to-cyan-900/40 p-4 shadow-md animate-fade-in-up"
+        [style.animationDelay]="0.7 + i * 0.07 + 's'"
+        [ngClass]="'border-slate-200 dark:border-slate-700'"
       >
         <div
-          class="mb-2 flex items-center justify-between border-b border-slate-200 pb-2"
+          class="mb-2 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2"
         >
-          <p class="text-sm font-bold text-slate-700">{{ day.label }}</p>
+          <p
+            class="text-base font-bold text-slate-700 dark:text-white flex items-center gap-1"
+          >
+            <span
+              class="material-symbols-outlined text-cyan-400 text-base align-middle"
+              >event_note</span
+            >
+            {{ day.label }}
+          </p>
           <p class="text-xs text-slate-500">{{ day.displayDate }}</p>
         </div>
-
         <p class="mb-2 text-[11px] text-slate-500">
+          <span
+            class="material-symbols-outlined text-xs align-middle mr-1 text-cyan-400"
+            >timer</span
+          >
           {{ day.totalMinutes }} min / 120 min
         </p>
-
         <div class="space-y-2">
           <article
             *ngFor="let session of day.sessions"
-            class="rounded-md border bg-white p-2 text-xs"
+            class="rounded-xl border bg-white/80 dark:bg-slate-900/40 p-2 text-xs shadow-sm"
             [ngClass]="
-              isOverdue(session) ? 'border-red-300' : 'border-slate-200'
+              isOverdue(session)
+                ? 'border-red-300'
+                : 'border-slate-200 dark:border-slate-700'
             "
           >
             <div class="mb-1 flex items-center gap-1">
               <span
-                class="h-2.5 w-2.5 rounded-full"
+                class="h-2.5 w-2.5 rounded-full shadow-glow"
                 [ngStyle]="{ backgroundColor: getTopicColor(session.topic) }"
               ></span>
-              <p class="truncate font-semibold text-slate-700">
+              <p class="truncate font-semibold text-slate-700 dark:text-white">
                 {{ session.topic }}
               </p>
             </div>
-
             <div class="flex items-center justify-between">
               <span
-                class="rounded-full px-1.5 py-0.5 text-[10px]"
+                class="rounded-full px-1.5 py-0.5 text-[10px] font-bold shadow"
                 [ngClass]="getUrgencyBadgeClass(session.urgency)"
               >
                 {{ session.urgency }}
@@ -180,7 +256,6 @@
               >
             </div>
           </article>
-
           <p
             *ngIf="day.sessions.length === 0"
             class="text-[11px] italic text-slate-400"

@@ -12,7 +12,7 @@ export interface SubjectQuizQuestion {
 export interface SubjectChapterContent {
   contentId?: string;
   folder?: 'cours' | 'exercices' | 'videos' | 'ressources';
-  type: 'file' | 'quiz' | 'video' | 'link' | 'prosit' | 'code';
+  type: 'file' | 'quiz' | 'video' | 'url' | 'link' | 'prosit' | 'code';
   title: string;
   url?: string;
   quizText?: string;
@@ -73,11 +73,13 @@ export class SubjectsService {
     const query = instructorId
       ? `?instructorId=${encodeURIComponent(instructorId)}`
       : '';
-    return this.http.get<any[]>(`${this.apiUrl}${query}`).pipe(
-      map((rows) =>
-        Array.isArray(rows) ? rows.map(normalizeSubjectItem) : [],
-      ),
-    );
+    return this.http
+      .get<any[]>(`${this.apiUrl}${query}`)
+      .pipe(
+        map((rows) =>
+          Array.isArray(rows) ? rows.map(normalizeSubjectItem) : [],
+        ),
+      );
   }
 
   getSubject(id: string): Observable<SubjectItem> {
@@ -94,12 +96,11 @@ export class SubjectsService {
     moduleCount: number;
   }> {
     return this.http
-      .get<{ percent: number; moduleCount: number }>(
-        `${this.apiUrl}/${encodeURIComponent(subjectId)}/learning-progress`,
-      )
-      .pipe(
-        catchError(() => of({ percent: 0, moduleCount: 0 })),
-      );
+      .get<{
+        percent: number;
+        moduleCount: number;
+      }>(`${this.apiUrl}/${encodeURIComponent(subjectId)}/learning-progress`)
+      .pipe(catchError(() => of({ percent: 0, moduleCount: 0 })));
   }
 
   createSubject(payload: {
@@ -137,9 +138,7 @@ export class SubjectsService {
     chapterOrder: number,
   ): Observable<SubjectItem> {
     return this.http
-      .delete<any>(
-        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}`,
-      )
+      .delete<any>(`${this.apiUrl}/${subjectId}/chapters/${chapterOrder}`)
       .pipe(map(normalizeSubjectItem));
   }
 
@@ -227,7 +226,7 @@ export class SubjectsService {
     subChapterOrder: number,
     payload: {
       folder: 'cours' | 'exercices' | 'videos' | 'ressources';
-      type: 'file' | 'quiz' | 'video' | 'link' | 'prosit' | 'code';
+      type: 'file' | 'quiz' | 'video' | 'url' | 'link' | 'prosit' | 'code';
       title: string;
       url?: string;
       quizText?: string;
@@ -254,7 +253,7 @@ export class SubjectsService {
     contentId: string,
     payload: {
       folder?: 'cours' | 'exercices' | 'videos' | 'ressources';
-      type?: 'file' | 'quiz' | 'video' | 'link' | 'prosit' | 'code';
+      type?: 'file' | 'quiz' | 'video' | 'url' | 'link' | 'prosit' | 'code';
       title?: string;
       url?: string;
       quizText?: string;

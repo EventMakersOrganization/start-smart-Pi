@@ -1,3 +1,4 @@
+// ...existing code...
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -21,6 +22,9 @@ import {
   SubjectsService,
 } from '../subjects.service';
 
+// ...existing code...
+
+// Interfaces
 interface SubjectFormModel {
   title: string;
   description: string;
@@ -73,22 +77,62 @@ interface PrositGradeFormModel {
   feedback: string;
 }
 
+// ...interfaces above...
+
 @Component({
   selector: 'app-instructor-subjects',
   templateUrl: './instructor-subjects.component.html',
   styleUrls: ['./instructor-subjects.component.css'],
 })
 export class InstructorSubjectsComponent implements OnInit, OnDestroy {
+  /**
+   * Convertit automatiquement un lien YouTube "watch" en lien "embed".
+   * Si ce n'est pas un lien YouTube, retourne l'URL d'origine.
+   */
+  toEmbedUrl(url: string): string {
+    if (!url) return '';
+    // YouTube watch URL
+    const watchRegex =
+      /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([\w-]+)/i;
+    const shortRegex = /(?:https?:\/\/)?youtu\.be\/([\w-]+)/i;
+    let match = url.match(watchRegex);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
+    match = url.match(shortRegex);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
+    return url;
+  }
+  // Used for *ngFor trackBy to prevent input focus loss
+  trackByIndex(index: number, item: any): number {
+    return index;
+  }
+  showAddChapterForm = false;
+  onShowAddChapterForm() {
+    this.showAddChapterForm = true;
+  }
+
+  onHideAddChapterForm() {
+    this.showAddChapterForm = false;
+  }
+  openContentId: string | null = null;
+
+  onOpenContent(content: any) {
+    this.openContentId =
+      this.openContentId === content.contentId ? null : content.contentId;
+  }
+
   readonly folderLabels: Record<
     'cours' | 'exercices' | 'videos' | 'ressources',
     string
   > = {
-    cours: 'Dossier Cours',
-    exercices: 'Dossier Exercices',
-    videos: 'Dossier Videos',
-    ressources: 'Dossier Ressources Additionnelles',
+    cours: 'Cours',
+    exercices: 'Exercices',
+    videos: 'Videos',
+    ressources: 'Ressources Additionnelles',
   };
-
   user: any;
   loadingSubjects = false;
   loadingSubject = false;
@@ -110,6 +154,11 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     string,
     'cours' | 'exercices' | 'videos' | 'ressources'
   > = {};
+
+  // Prosit edit state
+editingPrositId: string | null = null;
+editPrositDueDate: string = '';
+savingPrositEdit = false;
 
   // Active content form states
   activeContentChapterOrder: number | null = null;
@@ -323,7 +372,9 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   }
 
   getSelectedSubjectPrositSubmissions(): PrositSubmissionResponse[] {
-    const currentSubjectTitle = String(this.selectedSubject?.title || '').trim();
+    const currentSubjectTitle = String(
+      this.selectedSubject?.title || '',
+    ).trim();
     if (!currentSubjectTitle) {
       return [];
     }
@@ -355,7 +406,9 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     return fullName || String(student?.email || 'Etudiant').trim();
   }
 
-  getPrositSubmissionFileUrl(submission: PrositSubmissionResponse): string | null {
+  getPrositSubmissionFileUrl(
+    submission: PrositSubmissionResponse,
+  ): string | null {
     const path = String(submission?.filePath || '').trim();
     if (!path) {
       return null;
@@ -396,9 +449,10 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         next: (res) => {
           const updated = res?.submission;
           if (updated) {
-            this.instructorPrositSubmissions = this.instructorPrositSubmissions.map(
-              (row) => (row._id === updated._id ? updated : row),
-            );
+            this.instructorPrositSubmissions =
+              this.instructorPrositSubmissions.map((row) =>
+                row._id === updated._id ? updated : row,
+              );
             this.prositGradeForms[updated._id] = {
               grade:
                 typeof updated.grade === 'number'
@@ -943,9 +997,9 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
       return ['quiz', 'prosit'];
     }
     if (folder === 'videos') {
-      return ['video', 'file'];
+      return ['video', 'link'];
     }
-    return ['file', 'link', 'code'];
+    return ['link', 'code'];
   }
 
   onFolderChange(): void {
@@ -1071,8 +1125,15 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = (input.files && input.files[0]) || null;
 
-    // Determine which file variable to populate based on content type
-    if (this.chapterContentForm.type === 'quiz') {
+    // Vérification spécifique pour l'upload vidéo : uniquement mp4
+    if (this.chapterContentForm.type === 'video') {
+      if (file && file.type !== 'video/mp4') {
+        this.error = 'Seuls les fichiers MP4 sont acceptés pour les vidéos.';
+        this.selectedChapterFile = null;
+        return;
+      }
+      this.selectedChapterFile = file;
+    } else if (this.chapterContentForm.type === 'quiz') {
       this.selectedQuizFile = file;
     } else {
       this.selectedChapterFile = file;
@@ -1125,8 +1186,8 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if ((type === 'video' || type === 'link') && !url) {
-      this.error = 'URL is required for link/video content.';
+    if (type === 'link' && !url) {
+      this.error = 'URL is required for link content.';
       return;
     }
 
@@ -1214,7 +1275,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         title,
       };
 
-      if (type === 'file') {
+      if (type === 'file' || type === 'video') {
         if (!this.selectedChapterFile) {
           throw new Error('Please choose a file first.');
         }
@@ -1228,20 +1289,69 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         );
         this.uploadingChapterFile = false;
 
+        // Use only the path part for the URL (relative to server root)
+        let fileUrl =
+          uploadResult?.url ||
+          uploadResult?.fileUrl ||
+          uploadResult?.file_url ||
+          uploadResult?.download_url ||
+          undefined;
+        if (fileUrl && fileUrl.startsWith('http')) {
+          try {
+            const urlObj = new URL(fileUrl);
+            fileUrl = urlObj.pathname + urlObj.search;
+          } catch (e) {
+            // fallback: leave as is
+          }
+        }
+
         payload = {
           ...payload,
           fileName: this.selectedChapterFile.name,
           mimeType: this.selectedChapterFile.type || undefined,
-          url:
-            uploadResult?.url ||
-            uploadResult?.fileUrl ||
-            uploadResult?.file_url ||
-            uploadResult?.download_url ||
-            undefined,
         };
+        // N'ajoute url que pour 'file', jamais pour 'video'
+        if (type === 'file') {
+          payload.url = fileUrl;
+        }
       }
 
-      if (type === 'video' || type === 'link') {
+    if (type === 'video') {
+  if (!this.selectedChapterFile && url) {
+    payload = { ...payload, url };
+  } else if (this.selectedChapterFile) {
+    // Upload déjà fait au-dessus → récupère l'url
+    this.uploadingChapterFile = true;
+    const uploadResult = await this.uploadChapterFile(
+      this.selectedSubject._id,
+      chapterOrder,
+      subChapterOrder,
+      this.selectedChapterFile,
+    );
+    this.uploadingChapterFile = false;
+
+    let fileUrl =
+      uploadResult?.url ||
+      uploadResult?.fileUrl ||
+      uploadResult?.file_url ||
+      uploadResult?.download_url ||
+      undefined;
+
+    if (fileUrl && fileUrl.startsWith('http')) {
+      try {
+        const urlObj = new URL(fileUrl);
+        fileUrl = urlObj.pathname + urlObj.search;
+      } catch (e) {}
+    }
+
+    payload = {
+      ...payload,
+      url: fileUrl,
+      fileName: this.selectedChapterFile.name,
+      mimeType: this.selectedChapterFile.type || undefined,
+    };
+  }
+} else if (type === 'link') {
         payload = {
           ...payload,
           url,
@@ -1265,16 +1375,26 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
           );
           this.uploadingChapterFile = false;
 
+          let fileUrl =
+            uploadResult?.url ||
+            uploadResult?.fileUrl ||
+            uploadResult?.file_url ||
+            uploadResult?.download_url ||
+            undefined;
+          if (fileUrl && fileUrl.startsWith('http')) {
+            try {
+              const urlObj = new URL(fileUrl);
+              fileUrl = urlObj.pathname + urlObj.search;
+            } catch (e) {
+              // fallback: leave as is
+            }
+          }
+
           payload = {
             ...payload,
             fileName: this.selectedChapterFile.name,
             mimeType: this.selectedChapterFile.type || undefined,
-            url:
-              uploadResult?.url ||
-              uploadResult?.fileUrl ||
-              uploadResult?.file_url ||
-              uploadResult?.download_url ||
-              undefined,
+            url: fileUrl,
           };
         }
       }
@@ -1312,16 +1432,26 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
           );
           this.uploadingChapterFile = false;
 
+          let fileUrl =
+            uploadResult?.url ||
+            uploadResult?.fileUrl ||
+            uploadResult?.file_url ||
+            uploadResult?.download_url ||
+            undefined;
+          if (fileUrl && fileUrl.startsWith('http')) {
+            try {
+              const urlObj = new URL(fileUrl);
+              fileUrl = urlObj.pathname + urlObj.search;
+            } catch (e) {
+              // fallback: leave as is
+            }
+          }
+
           payload = {
             ...payload,
             fileName: this.selectedQuizFile.name,
             mimeType: this.selectedQuizFile.type || undefined,
-            url:
-              uploadResult?.url ||
-              uploadResult?.fileUrl ||
-              uploadResult?.file_url ||
-              uploadResult?.download_url ||
-              undefined,
+            url: fileUrl,
           };
         }
       }
@@ -1453,8 +1583,89 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     formData.append('chapterOrder', String(chapterOrder));
     formData.append('subChapterOrder', String(subChapterOrder));
 
-    return firstValueFrom(
-      this.http.post(`${this.subjectsApiUrl}/upload-file`, formData),
-    );
+    // Ajoute ?type=video si c'est une vidéo, sinon rien
+    let url = `${this.subjectsApiUrl}/upload-file`;
+    if (this.chapterContentForm.type === 'video') {
+      url += '?type=video';
+    }
+    return firstValueFrom(this.http.post(url, formData));
   }
+
+
+  startEditProsit(
+  chapterOrder: number,
+  subChapterOrder: number,
+  content: SubjectChapterContent,
+): void {
+  if (content.type !== 'prosit' || !content.contentId) return;
+
+  this.editingPrositId = content.contentId;
+
+  // Pré-remplir la date actuelle
+  if (content.dueDate) {
+    // Convertit en format datetime-local (YYYY-MM-DDTHH:mm)
+    const date = new Date(content.dueDate);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    this.editPrositDueDate =
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+      `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  } else {
+    this.editPrositDueDate = '';
+  }
+}
+
+cancelEditProsit(): void {
+  this.editingPrositId = null;
+  this.editPrositDueDate = '';
+  this.savingPrositEdit = false;
+}
+
+async saveEditProsit(
+  chapterOrder: number,
+  subChapterOrder: number,
+  content: SubjectChapterContent,
+): Promise<void> {
+  if (!this.selectedSubject?._id || !content.contentId) return;
+
+  if (!this.editPrositDueDate) {
+    this.error = "Date d'échéance requise.";
+    return;
+  }
+
+  this.savingPrositEdit = true;
+  this.error = '';
+
+  try {
+    const updated = await firstValueFrom(
+      this.subjectsService.updateSubChapterContent(
+        this.selectedSubject._id,
+        chapterOrder,
+        subChapterOrder,
+        content.contentId,
+        {
+          folder: 'exercices',
+          type: 'prosit',
+          title: content.title,
+          dueDate: this.editPrositDueDate,
+          submissionInstructions: content.submissionInstructions,
+          url: content.url,
+        },
+      ),
+    );
+
+    this.selectedSubject = this.normalizeContentFolders(updated);
+    this.subjects = this.subjects.map((item) =>
+      item._id === updated._id ? updated : item,
+    );
+
+    this.cancelEditProsit();
+    this.savingPrositEdit = false;
+  } catch (err: any) {
+    this.error =
+      err?.error?.message ||
+      err?.error?.detail ||
+      'Impossible de modifier la date.';
+    this.savingPrositEdit = false;
+  }
+}
 }

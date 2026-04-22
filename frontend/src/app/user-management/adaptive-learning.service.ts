@@ -185,6 +185,31 @@ export interface LearningEventRequest {
   };
 }
 
+export type ActivityTraceAction =
+  | 'subject_open'
+  | 'page_view'
+  | 'page_leave'
+  | 'course_open'
+  | 'chapter_open'
+  | 'subchapter_open'
+  | 'content_open'
+  | 'video_start'
+  | 'video_pause'
+  | 'video_complete'
+  | 'quiz_start'
+  | 'quiz_submit'
+  | 'exercise_start'
+  | 'exercise_submit';
+
+export interface ActivityTraceRequest {
+  action: ActivityTraceAction;
+  page_path?: string;
+  resource_type?: string;
+  resource_id?: string;
+  resource_title?: string;
+  duration_sec?: number;
+  metadata?: Record<string, any>;
+}
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -485,6 +510,7 @@ export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
   private chatApiUrl = 'http://localhost:3000/api/chat/ai';
   private aiServiceUrl = 'http://localhost:8000';
+  private trackingApiUrl = 'http://localhost:3000';
   private readonly learningRecommendationsSubject = new Subject<any[]>();
   readonly learningRecommendations$ =
     this.learningRecommendationsSubject.asObservable();
@@ -744,6 +770,10 @@ export class AdaptiveLearningService {
           this.learningRecommendationsSubject.next(recommendations);
         }),
       );
+  }
+
+  recordActivity(payload: ActivityTraceRequest): Observable<any> {
+    return this.http.post(`${this.trackingApiUrl}/tracking/event`, payload);
   }
 
   askChatbot(payload: ChatbotAskRequest): Observable<ChatbotAskResponse> {

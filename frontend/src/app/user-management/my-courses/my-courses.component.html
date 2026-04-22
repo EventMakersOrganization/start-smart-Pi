@@ -151,51 +151,165 @@
 <div class="flex-1 min-h-screen">
   <!-- Page Content -->
   <div class="p-8 space-y-8 max-w-7xl mx-auto">
-    <!-- Hero Section -->
-    <section class="flex flex-col gap-6">
-      <div>
-        <h2
-          class="text-3xl font-black tracking-tight text-slate-900 dark:text-white"
-        >
-          Subjects
-        </h2>
-        <p class="text-slate-500 mt-1">
-          Browse your class subjects, open a chapter, then access its content.
-        </p>
+    <section
+      class="learning-motion-guide animate-fade-in-up"
+      aria-label="Learning path guide"
+    >
+      <div
+        class="learning-motion-guide__bg-orb learning-motion-guide__bg-orb--one"
+      ></div>
+      <div
+        class="learning-motion-guide__bg-orb learning-motion-guide__bg-orb--two"
+      ></div>
+
+      <div class="learning-motion-guide__header animate-fade-in-up">
+        <div>
+          <p class="learning-motion-guide__eyebrow">Student Guide</p>
+          <h2 class="learning-motion-guide__title">
+            Your learning path, clear, smooth, and guided
+          </h2>
+          <p class="learning-motion-guide__subtitle">
+            Explore My Courses like an interactive map: choose a subject, open
+            its chapters, expand the subchapters, and access the resources that
+            move you forward step by step.
+          </p>
+        </div>
       </div>
 
+      <div class="learning-motion-guide__canvas animate-fade-in-up">
+        <article class="learning-step learning-step--subject">
+          <div class="learning-step__top">
+            <span class="learning-step__index">1</span>
+            <span class="material-symbols-outlined learning-step__icon"
+              >book_4</span
+            >
+          </div>
+          <p class="learning-step__label">Subject</p>
+          <p class="learning-step__desc">
+            The starting point of your journey: one organized subject at a time.
+          </p>
+          <p class="learning-step__hint">
+            Open a subject to begin the journey.
+          </p>
+        </article>
+
+        <div class="learning-connector" aria-hidden="true">
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </div>
+
+        <article class="learning-step learning-step--chapter">
+          <div class="learning-step__top">
+            <span class="learning-step__index">2</span>
+            <span class="material-symbols-outlined learning-step__icon"
+              >menu_book</span
+            >
+          </div>
+          <p class="learning-step__label">Chapter</p>
+          <p class="learning-step__desc">
+            Each chapter structures the subject into the main learning stages.
+          </p>
+          <p class="learning-step__hint">
+            Click a chapter to reveal its sections.
+          </p>
+        </article>
+
+        <div class="learning-connector" aria-hidden="true">
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </div>
+
+        <article class="learning-step learning-step--subchapter">
+          <div class="learning-step__top">
+            <span class="learning-step__index">3</span>
+            <span class="material-symbols-outlined learning-step__icon"
+              >account_tree</span
+            >
+          </div>
+          <p class="learning-step__label">Subchapter</p>
+          <p class="learning-step__desc">
+            Subchapters break the chapter into focused learning sections.
+          </p>
+          <p class="learning-step__hint">
+            Open the subchapter title to see the available resources.
+          </p>
+        </article>
+
+        <div class="learning-connector" aria-hidden="true">
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </div>
+
+        <article class="learning-step learning-step--content">
+          <div class="learning-step__top">
+            <span class="learning-step__index">4</span>
+            <span class="material-symbols-outlined learning-step__icon"
+              >dashboard</span
+            >
+          </div>
+          <p class="learning-step__label">Content</p>
+          <p class="learning-step__desc">
+            Everything you need in one place to keep learning without losing the
+            thread.
+          </p>
+          <div class="learning-step__assets">
+            <span class="learning-asset">PDF</span>
+            <span class="learning-asset">Quiz</span>
+            <span class="learning-asset">Video</span>
+            <span class="learning-asset">Exercise</span>
+            <span class="learning-asset">Code</span>
+            <span class="learning-asset">Resource</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Hero Section -->
+    <section class="flex flex-col gap-6 animate-fade-in-up">
       <div
-        class="relative bg-gradient-to-r from-primary to-indigo-600 rounded-2xl p-6 text-white overflow-hidden group"
+        class="relative bg-gradient-to-br from-primary/90 via-indigo-500/80 to-blue-400/80 rounded-3xl p-8 text-white overflow-hidden group shadow-2xl backdrop-blur-md border border-white/10 animate-fade-in-up"
       >
+        <!-- Animated Subject Icons Background -->
+        <span class="subject-icon math-icon material-symbols-outlined"
+          >calculate</span
+        >
+        <span class="subject-icon econ-icon material-symbols-outlined"
+          >savings</span
+        >
+        <span class="subject-icon lang-icon material-symbols-outlined"
+          >translate</span
+        >
+        <span class="subject-icon sci-icon material-symbols-outlined"
+          >science</span
+        >
+        <span class="subject-icon art-icon material-symbols-outlined"
+          >palette</span
+        >
+        <span class="subject-icon cs-icon material-symbols-outlined"
+          >computer</span
+        >
+        <span class="subject-icon ai-icon material-symbols-outlined"
+          >neurology</span
+        >
+
+        <div
+          class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl opacity-40"
+        ></div>
+        <div
+          class="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl opacity-30"
+        ></div>
         <div
           class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6"
         >
           <div class="max-w-md">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="material-symbols-outlined text-sm"
+            <div class="flex items-center gap-2 mb-2 animate-bounce">
+              <span
+                class="material-symbols-outlined text-lg text-yellow-300 drop-shadow"
                 >auto_awesome</span
               >
-              <span
-                class="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2 py-0.5 rounded"
-                >Recommended for You</span
-              >
             </div>
+
             <h3 class="text-xl font-bold mb-2">Learning by Subject</h3>
             <p class="text-white/80 text-sm mb-4">
-              Select a subject, explore chapters, then open PDFs, quizzes and
-              exercises.
+              Select a subject, explore chapters, then access its content.
             </p>
-            <span
-              class="inline-block px-4 py-2 bg-white/20 text-white font-bold rounded-lg text-sm"
-              >Student View</span
-            >
-          </div>
-          <div class="hidden md:block">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCp4AoPBDuiJtA0RvmyBhWHY-FBworuJqpd-hdYzFSAX9F4JvXZq0UtHdwWrntAr_8CeNacWuX_agSdHa-2uW9dU1mAnsyg5rnTGcwYb1SpgYs54ZEwWUnQwZchaVKSyAZcdkb_-HQ8pTLB8MdPaZT6hXi-TkrXoWmFrnTdlrSCxLANaJfa09y8EYLMFi5ENNagA0neWoW40aNJyU0yNLiag-sR8tC6x_mZVJJG_TvCr2C4alaKOGb9SL806GHLlF7HIlgAO27nLDm7"
-              alt="Course Recommendation"
-              class="w-48 h-32 object-cover rounded-xl shadow-2xl transform group-hover:scale-105 transition-transform duration-500"
-            />
           </div>
         </div>
         <div
@@ -204,11 +318,19 @@
         <div
           class="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-2xl"
         ></div>
+        <button
+          (click)="toggleSubjects()"
+          class="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg hover:scale-110 hover:bg-white/30 transition-all animate-bounce"
+        >
+          <span class="material-symbols-outlined text-white text-2xl">
+            {{ showSubjects ? "keyboard_arrow_up" : "keyboard_arrow_down" }}
+          </span>
+        </button>
       </div>
     </section>
 
     <section
-      *ngIf="viewMode === 'subjects'"
+      *ngIf="viewMode === 'subjects' && showSubjects"
       class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12"
     >
       <div
@@ -225,16 +347,16 @@
       </div>
 
       <div
-        *ngFor="let subject of subjects"
-        class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden hover:shadow-xl transition-shadow"
+        *ngFor="let subject of subjects; let i = index"
+        class="subject-card rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.035] transition-all duration-300 backdrop-blur-md animate-fade-in-up"
+        [ngStyle]="{ 'animation-delay': i * 120 + 'ms' }"
       >
         <div class="p-6">
-          <div
-            class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r mb-4"
-            [ngClass]="subject.color"
-          >
-            <span class="material-symbols-outlined text-sm">school</span>
-            Subject
+          <div class="flex items-center mb-4">
+            <span
+              class="inline-block w-3 h-3 rounded-full mr-2"
+              [ngStyle]="{ background: getDotColor(i) }"
+            ></span>
           </div>
           <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
             {{ subject.name }}
@@ -254,9 +376,9 @@
                 class="flex justify-between text-xs text-slate-500 dark:text-slate-400"
               >
                 <span>Course progress</span>
-                <span class="font-bold text-slate-700 dark:text-slate-200">{{
-                  (subject.progressPercent ?? 0) | number: "1.0-2"
-                }}%</span>
+                <span class="font-bold text-slate-700 dark:text-slate-200"
+                  >{{ subject.progressPercent ?? 0 | number: "1.0-2" }}%</span
+                >
               </div>
               <div
                 class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"
@@ -377,12 +499,6 @@
         </div>
         <div class="flex items-center gap-2">
           <button
-            (click)="openContinueLearning(selectedCourse.id)"
-            class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-blue-700"
-          >
-            Continue Learning
-          </button>
-          <button
             (click)="backToCourses()"
             class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50"
           >
@@ -445,6 +561,71 @@
                       *ngFor="let item of getFolderItems(module, folder)"
                       class="rounded border border-slate-200 px-3 py-2"
                     >
+                      <!-- Video resource open button and viewer -->
+                      <ng-container
+                        *ngIf="folder === 'videos' && hasDownloadableUrl(item)"
+                      >
+                        <a
+                          href="javascript:void(0)"
+                          (click)="
+                            toggleVideoViewer(item);
+                            trackSubchapterResourceAccess(
+                              module,
+                              folder,
+                              item,
+                              'open'
+                            )
+                          "
+                          class="inline-flex items-center text-blue-600 underline font-semibold"
+                        >
+                          Open
+                        </a>
+                        <div
+                          *ngIf="isVideoViewerOpen(item)"
+                          class="mt-4 w-full"
+                        >
+                          <!-- MP4 video player -->
+                          <video
+                            *ngIf="getVideoType(item) === 'mp4'"
+                            [src]="getItemUrl(item)"
+                            width="100%"
+                            height="480"
+                            controls
+                            style="
+                              border-radius: 12px;
+                              border: 1.5px solid #e0e7ef;
+                              background: #f8fafc;
+                              box-shadow: 0 2px 12px 0 rgba(30, 64, 175, 0.07);
+                            "
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                          <!-- Embedded video iframe -->
+                          <iframe
+                            *ngIf="getVideoType(item) === 'embed'"
+                            [src]="
+                              getEmbedUrl(getItemUrl(item) || '') || ''
+                                | safeUrl
+                            "
+                            width="100%"
+                            height="480"
+                            style="
+                              border-radius: 12px;
+                              border: 1.5px solid #e0e7ef;
+                              background: #f8fafc;
+                              box-shadow: 0 2px 12px 0 rgba(30, 64, 175, 0.07);
+                            "
+                            allowfullscreen
+                          ></iframe>
+                          <!-- Fallback for unknown video type -->
+                          <div
+                            *ngIf="getVideoType(item) === null"
+                            class="text-amber-700 text-xs mt-2"
+                          >
+                            Format vidéo non supporté ou lien incorrect.
+                          </div>
+                        </div>
+                      </ng-container>
                       <button
                         *ngIf="
                           folder === 'exercices' && item.type === 'prosit';
@@ -525,20 +706,34 @@
                           class="flex items-center gap-3"
                         >
                           <a
-                            [href]="getItemUrl(item)"
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href="javascript:void(0)"
+                            (click)="
+                              togglePdfViewer(item);
+                              trackSubchapterResourceAccess(
+                                module,
+                                folder,
+                                item,
+                                'open'
+                              )
+                            "
                             class="inline-flex items-center text-blue-600 underline font-semibold"
                           >
-                            Ouvrir
+                            Open
                           </a>
-                          <a
-                            [href]="getItemUrl(item)"
-                            [attr.download]="getDownloadFileName(item)"
-                            class="inline-flex items-center text-emerald-700 underline font-semibold"
-                          >
-                            Telecharger
-                          </a>
+                        </div>
+                        <div *ngIf="isPdfViewerOpen(item)" class="mt-4 w-full">
+                          <iframe
+                            [src]="getItemUrl(item) || '' | safeUrl"
+                            width="100%"
+                            height="600"
+                            style="
+                              border-radius: 12px;
+                              border: 1.5px solid #e0e7ef;
+                              background: #f8fafc;
+                              box-shadow: 0 2px 12px 0 rgba(30, 64, 175, 0.07);
+                            "
+                            allowfullscreen
+                          ></iframe>
                         </div>
                         <ng-template #missingCourseFileLink>
                           <p class="text-[11px] text-amber-700">
@@ -569,6 +764,7 @@
                       <a
                         *ngIf="
                           folder !== 'cours' &&
+                          folder !== 'videos' &&
                           !isQuizItem(item, folder) &&
                           !isPrositItem(item, folder) &&
                           hasDownloadableUrl(item)
@@ -576,9 +772,17 @@
                         [href]="getItemUrl(item)"
                         target="_blank"
                         rel="noopener noreferrer"
+                        (click)="
+                          trackSubchapterResourceAccess(
+                            module,
+                            folder,
+                            item,
+                            'open'
+                          )
+                        "
                         class="inline-flex items-center text-blue-600 underline mt-2"
                       >
-                        Ouvrir
+                        Open
                       </a>
                     </div>
 
@@ -799,164 +1003,13 @@
 
       <div class="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6">
         <div class="bg-white rounded-2xl border border-slate-200 p-6">
-          <h4 class="text-3xl font-black text-slate-900 mb-4">Remise Quiz</h4>
-
-          <div
-            *ngIf="!hasSelectedQuizFileSubmission()"
-            class="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-6"
-          >
-            <p class="font-semibold text-slate-800">Instructions</p>
-            <p class="text-sm text-slate-600 mt-1">
-              {{
-                selectedQuizFile.instructionsText ||
-                  "Telechargez le sujet, redigez vos reponses, puis deposez votre fichier."
-              }}
-            </p>
-            <p
-              *ngIf="selectedQuizFile.instructionFileName"
-              class="text-sm text-slate-700 mt-2"
-            >
-              Fichier du quiz: {{ selectedQuizFile.instructionFileName }}
-            </p>
-            <a
-              *ngIf="getSelectedQuizFileInstructionUrl()"
-              [href]="getSelectedQuizFileInstructionUrl()"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex mt-2 text-blue-700 underline font-semibold"
-            >
-              Ouvrir le fichier du quiz
-            </a>
-          </div>
-
-          <div
-            *ngIf="hasSelectedQuizFileSubmission()"
-            class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 mb-6"
-          >
-            <p class="text-base font-semibold text-emerald-800">Votre remise</p>
-            <p class="text-sm text-emerald-700 mt-1">
-              Fichier depose:
-              {{ selectedQuizFile.responseFileName || "Remise du quiz" }}
-            </p>
-
-            <button
-              *ngIf="getSelectedQuizFileResponseUrl()"
-              type="button"
-              (click)="toggleSelectedQuizFileResponsePreview()"
-              class="inline-flex mt-3 text-emerald-700 underline font-semibold"
-            >
-              {{
-                isSelectedQuizFileResponsePreviewOpen()
-                  ? "Masquer ma remise"
-                  : "Ouvrir ma remise"
-              }}
-            </button>
-
-            <p
-              *ngIf="
-                isSelectedQuizFileResponsePreviewOpen() &&
-                !isSelectedQuizFileResponsePreviewable() &&
-                !isSelectedQuizFileResponseDocxPreviewable()
-              "
-              class="mt-3 text-sm text-emerald-700"
-            >
-              Votre navigateur peut ne pas afficher DOC/DOCX inline. Si rien ne
-              s'affiche dans le cadre, utilisez un PDF pour l'aperçu direct.
-            </p>
-
-            <div
-              *ngIf="
-                isSelectedQuizFileResponsePreviewOpen() &&
-                isSelectedQuizFileResponseDocxPreviewable()
-              "
-              class="mt-4 rounded-lg border border-emerald-200 bg-white p-4"
-            >
-              <p
-                *ngIf="quizFileResponseDocxLoading"
-                class="text-sm text-slate-600"
-              >
-                Chargement de l'aperçu DOCX...
-              </p>
-
-              <p
-                *ngIf="
-                  !quizFileResponseDocxLoading && quizFileResponseDocxError
-                "
-                class="text-sm text-amber-700"
-              >
-                {{ quizFileResponseDocxError }}
-              </p>
-
-              <div
-                *ngIf="
-                  !quizFileResponseDocxLoading &&
-                  !quizFileResponseDocxError &&
-                  quizFileResponseDocxHtmlPreview
-                "
-                class="prose prose-slate max-w-none"
-                [innerHTML]="quizFileResponseDocxHtmlPreview"
-              ></div>
-            </div>
-
-            <iframe
-              *ngIf="
-                isSelectedQuizFileResponsePreviewOpen() &&
-                isSelectedQuizFileResponsePreviewable() &&
-                getSelectedQuizFileResponseUrl()
-              "
-              [attr.src]="getSelectedQuizFileResponseUrl()"
-              class="mt-4 w-full h-[520px] rounded-lg border border-emerald-200 bg-white"
-              title="Apercu de la remise"
-            ></iframe>
-          </div>
-
-          <div
-            *ngIf="!hasSelectedQuizFileSubmission()"
-            class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50"
-          >
-            <p class="text-sm text-slate-600 mb-3">
-              Deposer votre fichier de reponse (PDF/Word)
-            </p>
-            <input
-              id="quiz-response-file"
-              type="file"
-              accept=".pdf,.doc,.docx"
-              aria-label="Upload quiz response file"
-              (change)="onQuizResponseFileSelected($event)"
-              class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700"
-            />
-            <p
-              *ngIf="selectedQuizResponseFile"
-              class="text-sm text-slate-700 mt-3"
-            >
-              Fichier selectionne: {{ selectedQuizResponseFile.name }}
-            </p>
-          </div>
-
-          <div
-            *ngIf="!hasSelectedQuizFileSubmission()"
-            class="mt-5 flex items-center gap-3"
-          >
-            <button
-              (click)="submitQuizFileResponse()"
-              class="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
-            >
-              Soumettre au professeur
-            </button>
-          </div>
-
-          <div
-            *ngIf="quizFileSubmitMessage"
-            class="mt-4 rounded-xl border px-4 py-3 text-sm"
-            aria-live="polite"
-            [ngClass]="
-              quizFileSubmitted
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                : 'border-amber-200 bg-amber-50 text-amber-800'
-            "
-          >
-            {{ quizFileSubmitMessage }}
-          </div>
+          <app-quiz-file-viewer
+            [content]="buildQuizFileContent(selectedQuizFile)"
+            [subjectTitle]="selectedCourse?.subject || ''"
+            [chapterTitle]="selectedQuizFile.chapterTitle"
+            [subChapterTitle]="selectedQuizFile.subChapterTitle"
+            (submitted)="backToChapterContentFromQuiz()"
+          ></app-quiz-file-viewer>
         </div>
 
         <aside class="bg-white rounded-2xl border border-slate-200 p-6 h-fit">
@@ -1103,6 +1156,7 @@
                   [href]="getPrositFileUrl()"
                   target="_blank"
                   rel="noopener noreferrer"
+                  (click)="trackPrositFileAccess('open')"
                   class="text-blue-700 underline font-semibold"
                 >
                   Lire
@@ -1110,6 +1164,7 @@
                 <a
                   [href]="getPrositFileUrl()"
                   [attr.download]="selectedProsit.fileName"
+                  (click)="trackPrositFileAccess('download')"
                   class="text-emerald-700 underline font-semibold"
                 >
                   Telecharger

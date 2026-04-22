@@ -1,59 +1,94 @@
-<div class="space-y-8">
-  <div>
-    <h2 class="text-2xl font-black text-slate-900">Performance</h2>
-    <p class="text-sm text-slate-500">
-      Analyse detaillee de vos resultats et historique complet.
-    </p>
+<div class="space-y-10">
+  <div class="mb-2 animate-fade-in-up animate-delay-100">
+    <div class="flex items-center gap-3">
+      <span
+        class="material-symbols-outlined text-3xl text-blue-500 bg-blue-100 rounded-full p-2 shadow-glow"
+        >trending_up</span
+      >
+      <div>
+        <h2
+          class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight"
+        >
+          Performance
+        </h2>
+        <p class="text-base text-slate-500 dark:text-slate-300">
+          Analyse detaillee de vos resultats et historique complet.
+        </p>
+      </div>
+    </div>
   </div>
 
   <div
     *ngIf="loading"
-    class="bg-white border border-slate-200 rounded-2xl p-10 text-center"
+    class="glass-effect bg-gradient-to-br from-white/90 to-blue-50/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center animate-fade-in-up animate-delay-200 shadow-xl"
   >
     <span
-      class="material-symbols-outlined text-4xl text-slate-400 animate-spin inline-block"
+      class="material-symbols-outlined text-5xl text-blue-400 animate-spin inline-block mb-2"
     >
       progress_activity
     </span>
-    <p class="mt-3 text-slate-500">Chargement des donnees de performance...</p>
-  </div>
-
-  <div *ngIf="!loading" class="col-span-12">
-    <div class="flex items-center justify-between mb-4">
-      <div>
-        <h3 class="text-xl font-bold">Performance Analytics</h3>
-        <p class="text-sm text-slate-500">
-          Visual overview of your learning progress
-        </p>
-      </div>
-    </div>
-    <app-progress-charts
-      [performances]="performances"
-      [adaptiveProfile]="adaptiveProfile"
-      [studentId]="studentId"
-    >
-    </app-progress-charts>
+    <p class="mt-3 text-slate-500 dark:text-slate-300">
+      Chargement des donnees de performance...
+    </p>
   </div>
 
   <div
     *ngIf="!loading"
-    class="bg-white rounded-2xl border border-slate-200 overflow-hidden"
+    class="col-span-12 animate-fade-in-up animate-delay-300"
+  >
+    <div class="flex items-center gap-3 mb-4">
+      <span
+        class="material-symbols-outlined text-xl text-emerald-500 bg-emerald-100 rounded-full p-1"
+        >analytics</span
+      >
+      <div>
+        <h3 class="text-2xl font-bold text-slate-800 dark:text-white">
+          Performance Analytics
+        </h3>
+        <p class="text-sm text-slate-500 dark:text-slate-300">
+          Visual overview of your learning progress
+        </p>
+      </div>
+    </div>
+    <div
+      class="glass-effect bg-gradient-to-br from-white/90 to-emerald-50/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl animate-fade-in-up animate-delay-400"
+    >
+      <app-progress-charts
+        [performances]="performances"
+        [adaptiveProfile]="adaptiveProfile"
+        [studentId]="studentId"
+      >
+      </app-progress-charts>
+    </div>
+  </div>
+
+  <div
+    *ngIf="!loading"
+    class="glass-effect bg-gradient-to-br from-white/90 to-blue-50/80 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl animate-fade-in-up animate-delay-500"
   >
     <!-- ── Header ── -->
-    <div class="p-6 border-b border-slate-100">
+    <div class="p-7 border-b border-slate-100 dark:border-slate-800">
       <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 class="text-lg font-bold">Performance History</h3>
-          <p class="text-xs text-slate-500">
-            {{ filtered.length }} exercise{{
-              filtered.length !== 1 ? "s" : ""
-            }}
-            found
-          </p>
+        <div class="flex items-center gap-2">
+          <span
+            class="material-symbols-outlined text-lg text-blue-400 bg-blue-100 rounded-full p-1"
+            >history</span
+          >
+          <div>
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white">
+              Performance History
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-300">
+              {{ filtered.length }} exercise{{
+                filtered.length !== 1 ? "s" : ""
+              }}
+              found
+            </p>
+          </div>
         </div>
         <button
           (click)="resetFilters()"
-          class="text-xs text-slate-500 hover:text-primary flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-primary transition-colors"
+          class="text-xs text-slate-500 hover:text-primary flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-primary transition-colors bg-white/80 dark:bg-slate-900/40"
         >
           <span class="material-symbols-outlined text-sm">filter_alt_off</span>
           Reset
@@ -61,9 +96,13 @@
       </div>
 
       <!-- ── Filters ── -->
-      <div class="flex flex-wrap gap-3">
+      <div class="flex flex-wrap gap-3 animate-fade-in-up animate-delay-600">
         <!-- Topic Filter -->
         <div class="flex items-center gap-2">
+          <span
+            class="material-symbols-outlined text-xs text-cyan-400 align-middle"
+            >category</span
+          >
           <span class="text-xs font-bold text-slate-500 uppercase">Topic</span>
           <div class="flex gap-1 flex-wrap">
             <button
@@ -82,6 +121,10 @@
 
         <!-- Difficulty Filter -->
         <div class="flex items-center gap-2 ml-auto">
+          <span
+            class="material-symbols-outlined text-xs text-amber-400 align-middle"
+            >signal_cellular_alt</span
+          >
           <span class="text-xs font-bold text-slate-500 uppercase"
             >Difficulty</span
           >
@@ -95,7 +138,10 @@
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
           </select>
-
+          <span
+            class="material-symbols-outlined text-xs text-emerald-400 align-middle"
+            >sort</span
+          >
           <!-- Sort -->
           <select
             [(ngModel)]="sortBy"
@@ -111,9 +157,12 @@
     </div>
 
     <!-- ── Empty State ── -->
-    <div *ngIf="performances.length === 0" class="p-12 text-center">
+    <div
+      *ngIf="performances.length === 0"
+      class="p-16 text-center animate-fade-in-up animate-delay-700"
+    >
       <span
-        class="material-symbols-outlined text-5xl text-slate-300 block mb-4"
+        class="material-symbols-outlined text-6xl text-slate-300 block mb-4 animate-bounce-soft"
       >
         history
       </span>
@@ -126,10 +175,10 @@
     <!-- ── No Results ── -->
     <div
       *ngIf="performances.length > 0 && filtered.length === 0"
-      class="p-8 text-center"
+      class="p-12 text-center animate-fade-in-up animate-delay-800"
     >
       <span
-        class="material-symbols-outlined text-4xl text-slate-300 block mb-3"
+        class="material-symbols-outlined text-5xl text-slate-300 block mb-3 animate-bounce-soft"
       >
         search_off
       </span>
@@ -143,10 +192,15 @@
     </div>
 
     <!-- ── Table ── -->
-    <div *ngIf="paginated.length > 0" class="overflow-x-auto">
-      <table class="w-full">
+    <div
+      *ngIf="paginated.length > 0"
+      class="overflow-x-auto animate-fade-in-up animate-delay-900"
+    >
+      <table class="w-full rounded-2xl overflow-hidden">
         <thead>
-          <tr class="bg-slate-50 border-b border-slate-100">
+          <tr
+            class="bg-gradient-to-r from-blue-50/80 to-emerald-50/80 border-b border-slate-100 dark:border-slate-800"
+          >
             <th
               class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
             >
@@ -184,22 +238,25 @@
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-50">
+        <tbody class="divide-y divide-slate-50 dark:divide-slate-800">
           <tr
             *ngFor="let p of paginated; let i = index"
-            class="hover:bg-slate-50 transition-colors"
+            class="hover:bg-blue-50/60 dark:hover:bg-slate-900/40 transition-colors animate-fade-in-up"
+            [style.animationDelay]="1 + i * 0.07 + 's'"
           >
             <!-- Exercise ID -->
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center"
+                  class="w-10 h-10 bg-gradient-to-br from-blue-100/80 to-emerald-100/80 rounded-xl flex items-center justify-center shadow-glow"
                 >
-                  <span class="material-symbols-outlined text-primary text-sm">
+                  <span class="material-symbols-outlined text-blue-500 text-lg">
                     assignment
                   </span>
                 </div>
-                <span class="text-sm font-semibold text-slate-700">
+                <span
+                  class="text-base font-bold text-slate-700 dark:text-white"
+                >
                   {{ p.exerciseId || "Exercise" }}
                 </span>
               </div>
@@ -207,7 +264,9 @@
 
             <!-- Topic -->
             <td class="px-6 py-4">
-              <span class="text-sm font-medium text-slate-600 capitalize">
+              <span
+                class="text-sm font-medium text-slate-600 dark:text-slate-300 capitalize"
+              >
                 {{ p.topic || "general" }}
               </span>
             </td>
@@ -216,7 +275,7 @@
             <td class="px-6 py-4">
               <span
                 [class]="
-                  'text-xs font-bold px-2.5 py-1 rounded-full capitalize ' +
+                  'text-xs font-bold px-2.5 py-1 rounded-full capitalize shadow ' +
                   getDifficultyColor(p.difficulty || 'beginner')
                 "
               >
@@ -229,7 +288,7 @@
               <div class="flex items-center gap-2">
                 <span
                   [class]="
-                    'text-sm font-black px-2.5 py-1 rounded-lg ' +
+                    'text-base font-black px-2.5 py-1 rounded-xl shadow ' +
                     getScoreColor(p.score)
                   "
                 >
@@ -237,7 +296,7 @@
                 </span>
                 <!-- Mini progress bar -->
                 <div
-                  class="w-16 bg-slate-100 h-1.5 rounded-full overflow-hidden"
+                  class="w-20 bg-slate-100 h-2 rounded-full overflow-hidden shadow-inner"
                 >
                   <div
                     [style.width.%]="p.score"
@@ -255,14 +314,14 @@
 
             <!-- Time -->
             <td class="px-6 py-4">
-              <span class="text-sm text-slate-500">
+              <span class="text-sm text-slate-500 dark:text-slate-300">
                 {{ formatTime(p.timeSpent) }}
               </span>
             </td>
 
             <!-- Date -->
             <td class="px-6 py-4">
-              <span class="text-sm text-slate-500">
+              <span class="text-sm text-slate-500 dark:text-slate-300">
                 {{ formatDate(p.attemptDate) }}
               </span>
             </td>
@@ -271,7 +330,7 @@
             <td class="px-6 py-4">
               <span
                 [class]="
-                  'text-xs font-bold px-2.5 py-1 rounded-full ' +
+                  'text-xs font-bold px-2.5 py-1 rounded-full shadow ' +
                   getScoreColor(p.score)
                 "
               >
@@ -286,7 +345,7 @@
     <!-- ── Pagination ── -->
     <div
       *ngIf="totalPages > 1"
-      class="px-6 py-4 border-t border-slate-100 flex items-center justify-between"
+      class="px-7 py-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between animate-fade-in-up animate-delay-1000"
     >
       <p class="text-xs text-slate-500">
         Showing {{ (currentPage - 1) * itemsPerPage + 1 }}–

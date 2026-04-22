@@ -1,18 +1,37 @@
 <div class="p-8 pb-4">
   <div class="flex items-end justify-between gap-4 mb-6">
     <div>
-      <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Subjects Management</h1>
-      <p class="text-slate-500 mt-1">Create subjects and assign one or multiple instructors.</p>
+      <h1
+        class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
+      >
+        Subjects Management
+      </h1>
+      <p class="text-slate-500 mt-1">
+        Create subjects and assign one or multiple instructors.
+      </p>
     </div>
-    <button (click)="openAddSubjectModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary/90 transition-all">
+    <button
+      (click)="openAddSubjectModal()"
+      class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary/90 transition-all"
+    >
       <span class="material-symbols-outlined text-sm">add</span> Add Subject
     </button>
   </div>
 
-  <div class="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+  <div
+    class="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm"
+  >
     <div class="flex-1 min-w-[300px] relative">
-      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-      <input [(ngModel)]="filterText" class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Filter by subject name, description, or instructor..." type="text"/>
+      <span
+        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"
+        >search</span
+      >
+      <input
+        [(ngModel)]="filterText"
+        class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+        placeholder="Filter by subject name, description, or instructor..."
+        type="text"
+      />
     </div>
   </div>
 
@@ -20,160 +39,337 @@
   <p *ngIf="success" class="mt-4 text-sm text-green-600">{{ success }}</p>
 </div>
 
-<div class="flex-1 px-8 pb-8 overflow-auto custom-scrollbar max-h-[calc(100vh-12rem)]">
-  <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto">
+<div
+  class="flex-1 px-8 pb-8 overflow-auto custom-scrollbar max-h-[calc(100vh-12rem)]"
+>
+  <div
+    class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto"
+  >
     <table class="w-full text-left border-collapse">
       <thead class="sticky top-0 z-30">
-        <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Subject Name</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Description</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Assigned Instructors</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Created</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Updated</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap text-right">Actions</th>
+        <tr
+          class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800"
+        >
+          <th
+            class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+          >
+            Subject Name
+          </th>
+          <th
+            class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+          >
+            Description
+          </th>
+          <th
+            class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+          >
+            Assigned Instructors
+          </th>
+          <th
+            class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+          >
+            Created
+          </th>
+          <th
+            class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+          >
+            Updated
+          </th>
+          <th
+            class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap text-right"
+          >
+            Actions
+          </th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-        <tr *ngFor="let subject of filteredSubjects" class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
+        <tr
+          *ngFor="let subject of filteredSubjects"
+          class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group"
+        >
           <td class="px-6 py-4 min-w-[220px]">
-            <span *ngIf="!editing[subject.id]" class="font-semibold text-slate-800 dark:text-slate-100">{{ subject.name }}</span>
-            <input *ngIf="editing[subject.id]" [(ngModel)]="editModels[subject.id].name" class="w-full border-b bg-transparent" />
+            <span
+              *ngIf="!editing[subject.id]"
+              class="font-semibold text-slate-800 dark:text-slate-100"
+              >{{ subject.name }}</span
+            >
+            <input
+              *ngIf="editing[subject.id]"
+              [(ngModel)]="editModels[subject.id].name"
+              class="w-full border-b bg-transparent"
+            />
           </td>
           <td class="px-6 py-4 min-w-[260px]">
-            <span *ngIf="!editing[subject.id]">{{ subject.description || '-' }}</span>
-            <textarea *ngIf="editing[subject.id]" [(ngModel)]="editModels[subject.id].description" rows="2" class="w-full border rounded p-2 bg-transparent"></textarea>
+            <span *ngIf="!editing[subject.id]">{{
+              subject.description || "-"
+            }}</span>
+            <textarea
+              *ngIf="editing[subject.id]"
+              [(ngModel)]="editModels[subject.id].description"
+              rows="2"
+              class="w-full border rounded p-2 bg-transparent"
+            ></textarea>
           </td>
           <td class="px-6 py-4 min-w-[280px]">
             <div *ngIf="!editing[subject.id]" class="flex items-center gap-3">
-              <button *ngIf="subject.instructors.length; else noInstructors"
-                      type="button"
-                      (click)="openInstructorsModal(subject)"
-                      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors">
+              <button
+                *ngIf="subject.instructors.length; else noInstructors"
+                type="button"
+                (click)="openInstructorsModal(subject)"
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors"
+              >
                 <span class="material-symbols-outlined text-sm">group</span>
-                <span>{{ subject.instructors.length }} instructor{{ subject.instructors.length > 1 ? 's' : '' }}</span>
+                <span
+                  >{{ subject.instructors.length }} instructor{{
+                    subject.instructors.length > 1 ? "s" : ""
+                  }}</span
+                >
               </button>
               <ng-template #noInstructors>
                 <span class="text-slate-400">-</span>
               </ng-template>
             </div>
-            <select *ngIf="editing[subject.id]" multiple [(ngModel)]="editModels[subject.id].instructorIds" class="w-full border rounded p-2 bg-transparent min-h-[110px]">
-              <option *ngFor="let instructor of instructors" [value]="instructor.id">
+            <select
+              *ngIf="editing[subject.id]"
+              multiple
+              [(ngModel)]="editModels[subject.id].instructorIds"
+              class="w-full border rounded p-2 bg-transparent min-h-[110px]"
+            >
+              <option
+                *ngFor="let instructor of instructors"
+                [value]="instructor.id"
+              >
                 {{ instructorLabel(instructor) }}
               </option>
             </select>
           </td>
-          <td class="px-6 py-4">{{ subject.createdAt | date:'short' }}</td>
-          <td class="px-6 py-4">{{ subject.updatedAt | date:'short' }}</td>
+          <td class="px-6 py-4">{{ subject.createdAt | date: "short" }}</td>
+          <td class="px-6 py-4">{{ subject.updatedAt | date: "short" }}</td>
           <td class="px-6 py-4 text-right align-middle whitespace-nowrap">
-            <button *ngIf="!editing[subject.id]" (click)="startEdit(subject)" class="text-slate-400 hover:text-slate-900 dark:hover:text-white mr-2">
+            <button
+              *ngIf="!editing[subject.id]"
+              (click)="startEdit(subject)"
+              class="text-slate-400 hover:text-slate-900 dark:hover:text-white mr-2"
+            >
               <span class="material-symbols-outlined">edit</span>
             </button>
-            <button *ngIf="editing[subject.id]" (click)="save(subject.id)" class="text-green-500 mr-2">Save</button>
-            <button *ngIf="editing[subject.id]" (click)="cancelEdit(subject.id)" class="text-red-500 mr-2">Cancel</button>
+            <button
+              *ngIf="editing[subject.id]"
+              (click)="save(subject.id)"
+              class="text-green-500 mr-2"
+            >
+              Save
+            </button>
+            <button
+              *ngIf="editing[subject.id]"
+              (click)="cancelEdit(subject.id)"
+              class="text-red-500 mr-2"
+            >
+              Cancel
+            </button>
             <button (click)="deleteSubject(subject.id)" class="text-red-600">
               <span class="material-symbols-outlined">delete</span>
             </button>
           </td>
         </tr>
         <tr *ngIf="!filteredSubjects.length">
-          <td colspan="6" class="px-6 py-10 text-center text-slate-500">No subjects found.</td>
+          <td colspan="6" class="px-6 py-10 text-center text-slate-500">
+            No subjects found.
+          </td>
         </tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<div *ngIf="showInstructorsModal && selectedSubject" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-0">
-  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeInstructorsModal()"></div>
-  <div class="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800">
-    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<div
+  *ngIf="showInstructorsModal && selectedSubject"
+  class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-0"
+>
+  <div
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+    (click)="closeInstructorsModal()"
+  ></div>
+  <div
+    class="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800"
+  >
+    <div
+      class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"
+    >
       <div>
-        <h3 class="text-xl font-bold text-slate-900 dark:text-white">Assigned Instructors</h3>
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white">
+          Assigned Instructors
+        </h3>
         <p class="text-sm text-slate-500 mt-1">{{ selectedSubject.name }}</p>
       </div>
-      <button (click)="closeInstructorsModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+      <button
+        (click)="closeInstructorsModal()"
+        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
 
     <div class="p-6 space-y-3 max-h-[60vh] overflow-auto">
-      <div *ngIf="selectedSubject.instructors.length; else noAssignedList" class="space-y-3">
-        <div *ngFor="let instructor of selectedSubject.instructors" class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4">
+      <div
+        *ngIf="selectedSubject.instructors.length; else noAssignedList"
+        class="space-y-3"
+      >
+        <div
+          *ngFor="let instructor of selectedSubject.instructors"
+          class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4"
+        >
           <div class="min-w-0">
-            <p class="font-semibold text-slate-900 dark:text-white truncate">{{ instructorLabel(instructor) }}</p>
-            <p class="text-xs text-slate-500">Instructor ID: {{ instructor.id }}</p>
+            <p class="font-semibold text-slate-900 dark:text-white truncate">
+              {{ instructorLabel(instructor) }}
+            </p>
+            <p class="text-xs text-slate-500">
+              Instructor ID: {{ instructor.id }}
+            </p>
           </div>
-          <span class="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">Assigned</span>
+          <span
+            class="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+            >Assigned</span
+          >
         </div>
       </div>
       <ng-template #noAssignedList>
-        <div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-slate-500">
+        <div
+          class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-slate-500"
+        >
           No instructors assigned to this subject.
         </div>
       </ng-template>
     </div>
 
-    <div class="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-      <button type="button" (click)="closeInstructorsModal()"
-              class="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+    <div
+      class="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end"
+    >
+      <button
+        type="button"
+        (click)="closeInstructorsModal()"
+        class="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+      >
         Close
       </button>
     </div>
   </div>
 </div>
 
-<div *ngIf="showAddSubjectModal" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-0">
-  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeAddSubjectModal()"></div>
-  <div class="relative w-full max-w-xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800">
-    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<div
+  *ngIf="showAddSubjectModal"
+  class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-0"
+>
+  <div
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+    (click)="closeAddSubjectModal()"
+  ></div>
+  <div
+    class="relative w-full max-w-xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800"
+  >
+    <div
+      class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"
+    >
       <div class="flex items-center gap-3">
-        <div class="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+        <div
+          class="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary"
+        >
           <span class="material-symbols-outlined">menu_book</span>
         </div>
-        <h3 class="text-xl font-bold text-slate-900 dark:text-white">Add New Subject</h3>
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white">
+          Add New Subject
+        </h3>
       </div>
-      <button (click)="closeAddSubjectModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+      <button
+        (click)="closeAddSubjectModal()"
+        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
 
     <form (ngSubmit)="createSubject()" class="p-6 space-y-5">
       <div>
-        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="subject-name">Subject Name</label>
-        <input [(ngModel)]="newSubjectName" name="subjectName" id="subject-name" type="text"
-               class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-               placeholder="e.g. Algorithms" />
+        <label
+          class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+          for="subject-name"
+          >Subject Name</label
+        >
+        <input
+          [(ngModel)]="newSubjectName"
+          name="subjectName"
+          id="subject-name"
+          type="text"
+          class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+          placeholder="e.g. Algorithms"
+        />
       </div>
 
       <div>
-        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="subject-description">Description</label>
-        <textarea [(ngModel)]="newSubjectDescription" name="subjectDescription" id="subject-description" rows="3"
-                  class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                  placeholder="Optional description"></textarea>
+        <label
+          class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+          for="subject-description"
+          >Description</label
+        >
+        <textarea
+          [(ngModel)]="newSubjectDescription"
+          name="subjectDescription"
+          id="subject-description"
+          rows="3"
+          class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+          placeholder="Optional description"
+        ></textarea>
       </div>
 
       <div>
-        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="subject-instructors">Assign Instructor(s)</label>
-        <select [(ngModel)]="newSubjectInstructorIds" name="subjectInstructors" id="subject-instructors" multiple
-                class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all min-h-[140px]">
-          <option *ngFor="let instructor of instructors" [value]="instructor.id">
+        <label
+          class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+          for="subject-instructors"
+          >Assign Instructor(s)</label
+        >
+        <select
+          [(ngModel)]="newSubjectInstructorIds"
+          name="subjectInstructors"
+          id="subject-instructors"
+          multiple
+          class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all min-h-[140px]"
+        >
+          <option
+            *ngFor="let instructor of instructors"
+            [value]="instructor.id"
+          >
             {{ instructorLabel(instructor) }}
           </option>
         </select>
-        <p class="text-xs text-slate-500 mt-1">Hold Ctrl (Windows) to select multiple instructors.</p>
+        <p class="text-xs text-slate-500 mt-1">
+          Hold Ctrl (Windows) to select multiple instructors.
+        </p>
       </div>
 
-      <p *ngIf="addSubjectError" class="text-sm text-red-500">{{ addSubjectError }}</p>
+      <p *ngIf="addSubjectError" class="text-sm text-red-500">
+        {{ addSubjectError }}
+      </p>
 
-      <div class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-        <button type="button" (click)="closeAddSubjectModal()"
-                class="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+      <div
+        class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800"
+      >
+        <button
+          type="button"
+          (click)="closeAddSubjectModal()"
+          class="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+        >
           Cancel
         </button>
-        <button type="submit"
-                [disabled]="addSubjectLoading || !newSubjectName || !newSubjectInstructorIds.length"
-                class="flex-1 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-          {{ addSubjectLoading ? 'Creating...' : 'Create Subject' }}
+        <button
+          type="submit"
+          [disabled]="
+            addSubjectLoading ||
+            !newSubjectName ||
+            !newSubjectInstructorIds.length
+          "
+          class="flex-1 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {{ addSubjectLoading ? "Creating..." : "Create Subject" }}
         </button>
       </div>
     </form>

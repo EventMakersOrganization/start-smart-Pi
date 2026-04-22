@@ -13,15 +13,24 @@ import {
   ApiResponse,
   ApiTags,
 } from "@nestjs/swagger";
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/schemas/user.schema';
-import { SubjectsService } from './subjects.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import { UserRole } from "../users/schemas/user.schema";
+import { SubjectsService } from "./subjects.service";
 import { ModuleProgressService } from "./module-progress.service";
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { UpdateSubjectDto } from './dto/update-subject.dto';
+import { CreateSubjectDto } from "./dto/create-subject.dto";
+import { UpdateSubjectDto } from "./dto/update-subject.dto";
 import { AddChapterDto } from "./dto/add-chapter.dto";
 import { AddChapterContentDto } from "./dto/add-chapter-content.dto";
 import { AddSubChapterDto } from "./dto/add-subchapter.dto";
@@ -53,13 +62,18 @@ export class SubjectsController {
   @ApiBearerAuth()
   @ApiOperation({
     summary:
-      "Upload a cours file (pdf/doc/docx/ppt/pptx) and return public URL",
+      "Upload a cours file (pdf/doc/docx/ppt/pptx) or video (mp4) and return public URL",
   })
   @UseInterceptors(
     FileInterceptor("file", {
       storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          const dir = getUploadsDir("subjects", "cours");
+        destination: (req, file, cb) => {
+          // Si type=video, stocker dans uploads/subjects/videos, sinon cours
+          const type = req.query.type;
+          const dir = getUploadsDir(
+            "subjects",
+            type === "video" ? "videos" : "cours",
+          );
           if (!existsSync(dir)) {
             mkdirSync(dir, { recursive: true });
           }
@@ -74,18 +88,31 @@ export class SubjectsController {
           cb(null, `${Date.now()}_${base}${safeExt || ""}`);
         },
       }),
-      limits: { fileSize: 20 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
+      limits: { fileSize: 200 * 1024 * 1024 }, // 200MB pour les vidéos
+      fileFilter: (req, file, cb) => {
         const ext = extname(file.originalname || "").toLowerCase();
-        const allowed = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
-        if (!allowed.includes(ext)) {
-          cb(
-            new BadRequestException(
-              "Only PDF, Word, or PowerPoint files are allowed",
-            ) as any,
-            false,
-          );
-          return;
+        const type = req.query.type;
+        if (type === "video") {
+          if (ext !== ".mp4") {
+            cb(
+              new BadRequestException(
+                "Only MP4 files are allowed for video uploads",
+              ) as any,
+              false,
+            );
+            return;
+          }
+        } else {
+          const allowed = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
+          if (!allowed.includes(ext)) {
+            cb(
+              new BadRequestException(
+                "Only PDF, Word, or PowerPoint files are allowed",
+              ) as any,
+              false,
+            );
+            return;
+          }
         }
         cb(null, true);
       },
@@ -96,9 +123,10 @@ export class SubjectsController {
       throw new BadRequestException("File is required");
     }
 
+    const type = req?.query?.type;
     const protocol = String(req?.protocol || "http");
     const host = String(req?.get?.("host") || "localhost:3000");
-    const relativePath = `/uploads/subjects/cours/${file.filename}`;
+    const relativePath = `/uploads/subjects/${type === "video" ? "videos" : "cours"}/${file.filename}`;
 
     return {
       status: "success",
@@ -138,7 +166,10 @@ export class SubjectsController {
     summary:
       "Aggregate learning progress for the current student (average module %, 70/25/5)",
   })
-  async getSubjectLearningProgress(@Param("id") subjectId: string, @Req() req: any) {
+  async getSubjectLearningProgress(
+    @Param("id") subjectId: string,
+    @Req() req: any,
+  ) {
     const studentId = req?.user?.id || req?.user?.userId || req?.user?._id;
     if (!studentId) {
       throw new BadRequestException("Student context required");
@@ -532,9 +563,8 @@ export class SubjectsController {
     );
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateSubjectDto) {
+  @Put(":id")
+  update(@Param("id") id: string, @Body() dto: UpdateSubjectDto) {
     return this.subjectsService.update(id, dto);
   }
-
 }

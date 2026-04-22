@@ -1,0 +1,118 @@
+<div class="rounded-3xl bg-gradient-to-br from-blue-50 via-white to-indigo-100 shadow-xl p-0 mb-8">
+  <div class="flex items-center gap-4 px-8 pt-6 pb-2">
+    <button
+      class="px-4 py-2 rounded-xl font-bold text-blue-700 bg-white shadow border border-blue-100"
+      [class.bg-blue-100]="activeTab === 'edit'"
+      (click)="setTab('edit')"
+      *ngIf="isDocx"
+    >
+      Répondre dans le document
+    </button>
+    <button
+      class="px-4 py-2 rounded-xl font-bold text-blue-700 bg-white shadow border border-blue-100"
+      [class.bg-blue-100]="activeTab === 'upload'"
+      (click)="setTab('upload')"
+    >
+      Soumettre un fichier
+    </button>
+    <button
+      class="px-4 py-2 rounded-xl font-bold text-blue-700 bg-white shadow border border-blue-100"
+      [class.bg-blue-100]="activeTab === 'original'"
+      (click)="setTab('original')"
+      *ngIf="isDocx"
+    >
+      Voir l'original
+    </button>
+    <span class="ml-auto text-xs text-slate-400 font-bold">
+      {{ content.fileName }}
+    </span>
+  </div>
+
+  <div class="px-8 pb-8">
+    <!-- TAB 1: Répondre dans le document (DOCX) -->
+    <div *ngIf="activeTab === 'edit' && isDocx">
+      <div class="mb-4 flex flex-wrap gap-2 items-center">
+        <button class="btn-toolbar" (click)="execCommand('bold')" title="Gras">
+          <span class="material-symbols-outlined">format_bold</span>
+        </button>
+        <button class="btn-toolbar" (click)="execCommand('italic')" title="Italique">
+          <span class="material-symbols-outlined">format_italic</span>
+        </button>
+        <button class="btn-toolbar" (click)="execCommand('underline')" title="Souligner">
+          <span class="material-symbols-outlined">format_underlined</span>
+        </button>
+        <button class="btn-toolbar" (click)="highlightSelection()" title="Surligner">
+          <span class="material-symbols-outlined text-yellow-400">highlight</span>
+        </button>
+        <button class="btn-toolbar" (click)="addComment()" title="Ajouter un commentaire">
+          <span class="material-symbols-outlined text-blue-400">add_comment</span>
+        </button>
+        <button class="btn-toolbar" (click)="removeHighlights()" title="Retirer les surlignages/commentaires">
+          <span class="material-symbols-outlined">format_clear</span>
+        </button>
+      </div>
+      <div
+        #quizEditor
+        id="quiz-editor"
+        class="min-h-[400px] max-h-[60vh] overflow-auto bg-white rounded-xl border border-blue-100 p-6 shadow-inner focus:outline-none"
+        contenteditable="true"
+        spellcheck="true"
+        [innerHTML]="htmlContent"
+      ></div>
+      <div *ngIf="comments.length" class="mt-4">
+        <h4 class="font-bold text-blue-700 mb-2">Commentaires ajoutés :</h4>
+        <ul class="list-disc pl-6 text-blue-700 text-sm">
+          <li *ngFor="let c of comments">{{ c.text }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- TAB 2: Soumettre un fichier -->
+    <div *ngIf="activeTab === 'upload'">
+      <div class="mb-4">
+        <iframe
+          *ngIf="content.url"
+          [src]="content.url"
+          class="w-full h-96 rounded-xl border border-blue-100 shadow"
+        ></iframe>
+      </div>
+      <input
+        type="file"
+        accept=".pdf,.doc,.docx,.png,.jpg"
+        (change)="onFileChange($event)"
+        class="block mb-4"
+      />
+      <div *ngIf="selectedFile" class="text-blue-700 font-bold mb-2">
+        Fichier sélectionné : {{ selectedFile.name }}
+      </div>
+    </div>
+
+    <!-- TAB 3: Voir l'original -->
+    <div *ngIf="activeTab === 'original' && isDocx">
+      <div
+        class="min-h-[400px] max-h-[60vh] overflow-auto bg-slate-50 rounded-xl border border-blue-100 p-6 shadow-inner"
+        [innerHTML]="originalHtml"
+      ></div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="mt-6 flex items-center gap-4">
+      <button
+        (click)="submit()"
+        [disabled]="loading"
+        class="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow hover:scale-105 transition-all"
+      >
+        {{ loading ? 'Envoi...' : 'Soumettre' }}
+      </button>
+      <span *ngIf="submitSuccess" class="text-green-600 font-bold">Réponse envoyée !</span>
+      <span *ngIf="submitError" class="text-red-600 font-bold">{{ submitError }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Toolbar button style -->
+<style>
+.btn-toolbar {
+  @apply px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold shadow border border-blue-100 transition-all;
+}
+</style>

@@ -1,10 +1,19 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from '../auth.service';
-import { AdaptiveLearningService } from '../adaptive-learning.service';
+import {
+  ActivityTraceAction,
+  AdaptiveLearningService,
+} from '../adaptive-learning.service';
 import { QuizSubmissionService } from '../quiz-submission.service';
 import {
   PrositSubmissionResponse,
@@ -180,7 +189,86 @@ interface AiAdvancedSearchResponse {
   templateUrl: './my-courses.component.html',
   styleUrls: ['./my-courses.component.css'],
 })
-export class MyCoursesComponent implements OnInit {
+export class MyCoursesComponent implements OnInit, OnDestroy {
+  openedPdfItems: Record<string, boolean> = {};
+
+  openedVideoItems: Record<string, boolean> = {};
+
+  togglePdfViewer(item: any) {
+    const key = this.getItemKey(item);
+    this.openedPdfItems[key] = !this.openedPdfItems[key];
+  }
+
+  isPdfViewerOpen(item: any): boolean {
+    return !!this.openedPdfItems[this.getItemKey(item)];
+  }
+
+  toggleVideoViewer(item: any) {
+    const key = this.getItemKey(item);
+    this.openedVideoItems[key] = !this.openedVideoItems[key];
+  }
+
+  isVideoViewerOpen(item: any): boolean {
+    return !!this.openedVideoItems[this.getItemKey(item)];
+  }
+
+  getVideoType(item: any): 'mp4' | 'embed' | null {
+    const url = this.getItemUrl(item);
+    if (!url) return null;
+    if (url.endsWith('.mp4')) return 'mp4';
+    if (this.isEmbeddableVideoUrl(url)) return 'embed';
+    return null;
+  }
+
+  isEmbeddableVideoUrl(url: string): boolean {
+    // Basic check for YouTube/Vimeo, can be extended
+    return (
+      url.includes('youtube.com') ||
+      url.includes('youtu.be') ||
+      url.includes('vimeo.com')
+    );
+  }
+
+  getEmbedUrl(url: string): string | null {
+    if (!url) return null;
+    // YouTube
+    if (url.includes('youtube.com/watch?v=')) {
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+    if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+    // Vimeo
+    if (url.includes('vimeo.com/')) {
+      const match = url.match(/vimeo.com\/(\d+)/);
+      return match ? `https://player.vimeo.com/video/${match[1]}` : null;
+    }
+    return null;
+  }
+
+  getItemKey(item: any): string {
+    // Use contentId or fallback to title
+    return item?.contentId ? String(item.contentId) : String(item.title);
+  }
+  dotColors = [
+    '#3b82f6', // blue
+    '#f59e42', // orange
+    '#10b981', // green
+    '#f43f5e', // red
+    '#a855f7', // purple
+    '#fbbf24', // yellow
+    '#6366f1', // indigo
+    '#14b8a6', // teal
+    '#eab308', // gold
+    '#ef4444', // rose
+  ];
+
+  getDotColor(index: number): string {
+    return this.dotColors[index % this.dotColors.length];
+  }
+  showSubjects = false;
   @ViewChild('prositEditor') prositEditor?: ElementRef<HTMLDivElement>;
 
   private aiServiceUrl = 'http://localhost:8000';
@@ -248,6 +336,31 @@ export class MyCoursesComponent implements OnInit {
   quizReviewMode = false;
   quizAnswersById: Record<string, number[]> = {};
   expandedCodeResources: Record<string, boolean> = {};
+  private pageEnteredAt = Date.now();
+
+  toggleSubjects() {
+    this.showSubjects = !this.showSubjects;
+  }
+  private readonly pageTracePath = '/student-dashboard/my-courses';
+  private chapterEnteredAt: number | null = null;
+  private chapterTraceResource: {
+    id: string;
+    title: string;
+    metadata?: Record<string, any>;
+  } | null = null;
+  private quizEnteredAt: number | null = null;
+  private quizTraceResource: {
+    type: 'quiz-mcq' | 'quiz-file';
+    id: string;
+    title: string;
+    metadata?: Record<string, any>;
+  } | null = null;
+  private prositEnteredAt: number | null = null;
+  private prositTraceResource: {
+    id: string;
+    title: string;
+    metadata?: Record<string, any>;
+  } | null = null;
 
   constructor(
     private http: HttpClient,
@@ -267,12 +380,174 @@ export class MyCoursesComponent implements OnInit {
     this.loadPreviousQuizFileSubmissions();
     this.loadPreviousPrositSubmissions();
     this.checkDarkMode();
+    this.trackActivity('page_view', {
+      resource_type: 'page',
+      resource_id: 'my-courses',
+      resource_title: 'My Courses',
+      metadata: { viewMode: this.viewMode },
+    });
 
     this.route.queryParamMap.subscribe(() => {
       if (this.subjects.length > 0) {
         this.tryOpenSubjectFromRecommendationQuery();
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.clearQuizTracking('destroy');
+    this.clearPrositTracking('destroy');
+    this.clearChapterTracking('destroy');
+    const durationSec = Math.max(
+      0,
+      Math.round((Date.now() - this.pageEnteredAt) / 1000),
+    );
+    this.trackActivity('page_leave', {
+      resource_type: 'page',
+      resource_id: 'my-courses',
+      resource_title: 'My Courses',
+      duration_sec: durationSec,
+      metadata: { viewMode: this.viewMode },
+    });
+  }
+
+  private trackActivity(
+    action: ActivityTraceAction,
+    extra: Partial<{
+      resource_type: string;
+      resource_id: string;
+      resource_title: string;
+      duration_sec: number;
+      metadata: Record<string, any>;
+    }> = {},
+  ): void {
+    if (!this.authService.getUser()) {
+      return;
+    }
+
+    this.adaptiveService
+      .recordActivity({
+        action,
+        page_path: this.pageTracePath,
+        resource_type: extra.resource_type,
+        resource_id: extra.resource_id,
+        resource_title: extra.resource_title,
+        duration_sec: extra.duration_sec,
+        metadata: extra.metadata || {},
+      })
+      .subscribe({ error: () => {} });
+  }
+
+  private startChapterTracking(course: CourseItem): void {
+    this.clearChapterTracking('switch');
+    this.chapterEnteredAt = Date.now();
+    this.chapterTraceResource = {
+      id: String(course.id || course.chapterOrder || 'chapter'),
+      title: String(course.title || 'Chapter'),
+      metadata: {
+        subject: this.selectedSubject?.name,
+        chapterOrder: course.chapterOrder,
+      },
+    };
+  }
+
+  private clearChapterTracking(reason: string): void {
+    if (!this.chapterEnteredAt || !this.chapterTraceResource) {
+      this.chapterEnteredAt = null;
+      this.chapterTraceResource = null;
+      return;
+    }
+
+    const durationSec = Math.max(
+      0,
+      Math.round((Date.now() - this.chapterEnteredAt) / 1000),
+    );
+    this.trackActivity('content_open', {
+      resource_type: 'chapter-session',
+      resource_id: this.chapterTraceResource.id,
+      resource_title: this.chapterTraceResource.title,
+      duration_sec: durationSec,
+      metadata: {
+        ...(this.chapterTraceResource.metadata || {}),
+        reason,
+      },
+    });
+
+    this.chapterEnteredAt = null;
+    this.chapterTraceResource = null;
+  }
+
+  private startQuizTracking(
+    type: 'quiz-mcq' | 'quiz-file',
+    id: string,
+    title: string,
+    metadata?: Record<string, any>,
+  ): void {
+    this.clearQuizTracking('switch');
+    this.quizEnteredAt = Date.now();
+    this.quizTraceResource = { type, id, title, metadata };
+  }
+
+  private clearQuizTracking(reason: string): void {
+    if (!this.quizEnteredAt || !this.quizTraceResource) {
+      this.quizEnteredAt = null;
+      this.quizTraceResource = null;
+      return;
+    }
+
+    const durationSec = Math.max(
+      0,
+      Math.round((Date.now() - this.quizEnteredAt) / 1000),
+    );
+    this.trackActivity('content_open', {
+      resource_type: `${this.quizTraceResource.type}-session`,
+      resource_id: this.quizTraceResource.id,
+      resource_title: this.quizTraceResource.title,
+      duration_sec: durationSec,
+      metadata: {
+        ...(this.quizTraceResource.metadata || {}),
+        reason,
+      },
+    });
+
+    this.quizEnteredAt = null;
+    this.quizTraceResource = null;
+  }
+
+  private startPrositTracking(
+    id: string,
+    title: string,
+    metadata?: Record<string, any>,
+  ): void {
+    this.clearPrositTracking('switch');
+    this.prositEnteredAt = Date.now();
+    this.prositTraceResource = { id, title, metadata };
+  }
+
+  private clearPrositTracking(reason: string): void {
+    if (!this.prositEnteredAt || !this.prositTraceResource) {
+      this.prositEnteredAt = null;
+      this.prositTraceResource = null;
+      return;
+    }
+
+    const durationSec = Math.max(
+      0,
+      Math.round((Date.now() - this.prositEnteredAt) / 1000),
+    );
+    this.trackActivity('content_open', {
+      resource_type: 'prosit-session',
+      resource_id: this.prositTraceResource.id,
+      resource_title: this.prositTraceResource.title,
+      duration_sec: durationSec,
+      metadata: {
+        ...(this.prositTraceResource.metadata || {}),
+        reason,
+      },
+    });
+
+    this.prositEnteredAt = null;
+    this.prositTraceResource = null;
   }
 
   private loadPreviousQuizSubmissions(): void {
@@ -322,25 +597,27 @@ export class MyCoursesComponent implements OnInit {
       return;
     }
 
-    this.prositSubmissionService.getStudentPrositSubmissions(studentId).subscribe({
-      next: (res) => {
-        const rows = Array.isArray(res?.submissions) ? res.submissions : [];
-        for (const submission of rows) {
-          const key = this.buildPrositSubmissionKey(
-            submission?.subjectTitle,
-            submission?.chapterTitle,
-            submission?.subChapterTitle,
-            submission?.prositTitle,
-          );
-          if (key) {
-            this.prositSubmissionsByKey[key] = submission;
+    this.prositSubmissionService
+      .getStudentPrositSubmissions(studentId)
+      .subscribe({
+        next: (res) => {
+          const rows = Array.isArray(res?.submissions) ? res.submissions : [];
+          for (const submission of rows) {
+            const key = this.buildPrositSubmissionKey(
+              submission?.subjectTitle,
+              submission?.chapterTitle,
+              submission?.subChapterTitle,
+              submission?.prositTitle,
+            );
+            if (key) {
+              this.prositSubmissionsByKey[key] = submission;
+            }
           }
-        }
-      },
-      error: () => {
-        console.warn('Could not load previous prosit submissions');
-      },
-    });
+        },
+        error: () => {
+          console.warn('Could not load previous prosit submissions');
+        },
+      });
   }
 
   private checkDarkMode(): void {
@@ -383,8 +660,7 @@ export class MyCoursesComponent implements OnInit {
     const match =
       this.subjects.find((s) => normalize(s.name) === nh) ||
       this.subjects.find(
-        (s) =>
-          normalize(s.name).includes(nh) || nh.includes(normalize(s.name)),
+        (s) => normalize(s.name).includes(nh) || nh.includes(normalize(s.name)),
       ) ||
       this.subjects.find((s) => {
         const nn = normalize(s.name);
@@ -519,7 +795,10 @@ export class MyCoursesComponent implements OnInit {
             ? { ...s, progressPercent: normalized, progressLoaded: true }
             : s,
         );
-        if (this.selectedSubject && String(this.selectedSubject.subjectDbId || '').trim() === sid) {
+        if (
+          this.selectedSubject &&
+          String(this.selectedSubject.subjectDbId || '').trim() === sid
+        ) {
           this.selectedSubject = {
             ...this.selectedSubject,
             progressPercent: normalized,
@@ -709,11 +988,11 @@ export class MyCoursesComponent implements OnInit {
   }
 
   private mapToCourseItems(sourceCourses: any[]): CourseItem[] {
-          const thumbs = [
-            'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-          ];
+    const thumbs = [
+      'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+    ];
 
     return (sourceCourses || []).map((course: any, index: number) => {
       const modules = Array.isArray(course?.modules)
@@ -726,19 +1005,19 @@ export class MyCoursesComponent implements OnInit {
             .sort((a: CourseModule, b: CourseModule) => a.order - b.order)
         : [];
 
-              return {
-                id: course?._id || course?.id || String(index + 1),
+      return {
+        id: course?._id || course?.id || String(index + 1),
         chapterOrder: Number(course?.order ?? index),
-                title: course?.title || `Course ${index + 1}`,
+        title: course?.title || `Course ${index + 1}`,
         description: course?.description || '',
-                instructor:
-                  course?.instructorId?.name ||
-                  course?.instructor?.name ||
-                  'Enseignant',
+        instructor:
+          course?.instructorId?.name ||
+          course?.instructor?.name ||
+          'Enseignant',
         subject: this.extractSubject(course),
         modules,
         moduleCount: modules.length,
-                thumbnail: thumbs[index % thumbs.length],
+        thumbnail: thumbs[index % thumbs.length],
       };
     });
   }
@@ -1009,12 +1288,38 @@ export class MyCoursesComponent implements OnInit {
     this.selectedSubject = subject;
     this.selectedCourse = null;
     this.viewMode = 'courses';
+    this.trackActivity('subject_open', {
+      resource_type: 'subject',
+      resource_id: subject.subjectDbId || subject.name,
+      resource_title: subject.name,
+      metadata: {
+        source: 'my-courses-subject-grid',
+        subjectCount: subject.count,
+      },
+    });
     if (!subject.loaded) {
       this.loadSubjectCourses(subject);
     }
   }
 
   backToSubjects(): void {
+    this.clearQuizTracking('navigate-subjects');
+    this.clearPrositTracking('navigate-subjects');
+    this.clearChapterTracking('navigate-subjects');
+    const durationSec = Math.max(
+      0,
+      Math.round((Date.now() - this.pageEnteredAt) / 1000),
+    );
+    this.trackActivity('page_leave', {
+      resource_type: 'subject-view',
+      resource_id:
+        this.selectedSubject?.subjectDbId ||
+        this.selectedSubject?.name ||
+        'subjects',
+      resource_title: this.selectedSubject?.name || 'Subjects',
+      duration_sec: durationSec,
+      metadata: { targetView: 'subjects' },
+    });
     this.selectedSubject = null;
     this.selectedCourse = null;
     this.viewMode = 'subjects';
@@ -1022,17 +1327,31 @@ export class MyCoursesComponent implements OnInit {
   }
 
   openCourse(course: CourseItem): void {
+    this.clearQuizTracking('switch-chapter');
+    this.clearPrositTracking('switch-chapter');
+    this.clearChapterTracking('switch-chapter');
     const subjectId = this.selectedSubject?.subjectDbId;
+    this.trackActivity('chapter_open', {
+      resource_type: 'chapter',
+      resource_id: String(course.id || course.chapterOrder),
+      resource_title: course.title,
+      metadata: {
+        subject: this.selectedSubject?.name,
+        chapterOrder: course.chapterOrder,
+      },
+    });
     if (subjectId) {
       this.courseLoading = true;
       this.subjectsService.getSubject(subjectId).subscribe({
         next: (fresh) => {
           const merged = this.mergeCourseWithFreshSubject(course, fresh);
+          this.startChapterTracking(merged);
           this.selectedCourse = merged;
           this.viewMode = 'content';
           this.loadCourseContent(merged);
         },
         error: () => {
+          this.startChapterTracking(course);
           this.selectedCourse = course;
           this.viewMode = 'content';
           this.loadCourseContent(course);
@@ -1040,6 +1359,7 @@ export class MyCoursesComponent implements OnInit {
       });
       return;
     }
+    this.startChapterTracking(course);
     this.selectedCourse = course;
     this.viewMode = 'content';
     this.loadCourseContent(course);
@@ -1078,6 +1398,15 @@ export class MyCoursesComponent implements OnInit {
   }
 
   backToCourses(): void {
+    this.clearQuizTracking('back-to-courses');
+    this.clearPrositTracking('back-to-courses');
+    this.clearChapterTracking('back-to-courses');
+    this.trackActivity('chapter_open', {
+      resource_type: 'chapter-view',
+      resource_id: this.selectedCourse?.id || 'course',
+      resource_title: this.selectedCourse?.title || 'Chapter',
+      metadata: { targetView: 'courses' },
+    });
     this.selectedCourse = null;
     this.courseResources = [];
     this.courseExercises = [];
@@ -1101,6 +1430,13 @@ export class MyCoursesComponent implements OnInit {
   }
 
   backToChapterContent(): void {
+    this.clearPrositTracking('back-to-content');
+    this.trackActivity('content_open', {
+      resource_type: 'content-view',
+      resource_id: this.selectedCourse?.id || 'content',
+      resource_title: this.selectedCourse?.title || 'Content',
+      metadata: { targetView: 'content' },
+    });
     this.selectedProsit = null;
     this.selectedPrositSubmission = null;
     this.selectedPrositSubmissionFile = null;
@@ -1124,6 +1460,15 @@ export class MyCoursesComponent implements OnInit {
   }
 
   backToChapterContentFromQuiz(): void {
+    this.clearQuizTracking('back-to-content');
+    this.trackActivity('content_open', {
+      resource_type: 'quiz-view',
+      resource_id:
+        this.selectedQuiz?.quizId || this.selectedQuizFile?.quizId || 'quiz',
+      resource_title:
+        this.selectedQuiz?.title || this.selectedQuizFile?.title || 'Quiz',
+      metadata: { targetView: 'content' },
+    });
     this.selectedQuiz = null;
     this.selectedQuizFile = null;
     this.selectedQuizResponseFile = null;
@@ -1197,6 +1542,70 @@ export class MyCoursesComponent implements OnInit {
   ): void {
     const key = this.getSubchapterKey(module, index);
     this.activeFolderBySubchapter[key] = folder;
+    this.trackActivity('subchapter_open', {
+      resource_type: 'subchapter-folder',
+      resource_id: key,
+      resource_title: module.title,
+      metadata: { folder },
+    });
+  }
+
+  trackSubchapterResourceAccess(
+    module: SubchapterContent,
+    folder: FolderKey,
+    item: SubchapterFolderItem,
+    intent: 'open' | 'download',
+  ): void {
+    const action: ActivityTraceAction =
+      folder === 'videos' && intent === 'open' ? 'video_start' : 'content_open';
+
+    this.trackActivity(action, {
+      resource_type:
+        folder === 'videos'
+          ? 'video-file'
+          : folder === 'cours'
+            ? 'course-file'
+            : folder === 'ressources'
+              ? 'resource-file'
+              : 'exercise-file',
+      resource_id: String(
+        item.contentId || item.quizId || item.title || 'item',
+      ),
+      resource_title: item.title,
+      metadata: {
+        moduleTitle: module.title,
+        folder,
+        itemType: item.type,
+        intent,
+        url: this.getItemUrl(item),
+      },
+    });
+  }
+
+  trackQuizFileInstructionOpen(): void {
+    this.trackActivity('content_open', {
+      resource_type: 'quiz-file-instruction',
+      resource_id: String(this.selectedQuizFile?.quizId || 'quiz-file'),
+      resource_title: this.selectedQuizFile?.title || 'Quiz File Instruction',
+      metadata: {
+        chapterTitle: this.selectedQuizFile?.chapterTitle,
+        subChapterTitle: this.selectedQuizFile?.subChapterTitle,
+      },
+    });
+  }
+
+  trackPrositFileAccess(intent: 'open' | 'download'): void {
+    this.trackActivity('content_open', {
+      resource_type: 'prosit-file',
+      resource_id: String(this.selectedProsit?.title || 'prosit-file'),
+      resource_title: this.selectedProsit?.title || 'Prosit File',
+      metadata: {
+        chapterTitle: this.selectedProsit?.chapterTitle,
+        subChapterTitle: this.selectedProsit?.subChapterTitle,
+        intent,
+        url: this.getPrositFileUrl(),
+      },
+    });
   }
 
   getFolderItems(
@@ -1344,6 +1753,17 @@ export class MyCoursesComponent implements OnInit {
   ): void {
     const key = this.getCodeResourceKey(module, moduleIndex, item);
     this.expandedCodeResources[key] = !this.expandedCodeResources[key];
+    if (this.expandedCodeResources[key]) {
+      this.trackActivity('content_open', {
+        resource_type: 'code-resource',
+        resource_id: String(item.contentId || item.title || key),
+        resource_title: item.title,
+        metadata: {
+          moduleTitle: module.title,
+          folder: 'ressources',
+        },
+      });
+    }
   }
 
   isCodeResourceExpanded(
@@ -1413,6 +1833,21 @@ export class MyCoursesComponent implements OnInit {
     this.quizSubmitMessage = '';
     this.quizSubmitted = false;
     this.viewMode = 'quiz';
+    this.startQuizTracking('quiz-mcq', String(quizId), item.title, {
+      chapterTitle: this.selectedCourse?.title,
+      subChapterTitle: module.title,
+      questionCount: item.quizQuestions.length,
+    });
+    this.trackActivity('quiz_start', {
+      resource_type: 'quiz-mcq',
+      resource_id: String(quizId),
+      resource_title: item.title,
+      metadata: {
+        chapterTitle: this.selectedCourse?.title,
+        subChapterTitle: module.title,
+        questionCount: item.quizQuestions.length,
+      },
+    });
   }
 
   openFileQuiz(item: SubchapterFolderItem, module: SubchapterContent): void {
@@ -1461,6 +1896,21 @@ export class MyCoursesComponent implements OnInit {
     this.quizFileResponseDocxLoading = false;
     this.quizFileResponseDocxError = '';
     this.viewMode = 'quiz-file';
+    this.startQuizTracking('quiz-file', quizId, item.title, {
+      chapterTitle: this.selectedCourse?.title,
+      subChapterTitle: module.title,
+      hasSubmission: !!existingSubmission,
+    });
+    this.trackActivity('quiz_start', {
+      resource_type: 'quiz-file',
+      resource_id: quizId,
+      resource_title: item.title,
+      metadata: {
+        chapterTitle: this.selectedCourse?.title,
+        subChapterTitle: module.title,
+        hasSubmission: !!existingSubmission,
+      },
+    });
   }
 
   setQuizAnswer(questionIndex: number, optionIndex: number): void {
@@ -1543,9 +1993,23 @@ export class MyCoursesComponent implements OnInit {
       scoreObtained: score,
       answers,
     };
+    const quizSessionDurationSec = this.quizEnteredAt
+      ? Math.max(0, Math.round((Date.now() - this.quizEnteredAt) / 1000))
+      : undefined;
 
     this.quizSubmissionService.submitQuiz(submitData).subscribe({
       next: () => {
+        this.trackActivity('quiz_submit', {
+          resource_type: 'quiz-mcq',
+          resource_id: this.selectedQuiz!.quizId,
+          resource_title: this.selectedQuiz!.title,
+          metadata: {
+            score,
+            total: this.selectedQuiz!.questions.length,
+            durationSec: quizSessionDurationSec,
+          },
+        });
+        this.clearQuizTracking('submitted');
         this.quizSubmitted = true;
         this.quizSubmitMessage = `Quiz ${this.selectedQuiz!.title} pret pour validation (${this.getQuizAnsweredCount()}/${this.selectedQuiz!.questions.length} reponses).`;
         this.refreshSelectedSubjectProgress();
@@ -1567,6 +2031,17 @@ export class MyCoursesComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     this.selectedQuizResponseFile = (input.files && input.files[0]) || null;
     this.quizFileSubmitMessage = '';
+    if (this.selectedQuizResponseFile) {
+      this.trackActivity('content_open', {
+        resource_type: 'quiz-file-response-selected',
+        resource_id: String(this.selectedQuizFile?.quizId || 'quiz-file'),
+        resource_title: this.selectedQuizResponseFile.name,
+        metadata: {
+          size: this.selectedQuizResponseFile.size,
+          mimeType: this.selectedQuizResponseFile.type,
+        },
+      });
+    }
   }
 
   submitQuizFileResponse(): void {
@@ -1591,9 +2066,23 @@ export class MyCoursesComponent implements OnInit {
     );
     formData.append('chapterTitle', this.selectedQuizFile.chapterTitle);
     formData.append('subChapterTitle', this.selectedQuizFile.subChapterTitle);
+    const quizSessionDurationSec = this.quizEnteredAt
+      ? Math.max(0, Math.round((Date.now() - this.quizEnteredAt) / 1000))
+      : undefined;
 
     this.quizSubmissionService.submitQuizFile(formData).subscribe({
       next: (submission) => {
+        this.trackActivity('quiz_submit', {
+          resource_type: 'quiz-file',
+          resource_id: this.selectedQuizFile!.quizId,
+          resource_title: this.selectedQuizFile!.title,
+          metadata: {
+            status: submission.status,
+            submittedAt: submission.submittedAt,
+            durationSec: quizSessionDurationSec,
+          },
+        });
+        this.clearQuizTracking('submitted');
         this.quizFileSubmissionsById[this.selectedQuizFile!.quizId] = {
           status: submission.status,
           grade: submission.grade,
@@ -1651,6 +2140,23 @@ export class MyCoursesComponent implements OnInit {
 
   async toggleSelectedQuizFileResponsePreview(): Promise<void> {
     this.quizFileResponsePreviewOpen = !this.quizFileResponsePreviewOpen;
+
+    if (this.quizFileResponsePreviewOpen) {
+      this.trackActivity('content_open', {
+        resource_type: 'quiz-file-response-preview',
+        resource_id: String(
+          this.selectedQuizFile?.quizId || 'quiz-file-preview',
+        ),
+        resource_title:
+          this.selectedQuizFile?.responseFileName ||
+          this.selectedQuizFile?.title ||
+          'Quiz File Preview',
+        metadata: {
+          responseUrl: this.getSelectedQuizFileResponseUrl(),
+        },
+      });
+    }
+
     if (!this.quizFileResponsePreviewOpen) {
       return;
     }
@@ -1753,8 +2259,27 @@ export class MyCoursesComponent implements OnInit {
       this.selectedProsit.subChapterTitle,
       this.selectedProsit.title,
     );
-    this.selectedPrositSubmission = key ? this.prositSubmissionsByKey[key] : null;
+    this.selectedPrositSubmission = key
+      ? this.prositSubmissionsByKey[key]
+      : null;
     this.viewMode = 'prosit';
+    this.startPrositTracking(
+      String(item.contentId || item.title || key || 'prosit'),
+      item.title,
+      {
+        chapterTitle: this.selectedCourse?.title,
+        subChapterTitle: module.title,
+      },
+    );
+    this.trackActivity('exercise_start', {
+      resource_type: 'prosit',
+      resource_id: String(item.contentId || item.title || key || 'prosit'),
+      resource_title: item.title,
+      metadata: {
+        chapterTitle: this.selectedCourse?.title,
+        subChapterTitle: module.title,
+      },
+    });
   }
 
   onPrositEditorInput(event: Event): void {
@@ -1783,6 +2308,17 @@ export class MyCoursesComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     this.selectedPrositSubmissionFile = (input.files && input.files[0]) || null;
     this.prositSubmitMessage = '';
+    if (this.selectedPrositSubmissionFile) {
+      this.trackActivity('content_open', {
+        resource_type: 'prosit-file-selected',
+        resource_id: String(this.selectedProsit?.title || 'prosit'),
+        resource_title: this.selectedPrositSubmissionFile.name,
+        metadata: {
+          size: this.selectedPrositSubmissionFile.size,
+          mimeType: this.selectedPrositSubmissionFile.type,
+        },
+      });
+    }
   }
 
   get prositReportWordCount(): number {
@@ -1809,9 +2345,7 @@ export class MyCoursesComponent implements OnInit {
       return;
     }
 
-    const studentId = String(
-      this.user?._id || this.user?.id || '',
-    ).trim();
+    const studentId = String(this.user?._id || this.user?.id || '').trim();
     if (!studentId) {
       this.prositSubmitMessage =
         'Session invalide. Reconnectez-vous puis reessayez.';
@@ -1858,6 +2392,10 @@ export class MyCoursesComponent implements OnInit {
 
     this.prositSubmitting = true;
     this.prositSubmitMessage = '';
+    const hadPrositFile = !!this.selectedPrositSubmissionFile;
+    const prositSessionDurationSec = this.prositEnteredAt
+      ? Math.max(0, Math.round((Date.now() - this.prositEnteredAt) / 1000))
+      : undefined;
 
     this.prositSubmissionService.submitProsit(form).subscribe({
       next: (res) => {
@@ -1876,6 +2414,19 @@ export class MyCoursesComponent implements OnInit {
           }
         }
         this.selectedPrositSubmissionFile = null;
+        this.trackActivity('exercise_submit', {
+          resource_type: 'prosit',
+          resource_id: String(
+            this.selectedProsit?.title || this.selectedCourse?.id || 'prosit',
+          ),
+          resource_title: this.selectedProsit?.title || 'Prosit',
+          metadata: {
+            wordCount: this.prositReportWordCount,
+            hasFile: hadPrositFile,
+            durationSec: prositSessionDurationSec,
+          },
+        });
+        this.clearPrositTracking('submitted');
         this.refreshSelectedSubjectProgress();
         this.prositSubmitMessage =
           res?.message ||
@@ -1890,7 +2441,8 @@ export class MyCoursesComponent implements OnInit {
           err?.message ??
           "Erreur lors de l'envoi.";
         const msg = Array.isArray(raw) ? raw.join(' ') : String(raw);
-        this.prositSubmitMessage = msg || "Erreur lors de l'envoi de la remise.";
+        this.prositSubmitMessage =
+          msg || "Erreur lors de l'envoi de la remise.";
       },
     });
   }
@@ -1901,11 +2453,15 @@ export class MyCoursesComponent implements OnInit {
     subChapterTitle: string | undefined,
     prositTitle: string | undefined,
   ): string {
-    const parts = [subjectTitle, chapterTitle, subChapterTitle, prositTitle].map(
-      (v) =>
-        String(v || '')
-          .trim()
-          .toLowerCase(),
+    const parts = [
+      subjectTitle,
+      chapterTitle,
+      subChapterTitle,
+      prositTitle,
+    ].map((v) =>
+      String(v || '')
+        .trim()
+        .toLowerCase(),
     );
     if (!parts.some((p) => !!p)) {
       return '';
@@ -2141,15 +2697,35 @@ export class MyCoursesComponent implements OnInit {
   }
 
   openContinueLearning(courseId: string): void {
+    this.trackActivity('course_open', {
+      resource_type: 'continue-learning',
+      resource_id: courseId,
+      resource_title: this.selectedCourse?.title || 'Continue Learning',
+      metadata: {
+        source: 'my-courses',
+      },
+    });
     this.router.navigate([`/student-dashboard/continue-learning/${courseId}`]);
   }
 
   toggleProfileDrawer(): void {
     this.profileDrawerOpen = !this.profileDrawerOpen;
+    this.trackActivity('content_open', {
+      resource_type: 'profile-drawer',
+      resource_id: this.profileDrawerOpen ? 'open' : 'close',
+      resource_title: 'Profile Drawer',
+      metadata: { isOpen: this.profileDrawerOpen },
+    });
   }
 
   closeProfileDrawer(): void {
     this.profileDrawerOpen = false;
+    this.trackActivity('content_open', {
+      resource_type: 'profile-drawer',
+      resource_id: 'close',
+      resource_title: 'Profile Drawer',
+      metadata: { isOpen: false },
+    });
   }
 
   toggleDarkMode(): void {
@@ -2159,9 +2735,32 @@ export class MyCoursesComponent implements OnInit {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    this.trackActivity('content_open', {
+      resource_type: 'theme-toggle',
+      resource_id: this.darkMode ? 'dark' : 'light',
+      resource_title: 'Theme Toggle',
+      metadata: { darkMode: this.darkMode },
+    });
   }
 
+
+  buildQuizFileContent(selectedQuizFile: QuizFileViewModel) {
+  return {
+    contentId: selectedQuizFile.quizId,
+    title: selectedQuizFile.title,
+    url: selectedQuizFile.instructionFileUrl,
+    fileName: selectedQuizFile.instructionFileName,
+    type: 'quiz',
+  };
+}
+
   logout(): void {
+    this.trackActivity('page_leave', {
+      resource_type: 'logout',
+      resource_id: 'my-courses-logout',
+      resource_title: 'Logout',
+      metadata: { from: this.pageTracePath },
+    });
     this.authService.logout();
   }
 

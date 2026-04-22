@@ -1,3 +1,4 @@
+// ...existing code...
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { NavigationEnd, Router } from '@angular/router';
@@ -33,6 +34,7 @@ import {
   styleUrls: ['./student-dashboard.component.css'],
 })
 export class StudentDashboardComponent implements OnInit, OnDestroy {
+  showAllRecommendations = false;
   user: any;
   profileData: any = null;
 
@@ -336,13 +338,11 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   private mapRecommendationCards(recommendations: any[]): any[] {
     return (recommendations || []).slice(0, 6).map((rec, index) => {
       const subjectRaw = String(rec?.subject || '').trim();
-      const fromContent = String(rec?.recommendedContent || '').split(/[—\-]/)[0];
+      const fromContent = String(rec?.recommendedContent || '').split(
+        /[—\-]/,
+      )[0];
       const title = this.cleanRecommendationText(
-        rec?.title ||
-          subjectRaw ||
-          fromContent ||
-          rec?.topic ||
-          rec?.name,
+        rec?.title || subjectRaw || fromContent || rec?.topic || rec?.name,
       );
 
       const reason = this.cleanRecommendationText(
@@ -359,8 +359,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       const effortHours = Number(rec?.estimated_effort_hours);
 
       const subjectKey =
-        subjectRaw ||
-        String(rec?.topic || rec?.name || title || '').trim();
+        subjectRaw || String(rec?.topic || rec?.name || title || '').trim();
 
       return {
         id: rec?._id || rec?.id || `rec-${index}`,
@@ -396,7 +395,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   navigateToMyCoursesRecommendations(): void {
-    this.router.navigate(['/student-dashboard/my-courses']);
+    this.showAllRecommendations = !this.showAllRecommendations;
   }
 
   private cleanRecommendationText(value: unknown): string {

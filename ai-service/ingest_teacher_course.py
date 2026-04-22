@@ -64,7 +64,7 @@ _UPLOADS_SUBJECTS_COURS = _STARTSMART_ROOT / "backend" / "uploads" / "subjects" 
 TEACHER_ROOT = Path(
     os.getenv(
         "TEACHER_COURSE_ROOT",
-        r"C:\Users\MSI\Downloads\Support_Cours_Préparation",
+        r"C:\Users\kmarb\Downloads\pi\Support_Cours_Préparation",
     )
 )
 

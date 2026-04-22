@@ -1,18 +1,37 @@
 <div class="p-8 pb-4">
   <div class="flex items-end justify-between gap-4 mb-6">
     <div>
-      <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Classes Management</h1>
-      <p class="text-slate-500 mt-1">Create classes, enroll students, and link subjects to the right cohort.</p>
+      <h1
+        class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
+      >
+        Classes Management
+      </h1>
+      <p class="text-slate-500 mt-1">
+        Create classes, enroll students, and link subjects to the right cohort.
+      </p>
     </div>
-    <button (click)="openCreateModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary/90 transition-all">
+    <button
+      (click)="openCreateModal()"
+      class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary/90 transition-all"
+    >
       <span class="material-symbols-outlined text-sm">add</span> Add Class
     </button>
   </div>
 
-  <div class="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+  <div
+    class="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm"
+  >
     <div class="flex-1 min-w-[300px] relative">
-      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-      <input [(ngModel)]="filterText" class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Filter by class name, code, year, or level..." type="text"/>
+      <span
+        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"
+        >search</span
+      >
+      <input
+        [(ngModel)]="filterText"
+        class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+        placeholder="Filter by class name, code, year, or level..."
+        type="text"
+      />
     </div>
   </div>
 
@@ -21,43 +40,97 @@
 </div>
 
 <div class="px-8 pb-8 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-      <h2 class="text-lg font-bold text-slate-900 dark:text-white">All Classes</h2>
-      <span class="text-xs font-semibold text-slate-500">{{ filteredClasses.length }} records</span>
+  <div
+    class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+  >
+    <div
+      class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"
+    >
+      <h2 class="text-lg font-bold text-slate-900 dark:text-white">
+        All Classes
+      </h2>
+      <span class="text-xs font-semibold text-slate-500"
+        >{{ filteredClasses.length }} records</span
+      >
     </div>
 
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
         <thead>
-          <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-            <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Class</th>
-            <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Info</th>
-            <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Students</th>
-            <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Subjects</th>
-            <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap text-right">Actions</th>
+          <tr
+            class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800"
+          >
+            <th
+              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+            >
+              Class
+            </th>
+            <th
+              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+            >
+              Info
+            </th>
+            <th
+              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+            >
+              Students
+            </th>
+            <th
+              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
+            >
+              Subjects
+            </th>
+            <th
+              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap text-right"
+            >
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-          <tr *ngFor="let row of filteredClasses" class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+          <tr
+            *ngFor="let row of filteredClasses"
+            class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+          >
             <td class="px-6 py-4 min-w-[220px]">
-              <p class="font-semibold text-slate-900 dark:text-white">{{ row.name }}</p>
+              <p class="font-semibold text-slate-900 dark:text-white">
+                {{ row.name }}
+              </p>
               <p class="text-xs text-slate-500">{{ row.code }}</p>
             </td>
-            <td class="px-6 py-4 min-w-[260px] text-sm text-slate-600 dark:text-slate-300">
-              <p>{{ row.level || '-' }} <span *ngIf="row.section">• {{ row.section }}</span></p>
-              <p>{{ row.academicYear || '-' }}</p>
-              <p class="truncate max-w-[260px]">{{ row.description || '-' }}</p>
+            <td
+              class="px-6 py-4 min-w-[260px] text-sm text-slate-600 dark:text-slate-300"
+            >
+              <p>
+                {{ row.level || "-" }}
+                <span *ngIf="row.section">• {{ row.section }}</span>
+              </p>
+              <p>{{ row.academicYear || "-" }}</p>
+              <p class="truncate max-w-[260px]">{{ row.description || "-" }}</p>
             </td>
             <td class="px-6 py-4">
-              <span class="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{{ row.studentCount || 0 }} enrolled</span>
+              <span
+                class="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                >{{ row.studentCount || 0 }} enrolled</span
+              >
             </td>
             <td class="px-6 py-4">
-              <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{{ row.subjectCount || 0 }} linked</span>
+              <span
+                class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+                >{{ row.subjectCount || 0 }} linked</span
+              >
             </td>
             <td class="px-6 py-4 text-right whitespace-nowrap">
-              <button (click)="selectClass(row)" class="text-slate-500 hover:text-slate-900 dark:hover:text-white mr-3 text-sm font-semibold">Manage</button>
-              <button (click)="openEditModal(row)" class="text-slate-500 hover:text-slate-900 dark:hover:text-white mr-3">
+              <button
+                (click)="selectClass(row)"
+                class="text-slate-500 hover:text-slate-900 dark:hover:text-white mr-3 text-sm font-semibold"
+              >
+                Manage
+              </button>
+              <button
+                (click)="openEditModal(row)"
+                class="text-slate-500 hover:text-slate-900 dark:hover:text-white mr-3"
+              >
                 <span class="material-symbols-outlined">edit</span>
               </button>
               <button (click)="deleteClass(row)" class="text-red-600">
@@ -66,7 +139,9 @@
             </td>
           </tr>
           <tr *ngIf="!filteredClasses.length">
-            <td colspan="5" class="px-6 py-10 text-center text-slate-500">No classes found.</td>
+            <td colspan="5" class="px-6 py-10 text-center text-slate-500">
+              No classes found.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -74,66 +149,136 @@
   </div>
 
   <div class="space-y-6">
-    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xl overflow-hidden">
+    <div
+      class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xl overflow-hidden"
+    >
       <div class="p-6 border-b border-white/10">
-        <p class="text-xs uppercase tracking-[0.25em] text-white/60 font-semibold">Selected Class</p>
-        <h2 class="mt-2 text-2xl font-bold">{{ selectedClass?.name || 'Choose a class' }}</h2>
-        <p class="text-sm text-white/70 mt-1">{{ selectedClass?.code || 'Manage enrollments and subject links from here.' }}</p>
+        <p
+          class="text-xs uppercase tracking-[0.25em] text-white/60 font-semibold"
+        >
+          Selected Class
+        </p>
+        <h2 class="mt-2 text-2xl font-bold">
+          {{ selectedClass?.name || "Choose a class" }}
+        </h2>
+        <p class="text-sm text-white/70 mt-1">
+          {{
+            selectedClass?.code ||
+              "Manage enrollments and subject links from here."
+          }}
+        </p>
       </div>
 
       <div *ngIf="selectedClass; else emptyState" class="p-6 space-y-6">
         <div class="grid grid-cols-3 gap-3">
           <div class="rounded-xl bg-white/10 p-4">
             <p class="text-xs text-white/60">Students</p>
-            <p class="text-2xl font-bold">{{ selectedClass?.studentCount || 0 }}</p>
+            <p class="text-2xl font-bold">
+              {{ selectedClass.studentCount || 0 }}
+            </p>
           </div>
           <div class="rounded-xl bg-white/10 p-4">
             <p class="text-xs text-white/60">Subjects</p>
-            <p class="text-2xl font-bold">{{ selectedClass?.subjectCount || 0 }}</p>
+            <p class="text-2xl font-bold">
+              {{ selectedClass.subjectCount || 0 }}
+            </p>
           </div>
           <div class="rounded-xl bg-white/10 p-4">
             <p class="text-xs text-white/60">Capacity</p>
-            <p class="text-2xl font-bold">{{ selectedClass?.capacity || 0 }}</p>
+            <p class="text-2xl font-bold">{{ selectedClass.capacity || 0 }}</p>
           </div>
         </div>
 
         <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-bold">Enroll Students</h3>
-            <span class="text-xs text-slate-500">{{ availableStudents.length }} available</span>
+            <span class="text-xs text-slate-500"
+              >{{ availableStudents.length }} available</span
+            >
           </div>
-          <select [(ngModel)]="selectedStudentIds" multiple class="w-full min-h-[140px] border border-slate-200 rounded-xl p-3 text-sm bg-slate-50 focus:ring-2 focus:ring-primary/20">
-            <option *ngFor="let student of availableStudents" [value]="student.id">{{ labelStudent(student) }}</option>
+          <select
+            [(ngModel)]="selectedStudentIds"
+            multiple
+            class="w-full min-h-[140px] border border-slate-200 rounded-xl p-3 text-sm bg-slate-50 focus:ring-2 focus:ring-primary/20"
+          >
+            <option
+              *ngFor="let student of availableStudents"
+              [value]="student.id"
+            >
+              {{ labelStudent(student) }}
+            </option>
           </select>
-          <button (click)="enrollSelectedStudents()" [disabled]="!selectedStudentIds.length || actionLoading" class="w-full rounded-xl bg-primary text-white py-2.5 font-semibold disabled:opacity-60">{{ actionLoading ? 'Processing...' : 'Enroll selected students' }}</button>
+          <button
+            (click)="enrollSelectedStudents()"
+            [disabled]="!selectedStudentIds.length || actionLoading"
+            class="w-full rounded-xl bg-primary text-white py-2.5 font-semibold disabled:opacity-60"
+          >
+            {{ actionLoading ? "Processing..." : "Enroll selected students" }}
+          </button>
         </div>
 
         <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-bold">Link Subjects</h3>
-            <span class="text-xs text-slate-500">{{ availableSubjects.length }} available</span>
+            <span class="text-xs text-slate-500"
+              >{{ availableSubjects.length }} available</span
+            >
           </div>
-          <select [(ngModel)]="selectedSubjectIds" multiple class="w-full min-h-[140px] border border-slate-200 rounded-xl p-3 text-sm bg-slate-50 focus:ring-2 focus:ring-primary/20">
-            <option *ngFor="let subject of availableSubjects" [value]="subject.id">{{ labelSubject(subject) }}</option>
+          <select
+            [(ngModel)]="selectedSubjectIds"
+            multiple
+            class="w-full min-h-[140px] border border-slate-200 rounded-xl p-3 text-sm bg-slate-50 focus:ring-2 focus:ring-primary/20"
+          >
+            <option
+              *ngFor="let subject of availableSubjects"
+              [value]="subject.id"
+            >
+              {{ labelSubject(subject) }}
+            </option>
           </select>
-          <button (click)="linkSelectedSubjects()" [disabled]="!selectedSubjectIds.length || actionLoading" class="w-full rounded-xl bg-emerald-600 text-white py-2.5 font-semibold disabled:opacity-60">{{ actionLoading ? 'Processing...' : 'Link selected subjects' }}</button>
+          <button
+            (click)="linkSelectedSubjects()"
+            [disabled]="!selectedSubjectIds.length || actionLoading"
+            class="w-full rounded-xl bg-emerald-600 text-white py-2.5 font-semibold disabled:opacity-60"
+          >
+            {{ actionLoading ? "Processing..." : "Link selected subjects" }}
+          </button>
         </div>
 
         <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-bold">Enrolled Students</h3>
           </div>
-          <div *ngIf="selectedClass.students?.length; else noStudents" class="space-y-2 max-h-64 overflow-auto pr-1">
-            <div *ngFor="let student of selectedClass.students" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+          <div
+            *ngIf="selectedClass.students?.length; else noStudents"
+            class="space-y-2 max-h-64 overflow-auto pr-1"
+          >
+            <div
+              *ngFor="let student of selectedClass.students"
+              class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
+            >
               <div class="min-w-0">
-                <p class="font-semibold truncate">{{ labelStudent(student) }}</p>
-                <p class="text-xs text-slate-500">{{ student.status || 'active' }}</p>
+                <p class="font-semibold truncate">
+                  {{ labelStudent(student) }}
+                </p>
+                <p class="text-xs text-slate-500">
+                  {{ student.status || "active" }}
+                </p>
               </div>
-              <button (click)="removeStudent(student.id)" class="text-red-600 text-sm font-semibold">Remove</button>
+              <button
+                (click)="removeStudent(student.id)"
+                class="text-red-600 text-sm font-semibold"
+              >
+                Remove
+              </button>
             </div>
           </div>
           <ng-template #noStudents>
-            <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">No students enrolled yet.</div>
+            <div
+              class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500"
+            >
+              No students enrolled yet.
+            </div>
           </ng-template>
         </div>
 
@@ -141,37 +286,75 @@
           <div class="flex items-center justify-between">
             <h3 class="font-bold">Linked Subjects</h3>
           </div>
-          <div *ngIf="selectedClass.subjects?.length; else noSubjects" class="space-y-2 max-h-64 overflow-auto pr-1">
-            <div *ngFor="let subject of selectedClass.subjects" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+          <div
+            *ngIf="selectedClass.subjects?.length; else noSubjects"
+            class="space-y-2 max-h-64 overflow-auto pr-1"
+          >
+            <div
+              *ngFor="let subject of selectedClass.subjects"
+              class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
+            >
               <div class="min-w-0">
-                <p class="font-semibold truncate">{{ labelSubject(subject) }}</p>
-                <p class="text-xs text-slate-500 truncate">{{ subject.description || 'No description' }}</p>
+                <p class="font-semibold truncate">
+                  {{ labelSubject(subject) }}
+                </p>
+                <p class="text-xs text-slate-500 truncate">
+                  {{ subject.description || "No description" }}
+                </p>
               </div>
-              <button (click)="unlinkSubject(subject.id)" class="text-red-600 text-sm font-semibold">Unlink</button>
+              <button
+                (click)="unlinkSubject(subject.id)"
+                class="text-red-600 text-sm font-semibold"
+              >
+                Unlink
+              </button>
             </div>
           </div>
           <ng-template #noSubjects>
-            <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">No subjects linked yet.</div>
+            <div
+              class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500"
+            >
+              No subjects linked yet.
+            </div>
           </ng-template>
         </div>
       </div>
 
       <ng-template #emptyState>
-        <div class="p-6 text-white/70">Select a class from the table to manage enrollments and links.</div>
+        <div class="p-6 text-white/70">
+          Select a class from the table to manage enrollments and links.
+        </div>
       </ng-template>
     </div>
   </div>
 </div>
 
-<div *ngIf="showClassModal" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-0">
-  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeClassModal()"></div>
-  <div class="relative w-full max-w-xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800">
-    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<div
+  *ngIf="showClassModal"
+  class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-0"
+>
+  <div
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+    (click)="closeClassModal()"
+  ></div>
+  <div
+    class="relative w-full max-w-xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800"
+  >
+    <div
+      class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"
+    >
       <div>
-        <h3 class="text-xl font-bold text-slate-900 dark:text-white">{{ editingClassId ? 'Edit Class' : 'Add New Class' }}</h3>
-        <p class="text-sm text-slate-500 mt-1">Define the structure before enrolling students.</p>
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white">
+          {{ editingClassId ? "Edit Class" : "Add New Class" }}
+        </h3>
+        <p class="text-sm text-slate-500 mt-1">
+          Define the structure before enrolling students.
+        </p>
       </div>
-      <button (click)="closeClassModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+      <button
+        (click)="closeClassModal()"
+        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
@@ -179,44 +362,141 @@
     <form (ngSubmit)="saveClass()" class="p-6 space-y-5">
       <div class="grid sm:grid-cols-2 gap-4">
         <div class="sm:col-span-2">
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="class-name">Class Name</label>
-          <input [(ngModel)]="classForm.name" name="className" id="class-name" type="text" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="e.g. 2nd Year A" />
+          <label
+            class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+            for="class-name"
+            >Class Name</label
+          >
+          <input
+            [(ngModel)]="classForm.name"
+            name="className"
+            id="class-name"
+            type="text"
+            class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            placeholder="e.g. 2nd Year A"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="class-level">Level</label>
-          <input [(ngModel)]="classForm.level" name="classLevel" id="class-level" type="text" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="e.g. 2nd year" />
+          <label
+            class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+            for="class-level"
+            >Level</label
+          >
+          <input
+            [(ngModel)]="classForm.level"
+            name="classLevel"
+            id="class-level"
+            type="text"
+            class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            placeholder="e.g. 2nd year"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="class-section">Section</label>
-          <input [(ngModel)]="classForm.section" name="classSection" id="class-section" type="text" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="e.g. A" />
+          <label
+            class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+            for="class-section"
+            >Section</label
+          >
+          <input
+            [(ngModel)]="classForm.section"
+            name="classSection"
+            id="class-section"
+            type="text"
+            class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            placeholder="e.g. A"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="class-year">Academic Year</label>
-          <input [(ngModel)]="classForm.academicYear" name="classAcademicYear" id="class-year" type="text" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="e.g. 2025-2026" />
+          <label
+            class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+            for="class-year"
+            >Academic Year</label
+          >
+          <input
+            [(ngModel)]="classForm.academicYear"
+            name="classAcademicYear"
+            id="class-year"
+            type="text"
+            class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            placeholder="e.g. 2025-2026"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="class-capacity">Capacity</label>
-          <input [(ngModel)]="classForm.capacity" name="classCapacity" id="class-capacity" type="number" min="0" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="30" />
+          <label
+            class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+            for="class-capacity"
+            >Capacity</label
+          >
+          <input
+            [(ngModel)]="classForm.capacity"
+            name="classCapacity"
+            id="class-capacity"
+            type="number"
+            min="0"
+            class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            placeholder="30"
+          />
         </div>
 
         <div class="flex items-center gap-3 pt-7">
-          <input [(ngModel)]="classForm.active" name="classActive" id="class-active" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary" />
-          <label class="text-sm font-semibold text-slate-700 dark:text-slate-300" for="class-active">Active class</label>
+          <input
+            [(ngModel)]="classForm.active"
+            name="classActive"
+            id="class-active"
+            type="checkbox"
+            class="rounded border-slate-300 text-primary focus:ring-primary"
+          />
+          <label
+            class="text-sm font-semibold text-slate-700 dark:text-slate-300"
+            for="class-active"
+            >Active class</label
+          >
         </div>
       </div>
 
       <div>
-        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="class-description">Description</label>
-        <textarea [(ngModel)]="classForm.description" name="classDescription" id="class-description" rows="3" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="Optional description"></textarea>
+        <label
+          class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+          for="class-description"
+          >Description</label
+        >
+        <textarea
+          [(ngModel)]="classForm.description"
+          name="classDescription"
+          id="class-description"
+          rows="3"
+          class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+          placeholder="Optional description"
+        ></textarea>
       </div>
 
-      <div class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-        <button type="button" (click)="closeClassModal()" class="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Cancel</button>
-        <button type="submit" [disabled]="savingClass || !classForm.name.trim()" class="flex-1 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed">{{ savingClass ? 'Saving...' : (editingClassId ? 'Update Class' : 'Create Class') }}</button>
+      <div
+        class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800"
+      >
+        <button
+          type="button"
+          (click)="closeClassModal()"
+          class="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          [disabled]="savingClass || !classForm.name.trim()"
+          class="flex-1 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {{
+            savingClass
+              ? "Saving..."
+              : editingClassId
+                ? "Update Class"
+                : "Create Class"
+          }}
+        </button>
       </div>
     </form>
   </div>

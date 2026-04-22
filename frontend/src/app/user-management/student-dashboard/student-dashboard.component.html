@@ -1,47 +1,71 @@
-<div class="flex flex-col min-h-screen bg-background-light dark:bg-background-dark">
+<div
+  class="flex flex-col min-h-screen bg-background-light dark:bg-background-dark"
+>
   <!-- Full-width top navbar (above sidebar; same pattern as instructor shell) -->
   <header
     *ngIf="showDashboardShell()"
     role="banner"
-    class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-8 flex items-center justify-between gap-4 w-full shrink-0">
+    class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-8 flex items-center justify-between gap-4 w-full shrink-0"
+  >
     <div class="shrink-0">
       <app-brand-logo [link]="'/student-dashboard'" variant="compact" />
     </div>
     <div class="flex items-center flex-1 max-w-xl min-w-0">
       <div class="relative w-full">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">search</span>
+        <span
+          class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          aria-hidden="true"
+          >search</span
+        >
         <input
           class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-slate-500"
-          placeholder="Search courses, skills, or mentors..." type="text" />
+          placeholder="Search courses, skills, or mentors..."
+          type="text"
+        />
       </div>
     </div>
     <div class="flex items-center gap-4">
       <button
         type="button"
         aria-label="Open notifications"
-        class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
+        class="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative"
+      >
         <span class="material-symbols-outlined">notifications</span>
-        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        <span
+          class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"
+        ></span>
       </button>
       <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
       <div class="flex items-center gap-3">
         <div class="text-right">
-          <p class="text-sm font-bold leading-none">{{ user?.first_name }} {{ user?.last_name }}</p>
-          <p class="text-xs text-primary font-medium capitalize">{{ user?.role || 'student' }}</p>
-          <p class="text-[11px] font-semibold text-slate-500 leading-tight mt-0.5">
-            {{ user?.class || 'Class not set' }}
+          <p class="text-sm font-bold leading-none">
+            {{ user?.first_name }} {{ user?.last_name }}
+          </p>
+          <p class="text-xs text-primary font-medium capitalize">
+            {{ user?.role || "student" }}
+          </p>
+          <p
+            class="text-[11px] font-semibold text-slate-500 leading-tight mt-0.5"
+          >
+            {{ user?.class || "Class not set" }}
           </p>
         </div>
         <div class="flex items-center gap-2">
           <div
-            class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold">
+            class="w-10 h-10 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold"
+          >
             {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
           </div>
-          <button (click)="openProfileSidebar()"
-            class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <button
+            (click)="openProfileSidebar()"
+            class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
             Account
           </button>
-          <button (click)="logout()" class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600">
+          <button
+            (click)="logout()"
+            class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600"
+          >
             Logout
           </button>
         </div>
@@ -50,483 +74,786 @@
   </header>
 
   <div class="flex flex-1 min-h-0 overflow-hidden" *ngIf="showDashboardShell()">
-  <!-- Sidebar Navigation -->
-  <aside
-    aria-label="Student sidebar"
-    class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 overflow-y-auto min-h-0">
-    <div class="p-6 pb-4">
-      <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">
-        Adaptive Learning
-      </p>
-    </div>
-    <nav class="flex-1 px-4 py-4 space-y-1" aria-label="Student navigation">
-      <a (click)="activeNav = 'dashboard'" routerLink="/student-dashboard" [class]="
-          activeNav === 'dashboard'
-            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
-            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
-        ">
-        <span class="material-symbols-outlined">dashboard</span>
-        Dashboard
-      </a>
-      <a (click)="activeNav = 'my-courses'" routerLink="/student-dashboard/my-courses" [class]="
-          activeNav === 'my-courses'
-            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
-            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
-        ">
-        <span class="material-symbols-outlined">book_4</span> My Courses
-      </a>
-      <a (click)="activeNav = 'level-test-result'; openLevelTestFromSidebar()" [class]="
-          activeNav === 'level-test-result'
-            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
-            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
-        ">
-        <span class="material-symbols-outlined">quiz</span> Level Test Result
-      </a>
-      <a (click)="activeNav = 'performance'" routerLink="/student-dashboard/performance" [class]="
-          activeNav === 'performance'
-            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
-            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
-        ">
-        <span class="material-symbols-outlined">analytics</span> Performance
-      </a>
-      <a (click)="activeNav = 'learning-path'" routerLink="/student-dashboard/learning-path" [class]="
-          activeNav === 'learning-path'
-            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
-            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
-        ">
-        <span class="material-symbols-outlined">route</span> Learning Path
-      </a>
-      <a (click)="activeNav = 'codebattle'" routerLink="/codebattle/lobby" [class]="
-          activeNav === 'codebattle'
-            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-blue-600 font-semibold border-r-4 border-blue-500'
-            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
-        ">
-        <span class="material-symbols-outlined text-blue-500">terminal</span>
-        Code Battle
-      </a>
-
-      <div class="pt-4 mt-2">
-        <p class="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-          Messages
+    <!-- Sidebar Navigation -->
+    <aside
+      aria-label="Student sidebar"
+      class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 overflow-y-auto min-h-0"
+    >
+      <div class="p-6 pb-4">
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          Adaptive Learning
         </p>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          routerLink="/chat/instructor">
-          <span class="material-symbols-outlined text-indigo-500">chat_bubble</span>
-          Conversations
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          routerLink="/chat/room">
-          <span class="material-symbols-outlined text-orange-500">groups</span>
-          Groups
-        </a>
       </div>
-    </nav>
-    <div class="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
-      <div class="bg-primary/5 rounded-xl p-4 mb-4">
-        <p class="text-sm font-bold text-slate-800 dark:text-slate-200">
-          Pro Version
-        </p>
-        <p class="text-xs text-slate-500 mb-3">Unlock AI personal tutor 24/7</p>
-        <button
-          class="w-full py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors">
-          Upgrade Now
-        </button>
-      </div>
-      <a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400" routerLink="/profile">
-        <span class="material-symbols-outlined">settings</span>
-        <span class="text-sm font-medium">Account</span>
-      </a>
-    </div>
-  </aside>
+      <nav class="flex-1 px-4 py-4 space-y-1" aria-label="Student navigation">
+        <a
+          (click)="activeNav = 'dashboard'"
+          routerLink="/student-dashboard"
+          [class]="
+            activeNav === 'dashboard'
+              ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+              : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+          "
+        >
+          <span class="material-symbols-outlined">dashboard</span>
+          Dashboard
+        </a>
+        <a
+          (click)="activeNav = 'my-courses'"
+          routerLink="/student-dashboard/my-courses"
+          [class]="
+            activeNav === 'my-courses'
+              ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+              : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+          "
+        >
+          <span class="material-symbols-outlined">book_4</span> My Courses
+        </a>
+        <a
+          (click)="activeNav = 'level-test-result'; openLevelTestFromSidebar()"
+          [class]="
+            activeNav === 'level-test-result'
+              ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+              : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+          "
+        >
+          <span class="material-symbols-outlined">quiz</span> Level Test Result
+        </a>
+        <a
+          (click)="activeNav = 'performance'"
+          routerLink="/student-dashboard/performance"
+          [class]="
+            activeNav === 'performance'
+              ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+              : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+          "
+        >
+          <span class="material-symbols-outlined">analytics</span> Performance
+        </a>
+        <a
+          (click)="activeNav = 'learning-path'"
+          routerLink="/student-dashboard/learning-path"
+          [class]="
+            activeNav === 'learning-path'
+              ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+              : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+          "
+        >
+          <span class="material-symbols-outlined">route</span> Learning Path
+        </a>
+        <a
+          (click)="activeNav = 'codebattle'"
+          routerLink="/codebattle/lobby"
+          [class]="
+            activeNav === 'codebattle'
+              ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-blue-600 font-semibold border-r-4 border-blue-500'
+              : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+          "
+        >
+          <span class="material-symbols-outlined text-blue-500">terminal</span>
+          Code Battle
+        </a>
 
-  <!-- Main Content Area -->
-  <main
-    id="main-content"
-    tabindex="-1"
-    [class]="
-      showDashboardShell()
-        ? 'flex-1 ml-h min-h-screen bg-background-light dark:bg-background-dark'
-        : 'flex-1 min-h-screen bg-background-light dark:bg-background-dark'
-    ">
-    <div class="p-8 space-y-8 max-w-7xl mx-auto" *ngIf="showDashboardShell() && !isSubPageView()">
-      <!-- Welcome Header -->
-      <section class="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-            Welcome back, {{ user?.first_name }}! 👋
-          </h1>
-          <p class="text-slate-500 mt-1">
-            <ng-container *ngIf="progress > 0; else noCourseProgressYet">
-              Your average score on learning activities this
-              {{ learningProgressPeriod === "monthly" ? "month" : "week" }}:
-              <strong>{{ progress }}%</strong>.
-            </ng-container>
-            <ng-template #noCourseProgressYet>
-              Start a course in <strong>My Courses</strong> to build real
-              learning progress here (shown as your average activity score).
-            </ng-template>
-            <span *ngIf="levelTestScore > 0" class="block mt-1">
-              Latest level test: <strong>{{ levelTestScore }}%</strong>.
-            </span>
+        <div class="pt-4 mt-2">
+          <p
+            class="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2"
+          >
+            Messages
           </p>
+          <a
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            routerLink="/chat/instructor"
+          >
+            <span class="material-symbols-outlined text-indigo-500"
+              >chat_bubble</span
+            >
+            Conversations
+          </a>
+          <a
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            routerLink="/chat/room"
+          >
+            <span class="material-symbols-outlined text-orange-500"
+              >groups</span
+            >
+            Groups
+          </a>
         </div>
-        <div class="flex gap-3">
+      </nav>
+      <div class="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
+        <div class="bg-primary/5 rounded-xl p-4 mb-4">
+          <p class="text-sm font-bold text-slate-800 dark:text-slate-200">
+            Pro Version
+          </p>
+          <p class="text-xs text-slate-500 mb-3">
+            Unlock AI personal tutor 24/7
+          </p>
           <button
-            class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-shadow shadow-lg shadow-primary/20">
-            <span class="material-symbols-outlined text-lg">bolt</span> Resume
-            Learning
-          </button>
-          <button routerLink="/brainrush"
-            class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-shadow shadow-lg shadow-purple-500/30">
-            <span class="material-symbols-outlined text-lg">sports_esports</span>
-            Play BrainRush
-          </button>
-          <button routerLink="/codebattle/lobby"
-            class="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-shadow shadow-lg shadow-blue-500/30">
-            <span class="material-symbols-outlined text-lg">terminal</span>
-            Code Battle
+            class="w-full py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Upgrade Now
           </button>
         </div>
-      </section>
+        <a
+          class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400"
+          routerLink="/profile"
+        >
+          <span class="material-symbols-outlined">settings</span>
+          <span class="text-sm font-medium">Account</span>
+        </a>
+      </div>
+    </aside>
 
-      <!-- Grid Layout for Widgets -->
-      <div class="grid grid-cols-12 gap-6">
-        <!-- Learning Progress Rings -->
-        <div
-          class="col-span-12 lg:col-span-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-bold">Learning Progress</h3>
-            <select [ngModel]="learningProgressPeriod" (ngModelChange)="onLearningProgressPeriodChange($event)"
-              class="bg-slate-50 border-none text-sm font-medium rounded-lg py-1 px-3">
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-6" *ngIf="topicRings.length > 0">
-            <div *ngFor="let ring of topicRings" class="flex flex-col items-center gap-3">
-              <div class="relative w-24 h-24">
-                <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
-                  <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
-                    stroke="currentColor" stroke-width="8"></circle>
-                  <circle [class]="ring.color" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
-                    stroke-dasharray="251.2" [attr.stroke-dashoffset]="getRingDashoffset(ring.score)"
-                    stroke-linecap="round" stroke-width="8"></circle>
-                </svg>
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">{{
-                  ring.score }}%</span>
-              </div>
-              <span class="text-xs font-bold text-slate-500 uppercase">{{
-                formatTopicRingName(ring.name)
-                }}</span>
+    <!-- Main Content Area -->
+    <main
+      id="main-content"
+      tabindex="-1"
+      [class]="
+        showDashboardShell()
+          ? 'flex-1 ml-h min-h-screen bg-background-light dark:bg-background-dark'
+          : 'flex-1 min-h-screen bg-background-light dark:bg-background-dark'
+      "
+    >
+      <div
+        class="p-8 space-y-8 max-w-7xl mx-auto"
+        *ngIf="showDashboardShell() && !isSubPageView()"
+      >
+        <!-- Welcome Header -->
+        <section class="flex flex-wrap items-end justify-between gap-4">
+          <section
+            class="relative flex flex-wrap items-end justify-between gap-4 p-8 rounded-3xl bg-gradient-to-br from-primary/90 via-indigo-500/80 to-blue-400/80 text-white overflow-hidden group shadow-2xl backdrop-blur-md border border-white/10 animate-fade-in-up"
+          >
+            <div class="absolute inset-0 pointer-events-none">
+              <div
+                class="absolute -top-10 -left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"
+              ></div>
+              <div
+                class="absolute -bottom-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-2xl animate-pulse"
+              ></div>
             </div>
-          </div>
-          <p *ngIf="topicRings.length === 0"
-            class="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-200 rounded-xl">
-            No course activity in this period yet. Open <a routerLink="/student-dashboard/my-courses"
-              class="text-primary font-semibold underline">My Courses</a> to start learning.
-          </p>
-        </div>
-
-        <!-- Goal Tracking Widget -->
-        <div
-          class="col-span-12 lg:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-          <h3 class="text-lg font-bold mb-6">Goal Tracking</h3>
-          <div class="space-y-6" *ngIf="goalTracking?.hasGoals; else noGoalsConfigured">
-            <div>
-              <div class="flex justify-between text-sm mb-2">
-                <span class="font-medium text-slate-600 dark:text-slate-400">Study Hours</span>
-                <span class="font-bold">{{ goalTracking.studyHoursCompleted | number: "1.0-1" }}/{{
-                  goalTracking.studyHoursGoal | number: "1.0-1"
-                  }}h</span>
-              </div>
-              <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div class="bg-primary h-full" [style.width.%]="getStudyHoursGoalPercent()"></div>
-              </div>
-            </div>
-            <div>
-              <div class="flex justify-between text-sm mb-2">
-                <span class="font-medium text-slate-600 dark:text-slate-400">Quiz Success ({{
-                  goalTracking.targetTopic || "general"
-                  }})</span>
-                <span class="font-bold">{{ goalTracking.quizSuccess | number: "1.0-0" }}% /
-                  {{ goalTracking.quizSuccessGoal | number: "1.0-0" }}%</span>
-              </div>
-              <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div class="bg-emerald-500 h-full" [style.width.%]="getQuizGoalPercent()"></div>
-              </div>
-            </div>
-            <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
-              <p class="text-sm font-medium italic text-slate-500">
-                Deadline: {{ goalTracking.deadline || "Not set" }}
+            <div class="relative z-10">
+              <h1
+                class="text-2xl md:text-4xl font-extrabold tracking-tight text-white drop-shadow animate-fade-in-up"
+              >
+                Welcome back, {{ user?.first_name }}!
+                <span class="animate-wave inline-block">👋</span>
+              </h1>
+              <p
+                class="text-white/90 mt-3 text-lg animate-fade-in-up animate-delay-200"
+              >
+                <ng-container *ngIf="progress > 0; else noCourseProgressYet">
+                  Your average score this
+                  {{ learningProgressPeriod === "monthly" ? "month" : "week" }}:
+                  <strong class="text-yellow-200">{{ progress }}%</strong>.
+                </ng-container>
+                <ng-template #noCourseProgressYet>
+                  Start a course in <strong>My Courses</strong> to build real
+                  learning progress here.
+                </ng-template>
+                <span
+                  *ngIf="levelTestScore > 0"
+                  class="block mt-1 text-indigo-100 animate-fade-in-up animate-delay-300"
+                >
+                  Latest level test: <strong>{{ levelTestScore }}%</strong>.
+                </span>
               </p>
             </div>
-          </div>
-          <ng-template #noGoalsConfigured>
-            <div class="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-              No backend goal configured yet. Configure goals from Goal Setting
-              to start real tracking.
+            <div
+              class="relative z-10 flex gap-4 animate-fade-in-up animate-delay-300"
+            >
+              <button
+                routerLink="/brainrush"
+                class="px-5 py-3 bg-gradient-to-r from-blue-700 via-indigo-500 text-white rounded-xl text-base font-bold flex items-center gap-2 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-200 animate-bounce-soft"
+              >
+                <span
+                  class="material-symbols-outlined text-2xl animate-spin-slow"
+                  >sports_esports</span
+                >
+                Play BrainRush
+              </button>
+              <button
+                routerLink="/codebattle/lobby"
+                class="px-5 py-3 bg-gradient-to-r from-cyan-600 via-indigo-600 text-white rounded-xl text-base font-bold flex items-center gap-2 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-200 animate-bounce-soft animate-delay-200"
+              >
+                <span class="material-symbols-outlined text-2xl animate-pulse"
+                  >terminal</span
+                >
+                Code Battle
+              </button>
             </div>
-          </ng-template>
-        </div>
+          </section>
+        </section>
 
-        <!-- Personalized Recommendations -->
-        <div class="col-span-12 lg:col-span-9">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-bold">Personalized Recommendations</h3>
-            <button type="button" (click)="navigateToMyCoursesRecommendations()"
-              class="text-primary text-sm font-bold hover:underline">
-              View All
-            </button>
-          </div>
-          <div *ngIf="recommendationsLoading"
-            class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            Loading AI recommendations...
-          </div>
-
-          <div *ngIf="!recommendationsLoading && recommendationsError"
-            class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            {{ recommendationsError }}
-          </div>
-
-          <div *ngIf="
-              !recommendationsLoading &&
-              !recommendationsError &&
-              suggestedCourses.length === 0
-            " class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            No recommendations available yet. Keep learning activities to get
-            personalized suggestions.
-          </div>
-
-          <div *ngIf="!recommendationsLoading && suggestedCourses.length > 0"
-            class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- We reuse suggestedCourses from TS for dynamic content -->
-            <div *ngFor="let course of suggestedCourses" (click)="navigateToRecommendedCourse(course)"
-              class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-shadow group cursor-pointer"
-              role="button" tabindex="0"
-              (keydown.enter)="navigateToRecommendedCourse(course)"
-              (keydown.space)="$event.preventDefault(); navigateToRecommendedCourse(course)">
-              <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
-                <div class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"></div>
+        <!-- Grid Layout for Widgets -->
+        <div class="grid grid-cols-12 gap-8 mt-6">
+          <!-- Learning Progress Rings -->
+          <div
+            class="col-span-12 lg:col-span-8 bg-white/70 dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl backdrop-blur-md animate-fade-in-up animate-delay-200"
+          >
+            <div class="flex items-center justify-between mb-6">
+              <h3
+                class="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2 animate-fade-in-up"
+              >
+                <span
+                  class="material-symbols-outlined text-blue-500 animate-bounce-soft"
+                  >auto_graph</span
+                >
+                Learning Progress
+              </h3>
+              <select
+                [ngModel]="learningProgressPeriod"
+                (ngModelChange)="onLearningProgressPeriodChange($event)"
+                class="bg-slate-50 border-none text-sm font-medium rounded-lg py-1 px-3"
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div
+              class="grid grid-cols-2 md:grid-cols-4 gap-6"
+              *ngIf="topicRings.length > 0"
+            >
+              <div
+                *ngFor="let ring of topicRings"
+                class="flex flex-col items-center gap-3"
+              >
+                <div class="relative w-24 h-24">
+                  <svg
+                    class="progress-ring w-full h-full"
+                    viewBox="0 0 100 100"
+                  >
+                    <circle
+                      class="text-slate-100 dark:text-slate-800"
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="transparent"
+                      stroke="currentColor"
+                      stroke-width="8"
+                    ></circle>
+                    <circle
+                      [class]="ring.color"
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="transparent"
+                      stroke="currentColor"
+                      stroke-dasharray="251.2"
+                      [attr.stroke-dashoffset]="getRingDashoffset(ring.score)"
+                      stroke-linecap="round"
+                      stroke-width="8"
+                    ></circle>
+                  </svg>
+                  <span
+                    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg"
+                    >{{ ring.score }}%</span
+                  >
+                </div>
+                <span class="text-xs font-bold text-slate-500 uppercase">{{
+                  formatTopicRingName(ring.name)
+                }}</span>
               </div>
-              <div class="p-4">
-                <h4 class="font-bold text-sm mb-1 line-clamp-1">
-                  {{ course.title }}
-                </h4>
-                <p class="text-xs text-slate-500 mb-3">{{ course.reason }}</p>
-                <p class="text-[11px] text-slate-500 mb-3" *ngIf="course.level || course.duration">
-                  {{ course.level || "Adaptive" }} • {{ course.duration }}
+            </div>
+            <p
+              *ngIf="topicRings.length === 0"
+              class="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-200 rounded-xl"
+            >
+              No course activity in this period yet. Open
+              <a
+                routerLink="/student-dashboard/my-courses"
+                class="text-primary font-semibold underline"
+                >My Courses</a
+              >
+              to start learning.
+            </p>
+          </div>
+
+          <!-- Goal Tracking Widget -->
+          <div
+            class="col-span-12 lg:col-span-4 bg-white/70 dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl backdrop-blur-md animate-fade-in-up animate-delay-300"
+          >
+            <h3
+              class="text-2xl font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2 animate-fade-in-up"
+            >
+              <span
+                class="material-symbols-outlined text-emerald-500 animate-bounce"
+                >flag</span
+              >
+              Goal Tracking
+            </h3>
+            <div
+              class="space-y-6"
+              *ngIf="goalTracking?.hasGoals; else noGoalsConfigured"
+            >
+              <div>
+                <div class="flex justify-between text-sm mb-2">
+                  <span class="font-medium text-slate-600 dark:text-slate-400"
+                    >Study Hours</span
+                  >
+                  <span class="font-bold"
+                    >{{ goalTracking.studyHoursCompleted | number: "1.0-1" }}/{{
+                      goalTracking.studyHoursGoal | number: "1.0-1"
+                    }}h</span
+                  >
+                </div>
+                <div
+                  class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-primary h-full"
+                    [style.width.%]="getStudyHoursGoalPercent()"
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-sm mb-2">
+                  <span class="font-medium text-slate-600 dark:text-slate-400"
+                    >Quiz Success ({{
+                      goalTracking.targetTopic || "general"
+                    }})</span
+                  >
+                  <span class="font-bold"
+                    >{{ goalTracking.quizSuccess | number: "1.0-0" }}% /
+                    {{ goalTracking.quizSuccessGoal | number: "1.0-0" }}%</span
+                  >
+                </div>
+                <div
+                  class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-emerald-500 h-full"
+                    [style.width.%]="getQuizGoalPercent()"
+                  ></div>
+                </div>
+              </div>
+              <div
+                class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800"
+              >
+                <p class="text-sm font-medium italic text-slate-500">
+                  Deadline: {{ goalTracking.deadline || "Not set" }}
                 </p>
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Open in My Courses</span>
-                  <button type="button" (click)="$event.stopPropagation(); navigateToRecommendedCourse(course)"
+              </div>
+            </div>
+            <ng-template #noGoalsConfigured>
+              <div
+                class="bg-slate-100 dark:bg-slate-800 rounded-xl p-5 text-slate-500 dark:text-slate-400 text-base animate-fade-in-up animate-delay-400"
+              >
+                No backend goal configured yet. Configure goals from Goal
+                Setting to start real tracking.
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Personalized Recommendations -->
+          <div class="col-span-12 lg:col-span-9">
+            <div class="flex items-center justify-between mb-6">
+              <h3
+                class="text-3xl font-extrabold text-slate-900 dark:text-white animate-fade-in-up animate-delay-400 flex items-center gap-2"
+              >
+                <span
+                  class="material-symbols-outlined text-pink-500 animate-bounce"
+                  >recommend</span
+                >
+                Personalized Recommendations
+              </h3>
+              <button
+                type="button"
+                (click)="navigateToMyCoursesRecommendations()"
+                class="text-primary text-base font-bold hover:underline transition-all"
+              >
+                {{ showAllRecommendations ? "Show Less" : "View All" }}
+              </button>
+            </div>
+            <div
+              *ngIf="recommendationsLoading"
+              class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+            >
+              Loading AI recommendations...
+            </div>
+
+            <div
+              *ngIf="!recommendationsLoading && recommendationsError"
+              class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"
+            >
+              {{ recommendationsError }}
+            </div>
+
+            <div
+              *ngIf="
+                !recommendationsLoading &&
+                !recommendationsError &&
+                suggestedCourses.length === 0
+              "
+              class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+            >
+              No recommendations available yet. Keep learning activities to get
+              personalized suggestions.
+            </div>
+
+            <div
+              *ngIf="!recommendationsLoading && suggestedCourses.length > 0"
+              class="grid grid-cols-1 md:grid-cols-3 gap-8"
+            >
+              <!-- Show only 3 recommendations unless showAllRecommendations is true -->
+              <div
+                *ngFor="
+                  let course of showAllRecommendations
+                    ? suggestedCourses
+                    : (suggestedCourses | slice: 0 : 3);
+                  let i = index
+                "
+                (click)="navigateToRecommendedCourse(course)"
+                class="bg-gradient-to-br from-indigo-200/80 via-purple-200/80 to-blue-200/80 dark:from-indigo-900/60 dark:via-purple-900/60 dark:to-blue-900/60 rounded-3xl p-7 shadow-2xl animate-fade-in-up"
+                [ngStyle]="{ 'animation-delay': i * 180 + 400 + 'ms' }"
+                role="button"
+                tabindex="0"
+                (keydown.enter)="navigateToRecommendedCourse(course)"
+                (keydown.space)="
+                  $event.preventDefault(); navigateToRecommendedCourse(course)
+                "
+              >
+                <div
+                  class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden"
+                >
+                  <div
+                    class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"
+                  ></div>
+                </div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span
+                    class="material-symbols-outlined text-xl text-primary animate-bounce"
+                    >star</span
+                  >
+                  <h4
+                    class="font-bold text-base text-slate-900 dark:text-white"
+                  >
+                    {{ course.title }}
+                  </h4>
+                </div>
+                <p class="text-slate-700 dark:text-slate-200 mb-2 text-sm">
+                  {{ course.reason }}
+                </p>
+                <div
+                  class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mb-1"
+                >
+                  <span
+                    class="material-symbols-outlined text-base text-indigo-400"
+                    >schedule</span
+                  >
+                  <span
+                    >{{ course.level || "Adaptive" }} •
+                    {{ course.duration }}</span
+                  >
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                  <span
+                    class="text-xs font-bold text-slate-900 dark:text-slate-100"
+                    >Open in My Courses</span
+                  >
+                  <button
+                    type="button"
+                    (click)="
+                      $event.stopPropagation();
+                      navigateToRecommendedCourse(course)
+                    "
                     class="text-primary material-symbols-outlined hover:scale-110 transition-transform"
-                    aria-label="Open recommended subject">
+                    aria-label="Open recommended subject"
+                  >
                     arrow_forward_ios
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- ── Peer Comparison ── -->
-        <div class="col-span-12 grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <h3 class="text-lg font-bold text-slate-800">
-                  Collaborative Recommendations
-                </h3>
-                <p class="text-sm text-slate-500">
-                  Topics recommended from similar learners
-                </p>
+          <!-- ── Peer Comparison ── -->
+          <div class="col-span-12 grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <section
+              class="rounded-3xl glass-effect bg-gradient-to-br from-blue-50/80 via-white/80 to-purple-100/80 dark:from-blue-900/40 dark:via-slate-900/60 dark:to-purple-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up"
+            >
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="material-symbols-outlined text-blue-500 text-2xl bg-blue-100 rounded-full p-2 shadow-glow"
+                    >group</span
+                  >
+                  <div>
+                    <h3
+                      class="text-lg font-extrabold text-slate-900 dark:text-white"
+                    >
+                      Collaborative Recommendations
+                    </h3>
+                    <p class="text-xs text-slate-500">
+                      Topics recommended from similar learners
+                    </p>
+                  </div>
+                </div>
+                <span
+                  class="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 shadow"
+                  >{{ collaborativeRecommendations.length }} items</span
+                >
               </div>
-              <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                {{ collaborativeRecommendations.length }} items
-              </span>
-            </div>
 
-            <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
-              Loading collaborative insights...
-            </div>
+              <div
+                *ngIf="adaptiveInsightsLoading"
+                class="mt-4 text-sm text-slate-500"
+              >
+                Loading collaborative insights...
+              </div>
 
-            <div *ngIf="
-                !adaptiveInsightsLoading &&
-                collaborativeRecommendations.length > 0
-              " class="mt-4 space-y-3">
-              <article *ngFor="let rec of collaborativeRecommendations | slice: 0 : 3"
-                class="rounded-xl bg-slate-50 p-3">
-                <div class="flex items-center justify-between gap-2">
-                  <p class="font-semibold text-slate-800">{{ rec.topic }}</p>
-                  <span class="text-xs text-slate-500">{{ rec.similarStudentsCount }} peers</span>
-                </div>
-                <p class="mt-1 text-sm text-slate-600">{{ rec.reason }}</p>
-                <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                  <span class="rounded-full bg-emerald-100 px-2 py-1 font-semibold text-emerald-700">{{
-                    rec.averageSuccessRate }}%</span>
-                  <span class="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-700">{{
-                    rec.suggestedDifficulty }}</span>
-                </div>
-              </article>
-            </div>
+              <div
+                *ngIf="
+                  !adaptiveInsightsLoading &&
+                  collaborativeRecommendations.length > 0
+                "
+                class="mt-4 space-y-3"
+              >
+                <article
+                  *ngFor="
+                    let rec of collaborativeRecommendations | slice: 0 : 3
+                  "
+                  class="rounded-xl bg-slate-50 p-3"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="font-semibold text-slate-800">{{ rec.topic }}</p>
+                    <span class="text-xs text-slate-500"
+                      >{{ rec.similarStudentsCount }} peers</span
+                    >
+                  </div>
+                  <p class="mt-1 text-sm text-slate-600">{{ rec.reason }}</p>
+                  <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                    <span
+                      class="rounded-full bg-emerald-100 px-2 py-1 font-semibold text-emerald-700"
+                      >{{ rec.averageSuccessRate }}%</span
+                    >
+                    <span
+                      class="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-700"
+                      >{{ rec.suggestedDifficulty }}</span
+                    >
+                  </div>
+                </article>
+              </div>
 
-            <p *ngIf="!adaptiveInsightsLoading && adaptiveInsightsError" class="mt-4 text-sm text-amber-700">
-              {{ adaptiveInsightsError }}
-            </p>
+              <p
+                *ngIf="!adaptiveInsightsLoading && adaptiveInsightsError"
+                class="mt-4 text-sm text-amber-700"
+              >
+                {{ adaptiveInsightsError }}
+              </p>
 
-            <ng-template #noCollaborative>
-              <p class="mt-4 text-sm text-slate-500">
+              <ng-template #noCollaborative>
+                <p class="mt-4 text-sm text-slate-500">
+                  No collaborative recommendations yet.
+                </p>
+              </ng-template>
+
+              <p
+                *ngIf="
+                  !adaptiveInsightsLoading &&
+                  !adaptiveInsightsError &&
+                  collaborativeRecommendations.length === 0
+                "
+                class="mt-4 text-sm text-slate-500"
+              >
                 No collaborative recommendations yet.
               </p>
-            </ng-template>
+            </section>
 
-            <p *ngIf="
-                !adaptiveInsightsLoading &&
-                !adaptiveInsightsError &&
-                collaborativeRecommendations.length === 0
-              " class="mt-4 text-sm text-slate-500">
-              No collaborative recommendations yet.
-            </p>
-          </section>
-
-          <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <h3 class="text-lg font-bold text-slate-800">
-                  Study Group Suggestions
-                </h3>
-                <p class="text-sm text-slate-500">
-                  Groups inferred from shared strengths and weaknesses
-                </p>
+            <section
+              class="rounded-3xl glass-effect bg-gradient-to-br from-emerald-50/80 via-white/80 to-emerald-100/80 dark:from-emerald-900/40 dark:via-slate-900/60 dark:to-emerald-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up"
+            >
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="material-symbols-outlined text-emerald-500 text-2xl bg-emerald-100 rounded-full p-2 shadow-glow"
+                    >groups</span
+                  >
+                  <div>
+                    <h3
+                      class="text-lg font-extrabold text-slate-900 dark:text-white"
+                    >
+                      Study Group Suggestions
+                    </h3>
+                    <p class="text-xs text-slate-500">
+                      Groups inferred from shared strengths and weaknesses
+                    </p>
+                  </div>
+                </div>
+                <span
+                  class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 shadow"
+                  >{{ studyGroupsAnalyzed }} students</span
+                >
               </div>
-              <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                {{ studyGroupsAnalyzed }} students
-              </span>
-            </div>
 
-            <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
-              Loading study group suggestions...
-            </div>
+              <div
+                *ngIf="adaptiveInsightsLoading"
+                class="mt-4 text-sm text-slate-500"
+              >
+                Loading study group suggestions...
+              </div>
 
-            <div *ngIf="
-                !adaptiveInsightsLoading && studyGroupSuggestions.length > 0
-              " class="mt-4 space-y-3">
-              <article *ngFor="let group of studyGroupSuggestions | slice: 0 : 3" class="rounded-xl bg-slate-50 p-3">
-                <div class="flex items-center justify-between gap-2">
-                  <p class="font-semibold text-slate-800">
-                    {{ group.groupName }}
+              <div
+                *ngIf="
+                  !adaptiveInsightsLoading && studyGroupSuggestions.length > 0
+                "
+                class="mt-4 space-y-3"
+              >
+                <article
+                  *ngFor="let group of studyGroupSuggestions | slice: 0 : 3"
+                  class="rounded-xl bg-slate-50 p-3"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="font-semibold text-slate-800">
+                      {{ group.groupName }}
+                    </p>
+                    <span class="text-xs text-slate-500"
+                      >{{
+                        formatCompatibilityScore(group.compatibilityScore)
+                      }}
+                      compat.</span
+                    >
+                  </div>
+                  <p class="mt-1 text-sm text-slate-600">
+                    {{ formatGroupTypeLabel(group.groupType) }}
                   </p>
-                  <span class="text-xs text-slate-500">{{
-                    formatCompatibilityScore(group.compatibilityScore)
-                    }}
-                    compat.</span>
-                </div>
-                <p class="mt-1 text-sm text-slate-600">
-                  {{ formatGroupTypeLabel(group.groupType) }}
-                </p>
-                <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                  <span *ngFor="let topic of group.commonTopics | slice: 0 : 3"
-                    class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-700">{{ topic }}</span>
-                </div>
-              </article>
-            </div>
+                  <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                    <span
+                      *ngFor="let topic of group.commonTopics | slice: 0 : 3"
+                      class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-700"
+                      >{{ topic }}</span
+                    >
+                  </div>
+                </article>
+              </div>
 
-            <ng-template #noStudyGroups>
-              <p class="mt-4 text-sm text-slate-500">
+              <ng-template #noStudyGroups>
+                <p class="mt-4 text-sm text-slate-500">
+                  No study group suggestions yet.
+                </p>
+              </ng-template>
+
+              <p
+                *ngIf="
+                  !adaptiveInsightsLoading &&
+                  !adaptiveInsightsError &&
+                  studyGroupSuggestions.length === 0
+                "
+                class="mt-4 text-sm text-slate-500"
+              >
                 No study group suggestions yet.
               </p>
-            </ng-template>
+            </section>
 
-            <p *ngIf="
-                !adaptiveInsightsLoading &&
-                !adaptiveInsightsError &&
-                studyGroupSuggestions.length === 0
-              " class="mt-4 text-sm text-slate-500">
-              No study group suggestions yet.
-            </p>
-          </section>
-
-          <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <h3 class="text-lg font-bold text-slate-800">Learning Style</h3>
-                <p class="text-sm text-slate-500">
-                  Behavioral profile detected from performances
-                </p>
-              </div>
-              <span class="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
-                {{ getLearningStyleConfidencePercent() }}%
-              </span>
-            </div>
-
-            <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
-              Loading learning style insight...
-            </div>
-
-            <ng-container *ngIf="
-                !adaptiveInsightsLoading && learningStyleInsight;
-                else noLearningStyle
-              ">
-              <div class="mt-4 space-y-3">
-                <div>
-                  <p class="text-sm font-semibold text-slate-800">
-                    {{ learningStyleInsight.primaryStyle }}
-                  </p>
-                  <p class="text-sm text-slate-600" *ngIf="learningStyleInsight.secondaryStyle">
-                    Secondary: {{ learningStyleInsight.secondaryStyle }}
-                  </p>
+            <section
+              class="rounded-3xl glass-effect bg-gradient-to-br from-violet-50/80 via-white/80 to-purple-100/80 dark:from-violet-900/40 dark:via-slate-900/60 dark:to-purple-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up"
+            >
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="material-symbols-outlined text-violet-500 text-2xl bg-violet-100 rounded-full p-2 shadow-glow"
+                    >psychology</span
+                  >
+                  <div>
+                    <h3
+                      class="text-lg font-extrabold text-slate-900 dark:text-white"
+                    >
+                      Learning Style
+                    </h3>
+                    <p class="text-xs text-slate-500">
+                      Behavioral profile detected from performances
+                    </p>
+                  </div>
                 </div>
-                <p class="text-sm text-slate-600">
-                  {{ learningStyleInsight.styleDescription }}
-                </p>
-                <ul class="space-y-2 text-sm text-slate-600">
-                  <li *ngFor="let tip of learningStyleInsight.learningTips">
-                    • {{ tip }}
-                  </li>
-                </ul>
+                <span
+                  class="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700 shadow"
+                  >{{ getLearningStyleConfidencePercent() }}%</span
+                >
               </div>
-            </ng-container>
 
-            <ng-template #noLearningStyle>
-              <p class="mt-4 text-sm text-slate-500" *ngIf="!adaptiveInsightsLoading">
-                Learning style detection will appear once enough performance
-                data is available.
-              </p>
-            </ng-template>
-          </section>
-        </div>
+              <div
+                *ngIf="adaptiveInsightsLoading"
+                class="mt-4 text-sm text-slate-500"
+              >
+                Loading learning style insight...
+              </div>
 
-        <div class="col-span-12">
-          <app-peer-comparison [studentId]="user?._id || user?.id" [adaptiveProfile]="adaptiveProfile">
-          </app-peer-comparison>
-        </div>
+              <ng-container
+                *ngIf="
+                  !adaptiveInsightsLoading && learningStyleInsight;
+                  else noLearningStyle
+                "
+              >
+                <div class="mt-4 space-y-3">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">
+                      {{ learningStyleInsight.primaryStyle }}
+                    </p>
+                    <p
+                      class="text-sm text-slate-600"
+                      *ngIf="learningStyleInsight.secondaryStyle"
+                    >
+                      Secondary: {{ learningStyleInsight.secondaryStyle }}
+                    </p>
+                  </div>
+                  <p class="text-sm text-slate-600">
+                    {{ learningStyleInsight.styleDescription }}
+                  </p>
+                  <ul class="space-y-2 text-sm text-slate-600">
+                    <li *ngFor="let tip of learningStyleInsight.learningTips">
+                      • {{ tip }}
+                    </li>
+                  </ul>
+                </div>
+              </ng-container>
 
-        <!-- ── Study Planner ── -->
-        <div class="col-span-12">
-          <app-study-planner [studentId]="user?._id || user?.id">
-          </app-study-planner>
-        </div>
-
-        <!-- ── Skill Mastery ── -->
-        <div class="col-span-12">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-xl font-bold">Skill Mastery</h3>
-              <p class="text-sm text-slate-500">
-                Track your mastery level across learning topics
-              </p>
-            </div>
+              <ng-template #noLearningStyle>
+                <p
+                  class="mt-4 text-sm text-slate-500"
+                  *ngIf="!adaptiveInsightsLoading"
+                >
+                  Learning style detection will appear once enough performance
+                  data is available.
+                </p>
+              </ng-template>
+            </section>
           </div>
-          <app-skill-mastery [studentId]="user?._id || user?.id" [adaptiveProfile]="adaptiveProfile">
-          </app-skill-mastery>
+
+          <div class="col-span-12">
+            <app-peer-comparison
+              [studentId]="user?._id || user?.id"
+              [adaptiveProfile]="adaptiveProfile"
+            >
+            </app-peer-comparison>
+          </div>
+
+          <!-- ── Study Planner ── -->
+          <div class="col-span-12">
+            <app-study-planner [studentId]="user?._id || user?.id">
+            </app-study-planner>
+          </div>
+
+          <!-- ── Skill Mastery ── -->
+          <div class="col-span-12">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-bold">Skill Mastery</h3>
+                <p class="text-sm text-slate-500">
+                  Track your mastery level across learning topics
+                </p>
+              </div>
+            </div>
+            <app-skill-mastery
+              [studentId]="user?._id || user?.id"
+              [adaptiveProfile]="adaptiveProfile"
+            >
+            </app-skill-mastery>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="p-8 max-w-7xl mx-auto" *ngIf="isSubPageView()">
-      <router-outlet></router-outlet>
-    </div>
-  </main>
+      <div class="p-8 max-w-7xl mx-auto" *ngIf="isSubPageView()">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
   </div>
 
   <div *ngIf="!showDashboardShell()" class="flex-1 min-h-screen">
@@ -538,10 +865,12 @@
       type="button"
       aria-label="Open AI assistant"
       routerLink="/chat/ai"
-      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
+      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"
+    >
       <span class="material-symbols-outlined text-3xl">psychology</span>
       <div
-        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">
+        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity"
+      >
         ASK EDU AI
       </div>
     </button>
@@ -550,10 +879,16 @@
 
 <!-- Profile Sidebar Overlay (Student) -->
 <div *ngIf="showProfileSidebar">
-  <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" (click)="closeProfileSidebar()"></div>
+  <div
+    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+    (click)="closeProfileSidebar()"
+  ></div>
   <aside
-    class="fixed top-0 right-0 h-full w-96 bg-white dark:bg-slate-900 z-50 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
-    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+    class="fixed top-0 right-0 h-full w-96 bg-white dark:bg-slate-900 z-50 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800"
+  >
+    <div
+      class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"
+    >
       <h2 class="font-bold text-lg">My Profile</h2>
       <button
         type="button"
@@ -568,33 +903,46 @@
       <div class="p-8 flex flex-col items-center text-center">
         <div class="relative mb-4">
           <div
-            class="w-24 h-24 rounded-full border-4 border-primary/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
+            class="w-24 h-24 rounded-full border-4 border-primary/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl"
+          >
             {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
           </div>
           <div
-            class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full">
-          </div>
+            class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full"
+          ></div>
         </div>
-        <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight">
+        <h3
+          class="text-xl font-bold text-slate-900 dark:text-white leading-tight"
+        >
           {{ user?.first_name }} {{ user?.last_name }}
         </h3>
-        <p class="text-primary font-semibold text-sm capitalize">{{ user?.role || 'student' }}</p>
+        <p class="text-primary font-semibold text-sm capitalize">
+          {{ user?.role || "student" }}
+        </p>
         <p class="text-xs font-semibold text-slate-500 mt-1">
-          {{ user?.class || 'Class not set' }}
+          {{ user?.class || "Class not set" }}
         </p>
       </div>
       <div class="px-6 mb-8">
-        <div class="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+        <div
+          class="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl"
+        >
           <div class="text-center">
-            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">
+            <p
+              class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1"
+            >
               Study Hours
             </p>
             <p class="text-lg font-black text-slate-900 dark:text-white">
               128.5h
             </p>
           </div>
-          <div class="border-l border-slate-200 dark:border-slate-700 text-center">
-            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">
+          <div
+            class="border-l border-slate-200 dark:border-slate-700 text-center"
+          >
+            <p
+              class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1"
+            >
               Courses
             </p>
             <p class="text-lg font-black text-slate-900 dark:text-white">14</p>
@@ -602,7 +950,9 @@
         </div>
       </div>
       <div class="px-6 mb-8">
-        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
+        <h4
+          class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2"
+        >
           Personal Info
         </h4>
         <div class="space-y-4">
@@ -627,22 +977,31 @@
         </div>
       </div>
       <div class="px-6 mb-8">
-        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
+        <h4
+          class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2"
+        >
           Preferences
         </h4>
         <div class="space-y-1">
           <button
             class="flex items-center justify-between w-full p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800"
-            (click)="manageAccount()">
+            (click)="manageAccount()"
+          >
             <div class="flex items-center gap-4">
-              <span class="material-symbols-outlined text-slate-400">manage_accounts</span>
+              <span class="material-symbols-outlined text-slate-400"
+                >manage_accounts</span
+              >
               <span class="text-sm font-medium">Manage Account</span>
             </div>
-            <span class="material-symbols-outlined text-slate-400 text-sm">chevron_right</span>
+            <span class="material-symbols-outlined text-slate-400 text-sm"
+              >chevron_right</span
+            >
           </button>
           <div class="flex items-center justify-between p-2 rounded-xl">
             <div class="flex items-center gap-4">
-              <span class="material-symbols-outlined text-slate-400">dark_mode</span>
+              <span class="material-symbols-outlined text-slate-400"
+                >dark_mode</span
+              >
               <span class="text-sm font-medium">Dark Mode</span>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
@@ -652,21 +1011,25 @@
                 aria-label="Toggle dark mode"
               />
               <div
-                class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
-              </div>
+                class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
+              ></div>
             </label>
           </div>
         </div>
       </div>
     </div>
     <div class="p-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
-      <button (click)="manageAccount()"
-        class="w-full py-3 bg-primary/5 text-primary border border-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors">
+      <button
+        (click)="manageAccount()"
+        class="w-full py-3 bg-primary/5 text-primary border border-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors"
+      >
         <span class="material-symbols-outlined">manage_accounts</span>
         Manage Account
       </button>
-      <button (click)="logout()"
-        class="w-full py-3 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+      <button
+        (click)="logout()"
+        class="w-full py-3 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+      >
         <span class="material-symbols-outlined">logout</span>
         Sign Out
       </button>

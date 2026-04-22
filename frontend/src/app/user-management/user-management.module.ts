@@ -1,3 +1,4 @@
+import { SafeUrlPipe } from './safe-url.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -49,6 +50,7 @@ import { RiskDetectionManagementComponent } from '../modules/analytics/pages/ris
 import { InterventionDashboardComponent } from '../modules/analytics/pages/intervention-dashboard/intervention-dashboard.component';
 import { ReportBuilderComponent } from '../modules/analytics/pages/report-builder/report-builder.component';
 import { InstructorDashboardComponent } from './instructor-dashboard/instructor-dashboard.component';
+import { QuizFileViewerComponent } from './quiz-file-viewer/quiz-file-viewer.component';
 
 const routes: Routes = [
   {
@@ -62,7 +64,11 @@ const routes: Routes = [
     pathMatch: 'full',
   },
   { path: 'login', component: LoginComponent, data: { title: 'Login' } },
-  { path: 'register', component: RegisterComponent, data: { title: 'Register' } },
+  {
+    path: 'register',
+    component: RegisterComponent,
+    data: { title: 'Register' },
+  },
   {
     path: 'forgot-password',
     component: ForgotPasswordComponent,
@@ -109,7 +115,6 @@ const routes: Routes = [
         component: ClassManagementComponent,
       },
       {
-
         path: 'system-metrics',
         component: AdminSystemMetricsDashboardComponent,
         canActivate: [AuthGuard, RoleGuard],
@@ -342,9 +347,11 @@ const routes: Routes = [
     AssignmentSubmissionComponent,
     ProgressReportsComponent,
     InstructorSubjectsComponent,
+    SafeUrlPipe,
     SubjectsManagementComponent,
     ClassManagementComponent,
-    InstructorDashboardComponent
+    InstructorDashboardComponent,
+    QuizFileViewerComponent,
   ],
   imports: [
     CommonModule,
