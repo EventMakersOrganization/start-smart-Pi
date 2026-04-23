@@ -3,6 +3,36 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RiskScore } from '../models/analytics.models';
 
+export interface WeakAreaInsight {
+  topic: string;
+  currentScore: number;
+  suggestedDifficulty: 'easy' | 'medium' | 'hard';
+  action: string;
+  encouragement: string;
+  source: 'level-test' | 'performance' | 'profile';
+}
+
+export interface AtRiskStudentInsight {
+  userId: string;
+  name: string;
+  email: string;
+  riskScore: number;
+  riskLevel: 'low' | 'medium' | 'high';
+  weakAreas: WeakAreaInsight[];
+  weakSubskills: string[];
+  recommendedFocus: string[];
+  lastUpdated: string | Date | null;
+}
+
+export interface RiskRecalculationSummary {
+  processedStudents: number;
+  updatedScores: number;
+  highRiskCount: number;
+  mediumRiskCount: number;
+  generatedAt: string;
+  errors: string[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -37,5 +67,17 @@ export class RiskScoreService {
 
   getRiskScoreCount(): Observable<number> {
     return this.http.get<number>(`${this.apiUrl}/count`);
+  }
+
+  recalculateRiskScores(limit?: number): Observable<RiskRecalculationSummary> {
+    return this.http.post<RiskRecalculationSummary>(`${this.apiUrl}/recalculate`, {
+      limit: typeof limit === 'number' ? limit : undefined,
+    });
+  }
+
+  getAtRiskInsights(level: 'high' | 'medium' = 'high', limit = 25): Observable<AtRiskStudentInsight[]> {
+    return this.http.get<AtRiskStudentInsight[]>(
+      `${this.apiUrl}/at-risk-insights?level=${level}&limit=${limit}`,
+    );
   }
 }

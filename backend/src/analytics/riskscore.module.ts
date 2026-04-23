@@ -14,20 +14,36 @@ import { AlertService } from './alert.service';
 import { EmailService } from '../notification/email.service';
 import { AlertConfigModule } from '../alert-config/alert-config.module';
 import { AnalyticsModule } from './analytics.module';
+import { AdaptiveLearningModule } from '../adaptive-learning/adaptive-learning.module';
+import {
+  StudentPerformance,
+  StudentPerformanceSchema,
+} from '../adaptive-learning/schemas/student-performance.schema';
+import { RiskScoreSchedulerService } from './risk-score.scheduler.service';
 
 @Module({
   imports: [
     AnalyticsModule,
     AlertConfigModule,
+    AdaptiveLearningModule,
     MongooseModule.forFeature([
       { name: RiskScore.name, schema: RiskScoreSchema },
       { name: Alert.name, schema: AlertSchema },
       { name: User.name, schema: UserSchema },
       { name: Activity.name, schema: ActivitySchema },
+      { name: StudentPerformance.name, schema: StudentPerformanceSchema },
     ]),
   ],
   controllers: [RiskScoreController, KpiController],
-  providers: [RiskScoreService, RiskAlgorithmService, KpiService, AlertThresholdService, AlertService, EmailService],
+  providers: [
+    RiskScoreService,
+    RiskAlgorithmService,
+    KpiService,
+    AlertThresholdService,
+    AlertService,
+    EmailService,
+    RiskScoreSchedulerService,
+  ],
   exports: [RiskScoreService, RiskAlgorithmService, KpiService, AlertThresholdService],
 })
 export class RiskScoreModule {}

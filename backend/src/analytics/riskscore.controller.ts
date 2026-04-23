@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { RiskScoreService } from './riskscore.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -36,6 +38,22 @@ export class RiskScoreController {
   @Roles(UserRole.ADMIN)
   count() {
     return this.riskScoreService.count();
+  }
+
+  @Post('recalculate')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  recalculate(@Body() body?: { limit?: number }) {
+    return this.riskScoreService.recalculateAllStudentRiskScores(body?.limit);
+  }
+
+  @Get('at-risk-insights')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  getAtRiskInsights(
+    @Query('level') level?: 'high' | 'medium',
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ) {
+    const safeLevel = level === 'medium' ? 'medium' : 'high';
+    return this.riskScoreService.getAtRiskStudentInsights(safeLevel, limit || 25);
   }
 
   @Get(':id')
