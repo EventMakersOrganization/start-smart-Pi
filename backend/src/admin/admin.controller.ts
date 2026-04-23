@@ -103,7 +103,21 @@ export class AdminController {
   @Roles(UserRole.ADMIN)
   @Put('user/:id')
   async updateUser(@Param('id') id: string, @Body() dto: AdminUpdateUserDto) {
-    return this.usersService.updateUserById(id, dto);
+    const result = await this.usersService.updateUserById(id, dto);
+
+    // If class was updated, ensure enrollment is synced
+    if (dto.class) {
+      try {
+        const schoolClass = await this.academicService.findClassByName(dto.class);
+        if (schoolClass) {
+          await this.academicService.enrollStudent(schoolClass._id.toString(), { studentId: id });
+        }
+      } catch (err) {
+        console.error('Failed to sync enrollment during user update:', err);
+      }
+    }
+
+    return result;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

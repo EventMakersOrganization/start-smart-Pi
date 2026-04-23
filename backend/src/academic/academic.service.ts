@@ -111,6 +111,10 @@ export class AcademicService {
     return schoolClass;
   }
 
+  async findClassByName(name: string) {
+    return this.schoolClassModel.findOne({ name: name.trim() }).exec();
+  }
+
   private async findSubjectById(subjectId: string) {
     const subject = await this.subjectModel
       .findById(subjectId)
