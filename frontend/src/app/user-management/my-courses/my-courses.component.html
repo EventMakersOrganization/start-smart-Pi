@@ -162,102 +162,114 @@
         class="learning-motion-guide__bg-orb learning-motion-guide__bg-orb--two"
       ></div>
 
-      <div class="learning-motion-guide__header animate-fade-in-up">
-        <div>
-          <p class="learning-motion-guide__eyebrow">Student Guide</p>
-          <h2 class="learning-motion-guide__title">
-            Your learning path, clear, smooth, and guided
-          </h2>
-          <p class="learning-motion-guide__subtitle">
-            Explore My Courses like an interactive map: choose a subject, open
-            its chapters, expand the subchapters, and access the resources that
-            move you forward step by step.
-          </p>
-        </div>
-      </div>
-
-      <div class="learning-motion-guide__canvas animate-fade-in-up">
-        <article class="learning-step learning-step--subject">
-          <div class="learning-step__top">
-            <span class="learning-step__index">1</span>
-            <span class="material-symbols-outlined learning-step__icon"
-              >book_4</span
-            >
+      <div class="flex flex-col lg:flex-row items-center gap-8 relative z-10">
+        <!-- Left: Text Header -->
+        <div class="flex-1 w-full lg:w-1/2 learning-motion-guide__header animate-fade-in-up">
+          <div class="w-full text-left">
+            <p class="learning-motion-guide__eyebrow">Student Guide</p>
+            <h2 class="learning-motion-guide__title">
+              Your learning path, clear, smooth, and guided
+            </h2>
+            <p class="learning-motion-guide__subtitle">
+              Explore My Courses like an interactive map: choose a subject, open
+              its chapters, expand the subchapters, and access the resources that
+              move you forward step by step.
+            </p>
           </div>
-          <p class="learning-step__label">Subject</p>
-          <p class="learning-step__desc">
-            The starting point of your journey: one organized subject at a time.
-          </p>
-          <p class="learning-step__hint">
-            Open a subject to begin the journey.
-          </p>
-        </article>
-
-        <div class="learning-connector" aria-hidden="true">
-          <span class="material-symbols-outlined">arrow_forward</span>
         </div>
 
-        <article class="learning-step learning-step--chapter">
-          <div class="learning-step__top">
-            <span class="learning-step__index">2</span>
-            <span class="material-symbols-outlined learning-step__icon"
-              >menu_book</span
-            >
+        <!-- Right: Organigram -->
+        <div class="flex-1 w-full lg:w-1/2 flex justify-center lg:justify-end">
+          <div class="organigram-container animate-fade-in-up">
+            <ul class="tree">
+              <li>
+                <!-- Subject -->
+                <div class="tree-node node-subject">
+                  <div class="icon-wrapper">
+                    <span class="material-symbols-outlined text-2xl">book_4</span>
+                  </div>
+                  <h3 class="title">Subject</h3>
+                  <p class="desc">The starting point: your main course</p>
+                </div>
+                <ul>
+                  <li>
+                    <!-- Chapter -->
+                    <div class="tree-node node-chapter">
+                      <div class="icon-wrapper">
+                        <span class="material-symbols-outlined text-2xl">menu_book</span>
+                      </div>
+                      <h3 class="title">Chapter</h3>
+                      <p class="desc">The main learning stages</p>
+                    </div>
+                    <ul>
+                      <li>
+                        <!-- Subchapter -->
+                        <div class="tree-node node-subchapter">
+                          <div class="icon-wrapper">
+                            <span class="material-symbols-outlined text-2xl">account_tree</span>
+                          </div>
+                          <h3 class="title">Subchapter</h3>
+                          <p class="desc">Focused learning sections</p>
+                        </div>
+                        <ul>
+                          <!-- 4 Folders -->
+                          <li>
+                            <div class="tree-node folder-node node-folder-cours">
+                              <div class="icon-wrapper">
+                                <span class="material-symbols-outlined text-2xl">folder</span>
+                              </div>
+                              <h4 class="title text-[11px]!">Cours</h4>
+                              <div class="tags">
+                                <span class="tag">PDF</span>
+                                <span class="tag">Word</span>
+                                <span class="tag">PPT</span>
+                              </div>
+                            </div>
+                          </li>
+                          <li>
+                            <div class="tree-node folder-node node-folder-exercices">
+                              <div class="icon-wrapper">
+                                <span class="material-symbols-outlined text-2xl">folder_special</span>
+                              </div>
+                              <h4 class="title text-[11px]!">Exercices</h4>
+                              <div class="tags">
+                                <span class="tag">Quizs</span>
+                                <span class="tag">Prosits</span>
+                              </div>
+                            </div>
+                          </li>
+                          <li>
+                            <div class="tree-node folder-node node-folder-videos">
+                              <div class="icon-wrapper">
+                                <span class="material-symbols-outlined text-2xl">video_library</span>
+                              </div>
+                              <h4 class="title text-[11px]!">Vidéos</h4>
+                              <div class="tags">
+                                <span class="tag">Vidéos</span>
+                              </div>
+                            </div>
+                          </li>
+                          <li>
+                            <div class="tree-node folder-node node-folder-ressources">
+                              <div class="icon-wrapper">
+                                <span class="material-symbols-outlined text-2xl">folder_open</span>
+                              </div>
+                              <h4 class="title text-[11px]!">Ressources</h4>
+                              <div class="tags">
+                                <span class="tag">Code</span>
+                                <span class="tag">Liens</span>
+                              </div>
+                            </div>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
           </div>
-          <p class="learning-step__label">Chapter</p>
-          <p class="learning-step__desc">
-            Each chapter structures the subject into the main learning stages.
-          </p>
-          <p class="learning-step__hint">
-            Click a chapter to reveal its sections.
-          </p>
-        </article>
-
-        <div class="learning-connector" aria-hidden="true">
-          <span class="material-symbols-outlined">arrow_forward</span>
         </div>
-
-        <article class="learning-step learning-step--subchapter">
-          <div class="learning-step__top">
-            <span class="learning-step__index">3</span>
-            <span class="material-symbols-outlined learning-step__icon"
-              >account_tree</span
-            >
-          </div>
-          <p class="learning-step__label">Subchapter</p>
-          <p class="learning-step__desc">
-            Subchapters break the chapter into focused learning sections.
-          </p>
-          <p class="learning-step__hint">
-            Open the subchapter title to see the available resources.
-          </p>
-        </article>
-
-        <div class="learning-connector" aria-hidden="true">
-          <span class="material-symbols-outlined">arrow_forward</span>
-        </div>
-
-        <article class="learning-step learning-step--content">
-          <div class="learning-step__top">
-            <span class="learning-step__index">4</span>
-            <span class="material-symbols-outlined learning-step__icon"
-              >dashboard</span
-            >
-          </div>
-          <p class="learning-step__label">Content</p>
-          <p class="learning-step__desc">
-            Everything you need in one place to keep learning without losing the
-            thread.
-          </p>
-          <div class="learning-step__assets">
-            <span class="learning-asset">PDF</span>
-            <span class="learning-asset">Quiz</span>
-            <span class="learning-asset">Video</span>
-            <span class="learning-asset">Exercise</span>
-            <span class="learning-asset">Code</span>
-            <span class="learning-asset">Resource</span>
-          </div>
-        </article>
       </div>
     </section>
 
@@ -306,7 +318,17 @@
               >
             </div>
 
-            <h3 class="text-xl font-bold mb-2">Learning by Subject</h3>
+            <div class="flex items-center gap-4 mb-2">
+              <h3 class="text-xl font-bold mb-0">Learning by Subject</h3>
+              <button
+                (click)="toggleSubjects()"
+                class="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg hover:scale-110 hover:bg-white/30 transition-all"
+              >
+                <span class="material-symbols-outlined text-white text-lg">
+                  {{ showSubjects ? "keyboard_arrow_up" : "keyboard_arrow_down" }}
+                </span>
+              </button>
+            </div>
             <p class="text-white/80 text-sm mb-4">
               Select a subject, explore chapters, then access its content.
             </p>
@@ -318,14 +340,6 @@
         <div
           class="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-2xl"
         ></div>
-        <button
-          (click)="toggleSubjects()"
-          class="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg hover:scale-110 hover:bg-white/30 transition-all animate-bounce"
-        >
-          <span class="material-symbols-outlined text-white text-2xl">
-            {{ showSubjects ? "keyboard_arrow_up" : "keyboard_arrow_down" }}
-          </span>
-        </button>
       </div>
     </section>
 
@@ -396,6 +410,14 @@
             </div>
           </div>
           <button
+            *ngIf="!hasTakenLevelTest(subject)"
+            (click)="takeLevelTest(subject)"
+            class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors"
+          >
+            Take the level test
+          </button>
+          <button
+            *ngIf="hasTakenLevelTest(subject)"
             (click)="openSubject(subject)"
             class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors"
           >

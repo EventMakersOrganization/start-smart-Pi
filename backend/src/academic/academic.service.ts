@@ -11,6 +11,10 @@ import { ManageClassSubjectDto } from './dto/manage-class-subject.dto';
 import { SchoolClass, SchoolClassDocument } from './schemas/school-class.schema';
 import { ClassEnrollment, ClassEnrollmentDocument } from './schemas/class-enrollment.schema';
 import { ClassSubject, ClassSubjectDocument } from './schemas/class-subject.schema';
+import { ClassInstructor, ClassInstructorDocument } from './schemas/class-instructor.schema';
+import { Attendance, AttendanceDocument } from './schemas/attendance.schema';
+import { ManageClassInstructorDto } from './dto/manage-class-instructor.dto';
+import { SubmitAttendanceDto } from './dto/submit-attendance.dto';
 
 type ClassStudentResponse = {
   id: string;
@@ -44,6 +48,10 @@ export class AcademicService {
     private classEnrollmentModel: Model<ClassEnrollmentDocument>,
     @InjectModel(ClassSubject.name)
     private classSubjectModel: Model<ClassSubjectDocument>,
+    @InjectModel(ClassInstructor.name)
+    private classInstructorModel: Model<ClassInstructorDocument>,
+    @InjectModel(Attendance.name)
+    private attendanceModel: Model<AttendanceDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Subject.name) private subjectModel: Model<SubjectDocument>,
     @InjectModel(StudentProfile.name)
@@ -186,11 +194,32 @@ export class AcademicService {
       }));
   }
 
+  private async getClassInstructors(classId: string) {
+    const assignments = await this.classInstructorModel
+      .find({ schoolClassId: this.toObjectId(classId) })
+      .populate('instructorId', 'first_name last_name email role')
+      .sort({ createdAt: -1 })
+      .lean<any[]>()
+      .exec();
+
+    return assignments
+      .map((assignment) => assignment.instructorId)
+      .filter(Boolean)
+      .map((instructor: any) => ({
+        id: String(instructor._id),
+        first_name: instructor.first_name,
+        last_name: instructor.last_name,
+        email: instructor.email,
+        role: instructor.role,
+      }));
+  }
+
   private async toResponse(schoolClass: SchoolClassDocument) {
     const classId = String(schoolClass._id);
-    const [students, subjects] = await Promise.all([
+    const [students, subjects, instructors] = await Promise.all([
       this.getClassStudents(classId),
       this.getClassSubjects(classId),
+      this.getClassInstructors(classId),
     ]);
 
     return {
@@ -205,8 +234,10 @@ export class AcademicService {
       active: schoolClass.active,
       studentCount: students.length,
       subjectCount: subjects.length,
+      instructorCount: instructors.length,
       students,
       subjects,
+      instructors,
       createdAt: schoolClass.createdAt,
       updatedAt: schoolClass.updatedAt,
     };
@@ -409,5 +440,99 @@ export class AcademicService {
     }
 
     return this.toResponse(enrollment.schoolClassId as any);
+  }
+
+  async getClassesForInstructor(instructorId: string) {
+    const objectId = this.toObjectId(instructorId);
+    
+    // Find all subjects this instructor teaches
+    const subjects = await this.subjectModel.find({ instructors: objectId }).exec();
+    const subjectIds = subjects.map((s) => s._id);
+
+    // Find all ClassSubject links for these subjects
+    const classSubjects = await this.classSubjectModel.find({ subjectId: { $in: subjectIds } }).exec();
+    const classIdsFromSubjects = classSubjects.map((cs) => cs.schoolClassId);
+
+    // Find explicitly assigned classes
+    const explicitAssignments = await this.classInstructorModel.find({ instructorId: objectId }).exec();
+    const classIdsExplicit = explicitAssignments.map((ca) => ca.schoolClassId);
+
+    // Filter to unique class IDs
+    const uniqueClassIds = [...new Set([...classIdsFromSubjects, ...classIdsExplicit].map((id) => String(id)))];
+
+    if (!uniqueClassIds.length) {
+      return [];
+    }
+
+    // Fetch those classes
+    const classes = await this.schoolClassModel.find({ _id: { $in: uniqueClassIds } }).sort({ createdAt: -1 }).exec();
+
+    return Promise.all(classes.map((schoolClass) => this.toResponse(schoolClass)));
+  }
+
+  async submitAttendance(instructorId: string, dto: SubmitAttendanceDto) {
+    const schoolClassId = this.toObjectId(dto.schoolClassId);
+    const instId = this.toObjectId(instructorId);
+    const date = new Date(dto.date);
+    date.setHours(0, 0, 0, 0); // Normalize date to start of day
+
+    const records = dto.records.map((r) => ({
+      studentId: this.toObjectId(r.studentId),
+      status: r.status,
+    }));
+
+    // Update if exists for this class and date, otherwise create
+    return this.attendanceModel.findOneAndUpdate(
+      { schoolClassId, date },
+      {
+        $set: {
+          instructorId: instId,
+          records,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+  }
+
+  async getAttendance(classId: string, date: string) {
+    const schoolClassId = this.toObjectId(classId);
+    const queryDate = new Date(date);
+    queryDate.setHours(0, 0, 0, 0);
+
+    return this.attendanceModel
+      .findOne({ schoolClassId, date: queryDate })
+      .exec();
+  }
+
+
+  async assignInstructor(classId: string, dto: ManageClassInstructorDto) {
+    const schoolClass = await this.findClassById(classId);
+    
+    const instructor = await this.userModel.findOne({
+      _id: dto.instructorId,
+      role: { $in: [UserRole.INSTRUCTOR, UserRole.ADMIN] },
+    });
+
+    if (!instructor) {
+      throw new NotFoundException('Instructor not found or invalid role');
+    }
+
+    await this.classInstructorModel.findOneAndUpdate(
+      { schoolClassId: schoolClass._id, instructorId: instructor._id },
+      { $setOnInsert: { schoolClassId: schoolClass._id, instructorId: instructor._id, assignedAt: new Date() } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+
+    return this.toResponse(schoolClass);
+  }
+
+  async removeInstructor(classId: string, instructorId: string) {
+    const schoolClass = await this.findClassById(classId);
+
+    await this.classInstructorModel
+      .deleteOne({ schoolClassId: schoolClass._id, instructorId: instructorId })
+      .exec();
+
+    return this.toResponse(schoolClass);
   }
 }

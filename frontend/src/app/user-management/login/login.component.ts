@@ -99,20 +99,7 @@ export class LoginComponent {
       next: (res) => {
         const user = this.authService.getUser();
         if (user?.role === 'student') {
-          const userId = user._id || user.id;
-          this.adaptiveService.getProfile(userId).subscribe({
-            next: (profile) => {
-              if (!profile || !profile.level) {
-                this.router.navigate(['/level-test']);
-              } else {
-                this.router.navigate(['/student-dashboard']);
-              }
-            },
-            error: () => {
-              // If profile not found or error, redirect to level test
-              this.router.navigate(['/level-test']);
-            },
-          });
+          this.router.navigate(['/student-dashboard']);
         } else if (user?.role === 'instructor') {
           this.router.navigate(['/instructor/dashboard']);
         } else if (user?.role === 'admin') {
@@ -137,17 +124,7 @@ export class LoginComponent {
         next: (response) => {
           const user = this.authService.getUser();
           if (user.role === 'student') {
-            const userId = user._id || user.id;
-            this.adaptiveService.getProfile(userId).subscribe({
-              next: (profile) => {
-                if (!profile || !profile.level) {
-                  this.router.navigate(['/level-test']);
-                } else {
-                  this.router.navigate(['/student-dashboard']);
-                }
-              },
-              error: () => this.router.navigate(['/level-test']),
-            });
+            this.router.navigate(['/student-dashboard']);
           } else if (user.role === 'instructor') {
             this.router.navigate(['/instructor/dashboard']);
           } else if (user.role === 'admin') {

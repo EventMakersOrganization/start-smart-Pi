@@ -2022,10 +2022,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   isLevelTestFullscreenView(): boolean {
-    return (
-      this.router.url.includes('/student-dashboard/level-test') &&
-      !this.router.url.includes('/student-dashboard/level-test-result')
-    );
+    return false; // The user requested the level test to be displayed with the sidebar and navbar
   }
 
   showDashboardShell(): boolean {

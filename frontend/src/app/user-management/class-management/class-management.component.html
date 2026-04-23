@@ -90,7 +90,10 @@
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
           <tr
             *ngFor="let row of filteredClasses"
-            class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+            (click)="selectClass(row)"
+            class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+            [class.bg-slate-100]="selectedClass?.id === row.id"
+            [class.dark:bg-slate-800]="selectedClass?.id === row.id"
           >
             <td class="px-6 py-4 min-w-[220px]">
               <p class="font-semibold text-slate-900 dark:text-white">
@@ -170,7 +173,7 @@
       </div>
 
       <div *ngIf="selectedClass; else emptyState" class="p-6 space-y-6">
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-4 gap-3">
           <div class="rounded-xl bg-white/10 p-4">
             <p class="text-xs text-white/60">Students</p>
             <p class="text-2xl font-bold">
@@ -181,6 +184,12 @@
             <p class="text-xs text-white/60">Subjects</p>
             <p class="text-2xl font-bold">
               {{ selectedClass.subjectCount || 0 }}
+            </p>
+          </div>
+          <div class="rounded-xl bg-white/10 p-4">
+            <p class="text-xs text-white/60">Instructors</p>
+            <p class="text-2xl font-bold">
+              {{ selectedClass.instructorCount || 0 }}
             </p>
           </div>
           <div class="rounded-xl bg-white/10 p-4">
@@ -242,6 +251,34 @@
             class="w-full rounded-xl bg-emerald-600 text-white py-2.5 font-semibold disabled:opacity-60"
           >
             {{ actionLoading ? "Processing..." : "Link selected subjects" }}
+          </button>
+        </div>
+
+        <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold">Assign Instructors</h3>
+            <span class="text-xs text-slate-500"
+              >{{ availableInstructors.length }} available</span
+            >
+          </div>
+          <select
+            [(ngModel)]="selectedInstructorIds"
+            multiple
+            class="w-full min-h-[140px] border border-slate-200 rounded-xl p-3 text-sm bg-slate-50 focus:ring-2 focus:ring-primary/20"
+          >
+            <option
+              *ngFor="let instructor of availableInstructors"
+              [value]="instructor.id"
+            >
+              {{ labelInstructor(instructor) }}
+            </option>
+          </select>
+          <button
+            (click)="assignSelectedInstructors()"
+            [disabled]="!selectedInstructorIds.length || actionLoading"
+            class="w-full rounded-xl bg-blue-600 text-white py-2.5 font-semibold disabled:opacity-60"
+          >
+            {{ actionLoading ? "Processing..." : "Assign selected instructors" }}
           </button>
         </div>
 
@@ -315,6 +352,43 @@
               class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500"
             >
               No subjects linked yet.
+            </div>
+          </ng-template>
+        </div>
+
+        <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold">Assigned Instructors</h3>
+          </div>
+          <div
+            *ngIf="selectedClass.instructors?.length; else noInstructors"
+            class="space-y-2 max-h-64 overflow-auto pr-1"
+          >
+            <div
+              *ngFor="let instructor of selectedClass.instructors"
+              class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
+            >
+              <div class="min-w-0">
+                <p class="font-semibold truncate">
+                  {{ labelInstructor(instructor) }}
+                </p>
+                <p class="text-xs text-slate-500 truncate">
+                  {{ instructor.status || "instructor" }}
+                </p>
+              </div>
+              <button
+                (click)="removeInstructor(instructor.id)"
+                class="text-red-600 text-sm font-semibold"
+              >
+                Unassign
+              </button>
+            </div>
+          </div>
+          <ng-template #noInstructors>
+            <div
+              class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500"
+            >
+              No instructors assigned yet.
             </div>
           </ng-template>
         </div>

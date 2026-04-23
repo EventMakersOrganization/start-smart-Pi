@@ -9,36 +9,6 @@
       <div class="flex items-center gap-3 text-primary">
         <app-brand-logo [link]="'/instructor/dashboard'" variant="header" />
       </div>
-      <nav class="hidden md:flex items-center gap-6" aria-label="Instructor top navigation">
-        <a
-          routerLink="/instructor/dashboard"
-          [ngClass]="
-            analyticsSectionActive
-              ? 'text-sm font-semibold text-primary border-b-2 border-primary pb-1'
-              : 'text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1'
-          "
-          >Dashboard</a
-        >
-        <a
-          routerLink="/instructor/subjects"
-          [ngClass]="
-            subjectsSectionActive
-              ? 'text-sm font-semibold text-primary border-b-2 border-primary pb-1'
-              : 'text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1'
-          "
-          >Courses</a
-        >
-        <a
-          routerLink="/instructor/risk-detection"
-          class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1"
-          >Students</a
-        >
-        <a
-          routerLink="/instructor/comprehensive-analytics"
-          class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1"
-          >Reports</a
-        >
-      </nav>
     </div>
     <div class="flex flex-1 justify-end gap-6 items-center">
       <div class="relative w-64">
@@ -158,12 +128,12 @@
         </a>
         <a
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/instructor/subjects"
+          routerLink="/instructor/classes"
           routerLinkActive="bg-primary/10 text-primary"
           [routerLinkActiveOptions]="{ exact: false }"
         >
-          <span class="material-symbols-outlined">menu_book</span>
-          <span class="text-sm font-medium">Subjects</span>
+          <span class="material-symbols-outlined">school</span>
+          <span class="text-sm font-medium">My classes</span>
         </a>
       </div>
       <div class="flex flex-col gap-2">
@@ -181,25 +151,6 @@
           >
           <span class="text-sm font-medium">Conversations</span>
         </a>
-      </div>
-      <div class="flex flex-col gap-2">
-        <p
-          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2"
-        >
-          My Courses
-        </p>
-        <div class="space-y-1" *ngIf="assignedSubjects.length > 0; else noAssignedSubjects">
-          <div
-            *ngFor="let subject of assignedSubjects"
-            class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
-          >
-            <span class="truncate pr-2">{{ subject.title }}</span>
-            <span class="size-2 rounded-full bg-green-500"></span>
-          </div>
-        </div>
-        <ng-template #noAssignedSubjects>
-          <p class="px-3 py-2 text-xs text-slate-500">No assigned subjects yet.</p>
-        </ng-template>
       </div>
       <div class="mt-auto bg-primary/5 rounded-xl p-4 border border-primary/10">
         <p class="text-xs font-bold text-primary mb-1">Live Risk Insight</p>

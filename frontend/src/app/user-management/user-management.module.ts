@@ -51,6 +51,7 @@ import { InterventionDashboardComponent } from '../modules/analytics/pages/inter
 import { ReportBuilderComponent } from '../modules/analytics/pages/report-builder/report-builder.component';
 import { InstructorDashboardComponent } from './instructor-dashboard/instructor-dashboard.component';
 import { QuizFileViewerComponent } from './quiz-file-viewer/quiz-file-viewer.component';
+import { InstructorClassesComponent } from './instructor-classes/instructor-classes.component';
 
 const routes: Routes = [
   {
@@ -263,6 +264,12 @@ const routes: Routes = [
         data: { roles: ['instructor'] },
       },
       {
+        path: 'classes',
+        component: InstructorClassesComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'] },
+      },
+      {
         path: 'progress-reports',
         component: ProgressReportsComponent,
         canActivate: [AuthGuard, RoleGuard],
@@ -352,6 +359,7 @@ const routes: Routes = [
     ClassManagementComponent,
     InstructorDashboardComponent,
     QuizFileViewerComponent,
+    InstructorClassesComponent,
   ],
   imports: [
     CommonModule,

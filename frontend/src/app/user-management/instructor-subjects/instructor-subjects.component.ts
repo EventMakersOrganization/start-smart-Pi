@@ -182,6 +182,16 @@ savingPrositEdit = false;
   expandedQuizSubmissionId: string | null = null;
   quizFilePreviews: Record<string, QuizFilePreviewState> = {};
 
+  // Attendance state
+  showAttendanceModal = false;
+  classStudents: any[] = [];
+  loadingStudents = false;
+  submittingAttendance = false;
+  attendanceDate: string = new Date().toISOString().split('T')[0];
+  attendanceRecords: Record<string, 'present' | 'absent' | 'late'> = {};
+  attendanceSuccess = false;
+  attendanceError = '';
+
   private subjectsApiUrl = 'http://localhost:3000/api/subjects';
 
   subjectForm: SubjectFormModel = {
@@ -225,8 +235,17 @@ savingPrositEdit = false;
     private prositSubmissionService: PrositSubmissionService,
   ) {}
 
+  private classesApi = 'http://localhost:3000/api/admin/instructor/classes';
+  selectedClassId: string | null = null;
+  className: string | null = null;
+
   ngOnInit(): void {
     this.user = this.authService.getUser();
+    
+    this.route.queryParams.subscribe(params => {
+      this.selectedClassId = params['classId'] || null;
+    });
+
     this.routeSub = this.route.paramMap.subscribe((params) => {
       const subjectId = params.get('id');
       if (subjectId) {
@@ -237,6 +256,73 @@ savingPrositEdit = false;
         this.expandedChapterOrder = null;
         this.chapterForm = { title: '', description: '' };
         this.loadSubjects();
+      }
+    });
+  }
+
+  // Attendance methods
+  openAttendanceModal(): void {
+    if (!this.selectedClassId) return;
+    this.showAttendanceModal = true;
+    this.attendanceSuccess = false;
+    this.attendanceError = '';
+    this.loadClassStudents();
+  }
+
+  closeAttendanceModal(): void {
+    this.showAttendanceModal = false;
+  }
+
+  loadClassStudents(): void {
+    this.loadingStudents = true;
+    this.http.get<any[]>(this.classesApi).subscribe({
+      next: (classes) => {
+        const cls = classes.find((c: any) => c.id === this.selectedClassId);
+        if (cls && cls.students) {
+          this.classStudents = cls.students;
+          // Initialize records with 'present' by default if not already set
+          this.classStudents.forEach(s => {
+            if (!this.attendanceRecords[s.id]) {
+              this.attendanceRecords[s.id] = 'present';
+            }
+          });
+        }
+        this.loadingStudents = false;
+      },
+      error: () => {
+        this.attendanceError = 'Failed to load students.';
+        this.loadingStudents = false;
+      }
+    });
+  }
+
+  setAttendanceStatus(studentId: string, status: 'present' | 'absent' | 'late'): void {
+    this.attendanceRecords[studentId] = status;
+  }
+
+  submitAttendance(): void {
+    if (!this.selectedClassId) return;
+    this.submittingAttendance = true;
+    this.attendanceError = '';
+
+    const payload = {
+      schoolClassId: this.selectedClassId,
+      date: this.attendanceDate,
+      records: Object.entries(this.attendanceRecords).map(([studentId, status]) => ({
+        studentId,
+        status
+      }))
+    };
+
+    this.http.post('http://localhost:3000/api/admin/attendance', payload).subscribe({
+      next: () => {
+        this.attendanceSuccess = true;
+        this.submittingAttendance = false;
+        setTimeout(() => this.closeAttendanceModal(), 2000);
+      },
+      error: () => {
+        this.attendanceError = 'Failed to submit attendance.';
+        this.submittingAttendance = false;
       }
     });
   }
@@ -257,24 +343,49 @@ savingPrositEdit = false;
 
     this.subjectsService.getSubjects(String(instructorId)).subscribe({
       next: (rows) => {
-        this.subjects = Array.isArray(rows) ? rows : [];
-        if (selectedSubjectId) {
-          const found = this.subjects.find(
-            (subject) =>
-              subject._id === selectedSubjectId ||
-              subject.id === selectedSubjectId,
-          );
-          if (found) {
-            this.selectedSubject = found;
-          }
+        let loadedSubjects = Array.isArray(rows) ? rows : [];
+        
+        // If a classId is specified, fetch the class details to filter subjects
+        if (this.selectedClassId) {
+          this.http.get<any[]>(this.classesApi).subscribe({
+            next: (classes) => {
+              const selectedClass = classes.find((c: any) => c.id === this.selectedClassId);
+              if (selectedClass) {
+                this.className = selectedClass.name;
+                const classSubjectIds = new Set((selectedClass.subjects || []).map((s: any) => s.id));
+                loadedSubjects = loadedSubjects.filter(sub => classSubjectIds.has(sub._id) || classSubjectIds.has(sub.id));
+              }
+              this.applyLoadedSubjects(loadedSubjects, selectedSubjectId);
+            },
+            error: () => {
+              console.error('Failed to load instructor classes for filtering');
+              this.applyLoadedSubjects(loadedSubjects, selectedSubjectId);
+            }
+          });
+        } else {
+          this.applyLoadedSubjects(loadedSubjects, selectedSubjectId);
         }
-        this.loadingSubjects = false;
       },
       error: () => {
         this.error = 'Failed to load subjects.';
         this.loadingSubjects = false;
       },
     });
+  }
+
+  private applyLoadedSubjects(loadedSubjects: any[], selectedSubjectId?: string) {
+    this.subjects = loadedSubjects;
+    if (selectedSubjectId) {
+      const found = this.subjects.find(
+        (subject) =>
+          subject._id === selectedSubjectId ||
+          subject.id === selectedSubjectId,
+      );
+      if (found) {
+        this.selectedSubject = found;
+      }
+    }
+    this.loadingSubjects = false;
   }
 
   private loadSubjectDetail(subjectId: string): void {

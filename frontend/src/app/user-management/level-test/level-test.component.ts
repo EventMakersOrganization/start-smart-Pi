@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
 import { AuthService } from '../auth.service';
 import { finalize } from 'rxjs/operators';
@@ -39,6 +39,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private adaptiveService: AdaptiveLearningService,
     private authService: AuthService,
   ) {}
@@ -53,7 +54,11 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     this.userFullName =
       `${this.user.first_name || ''} ${this.user.last_name || ''}`.trim() ||
       'Student';
-    this.initializeTest();
+    
+    this.route.queryParams.subscribe(params => {
+      const subject = params['subject'];
+      this.initializeTest(subject ? [subject] : []);
+    });
   }
 
   ngOnDestroy() {
@@ -62,8 +67,8 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     }
   }
 
-  initializeTest() {
-    this.adaptiveService.startLevelTestStage().subscribe({
+  initializeTest(subjects: string[] = []) {
+    this.adaptiveService.startLevelTestStage(subjects).subscribe({
       next: (response) => this.setupTestFromSession(response),
       error: () => (this.loading = false),
     });

@@ -275,6 +275,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   private reindexAttempted = false;
   private availableCourseTitles: string[] = [];
   user: any = null;
+  completedLevelTestSubjects = new Set<string>();
   courses: CourseItem[] = [];
   subjects: SubjectItem[] = [];
   selectedSubject: SubjectItem | null = null;
@@ -375,6 +376,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.user = this.authService.getUser();
+    this.checkLevelTestStatus();
     this.loadCourses();
     this.loadPreviousQuizSubmissions();
     this.loadPreviousQuizFileSubmissions();
@@ -436,6 +438,43 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
         metadata: extra.metadata || {},
       })
       .subscribe({ error: () => {} });
+  }
+
+  private checkLevelTestStatus(): void {
+    const userId = this.user?._id || this.user?.id;
+    if (userId) {
+      this.adaptiveService.getLevelTest(userId).subscribe({
+        next: (tests: any) => {
+          const testsArray = Array.isArray(tests) ? tests : [tests];
+          testsArray.forEach(test => {
+            if (test && test.status === 'completed') {
+              (test.questions || []).forEach((q: any) => {
+                if (q.topic) this.completedLevelTestSubjects.add(q.topic.toLowerCase().trim());
+              });
+              (test.detectedStrengths || []).forEach((s: any) => {
+                if (s.topic) this.completedLevelTestSubjects.add(s.topic.toLowerCase().trim());
+              });
+              (test.detectedWeaknesses || []).forEach((w: any) => {
+                if (w.topic) this.completedLevelTestSubjects.add(w.topic.toLowerCase().trim());
+              });
+            }
+          });
+        },
+        error: () => {}
+      });
+    }
+  }
+
+  hasTakenLevelTest(subject: SubjectItem): boolean {
+    return this.completedLevelTestSubjects.has(subject.name.toLowerCase().trim());
+  }
+
+  takeLevelTest(subject?: SubjectItem): void {
+    if (subject) {
+      this.router.navigate(['/student-dashboard/level-test'], { queryParams: { subject: subject.name } });
+    } else {
+      this.router.navigate(['/student-dashboard/level-test']);
+    }
   }
 
   private startChapterTracking(course: CourseItem): void {
