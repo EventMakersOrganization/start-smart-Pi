@@ -8,6 +8,10 @@ import { existsSync, mkdirSync } from "fs";
 import { resolve } from "path";
 
 async function bootstrap() {
+  // Bypass self-signed certificate errors in development
+  if (process.env.NODE_ENV !== "production") {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  }
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS for Angular frontend with credentials (no wildcard allowed)

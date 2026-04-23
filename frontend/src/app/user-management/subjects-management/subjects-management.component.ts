@@ -230,4 +230,29 @@ export class SubjectsManagementComponent implements OnInit {
     }
     return `Instructor ${String(instructor.id).slice(-6)}`;
   }
+
+  toggleInstructorSelection(id: string, isNew: boolean, subjectId?: string) {
+    let list: string[] = [];
+    if (isNew) {
+      list = this.newSubjectInstructorIds;
+    } else if (subjectId) {
+      list = this.editModels[subjectId].instructorIds;
+    }
+
+    const idx = list.indexOf(id);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+    } else {
+      list.push(id);
+    }
+  }
+
+  isInstructorSelected(id: string, isNew: boolean, subjectId?: string): boolean {
+    if (isNew) {
+      return this.newSubjectInstructorIds.includes(id);
+    } else if (subjectId) {
+      return this.editModels[subjectId].instructorIds.includes(id);
+    }
+    return false;
+  }
 }

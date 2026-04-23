@@ -43,6 +43,8 @@ export class StudentManagementComponent implements OnInit {
   newUserRole: 'student' | 'instructor' | 'admin' = 'student';
   addUserLoading = false;
   addUserError = '';
+  newUserClassId = '';
+  classes: any[] = [];
 
   get filteredStudents(): UserRow[] {
     return this.students.filter(s => {
@@ -65,6 +67,14 @@ export class StudentManagementComponent implements OnInit {
 
   ngOnInit() {
     this.loadStudents();
+    this.loadClasses();
+  }
+
+  loadClasses() {
+    this.http.get<any[]>('http://localhost:3000/api/admin/classes').subscribe({
+      next: data => this.classes = data,
+      error: () => console.error('Failed to load classes')
+    });
   }
 
   loadStudents() {
@@ -141,6 +151,7 @@ export class StudentManagementComponent implements OnInit {
     this.newUserEmail = '';
     this.newUserPhone = '';
     this.newUserRole = 'student';
+    this.newUserClassId = '';
     this.showAddUserModal = true;
   }
 
@@ -171,6 +182,9 @@ export class StudentManagementComponent implements OnInit {
     };
     if (phone) {
       body.phone = phone;
+    }
+    if (this.newUserClassId) {
+      body.classId = this.newUserClassId;
     }
 
     this.http.post('http://localhost:3000/api/admin/user', body).subscribe({

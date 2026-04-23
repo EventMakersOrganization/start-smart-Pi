@@ -7,10 +7,12 @@ import { AdminController } from '../admin/admin.controller';
 import { UsersService } from './users.service';
 import { ActivityModule } from '../activity/activity.module';
 import { SubjectsModule } from '../subjects/subjects.module';
+import { AcademicModule } from '../academic/academic.module';
 
 @Module({
   imports: [
     forwardRef(() => SubjectsModule),
+    forwardRef(() => AcademicModule),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: StudentProfile.name, schema: StudentProfileSchema },
