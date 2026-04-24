@@ -23,6 +23,7 @@ type ClassStudentResponse = {
   email: string;
   status?: string;
   class?: string;
+  attendance_percentage?: number;
 };
 
 type ClassSubjectResponse = {
@@ -154,17 +155,26 @@ export class AcademicService {
       .lean<any[]>()
       .exec();
 
-    return enrollments
-      .map((enrollment) => enrollment.studentId)
-      .filter(Boolean)
-      .map((student: any) => ({
+    const students = enrollments.map((enrollment) => enrollment.studentId).filter(Boolean);
+    const studentIds = students.map((s: any) => s._id);
+
+    // Fetch profiles to get attendance_percentage
+    const profiles = await this.studentProfileModel.find({
+      userId: { $in: studentIds }
+    }).lean().exec();
+
+    return students.map((student: any) => {
+      const profile = profiles.find(p => String(p.userId) === String(student._id));
+      return {
         id: String(student._id),
         first_name: student.first_name,
         last_name: student.last_name,
         email: student.email,
         status: student.status,
         class: student.class,
-      }));
+        attendance_percentage: profile ? profile.attendance_percentage : 100,
+      };
+    });
   }
 
   private async getClassSubjects(classId: string): Promise<ClassSubjectResponse[]> {
@@ -486,7 +496,7 @@ export class AcademicService {
     }));
 
     // Update if exists for this class and date, otherwise create
-    return this.attendanceModel.findOneAndUpdate(
+    const attendance = await this.attendanceModel.findOneAndUpdate(
       { schoolClassId, date },
       {
         $set: {
@@ -496,6 +506,47 @@ export class AcademicService {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     ).exec();
+
+    // Trigger recalculation of percentages for all students in the class
+    await this.recalculateClassAttendance(dto.schoolClassId);
+
+    return attendance;
+  }
+
+  private async recalculateClassAttendance(classId: string) {
+    const schoolClassId = this.toObjectId(classId);
+    
+    // 1. Get all attendance sessions for this class
+    const allAttendance = await this.attendanceModel.find({ schoolClassId }).exec();
+    const totalSessions = allAttendance.length;
+    
+    if (totalSessions === 0) return;
+
+    // 2. Get all students enrolled in this class
+    const enrollments = await this.classEnrollmentModel.find({ schoolClassId }).exec();
+    const studentIds = enrollments.map(e => String(e.studentId));
+
+    // 3. For each student, calculate their attendance percentage
+    for (const studentId of studentIds) {
+      let absences = 0;
+      
+      for (const session of allAttendance) {
+        const record = session.records.find(r => String(r.studentId) === studentId);
+        // We assume that if no record exists for a student in a session, they were not expected or present?
+        // But usually every student in the class is in the records list.
+        if (record && record.status === 'absent') {
+          absences++;
+        }
+      }
+      
+      const percentage = Math.round(((totalSessions - absences) / totalSessions) * 100);
+      
+      await this.studentProfileModel.findOneAndUpdate(
+        this.profileLookupFilter(studentId),
+        { $set: { attendance_percentage: percentage }, $setOnInsert: { userId: studentId } },
+        { upsert: true }
+      ).exec();
+    }
   }
 
   async getAttendance(classId: string, date: string) {

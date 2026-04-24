@@ -59,6 +59,9 @@ export class StudentProfile {
 
   @Prop({ default: false })
   levelTestCompleted: boolean;
+
+  @Prop({ default: 100, min: 0, max: 100 })
+  attendance_percentage: number;
 }
 
 export const StudentProfileSchema =

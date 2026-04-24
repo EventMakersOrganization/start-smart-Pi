@@ -33,6 +33,7 @@ export class StudentManagementComponent implements OnInit {
   // filter inputs from template
   filterText = '';
   filterStatus = 'Status: All';
+  filterRisk = 'Risk: All';
 
   // add-user modal state
   showAddUserModal = false;
@@ -47,18 +48,35 @@ export class StudentManagementComponent implements OnInit {
   classes: any[] = [];
 
   get filteredStudents(): UserRow[] {
+    const text = (this.filterText || '').trim().toLowerCase();
+    
     return this.students.filter(s => {
-      const text = this.filterText.toLowerCase();
       if (text) {
+        const firstName = (s.first_name || '').toLowerCase();
+        const lastName = (s.last_name || '').toLowerCase();
+        const fullName = `${firstName} ${lastName}`.trim();
+        const email = (s.email || '').toLowerCase();
+        
         const match =
-          s.first_name?.toLowerCase().includes(text) ||
-          s.last_name?.toLowerCase().includes(text) ||
-          s.email.toLowerCase().includes(text);
+          firstName.includes(text) ||
+          lastName.includes(text) ||
+          fullName.includes(text) ||
+          email.includes(text);
+          
         if (!match) return false;
       }
-      if (this.filterStatus !== 'Status: All') {
-        if (s.status.toLowerCase() !== this.filterStatus.toLowerCase()) return false;
+      
+      if (this.filterStatus && this.filterStatus !== 'Status: All') {
+        const status = s.status || 'active';
+        if (status.toLowerCase() !== this.filterStatus.toLowerCase()) return false;
       }
+      
+      if (this.filterRisk && this.filterRisk !== 'Risk: All') {
+        const risk = s.risk_level || 'LOW';
+        const targetRisk = this.filterRisk.replace(' Risk', '').toUpperCase();
+        if (risk !== targetRisk) return false;
+      }
+      
       return true;
     });
   }
