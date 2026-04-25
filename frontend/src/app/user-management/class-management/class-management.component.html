@@ -62,51 +62,51 @@
         <div
           *ngFor="let row of filteredClasses"
           (click)="selectClass(row)"
-          class="group relative bg-white dark:bg-slate-900 rounded-2xl border transition-all cursor-pointer p-4 hover:shadow-md"
+          class="group relative bg-white dark:bg-slate-900 rounded-xl border transition-all cursor-pointer p-3 hover:shadow-md"
           [class.border-primary]="selectedClass?.id === row.id"
           [class.ring-1]="selectedClass?.id === row.id"
           [class.ring-primary]="selectedClass?.id === row.id"
           [class.border-slate-200]="selectedClass?.id !== row.id"
           [class.dark:border-slate-800]="selectedClass?.id !== row.id"
         >
-          <div class="flex items-start justify-between gap-4">
+          <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-black px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+              <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   {{ row.code }}
                 </span>
-                <span *ngIf="row.active" class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span *ngIf="row.active" class="w-1 h-1 rounded-full bg-emerald-500"></span>
               </div>
-              <h3 class="font-bold text-slate-900 dark:text-white truncate text-lg">
+              <h3 class="font-bold text-slate-900 dark:text-white truncate text-base">
                 {{ row.name }}
               </h3>
-              <div class="flex items-center gap-3 mt-2">
-                <span class="text-xs text-slate-500 flex items-center gap-1">
-                  <span class="material-symbols-outlined text-sm">calendar_today</span>
+              <div class="flex items-center gap-3 mt-1.5">
+                <span class="text-[10px] text-slate-500 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">calendar_today</span>
                   {{ row.academicYear || 'No Year' }}
                 </span>
-                <span class="text-xs text-slate-500 flex items-center gap-1">
-                  <span class="material-symbols-outlined text-sm">school</span>
+                <span class="text-[10px] text-slate-500 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">school</span>
                   {{ row.level || 'No Level' }}
                 </span>
               </div>
             </div>
             
-            <div class="flex flex-col items-end gap-3">
-              <div class="flex items-center -space-x-2">
-                <div class="w-8 h-8 rounded-full bg-primary/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[10px] font-bold text-primary">
+            <div class="flex flex-col items-end gap-2">
+              <div class="flex items-center -space-x-1.5">
+                <div class="w-7 h-7 rounded-full bg-primary/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-bold text-primary">
                   {{ row.studentCount || 0 }}
                 </div>
-                <div class="w-8 h-8 rounded-full bg-emerald-500/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[10px] font-bold text-emerald-600">
+                <div class="w-7 h-7 rounded-full bg-emerald-500/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-bold text-emerald-600">
                   {{ row.subjectCount || 0 }}
                 </div>
               </div>
               <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button (click)="openEditModal(row); $event.stopPropagation()" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-primary transition-colors">
-                  <span class="material-symbols-outlined text-lg">edit</span>
+                <button (click)="openEditModal(row); $event.stopPropagation()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-primary transition-colors">
+                  <span class="material-symbols-outlined text-base">edit</span>
                 </button>
-                <button (click)="deleteClass(row); $event.stopPropagation()" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-500 transition-colors">
-                  <span class="material-symbols-outlined text-lg">delete</span>
+                <button (click)="deleteClass(row); $event.stopPropagation()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-red-500 transition-colors">
+                  <span class="material-symbols-outlined text-base">delete</span>
                 </button>
               </div>
             </div>

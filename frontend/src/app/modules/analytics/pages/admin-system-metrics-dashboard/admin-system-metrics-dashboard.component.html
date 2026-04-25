@@ -302,8 +302,18 @@
       </div>
 
       <div class="bg-surface-container-lowest rounded-xl shadow-sm p-8">
-        <div class="flex items-center justify-between mb-8"><h3 class="text-xl font-bold text-on-background">Recent System Events</h3><button class="text-sm font-bold text-primary hover:underline">View All Logs</button></div>
-        <div class="space-y-4">
+        <div class="flex items-center justify-between mb-8">
+          <h3 class="text-xl font-bold text-on-background">Recent System Events</h3>
+          <button 
+            (click)="eventsExpanded = !eventsExpanded"
+            class="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-all duration-300 active:scale-90"
+            [class.rotate-180]="!eventsExpanded"
+          >
+            <span class="material-symbols-outlined text-slate-500 transition-colors" [class.text-primary]="eventsExpanded">keyboard_arrow_down</span>
+          </button>
+        </div>
+        
+        <div class="space-y-4 overflow-hidden transition-all duration-300" [class.h-0]="!eventsExpanded" [class.opacity-0]="!eventsExpanded" [class.mt-0]="!eventsExpanded">
           <p *ngIf="feedEvents.length === 0" class="text-sm text-slate-500 py-4">No explainability, alert, or risk events yet.</p>
           <div class="flex items-center p-4 rounded-xl hover:bg-surface-container-low transition-colors group" *ngFor="let event of feedEvents; trackBy: trackByFeedEvent">
             <div class="w-10 h-10 rounded-full flex items-center justify-center mr-4" [ngClass]="eventBadgeClass(event.type)"><span class="material-symbols-outlined text-xl">{{ eventIcon(event.type) }}</span></div>

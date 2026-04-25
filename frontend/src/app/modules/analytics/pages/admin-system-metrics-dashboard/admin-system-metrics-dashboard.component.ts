@@ -64,6 +64,7 @@ export class AdminSystemMetricsDashboardComponent implements OnInit, OnDestroy {
 
   recentAlerts: RecentAlertItem[] = [];
   studentRiskList: StudentRiskListItem[] = [];
+  eventsExpanded = true;
 
   constructor(
     private authService: AuthService,

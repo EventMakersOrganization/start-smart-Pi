@@ -64,4 +64,12 @@ export class InstructorClassesComponent implements OnInit {
       }
     });
   }
+
+  getTotalStudents(): number {
+    return this.classes.reduce((acc, cls) => acc + (cls.studentCount || 0), 0);
+  }
+
+  getTotalSubjects(): number {
+    return this.classes.reduce((acc, cls) => acc + (cls.subjectCount || 0), 0);
+  }
 }
