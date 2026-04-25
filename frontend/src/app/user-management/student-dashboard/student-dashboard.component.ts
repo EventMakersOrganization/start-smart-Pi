@@ -1926,49 +1926,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   openLevelTestFromSidebar(): void {
-    const userId = this.user?._id || this.user?.id;
-    if (!userId) {
-      this.activeNav = 'level-test';
-      this.router.navigate(['/student-dashboard/level-test']);
-      return;
-    }
-
-    this.adaptiveService.getLatestCompletedLevelTest(userId).subscribe({
-      next: (test) => {
-        const normalized = this.normalizeLevelTestResult(test);
-        const hasCompletedResult = !!(
-          normalized &&
-          (String(normalized.status || '').toLowerCase() === 'completed' ||
-            normalized.completedAt ||
-            normalized.totalScore > 0 ||
-            (Array.isArray(normalized.answers) &&
-              normalized.answers.length > 0))
-        );
-
-        if (hasCompletedResult) {
-          this.activeNav = 'level-test-result';
-          this.router.navigate(['/student-dashboard/level-test-result'], {
-            state: { result: normalized },
-          });
-          return;
-        }
-
-        if (this.adaptiveProfile?.levelTestCompleted) {
-          this.activeNav = 'level-test-result';
-          this.router.navigate(['/student-dashboard/level-test-result'], {
-            state: { result: this.buildProfileFallbackLevelTestResult(userId) },
-          });
-          return;
-        }
-
-        this.activeNav = 'level-test';
-        this.router.navigate(['/student-dashboard/level-test']);
-      },
-      error: () => {
-        this.activeNav = 'level-test';
-        this.router.navigate(['/student-dashboard/level-test']);
-      },
-    });
+    // Moved to SidebarComponent, but keeping a stub if needed for direct calls from dashboard template
+    this.router.navigate(['/student-dashboard/level-test']);
   }
 
   getLevelColor(): string {
@@ -2029,6 +1988,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return !this.isLevelTestFullscreenView();
   }
 
+  isChatRoute(): boolean {
+    return this.router.url.includes('/chat');
+  }
+
   isSubPageView(): boolean {
     return (
       this.router.url.includes('/student-dashboard/level-test') ||
@@ -2036,9 +1999,12 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       this.router.url.includes('/student-dashboard/my-courses') ||
       this.router.url.includes('/student-dashboard/performance') ||
       this.router.url.includes('/student-dashboard/learning-path') ||
-      this.router.url.includes('/student-dashboard/continue-learning')
+      this.router.url.includes('/student-dashboard/continue-learning') ||
+      this.router.url.includes('/student-dashboard/chat') ||
+      this.router.url.includes('/student-dashboard/profile')
     );
   }
+
 
   private syncActiveNavFromUrl(url: string = this.router.url): void {
     if (url.includes('/student-dashboard/level-test-result')) {
@@ -2066,6 +2032,21 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (url.includes('/student-dashboard/chat/instructor')) {
+      this.activeNav = 'conversations';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/chat/room')) {
+      this.activeNav = 'groups';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/profile')) {
+      this.activeNav = 'profile';
+      return;
+    }
+
     this.activeNav = 'dashboard';
   }
 
@@ -2080,8 +2061,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
   manageAccount() {
     this.closeProfileSidebar();
-    this.router.navigate(['/profile']);
+    this.router.navigate(['/student-dashboard/profile']);
   }
+
 
   onRecommendationViewed(id: string): void {
     const rec = this.recommendations.find((r) => r._id === id);

@@ -118,7 +118,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('sendMessage')
-  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionType: string, sessionId: string, content: string }) {
+  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { sessionType: string, sessionId: string, content: string, attachments?: any[] }) {
     const userId = client.data.user.id;
     const userRole = client.data.user.role;
 
@@ -140,6 +140,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       sessionId: payload.sessionId,
       sender: userId,
       content: payload.content,
+      attachments: payload.attachments || [],
     });
 
     // Broadcast to room

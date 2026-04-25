@@ -1,0 +1,88 @@
+<aside
+  aria-label="Instructor sidebar"
+  class="w-64 h-full border-r border-primary/10 bg-white dark:bg-slate-900 p-6 hidden lg:flex lg:flex-col gap-8 shrink-0 overflow-y-auto"
+>
+  <div class="flex flex-col gap-2">
+    <p
+      class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2"
+    >
+      Main Menu
+    </p>
+    <a
+      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+      routerLink="/instructor/dashboard"
+      routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20"
+      [routerLinkActiveOptions]="{ exact: true }"
+    >
+      <span class="material-symbols-outlined">dashboard</span>
+      <span class="text-sm font-medium">Risk &amp; KPI overview</span>
+    </a>
+    <a
+      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+      routerLink="/instructor/deep-analytics"
+      routerLinkActive="bg-primary/10 text-primary"
+    >
+      <span class="material-symbols-outlined">analytics</span>
+      <span class="text-sm font-medium">Deep Analytics</span>
+    </a>
+    <a
+      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+      routerLink="/instructor/risk-detection"
+      routerLinkActive="bg-primary/10 text-primary"
+    >
+      <span class="material-symbols-outlined">report_problem</span>
+      <span class="text-sm font-medium">Risk Detection</span>
+    </a>
+    <a
+      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+      routerLink="/instructor/comprehensive-analytics"
+      routerLinkActive="bg-primary/10 text-primary"
+    >
+      <span class="material-symbols-outlined">hub</span>
+      <span class="text-sm font-medium">Cross-module analytics</span>
+    </a>
+    <a
+      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+      routerLink="/instructor/progress-reports"
+      routerLinkActive="bg-primary/10 text-primary"
+    >
+      <span class="material-symbols-outlined">family_restroom</span>
+      <span class="text-sm font-medium">Progress Reports</span>
+    </a>
+    <a
+      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+      routerLink="/instructor/interventions"
+      routerLinkActive="bg-primary/10 text-primary"
+    >
+      <span class="material-symbols-outlined">medical_services</span>
+      <span class="text-sm font-medium">Interventions</span>
+    </a>
+    <a
+      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+      routerLink="/instructor/classes"
+      routerLinkActive="bg-primary/10 text-primary"
+      [routerLinkActiveOptions]="{ exact: false }"
+    >
+      <span class="material-symbols-outlined">school</span>
+      <span class="text-sm font-medium">My classes</span>
+    </a>
+  </div>
+  <div class="flex flex-col gap-2">
+    <p
+      class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2"
+    >
+      Messages
+    </p>
+    <a
+      class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+      routerLink="/instructor/chat/instructor"
+      routerLinkActive="bg-primary/10 text-primary"
+    >
+      <span class="material-symbols-outlined text-indigo-500"
+        >chat_bubble</span
+      >
+      <span class="text-sm font-medium">Conversations</span>
+    </a>
+  </div>
+
+</aside>

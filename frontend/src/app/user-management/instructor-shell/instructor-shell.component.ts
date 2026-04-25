@@ -16,8 +16,6 @@ export class InstructorShellComponent implements OnInit {
   profileData: any = null;
   showProfileSidebar = false;
   assignedSubjects: SubjectItem[] = [];
-  criticalCases = 0;
-  topRiskMessage = 'No critical learning alerts right now.';
 
   constructor(
     private authService: AuthService,
@@ -31,7 +29,6 @@ export class InstructorShellComponent implements OnInit {
     this.user = this.authService.getUser();
     this.loadProfile();
     this.loadAssignedSubjects();
-    this.loadInsightCard();
   }
 
   loadProfile(): void {
@@ -62,7 +59,7 @@ export class InstructorShellComponent implements OnInit {
 
   manageAccount(): void {
     this.closeProfileSidebar();
-    this.router.navigate(['/profile']);
+    this.router.navigate(['/instructor/profile']);
   }
 
   /** Highlights top nav when any instructor analytics route is active. */
@@ -88,33 +85,6 @@ export class InstructorShellComponent implements OnInit {
       .pipe(catchError(() => of([] as SubjectItem[])))
       .subscribe((subjects) => {
         this.assignedSubjects = Array.isArray(subjects) ? subjects.slice(0, 4) : [];
-      });
-  }
-
-  private loadInsightCard(): void {
-    this.analyticsService
-      .getInterventions()
-      .pipe(catchError(() => of([] as InterventionTrackingItem[])))
-      .subscribe((rows) => {
-        const interventions = Array.isArray(rows) ? rows : [];
-        const critical = interventions.filter(
-          (item) => item.status === 'pending' && item.riskLevel === 'high',
-        );
-        this.criticalCases = critical.length;
-
-        if (critical.length === 0) {
-          this.topRiskMessage = 'No critical learning alerts right now.';
-          return;
-        }
-
-        const top = critical
-          .slice(0, 2)
-          .map((item) => item.name)
-          .filter((name) => !!name)
-          .join(', ');
-        this.topRiskMessage = top
-          ? `${critical.length} high-risk students pending: ${top}.`
-          : `${critical.length} high-risk students need follow-up.`;
       });
   }
 }

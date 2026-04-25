@@ -13,25 +13,18 @@ import { SocialLoginModule, SocialAuthServiceConfig, GoogleLoginProvider } from 
 import { environment } from '../environments/environment';
 
 import { SharedModule } from './shared/shared.module';
-import { ChatAiComponent } from './chat/chat-ai/chat-ai.component';
-import { ChatInstructorComponent } from './chat/chat-instructor/chat-instructor.component';
-import { ChatRoomComponent } from './chat/chat-room/chat-room.component';
 import { MarkdownModule, MarkedOptions } from 'ngx-markdown';
 import { chatMarkdownOptionsFactory } from './chat/markdown-options.factory';
 
 @NgModule({
   declarations: [
-    AppComponent,
-    ChatAiComponent,
-    ChatInstructorComponent,
-    ChatRoomComponent
+    AppComponent
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
     BrowserAnimationsModule,
-    UserManagementModule,
     SharedModule,
     SocialLoginModule,
     FormsModule,
@@ -41,6 +34,7 @@ import { chatMarkdownOptionsFactory } from './chat/markdown-options.factory';
         useFactory: chatMarkdownOptionsFactory,
       },
     }),
+    UserManagementModule,
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },

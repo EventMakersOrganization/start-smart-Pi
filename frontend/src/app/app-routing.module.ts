@@ -4,6 +4,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { ChatAiComponent } from './chat/chat-ai/chat-ai.component';
 import { ChatInstructorComponent } from './chat/chat-instructor/chat-instructor.component';
 import { ChatRoomComponent } from './chat/chat-room/chat-room.component';
+import { ChatModule } from './chat/chat.module';
 
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -69,7 +70,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [ChatModule, RouterModule.forRoot(routes)],
   exports: [RouterModule]
 })
 export class AppRoutingModule { }

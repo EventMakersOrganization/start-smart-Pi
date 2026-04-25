@@ -10,6 +10,7 @@ import { ChatApiService } from '../services/chat-api.service';
 import { ChatSocketService } from '../services/chat-socket.service';
 import { SpeechToTextService } from '../services/speech-to-text.service';
 import { PdfExportService } from '../services/pdf-export.service';
+import { Router } from '@angular/router';
 
 /** Must match backend `ChatGateway.CHAT_SOURCES_DELIM` body (without leading newlines for index). */
 const CHAT_SOURCES_MARKER = '\n\n<<<CHAT_SOURCES>>>\n\n';
@@ -44,6 +45,7 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     private chatSocketService: ChatSocketService,
     private speechToText: SpeechToTextService,
     private pdfExport: PdfExportService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -315,5 +317,10 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (this.userRole === 'admin') return '/admin';
     if (this.userRole === 'instructor') return '/instructor/dashboard';
     return '/student-dashboard';
+  }
+
+  isInsideShell(): boolean {
+    return this.router.url.includes('/student-dashboard') || 
+           this.router.url.includes('/instructor');
   }
 }

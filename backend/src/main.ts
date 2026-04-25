@@ -38,6 +38,16 @@ async function bootstrap() {
     mkdirSync(uploadsRoot, { recursive: true });
   }
 
+  const chatAvatarsRoot = resolve(uploadsRoot, "chat-avatars");
+  if (!existsSync(chatAvatarsRoot)) {
+    mkdirSync(chatAvatarsRoot, { recursive: true });
+  }
+
+  const chatAttachmentsRoot = resolve(uploadsRoot, "chat-attachments");
+  if (!existsSync(chatAttachmentsRoot)) {
+    mkdirSync(chatAttachmentsRoot, { recursive: true });
+  }
+
   app.use("/uploads", express.static(uploadsRoot));
 
   // Rate limiting - disabled in development, permissive in production
