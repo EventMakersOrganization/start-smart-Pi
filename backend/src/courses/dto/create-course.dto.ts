@@ -73,6 +73,22 @@ export class CreateCourseDto {
     @IsOptional()
     subject?: string;
 
+    @ApiPropertyOptional({
+        description: 'MongoDB Subject document id — links this course chapter to the subject shell',
+        example: '674a1b2c3d4e5f6789abcdef',
+    })
+    @IsString()
+    @IsOptional()
+    subjectId?: string;
+
+    @ApiPropertyOptional({
+        description: 'Chapter slot index within the subject (matches REST chapterOrder)',
+        example: 0,
+    })
+    @IsNumber()
+    @IsOptional()
+    chapterOrder?: number;
+
     @ApiPropertyOptional({ description: 'MongoDB ID of the instructor (User)' })
     @IsString()
     @IsOptional()

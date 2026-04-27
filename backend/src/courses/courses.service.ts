@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, Types } from 'mongoose';
 import { Course, CourseDocument } from './schemas/course.schema';
+import { Subject, SubjectDocument } from '../subjects/schemas/subject.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
@@ -26,12 +27,15 @@ export interface CourseSubjectView {
     title: string;
     description?: string;
     chapters: CourseSubjectChapter[];
+    /** Present when courses link to a Subject shell via subjectId */
+    subjectShellId?: string;
 }
 
 @Injectable()
 export class CoursesService {
     constructor(
         @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
+        @InjectModel(Subject.name) private subjectModel: Model<SubjectDocument>,
     ) { }
 
     async create(createCourseDto: CreateCourseDto): Promise<Course> {
@@ -118,6 +122,9 @@ export class CoursesService {
             const subjectKey = this.normalizeSubjectKey(subjectTitle) || 'general';
             const chapterTitle = String((row as any)?.title || '').trim();
             const subjectId = `course-subject:${subjectTitle}`;
+            const shellId = (row as any)?.subjectId
+                ? String((row as any).subjectId)
+                : undefined;
             if (!map.has(subjectKey)) {
                 map.set(subjectKey, {
                     _id: subjectId,
@@ -126,9 +133,13 @@ export class CoursesService {
                     title: subjectTitle,
                     description: '',
                     chapters: [],
+                    subjectShellId: shellId,
                 });
             }
             const agg = map.get(subjectKey)!;
+            if (shellId && !agg.subjectShellId) {
+                agg.subjectShellId = shellId;
+            }
             if (subjectTitle.length > String(agg.title || '').length) {
                 // Keep the richer display title when multiple variants collapse to one key.
                 agg.title = subjectTitle;
@@ -148,13 +159,50 @@ export class CoursesService {
         return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
     }
 
+    private async enrichViewsWithSubjectShell(
+        views: CourseSubjectView[],
+    ): Promise<CourseSubjectView[]> {
+        const ids = [
+            ...new Set(
+                views
+                    .map((v) => v.subjectShellId)
+                    .filter((id): id is string => Boolean(id && Types.ObjectId.isValid(id))),
+            ),
+        ];
+        if (!ids.length) {
+            return views;
+        }
+        const docs = await this.subjectModel
+            .find({
+                _id: { $in: ids.map((id) => new Types.ObjectId(id)) },
+            })
+            .select('code description title')
+            .lean()
+            .exec();
+        const byId = new Map(docs.map((d: any) => [String(d._id), d]));
+        return views.map((v) => {
+            const doc = v.subjectShellId ? byId.get(v.subjectShellId) : undefined;
+            if (!doc) {
+                return v;
+            }
+            const shellDesc = String((doc as any).description ?? '').trim();
+            return {
+                ...v,
+                code: (doc as any).code || v.code,
+                description: shellDesc || v.description || '',
+                title: (doc as any).title || v.title,
+            };
+        });
+    }
+
     async findAllSubjects(instructorId?: string): Promise<CourseSubjectView[]> {
         const filter: FilterQuery<CourseDocument> = {};
         if (instructorId) {
             filter.instructorId = instructorId;
         }
         const rows = await this.courseModel.find(filter).exec();
-        return this.groupCoursesAsSubjects(rows as any);
+        const grouped = this.groupCoursesAsSubjects(rows as any);
+        return this.enrichViewsWithSubjectShell(grouped);
     }
 
     async findSubjectByTitle(subjectTitle: string, instructorId?: string): Promise<CourseSubjectView> {
