@@ -12,7 +12,7 @@ interface Lesson {
   completed: boolean;
 }
 
-interface Module {
+interface SubChapterGroup {
   id: string;
   title: string;
   lessons: Lesson[];
@@ -36,7 +36,7 @@ export class ContinueLearningComponent implements OnInit {
   videoCurrentTime = '10:45';
   videoProgress = 45;
 
-  modules: Module[] = [
+  subChapters: SubChapterGroup[] = [
     {
       id: '1',
       title: 'Foundations of PyTorch',
@@ -115,8 +115,8 @@ export class ContinueLearningComponent implements OnInit {
     });
   }
 
-  toggleModule(moduleId: string): void {
-    const module = this.modules.find((m) => m.id === moduleId);
+  toggleSubChapter(subChapterId: string): void {
+    const module = this.subChapters.find((m) => m.id === subChapterId);
     if (module) {
       module.expanded = !module.expanded;
     }

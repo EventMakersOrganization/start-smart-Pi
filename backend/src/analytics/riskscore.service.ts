@@ -71,7 +71,22 @@ export class RiskScoreService {
   }
 
   async findAll(): Promise<RiskScore[]> {
-    return this.riskScoreModel.find().populate('user', 'first_name last_name email').exec();
+    const rows = await this.riskScoreModel.find().sort({ lastUpdated: -1, _id: -1 }).lean<any[]>().exec();
+    const userIds = rows
+      .map((r) => String(r?.user || '').trim())
+      .filter((id) => Types.ObjectId.isValid(id));
+    const users = userIds.length
+      ? await this.userModel
+          .find({ _id: { $in: userIds.map((id) => new Types.ObjectId(id)) } })
+          .select('first_name last_name email')
+          .lean<UserDocument[]>()
+          .exec()
+      : [];
+    const userMap = new Map(users.map((u: any) => [String(u._id), u]));
+    return rows.map((row: any) => ({
+      ...row,
+      user: userMap.get(String(row.user)) || row.user,
+    })) as any;
   }
 
   async findOne(id: string): Promise<RiskScore> {
@@ -311,20 +326,31 @@ export class RiskScoreService {
 
     const rows = await this.riskScoreModel
       .find({ riskLevel: { $in: acceptedLevels } })
-      .populate('user', 'first_name last_name email')
       .sort({ score: -1, lastUpdated: -1, _id: -1 })
       .limit(safeLimit)
-      .lean<RiskScoreDocument[]>()
+      .lean<any[]>()
       .exec();
+
+    const userIds = rows
+      .map((r) => String(r?.user || '').trim())
+      .filter((id) => Types.ObjectId.isValid(id));
+    const users = userIds.length
+      ? await this.userModel
+          .find({ _id: { $in: userIds.map((id) => new Types.ObjectId(id)) } })
+          .select('first_name last_name email')
+          .lean<UserDocument[]>()
+          .exec()
+      : [];
+    const userMap = new Map(users.map((u: any) => [String(u._id), u]));
 
     const output: AtRiskStudentInsight[] = [];
 
     for (const row of rows as any[]) {
-      const userObj = row.user || {};
-      const userId = String(row.user?._id || row.user || '').trim();
-      if (!userId) {
+      const userId = String(row.user || '').trim();
+      if (!userId || !Types.ObjectId.isValid(userId)) {
         continue;
       }
+      const userObj: any = userMap.get(userId) || {};
 
       const weakAreas = await this.getWeakAreasForStudent(userId);
       const weakSubskills = await this.getWeakSubskills(userId, weakAreas);

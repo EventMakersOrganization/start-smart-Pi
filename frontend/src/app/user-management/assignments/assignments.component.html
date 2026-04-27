@@ -211,7 +211,7 @@
           <p class="text-sm font-bold text-slate-500 uppercase tracking-wider">
             Total Modules
           </p>
-          <p class="text-3xl font-black mt-2">{{ totalModulesCount }}</p>
+          <p class="text-3xl font-black mt-2">{{ totalSubChaptersCount }}</p>
         </div>
         <div
           class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm"
@@ -313,7 +313,7 @@
               Modules (Sub-chapters)
             </p>
             <button
-              (click)="addModule()"
+              (click)="addSubChapter()"
               class="px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold"
             >
               + Add Module
@@ -321,7 +321,7 @@
           </div>
 
           <div
-            *ngFor="let module of courseForm.modules; let i = index"
+            *ngFor="let module of courseForm.subChapters; let i = index"
             class="p-3 rounded-lg border border-slate-200 bg-slate-50 grid grid-cols-1 md:grid-cols-12 gap-3"
           >
             <input
@@ -335,7 +335,7 @@
               class="md:col-span-7 rounded-lg border border-slate-200 px-3 py-2 text-sm"
             />
             <button
-              (click)="removeModule(i)"
+              (click)="removeSubChapter(i)"
               class="md:col-span-1 rounded-lg bg-red-50 text-red-600 text-xs font-bold"
             >
               Del
@@ -414,7 +414,7 @@
             </p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div
-                *ngFor="let module of course?.modules"
+                *ngFor="let module of course?.subChapters"
                 class="p-3 rounded-lg border border-slate-200 bg-slate-50"
               >
                 <p class="text-sm font-semibold text-slate-800">

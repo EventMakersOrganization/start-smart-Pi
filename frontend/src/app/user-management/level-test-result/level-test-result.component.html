@@ -136,16 +136,24 @@
         class="text-slate-900 dark:text-slate-100 text-lg font-bold mb-6 flex items-center gap-2"
       >
         <span class="material-symbols-outlined text-primary">bar_chart</span>
-        Performance by Topic
+        Performance par sous-acquis
       </h3>
       <div class="flex flex-col gap-4">
         <div *ngFor="let stat of topicStats">
           <div class="flex justify-between mb-1">
-            <span
-              class="text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
-              {{ stat.topic | titlecase }}
-            </span>
+            <div class="flex flex-col">
+              <span
+                class="text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
+                {{ stat.topic | titlecase }}
+              </span>
+              <span
+                *ngIf="stat.chapter"
+                class="text-[10px] text-slate-500 dark:text-slate-400"
+              >
+                {{ stat.chapter }}
+              </span>
+            </div>
             <span
               class="text-sm font-bold"
               [ngClass]="{
@@ -188,11 +196,10 @@
           <span class="material-symbols-outlined text-emerald-500">
             thumb_up
           </span>
-          Your Strengths
+          Vos acquis
         </h3>
-        <p class="text-slate-400 text-xs mb-4">Topics where you scored ≥ 70%</p>
+        <p class="text-slate-400 text-xs mb-4">Sous-acquis avec score &ge; 60%</p>
 
-        <!-- Avec données enrichies -->
         <div *ngIf="result?.detectedStrengths?.length > 0" class="space-y-3">
           <div
             *ngFor="let s of result.detectedStrengths"
@@ -205,11 +212,19 @@
                 >
                   check_circle
                 </span>
-                <span
-                  class="text-sm font-bold text-emerald-900 dark:text-emerald-300"
-                >
-                  {{ s.topic || s | titlecase }}
-                </span>
+                <div>
+                  <span
+                    class="text-sm font-bold text-emerald-900 dark:text-emerald-300 block"
+                  >
+                    {{ s.topic || s | titlecase }}
+                  </span>
+                  <span
+                    *ngIf="s.chapter"
+                    class="text-[10px] text-emerald-600/70 dark:text-emerald-400/70"
+                  >
+                    {{ s.chapter }}
+                  </span>
+                </div>
               </div>
               <span
                 class="text-xs font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full"
@@ -218,7 +233,6 @@
               </span>
             </div>
 
-            <!-- Barre de progression -->
             <div
               *ngIf="s.score !== undefined"
               class="w-full bg-emerald-100 dark:bg-emerald-900/30 rounded-full h-2 overflow-hidden"
@@ -229,7 +243,6 @@
               ></div>
             </div>
 
-            <!-- Détail correct/total -->
             <p
               *ngIf="s.correct !== undefined"
               class="text-xs text-emerald-600 mt-1.5"
@@ -237,25 +250,23 @@
               {{ s.correct }} / {{ s.total }} correct answers
             </p>
 
-            <!-- Badge mastery -->
             <div class="mt-2">
               <span
                 *ngIf="s.score >= 90"
                 class="text-xs font-bold text-white bg-emerald-500 px-2 py-0.5 rounded-full"
               >
-                ⭐ Master
+                Master
               </span>
               <span
                 *ngIf="s.score >= 70 && s.score < 90"
                 class="text-xs font-bold text-white bg-emerald-400 px-2 py-0.5 rounded-full"
               >
-                ✓ Proficient
+                Proficient
               </span>
             </div>
           </div>
         </div>
 
-        <!-- Vide -->
         <div
           *ngIf="!result?.detectedStrengths?.length"
           class="flex flex-col items-center justify-center py-8 text-center"
@@ -279,13 +290,12 @@
           <span class="material-symbols-outlined text-orange-500">
             warning
           </span>
-          Areas to Improve
+          Sous-acquis a ameliorer
         </h3>
         <p class="text-slate-400 text-xs mb-4">
-          Topics where you scored &lt; 50% — focus here next
+          Sous-acquis avec score &lt; 60% — a travailler en priorite
         </p>
 
-        <!-- Avec données enrichies -->
         <div *ngIf="result?.detectedWeaknesses?.length > 0" class="space-y-3">
           <div
             *ngFor="let w of result.detectedWeaknesses"
@@ -298,11 +308,19 @@
                 >
                   priority_high
                 </span>
-                <span
-                  class="text-sm font-bold text-orange-900 dark:text-orange-300"
-                >
-                  {{ w.topic || w | titlecase }}
-                </span>
+                <div>
+                  <span
+                    class="text-sm font-bold text-orange-900 dark:text-orange-300 block"
+                  >
+                    {{ w.topic || w | titlecase }}
+                  </span>
+                  <span
+                    *ngIf="w.chapter"
+                    class="text-[10px] text-orange-600/70 dark:text-orange-400/70"
+                  >
+                    {{ w.chapter }}
+                  </span>
+                </div>
               </div>
               <span
                 class="text-xs font-black text-orange-600 bg-orange-100 dark:bg-orange-900/50 px-2 py-0.5 rounded-full"
@@ -311,7 +329,6 @@
               </span>
             </div>
 
-            <!-- Barre de progression -->
             <div
               *ngIf="w.score !== undefined"
               class="w-full bg-orange-100 dark:bg-orange-900/30 rounded-full h-2 overflow-hidden"
@@ -322,7 +339,6 @@
               ></div>
             </div>
 
-            <!-- Détail correct/total -->
             <p
               *ngIf="w.correct !== undefined"
               class="text-xs text-orange-600 mt-1.5"
@@ -330,7 +346,6 @@
               {{ w.correct }} / {{ w.total }} correct answers
             </p>
 
-            <!-- Conseil personnalisé -->
             <div
               class="mt-3 flex items-start gap-2 bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg"
             >
@@ -341,25 +356,23 @@
               </span>
               <p class="text-xs text-orange-700 dark:text-orange-300">
                 <span *ngIf="w.score === 0">
-                  Start from the basics of
+                  Commencez par les bases de
                   <strong>{{ w.topic || w }}</strong
                   >.
                 </span>
                 <span *ngIf="w.score > 0 && w.score < 30">
-                  Review core concepts in
-                  <strong>{{ w.topic || w }}</strong> — low score detected.
+                  Revisez les concepts fondamentaux de
+                  <strong>{{ w.topic || w }}</strong>.
                 </span>
-                <span *ngIf="w.score >= 30 && w.score < 50">
-                  You're close! A bit more practice in
-                  <strong>{{ w.topic || w }}</strong> will make a big
-                  difference.
+                <span *ngIf="w.score >= 30 && w.score < 60">
+                  Vous y etes presque ! Un peu plus de pratique sur
+                  <strong>{{ w.topic || w }}</strong> fera la difference.
                 </span>
               </p>
             </div>
           </div>
         </div>
 
-        <!-- Vide -->
         <div
           *ngIf="!result?.detectedWeaknesses?.length"
           class="flex flex-col items-center justify-center py-8 text-center"
@@ -368,7 +381,7 @@
             celebration
           </span>
           <p class="text-slate-400 text-sm font-medium">
-            No weaknesses detected — excellent work!
+            Aucune faiblesse detectee — excellent travail !
           </p>
         </div>
       </div>

@@ -40,7 +40,7 @@ interface CourseItem {
   description: string;
   instructor: string;
   subject: string;
-  modules: CourseModule[];
+  subChapters: CourseModule[];
   moduleCount: number;
   thumbnail: string;
   sourceSubChapters?: SubjectSubChapter[];
@@ -59,6 +59,10 @@ interface SubjectItem {
   /** Average module % from `/api/subjects/:id/learning-progress` (set when subjectDbId exists). */
   progressPercent?: number;
   progressLoaded?: boolean;
+}
+
+function isCourseSubjectPseudoId(value: string | undefined): boolean {
+  return String(value || '').startsWith('course-subject:');
 }
 
 interface CourseContentResource {
@@ -453,9 +457,11 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
               });
               (test.detectedStrengths || []).forEach((s: any) => {
                 if (s.topic) this.completedLevelTestSubjects.add(s.topic.toLowerCase().trim());
+                if (s.subject) this.completedLevelTestSubjects.add(s.subject.toLowerCase().trim());
               });
               (test.detectedWeaknesses || []).forEach((w: any) => {
                 if (w.topic) this.completedLevelTestSubjects.add(w.topic.toLowerCase().trim());
+                if (w.subject) this.completedLevelTestSubjects.add(w.subject.toLowerCase().trim());
               });
             }
           });
@@ -471,7 +477,11 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
 
   takeLevelTest(subject?: SubjectItem): void {
     if (subject) {
-      this.router.navigate(['/student-dashboard/level-test'], { queryParams: { subject: subject.name } });
+      const queryParams: any = { subject: subject.name };
+      if (subject.subjectDbId) {
+        queryParams.subjectId = subject.subjectDbId;
+      }
+      this.router.navigate(['/student-dashboard/level-test'], { queryParams });
     } else {
       this.router.navigate(['/student-dashboard/level-test']);
     }
@@ -744,7 +754,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
             )
           : [];
 
-        const modules: CourseModule[] = subChapters.map((subChapter) => ({
+        const subChaptersView: CourseModule[] = subChapters.map((subChapter) => ({
           title: String(subChapter?.title || 'Untitled subchapter'),
           description: String(subChapter?.description || ''),
           order: Number(subChapter?.order ?? 0),
@@ -769,8 +779,8 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
           description: String(chapter?.description || ''),
           instructor: instructorLabel,
           subject: String(subject?.title || 'General'),
-          modules,
-          moduleCount: modules.length,
+          subChapters: subChaptersView,
+          moduleCount: subChaptersView.length,
           thumbnail:
             chapterIndex % 3 === 0
               ? 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80'
@@ -798,7 +808,9 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   }
 
   private loadSubjectProgressBars(): void {
-    const withIds = this.subjects.filter((s) => !!s.subjectDbId?.trim());
+    const withIds = this.subjects.filter(
+      (s) => !!s.subjectDbId?.trim() && !isCourseSubjectPseudoId(s.subjectDbId),
+    );
     if (withIds.length === 0) {
       return;
     }
@@ -820,6 +832,9 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
 
   private refreshSelectedSubjectProgress(): void {
     const sid = String(this.selectedSubject?.subjectDbId || '').trim();
+    if (isCourseSubjectPseudoId(sid)) {
+      return;
+    }
     if (!sid) {
       return;
     }
@@ -926,7 +941,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
           description: r?.content || '',
           subject:
             forcedSubject || this.extractSubject({ title: r?.title || key }),
-          modules: [],
+          subChapters: [],
           instructorId: { name: 'Enseignant' },
         });
       }
@@ -982,7 +997,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
               subject: this.extractSubject({
                 title: String(item?.course_id || `Course ${idx + 1}`),
               }),
-              modules: [],
+              subChapters: [],
               instructorId: { name: 'Enseignant' },
             }));
             this.applyCourses(mapped);
@@ -1034,8 +1049,8 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     ];
 
     return (sourceCourses || []).map((course: any, index: number) => {
-      const modules = Array.isArray(course?.modules)
-        ? course.modules
+      const subChaptersView = Array.isArray(course?.subChapters)
+        ? course.subChapters
             .map((m: any) => ({
               title: m?.title || 'Untitled chapter',
               description: m?.description || '',
@@ -1054,8 +1069,8 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
           course?.instructor?.name ||
           'Enseignant',
         subject: this.extractSubject(course),
-        modules,
-        moduleCount: modules.length,
+        subChapters: subChaptersView,
+        moduleCount: subChaptersView.length,
         thumbnail: thumbs[index % thumbs.length],
       };
     });
@@ -1192,7 +1207,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       }
     }
 
-    const modules = Array.from(modulesMap.entries()).map(
+    const subChaptersView = Array.from(modulesMap.entries()).map(
       ([name, desc], idx) => ({
         title: name,
         description: desc,
@@ -1209,7 +1224,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       title,
       description,
       subject: subjectName,
-      modules,
+      subChapters: subChaptersView,
       instructorId: { name: 'Enseignant' },
     };
   }
@@ -1234,22 +1249,22 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
           title: title || key,
           description: String(row?.chunk_text || '').slice(0, 280),
           subject: subjectName,
-          modules: [],
+          subChapters: [],
           instructorId: { name: 'Enseignant' },
         });
       }
 
       if (moduleName) {
         const entry = grouped.get(key);
-        const exists = (entry.modules || []).some(
+        const exists = (entry.subChapters || []).some(
           (m: any) =>
             String(m?.title || '').toLowerCase() === moduleName.toLowerCase(),
         );
         if (!exists) {
-          entry.modules.push({
+          entry.subChapters.push({
             title: moduleName,
             description: '',
-            order: entry.modules.length,
+            order: entry.subChapters.length,
           });
         }
       }
@@ -1370,6 +1385,13 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     this.clearPrositTracking('switch-chapter');
     this.clearChapterTracking('switch-chapter');
     const subjectId = this.selectedSubject?.subjectDbId;
+    if (subjectId && isCourseSubjectPseudoId(subjectId)) {
+      this.startChapterTracking(course);
+      this.selectedCourse = course;
+      this.viewMode = 'content';
+      this.loadCourseContent(course);
+      return;
+    }
     this.trackActivity('chapter_open', {
       resource_type: 'chapter',
       resource_id: String(course.id || course.chapterOrder),
@@ -1421,7 +1443,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
           (a, b) => Number(a?.order ?? 0) - Number(b?.order ?? 0),
         )
       : [];
-    const modules: CourseModule[] = subChapters.map((subChapter) => ({
+    const subChaptersView: CourseModule[] = subChapters.map((subChapter) => ({
       title: String(subChapter?.title || 'Untitled subchapter'),
       description: String(subChapter?.description || ''),
       order: Number(subChapter?.order ?? 0),
@@ -1430,8 +1452,8 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       ...course,
       title: String(chapter?.title || course.title),
       description: String(chapter?.description || course.description || ''),
-      modules,
-      moduleCount: modules.length,
+      subChapters: subChaptersView,
+      moduleCount: subChaptersView.length,
       sourceSubChapters: subChapters,
     };
   }
@@ -2582,7 +2604,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       });
     }
 
-    return (course.modules || []).map((module) => {
+    return (course.subChapters || []).map((module) => {
       const links = this.extractFileLinksFromText(module.description || '');
       return {
         title: module.title,
@@ -2699,7 +2721,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     const out: CourseContentResource[] = [];
     const texts = [
       course.description,
-      ...course.modules.map((m) => m.description),
+      ...course.subChapters.map((m) => m.description),
     ];
     const seen = new Set<string>();
 
@@ -2717,8 +2739,8 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (out.length === 0 && course.modules.length > 0) {
-      for (const module of course.modules) {
+    if (out.length === 0 && course.subChapters.length > 0) {
+      for (const module of course.subChapters) {
         out.push({
           title: `${module.title} - Notes`,
           subtitle: 'Module material',

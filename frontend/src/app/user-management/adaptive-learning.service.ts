@@ -652,12 +652,16 @@ export class AdaptiveLearningService {
     });
   }
 
-  startLevelTestStage(subjects?: string[]): Observable<any> {
+  startLevelTestStage(subjects?: string[], subjectId?: string): Observable<any> {
     const studentId = this.resolveCurrentStudentId();
-    return this.http.post(`${this.aiServiceUrl}/level-test/start`, {
+    const body: any = {
       student_id: studentId,
       subjects: subjects || [],
-    });
+    };
+    if (subjectId) {
+      body.subject_id = subjectId;
+    }
+    return this.http.post(`${this.aiServiceUrl}/level-test/start`, body);
   }
 
   submitLevelTestAnswer(sessionId: string, answer: string): Observable<any> {

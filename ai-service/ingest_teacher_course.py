@@ -5,7 +5,7 @@ Parses the fiche module for chapter metadata, extracts course content from
 PPTX/PDF files, parses quiz DOCX files into MCQ exercises, then:
   1. Removes **only** prior "Programmation Procédurale 1" rows (Mongo + matching
      Chroma chunks), leaving other subjects untouched
-  2. Inserts 8 courses (one per chapter) with version-based modules
+  2. Inserts 8 courses (one per chapter) with version-based subchapters
   3. Inserts all parsed MCQ exercises linked to their parent course
   4. Triggers the embedding pipeline for RAG
 
@@ -643,7 +643,7 @@ def run_ingest(
         versions = discover_versions(ch_dir)
         log.info("  Found %d versions", len(versions))
 
-        modules: list[dict[str, Any]] = []
+        sub_chapters: list[dict[str, Any]] = []
         all_quizzes: list[dict[str, Any]] = []
         mod_order = 0
 
@@ -680,13 +680,14 @@ def run_ingest(
                         "title": title,
                         "description": txt,
                         "order": mod_order,
+                        "contents": [],
                     }
                     if rel_url:
                         row["fileUrl"] = rel_url
                         row["fileName"] = stored or (
                             p.name if isinstance(p, Path) else "cours"
                         )
-                    modules.append(row)
+                    sub_chapters.append(row)
                     mod_order += 1
             else:
                 text = (v.get("text") or "").strip()
@@ -694,11 +695,12 @@ def run_ingest(
                     log.info("  [%s] %d chars (combined)", ver, len(text))
                 else:
                     log.info("  [%s] no course content", ver)
-                modules.append(
+                sub_chapters.append(
                     {
                         "title": base_title,
                         "description": text,
                         "order": mod_order,
+                        "contents": [],
                     }
                 )
                 mod_order += 1
@@ -712,7 +714,7 @@ def run_ingest(
         course_doc = {
             "title": meta["title"],
             "description": meta["description"],
-            "modules": modules,
+            "subChapters": sub_chapters,
             "level": "Beginner",
             "subject": "Programmation Procédurale 1",
             **_course_document_base(instructor_id=instructor_oid, now=now),

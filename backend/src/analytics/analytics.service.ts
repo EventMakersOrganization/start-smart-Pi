@@ -777,10 +777,21 @@ export class AnalyticsService {
         .find()
         .sort({ lastUpdated: -1, _id: -1 })
         .limit(safe)
-        .populate('user', 'first_name last_name email')
         .lean()
         .exec(),
     ]);
+
+    const riskUserIds = (risks as any[])
+      .map((r) => String(r?.user || '').trim())
+      .filter((id) => Types.ObjectId.isValid(id));
+    const riskUsers = riskUserIds.length
+      ? await this.userModel
+          .find({ _id: { $in: riskUserIds.map((id) => new Types.ObjectId(id)) } })
+          .select('first_name last_name email')
+          .lean<UserDocument[]>()
+          .exec()
+      : [];
+    const riskUserMap = new Map(riskUsers.map((u: any) => [String(u._id), u]));
 
     const merged: AiEventFeedItem[] = [];
 
@@ -808,7 +819,7 @@ export class AnalyticsService {
     }
 
     for (const r of risks as any[]) {
-      const u = r.user;
+      const u: any = riskUserMap.get(String(r.user)) || null;
       const name = u
         ? `${u.first_name || ''} ${u.last_name || ''}`.trim()
         : String(r.user);

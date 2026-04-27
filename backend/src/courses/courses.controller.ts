@@ -58,6 +58,23 @@ export class CoursesController {
         return this.coursesService.findAll(page, limit, level, instructorId);
     }
 
+    @Get('subjects/list')
+    @ApiOperation({ summary: 'List logical subjects grouped from courses' })
+    @ApiQuery({ name: 'instructorId', required: false, type: String })
+    getSubjectsFromCourses(@Query('instructorId') instructorId?: string) {
+        return this.coursesService.findAllSubjects(instructorId);
+    }
+
+    @Get('subjects/by-title/:subjectTitle')
+    @ApiOperation({ summary: 'Get one logical subject grouped from courses' })
+    @ApiQuery({ name: 'instructorId', required: false, type: String })
+    getSubjectFromCourses(
+        @Param('subjectTitle') subjectTitle: string,
+        @Query('instructorId') instructorId?: string,
+    ) {
+        return this.coursesService.findSubjectByTitle(decodeURIComponent(subjectTitle), instructorId);
+    }
+
     @Get(':id')
     @ApiOperation({ summary: 'Get a single course by ID' })
     @ApiResponse({ status: 200, description: 'Course found.' })

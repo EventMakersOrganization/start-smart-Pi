@@ -400,11 +400,11 @@ def _subject_group_key_and_title(course: dict[str, Any]) -> tuple[str, str]:
         s = raw.strip()
         if not s:
             return f"course:{cid}", chapter_title
-        return s.lower(), s
+        return _strip_accents_br(s).lower(), s
     s = str(raw).strip()
     if not s:
         return f"course:{cid}", chapter_title
-    return s.lower(), s
+    return _strip_accents_br(s).lower(), s
 
 
 def _course_text_blob(course: dict[str, Any]) -> str:
@@ -416,33 +416,49 @@ def _course_text_blob(course: dict[str, Any]) -> str:
     return " ".join(parts).lower()
 
 
+def _course_topic_rows(course: dict[str, Any]) -> list[dict[str, str]]:
+    """Build topic rows from canonical `subChapters`."""
+    cid = _mongo_course_id(course)
+    if not cid:
+        return []
+    chapter_title = (course.get("title") or "").strip()
+    rows: list[dict[str, str]] = []
+    sub = course.get("subChapters") or course.get("subchapters") or []
+    if isinstance(sub, list):
+        for sc in sub:
+            if not isinstance(sc, dict):
+                continue
+            t = (sc.get("title") or "").strip()
+            if not t:
+                continue
+            rows.append(
+                {
+                    "title": t,
+                    "description": (sc.get("description") or "")[:200],
+                    "chapter_title": chapter_title,
+                    "course_id": cid,
+                }
+            )
+    return rows
+
+
 def _merge_courses_into_subject_payload(
     courses: list[dict[str, Any]],
     display_title: str,
 ) -> dict[str, Any] | None:
-    """Single BrainRush subject entry with modules from many MongoDB courses (same programme)."""
+    """Single BrainRush subject entry with topic rows from many MongoDB courses."""
     if not courses:
         return None
     course_ids: list[str] = []
-    modules: list[dict[str, Any]] = []
+    topic_rows: list[dict[str, Any]] = []
     for c in courses:
         cid = _mongo_course_id(c)
         if not cid:
             continue
         course_ids.append(cid)
-        chapter_title = (c.get("title") or "").strip()
-        for m in c.get("modules") or []:
-            if isinstance(m, dict):
-                modules.append(
-                    {
-                        "title": m.get("title", ""),
-                        "description": (m.get("description") or "")[:200],
-                        "chapter_title": chapter_title,
-                        "course_id": cid,
-                    }
-                )
+        topic_rows.extend(_course_topic_rows(c))
     gkey = re.sub(r"[^a-z0-9]+", "_", display_title.lower()).strip("_")[:80] or "merged_subject"
-    return {"group_key": gkey, "title": display_title.strip(), "course_ids": course_ids, "modules": modules}
+    return {"group_key": gkey, "title": display_title.strip(), "course_ids": course_ids, "topic_rows": topic_rows}
 
 
 def _courses_matching_subject_hint(hint: str, courses: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -472,16 +488,16 @@ def _build_logical_subject_map(courses: list[dict[str, Any]] | None = None) -> d
     subject_map: dict[str, dict[str, Any]] = {}
     for i, c in enumerate(courses):
         cid = _mongo_course_id(c)
-        mods = c.get("modules", [])
+        mods = _course_topic_rows(c)
         logger.info(
-            "subject_map build: course %s/%s id=%s title=%.40s modules_count=%s",
+            "subject_map build: course %s/%s id=%s title=%.40s subchapters_count=%s",
             i + 1, len(courses), cid[:12], (c.get("title") or "")[:40],
             len(mods) if isinstance(mods, list) else type(mods).__name__,
         )
         gkey, display_title = _subject_group_key_and_title(c)
         cid = _mongo_course_id(c)
         chapter_title = (c.get("title") or "").strip()
-        subject_map.setdefault(gkey, {"course_ids": [], "title": display_title, "modules": []})
+        subject_map.setdefault(gkey, {"course_ids": [], "title": display_title, "topic_rows": []})
         info = subject_map[gkey]
         info["course_ids"].append(cid)
         raw_subj = c.get("subject")
@@ -489,25 +505,12 @@ def _build_logical_subject_map(courses: list[dict[str, Any]] | None = None) -> d
             s = raw_subj.strip()
             info["title"] = s
             info["subject"] = s  # mirrors MongoDB `subject`; one programme for many chapter docs
-        modules = c.get("modules", [])
-        has_real_modules = False
-        if isinstance(modules, list):
-            for m in modules:
-                if not isinstance(m, dict):
-                    continue
-                mtitle = (m.get("title") or m.get("name") or "").strip()
-                if mtitle:
-                    has_real_modules = True
-                    info["modules"].append(
-                        {
-                            "title": mtitle,
-                            "description": (m.get("description") or "")[:200],
-                            "chapter_title": chapter_title,
-                            "course_id": cid,
-                        }
-                    )
+        topic_rows = _course_topic_rows(c)
+        has_real_modules = bool(topic_rows)
+        if has_real_modules:
+            info["topic_rows"].extend(topic_rows)
         if not has_real_modules and chapter_title:
-            info["modules"].append(
+            info["topic_rows"].append(
                 {
                     "title": chapter_title,
                     "description": (c.get("description") or "")[:200],
@@ -516,16 +519,16 @@ def _build_logical_subject_map(courses: list[dict[str, Any]] | None = None) -> d
                 }
             )
     for gkey, info in subject_map.items():
-        cids_in_mods = {str(m.get("course_id") or "") for m in info.get("modules", []) if isinstance(m, dict)}
+        cids_in_mods = {str(m.get("course_id") or "") for m in info.get("topic_rows", []) if isinstance(m, dict)}
         logger.info(
-            "subject_map result: gkey=%s course_ids=%s modules=%s distinct_cids_in_modules=%s",
-            gkey[:40], len(info.get("course_ids", [])), len(info.get("modules", [])), len(cids_in_mods),
+            "subject_map result: gkey=%s course_ids=%s topic_rows=%s distinct_cids=%s",
+            gkey[:40], len(info.get("course_ids", [])), len(info.get("topic_rows", [])), len(cids_in_mods),
         )
     return subject_map
 
 
-def _topic_course_specs_from_modules(
-    modules: list[dict],
+def _topic_course_specs_from_topic_rows(
+    topic_rows: list[dict],
     count: int,
     *,
     seed: str = "",
@@ -536,14 +539,14 @@ def _topic_course_specs_from_modules(
     We **do not** bucket by ``chapter_title`` alone: duplicate or missing titles across
     documents would collapse 8 courses into one bucket. ``course_id`` is always unique
     per document. Works for one subject with many courses, or many subjects (each payload
-    has its own modules list).
+    has its own topic row list).
     """
     seen_pair: set[tuple[str, str]] = set()
     # course_id -> list of {course_id, topic}; sort label from first module's chapter_title
     by_course: dict[str, list[dict[str, str]]] = {}
     cid_label: dict[str, str] = {}
 
-    for idx, m in enumerate(modules):
+    for idx, m in enumerate(topic_rows):
         if not isinstance(m, dict):
             continue
         cid = str(m.get("course_id") or "").strip()
@@ -604,7 +607,7 @@ def _topic_course_specs_from_modules(
 
 
 def _map_entry_matches_subject_hint(ss: str, gkey: str, info: dict[str, Any]) -> bool:
-    """Match user hint against logical map (Mongo `subject` → one group with merged modules)."""
+    """Match user hint against logical map (Mongo `subject` → one group with merged topic rows)."""
     title = (info.get("title") or "").strip().lower()
     subj = (info.get("subject") or info.get("title") or "").strip().lower()
     g = gkey.lower()
@@ -624,10 +627,10 @@ def resolve_brainrush_subjects(
     single_subject: str | None,
 ) -> list[dict[str, Any]]:
     """
-    Returns list of {group_key, title, modules, course_ids} for BrainRush.
+    Returns list of {group_key, title, topic_rows, course_ids} for BrainRush.
 
     When MongoDB stores ``subject`` on each course, ``_build_logical_subject_map`` already
-    merges all chapters into **one** group (same gkey / title / modules). That path is
+    merges all chapters into **one** group (same gkey / title / topic_rows). That path is
     preferred: we match ``single_subject`` against the map **first**.
 
     If nothing matches (legacy ``course:…`` keys or missing ``subject``), we fall back to
@@ -666,7 +669,7 @@ def resolve_brainrush_subjects(
             if not _match_filter(gkey, info):
                 continue
             if _map_entry_matches_subject_hint(ss, gkey, info):
-                logger.info("resolve path=1(canonical) gkey=%s modules=%s cids=%s", gkey[:30], len(info.get("modules", [])), len(info.get("course_ids", [])))
+                logger.info("resolve path=1(canonical) gkey=%s topic_rows=%s cids=%s", gkey[:30], len(info.get("topic_rows", [])), len(info.get("course_ids", [])))
                 return [{"group_key": gkey, **info}]
 
         # 2) If hint matches a single course (chapter title), expand to its full subject group.
@@ -678,8 +681,8 @@ def resolve_brainrush_subjects(
                     for gkey, info in subject_map.items():
                         if gkey == mc_subj or (info.get("subject") or "").strip().lower() == mc_subj:
                             logger.info(
-                                "resolve path=2(expand chapter→subject) hint=%s subject=%s modules=%s cids=%s",
-                                label[:30], mc_subj[:30], len(info.get("modules", [])), len(info.get("course_ids", [])),
+                                "resolve path=2(expand chapter→subject) hint=%s subject=%s topic_rows=%s cids=%s",
+                                label[:30], mc_subj[:30], len(info.get("topic_rows", [])), len(info.get("course_ids", [])),
                             )
                             return [{"group_key": gkey, **info}]
             if subject_filter:
@@ -691,8 +694,8 @@ def resolve_brainrush_subjects(
                         if any(f in _course_text_blob(c) for f in mf)
                     ]
             merged = _merge_courses_into_subject_payload(matched_courses, label)
-            if merged and (merged.get("modules") or merged.get("course_ids")):
-                logger.info("resolve path=2(legacy merge) modules=%s cids=%s", len(merged.get("modules", [])), len(merged.get("course_ids", [])))
+            if merged and (merged.get("topic_rows") or merged.get("course_ids")):
+                logger.info("resolve path=2(legacy merge) topic_rows=%s cids=%s", len(merged.get("topic_rows", [])), len(merged.get("course_ids", [])))
                 return [merged]
 
         # 3) Last-chance partial match on map (substring).
@@ -701,7 +704,7 @@ def resolve_brainrush_subjects(
                 continue
             blob = f"{gkey} {(info.get('title') or '')} {(info.get('subject') or '')}".lower()
             if ss in blob or any(w in blob for w in ss.split() if len(w) > 2):
-                logger.info("resolve path=3(substring) gkey=%s modules=%s", gkey[:30], len(info.get("modules", [])))
+                logger.info("resolve path=3(substring) gkey=%s topic_rows=%s", gkey[:30], len(info.get("topic_rows", [])))
                 return [{"group_key": gkey, **info}]
 
     out: list[dict[str, Any]] = []
@@ -739,20 +742,15 @@ def _mongo_course_text_for_brainrush(course_id: str | None) -> str:
         parts.append(f"Chapitre / cours : {t}")
     if d:
         parts.append(d)
-    for i, m in enumerate(doc.get("modules") or []):
-        if not isinstance(m, dict):
-            continue
+    topic_rows = _course_topic_rows(doc)
+    for i, m in enumerate(topic_rows):
         mt = (m.get("title") or "").strip()
         md = (m.get("description") or "").strip()
-        fu = (m.get("fileUrl") or "").strip()
-        fn = (m.get("fileName") or "").strip()
         if not mt and not md:
             continue
-        block = f"— Module {i + 1} : {mt}" if mt else f"— Module {i + 1}"
+        block = f"— Sous-chapitre {i + 1} : {mt}" if mt else f"— Sous-chapitre {i + 1}"
         if md:
             block += f"\n{md}"
-        if fu or fn:
-            block += f"\n(fichier : {fn or fu})"
         parts.append(block)
     out = "\n\n".join(parts).strip()
     return out[:24000]
@@ -1408,7 +1406,7 @@ class BrainRushQuestionGenerator:
         mixed_types: bool = False,
     ) -> list[dict[str, Any]]:
         """
-        10/15/20 questions with topic diversity from course modules and adaptive difficulty curve.
+        10/15/20 questions with topic diversity from course subchapters and adaptive difficulty curve.
         If mixed_types True, use 70/30 MCQ/TF; else MCQ-only.
         """
         if num_questions not in BRAINRUSH_ALLOWED_COUNTS:
@@ -1422,27 +1420,27 @@ class BrainRushQuestionGenerator:
 
         if len(subjects_payload) == 1:
             info = subjects_payload[0]
-            modules = info.get("modules") or []
+            topic_rows = info.get("topic_rows") or []
             title = info.get("title") or info.get("group_key") or "Subject"
             declared_cids = [str(x).strip() for x in (info.get("course_ids") or []) if str(x).strip()]
             module_cids = {
                 str(m.get("course_id") or "").strip()
-                for m in modules
+                for m in topic_rows
                 if isinstance(m, dict) and str(m.get("course_id") or "").strip()
             }
             if len(declared_cids) > 1 and len(module_cids) <= 1:
                 logger.warning(
-                    "brainrush: subject has %s Mongo course id(s) but modules only reference %s",
+                    "brainrush: subject has %s Mongo course id(s) but topic rows only reference %s",
                     len(declared_cids),
                     module_cids or "none",
                 )
-            _dbg_cids = {str(m.get("course_id") or "")[:24] for m in modules if isinstance(m, dict)}
+            _dbg_cids = {str(m.get("course_id") or "")[:24] for m in topic_rows if isinstance(m, dict)}
             logger.info(
-                "session_questions: modules_count=%s distinct_cids=%s sample_cids=%s",
-                len(modules), len(_dbg_cids), sorted(_dbg_cids)[:10],
+                "session_questions: topic_rows_count=%s distinct_cids=%s sample_cids=%s",
+                len(topic_rows), len(_dbg_cids), sorted(_dbg_cids)[:10],
             )
             spec_need = max(num_questions + 32, num_questions * 2)
-            specs = _topic_course_specs_from_modules(modules, spec_need, seed=session_seed)
+            specs = _topic_course_specs_from_topic_rows(topic_rows, spec_need, seed=session_seed)
             spec_idx = 0
 
             def _next_spec() -> dict[str, str]:
@@ -1498,10 +1496,10 @@ class BrainRushQuestionGenerator:
             diff_i = 0
             for j, info in enumerate(subjects_payload):
                 count = base + (1 if j < rem else 0)
-                modules = info.get("modules") or []
+                topic_rows = info.get("topic_rows") or []
                 title = info.get("title") or info.get("group_key") or "Subject"
                 spec_need = max(count + 16, count * 2)
-                specs = _topic_course_specs_from_modules(modules, spec_need, seed=f"{session_seed}|{j}")
+                specs = _topic_course_specs_from_topic_rows(topic_rows, spec_need, seed=f"{session_seed}|{j}")
                 spec_idx = 0
 
                 def _next_spec_ms() -> dict[str, str]:
@@ -1670,9 +1668,25 @@ class BrainRushQuestionGenerator:
         return int(base * mult)
 
     def _get_relevant_topics(self, subject: str) -> list[str]:
-        results = self.rag_service.search(subject, n_results=10)
+        # Prefer canonical topics from Mongo courses/subChapters to avoid cross-subject RAG bleed.
         topics: list[str] = []
         seen: set[str] = set()
+        try:
+            payload = resolve_brainrush_subjects(subject_filter=None, single_subject=subject)
+            for info in payload or []:
+                for row in info.get("topic_rows") or []:
+                    title = str((row or {}).get("topic") or (row or {}).get("title") or "").strip()
+                    key = title.lower()
+                    if title and key not in seen:
+                        seen.add(key)
+                        topics.append(title)
+            if topics:
+                return topics[:12]
+        except Exception:
+            logger.exception("brainrush topics: subject-map resolution failed for %s", subject)
+
+        # Fallback path for partially migrated data.
+        results = self.rag_service.search(subject, n_results=10)
         skip = {"python", "javascript", "programming", "general", "course", "learn", "introduction"}
         for item in results:
             for ch in item.get("chunks") or []:
@@ -1687,9 +1701,7 @@ class BrainRushQuestionGenerator:
                 if w not in skip and w not in seen:
                     seen.add(w)
                     topics.append(w)
-        if not topics:
-            return ["general"]
-        return topics[:12]
+        return topics[:12] if topics else ["general"]
 
     def _get_fallback_mcq(
         self,

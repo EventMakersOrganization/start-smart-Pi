@@ -18,6 +18,7 @@ export class LevelTestResultComponent implements OnInit {
   // Stats par topic calculées depuis les réponses
   topicStats: {
     topic: string;
+    chapter?: string;
     correct: number;
     total: number;
     percent: number;
@@ -176,23 +177,26 @@ export class LevelTestResultComponent implements OnInit {
   }
 
   calculateTopicStats(): void {
-    const topicMap: Record<string, { correct: number; total: number }> = {};
+    const topicMap: Record<string, { topic: string; chapter?: string; correct: number; total: number }> = {};
 
     (this.result.questions || []).forEach((q: any, index: number) => {
       const topic = q.topic || 'General';
-      if (!topicMap[topic]) {
-        topicMap[topic] = { correct: 0, total: 0 };
+      const chapter = q.chapter_title || q.chapter || '';
+      const key = `${chapter}__${topic}`;
+      if (!topicMap[key]) {
+        topicMap[key] = { topic, chapter, correct: 0, total: 0 };
       }
-      topicMap[topic].total++;
+      topicMap[key].total++;
 
       const answer = this.result.answers?.[index];
       if (answer?.isCorrect) {
-        topicMap[topic].correct++;
+        topicMap[key].correct++;
       }
     });
 
-    this.topicStats = Object.entries(topicMap).map(([topic, stat]) => ({
-      topic,
+    this.topicStats = Object.values(topicMap).map((stat) => ({
+      topic: stat.topic,
+      chapter: stat.chapter,
       correct: stat.correct,
       total: stat.total,
       percent: Math.round((stat.correct / stat.total) * 100),

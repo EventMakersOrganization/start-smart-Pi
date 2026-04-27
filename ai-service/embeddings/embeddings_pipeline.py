@@ -94,7 +94,7 @@ def generate_embedding(text, use_cache=True):
 
 def prepare_course_text(course):
     """
-    Combines course title, description, and stringified modules into one text.
+    Combines course title, description, and stringified subchapters into one text.
     Handles missing fields gracefully.
     """
     parts = []
@@ -102,12 +102,12 @@ def prepare_course_text(course):
         parts.append(str(course["title"]))
     if course.get("description"):
         parts.append(str(course["description"]))
-    modules = course.get("modules")
-    if modules is not None:
-        if isinstance(modules, list):
-            parts.append("Modules: " + json.dumps(modules, default=str))
+    sub_chapters = course.get("subChapters") or course.get("subchapters")
+    if sub_chapters is not None:
+        if isinstance(sub_chapters, list):
+            parts.append("Subchapters: " + json.dumps(sub_chapters, default=str))
         else:
-            parts.append("Modules: " + str(modules))
+            parts.append("Subchapters: " + str(sub_chapters))
     text = "\n".join(parts) if parts else ""
     return text
 

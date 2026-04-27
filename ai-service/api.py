@@ -169,7 +169,7 @@ class CourseUploadRequest(BaseModel):
     course_id: str | None = Field(default=None, description="Optional course ID (MongoDB _id)")
     title: str = Field(..., description="Course title")
     description: str = Field(default="", description="Course description")
-    modules: list = Field(default_factory=list, description="Course modules")
+    subChapters: list = Field(default_factory=list, description="Course subchapters")
     level: str = Field(default="beginner", description="Course level")
 
 
@@ -372,6 +372,10 @@ class LevelTestStartRequest(BaseModel):
     subjects: list[str] | None = Field(
         default=None,
         description="Optional filter: course IDs and/or logical subject keys. Omit to test all.",
+    )
+    subject_id: str | None = Field(
+        default=None,
+        description="Mongo _id of the Subject document. When provided, generates one question per subchapter.",
     )
     regenerate: bool = Field(
         default=False,
@@ -2222,10 +2226,11 @@ async def search_courses(
 async def upload_course_content(body: CourseUploadRequest):
     """Saves course to MongoDB and generates embedding in ChromaDB."""
     try:
+        sub_chapters = body.subChapters or []
         course_doc = {
             "title": body.title,
             "description": body.description,
-            "modules": body.modules,
+            "subChapters": sub_chapters,
             "level": body.level,
         }
         if body.course_id:
@@ -2237,7 +2242,7 @@ async def upload_course_content(body: CourseUploadRequest):
             "id": course_id,
             "title": body.title,
             "description": body.description,
-            "modules": body.modules,
+            "subChapters": sub_chapters,
             "level": body.level,
         }
         # Chunk-based RAG indexing
@@ -3764,6 +3769,7 @@ async def level_test_start(body: LevelTestStartRequest):
             body.student_id,
             body.subjects,
             regenerate=body.regenerate,
+            subject_id=body.subject_id,
         )
         ai_monitor.record_request("/level-test/start", time.time() - t0, True)
         return {"status": "success", **result}

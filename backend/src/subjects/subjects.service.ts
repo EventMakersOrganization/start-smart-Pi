@@ -263,7 +263,7 @@ export class SubjectsService {
             instructorId,
           },
           $setOnInsert: {
-            modules: [],
+            subChapters: [],
           },
         },
         { upsert: true, new: true, setDefaultsOnInsert: true },
@@ -304,35 +304,38 @@ export class SubjectsService {
             level,
             subject: subjectTitle,
             instructorId,
-            modules: [],
+            subChapters: [],
           },
         },
         { upsert: true, new: true, setDefaultsOnInsert: true },
       )
       .exec();
 
-    const modules = Array.isArray(course?.modules) ? [...course.modules] : [];
-    const existingIndex = modules.findIndex(
+    const subChapters = Array.isArray((course as any)?.subChapters)
+      ? [...(course as any).subChapters]
+      : [];
+    const existingIndex = subChapters.findIndex(
       (item) => Number(item.order) === Number(subChapter.order),
     );
 
-    const modulePayload = {
+    const subChapterPayload = {
       title: subChapterTitle,
       description: String(subChapter.description || "").trim() || undefined,
       order: Number(subChapter.order) || 0,
+      contents: [],
     };
 
     if (existingIndex >= 0) {
-      modules[existingIndex] = {
-        ...modules[existingIndex],
-        ...modulePayload,
+      subChapters[existingIndex] = {
+        ...subChapters[existingIndex],
+        ...subChapterPayload,
       };
     } else {
-      modules.push(modulePayload as any);
+      subChapters.push(subChapterPayload as any);
     }
 
-    course.modules = modules as any;
-    course.markModified("modules");
+    (course as any).subChapters = subChapters as any;
+    course.markModified("subChapters");
     await course.save();
   }
 
@@ -369,7 +372,7 @@ export class SubjectsService {
             instructorId,
           },
           $setOnInsert: {
-            modules: [],
+            subChapters: [],
           },
         },
         { upsert: true, new: true, setDefaultsOnInsert: true },

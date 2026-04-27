@@ -122,6 +122,7 @@ def _ollama_generate_text(*, prompt: str, model_name: str | None) -> str:
     opts = {
         "temperature": float(getattr(config, "OLLAMA_LEVEL_TEST_TEMPERATURE", 0.4)),
         "top_p": 0.9,
+        "repeat_penalty": float(getattr(config, "OLLAMA_REPEAT_PENALTY", 1.2)),
         "num_ctx": int(getattr(config, "OLLAMA_LEVEL_TEST_NUM_CTX", 2048)),
         "num_predict": int(getattr(config, "OLLAMA_LEVEL_TEST_NUM_PREDICT", 1024)),
     }
@@ -268,34 +269,105 @@ def validate_question_quality(
     question_dict: dict,
     course_content: str,
     topic: str | None = None,
-) -> bool:
+    subject: str | None = None,
+) -> dict[str, Any]:
     canonicalize_correct_answer_in_place(question_dict)
     issues: list[str] = []
-    r = reject_level_test_question(
-        question_dict, slot_topic=topic, course_context=course_content, require_french=True
-    )
-    if r:
-        issues.append(f"Rejected pattern: {r}")
-    if topic and str(topic).strip() and not topic_slot_aligned(question_dict, str(topic).strip()):
-        issues.append("Question does not align with the target topic.")
 
     q_text = _strip_accents(str(question_dict.get("question") or "")).lower().strip()
-    options_text = _strip_accents(" ".join(str(x) for x in (question_dict.get("options") or []))).lower()
+    options = question_dict.get("options") or []
+    options_text = _strip_accents(" ".join(str(x) for x in options)).lower()
     correct_raw = str(question_dict.get("correct_answer") or "")
     correct_norm = _strip_accents(correct_raw).lower().strip()
+    topic_norm = _strip_accents(str(topic or "")).lower().strip()
+    subject_norm = _strip_accents(str(subject or "")).lower().strip()
+
+    # RULE 1: reject meta-questions that reference chapter/topic names.
+    if topic_norm:
+        meta_patterns = [
+            f"concernant {topic_norm}",
+            f"dans {topic_norm}, quelle",
+            f"« {topic_norm} »",
+            f"le chapitre {topic_norm}",
+            f"la notion {topic_norm}",
+        ]
+        if subject_norm:
+            meta_patterns.append(f"dans {subject_norm}")
+        for pattern in meta_patterns:
+            if pattern in q_text:
+                issues.append(f"Question meta-references topic name: '{pattern}'")
+                print(f"[question_generator] REJECTED meta-question: {q_text[:120]!r}")
+                return {"is_valid": False, "issues": issues}
+
+    # RULE 2: reject circular/meta answers.
+    circular_phrases = [
+        "correspond a ce qui est presente dans le cours",
+        "correspond a ce qui est dans le cours",
+        "est presente dans le cours",
+        "selon le cours",
+        "d'apres le cours",
+        "comme indique dans le cours",
+    ]
+    for phrase in circular_phrases:
+        if phrase in correct_norm or phrase in options_text:
+            issues.append(f"Circular/meta answer detected: '{phrase}'")
+            print(f"[question_generator] REJECTED circular answer: {correct_norm[:120]!r}")
+            return {"is_valid": False, "issues": issues}
+
+    # RULE 3: reject vague answers.
+    vague_answers = [
+        "tous les elements ci-dessus",
+        "aucune des reponses",
+        "toutes les reponses",
+        "option a, b, c",
+        "none of the above",
+        "all of the above",
+    ]
+    if any(phrase in correct_norm for phrase in vague_answers):
+        issues.append("Answer is too vague")
+        return {"is_valid": False, "issues": issues}
 
     option_norms = [
         _strip_accents(str(x)).lower().strip()
         for x in (question_dict.get("options") or [])
     ]
+    # RULE 4: options must be distinct.
+    if len(option_norms) != len(set(option_norms)):
+        issues.append("Duplicate options")
+        return {"is_valid": False, "issues": issues}
     if len(set(option_norms)) < 3:
         issues.append("Options are not distinct enough.")
 
-    course_terms = extract_key_terms(course_content, min_length=3)
-    if course_terms:
-        combined = f"{q_text} {options_text} {correct_norm}"
-        if not any(term in combined for term in course_terms):
-            issues.append("Question/options don't seem grounded in provided course content.")
+    # RULE 5: correct answer must appear in options.
+    if correct_norm and option_norms:
+        if correct_norm not in option_norms:
+            issues.append("Correct answer not in options")
+            return {"is_valid": False, "issues": issues}
+
+    # Keep existing hard rejection patterns from quality module.
+    r = reject_level_test_question(
+        question_dict, slot_topic=topic, course_context=course_content, require_french=True
+    )
+    if r:
+        issues.append(f"Rejected pattern: {r}")
+        return {"is_valid": False, "issues": issues}
+
+    # RULE 6: options must be specific enough.
+    for i, opt in enumerate(options):
+        if len(str(opt).strip()) < 5:
+            issues.append(f"Option {i + 1} too short: '{opt}'")
+
+    # RULE 7 removed: content-vocabulary overlap was too strict and rejected many valid questions.
+
+    # RULE 8: minimum length for meaningful question.
+    if len(q_text) < 20:
+        issues.append("Question too short")
+
+    # Keep topic alignment check.
+    if topic_norm:
+        topic_aligned = topic_slot_aligned(question_dict, topic_norm, course_content)
+        if not topic_aligned:
+            issues.append("Question does not align with the target topic.")
 
     if correct_norm and option_norms:
         def _trim_trivial(s: str) -> str:
@@ -317,8 +389,9 @@ def validate_question_quality(
 
     if issues:
         print(f"[question_generator] validate_question_quality issues: {issues}")
-        return False
-    return True
+        return {"is_valid": False, "issues": issues}
+    print(f"[question_generator] Question passed validation: {q_text[:80]!r}")
+    return {"is_valid": True, "issues": []}
 
 
 def _generate_level_test_llm(prompt: str) -> str:
@@ -326,12 +399,7 @@ def _generate_level_test_llm(prompt: str) -> str:
     text = _ollama_generate_text(prompt=prompt, model_name=primary)
     if text:
         return text
-    fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", None) or "").strip()
-    if fb:
-        text = _ollama_generate_text(prompt=prompt, model_name=fb)
-        if text:
-            return text
-    return _ollama_generate_text(prompt=prompt, model_name=config.OLLAMA_MODEL)
+    return ""
 
 
 def validate_question(question_dict):
@@ -342,6 +410,8 @@ def validate_question(question_dict):
     """
     if not question_dict or not isinstance(question_dict, dict):
         return False
+    if "explanation" not in question_dict:
+        question_dict["explanation"] = ""
     for key in REQUIRED_QUESTION_FIELDS:
         if key not in question_dict:
             return False
@@ -358,6 +428,8 @@ def generate_level_test_question(
     topic="general",
     *,
     diversity_seed: str | None = None,
+    course_ids: list[str] | None = None,
+    previous_questions: list[str] | None = None,
 ):
     """
     Generates a single level test question using the prompt template and Ollama LLM.
@@ -366,32 +438,111 @@ def generate_level_test_question(
     """
     rag_service = RAGService.get_instance()
     context_query = f"{subject} {topic}".strip()
-    course_content = rag_service.get_context_for_query(context_query, max_chunks=3)
+    cids = [str(x).strip() for x in (course_ids or []) if str(x).strip()]
+    if cids and hasattr(rag_service, "get_context_for_course_ids"):
+        course_content = rag_service.get_context_for_course_ids(
+            context_query, cids, max_chunks=8
+        )
+        if not (course_content or "").strip():
+            course_content = rag_service.get_context_for_course_ids(
+                subject, cids, max_chunks=8
+            )
+    else:
+        course_content = rag_service.get_context_for_query(context_query, max_chunks=3)
     if not course_content or len(course_content) < 50:
-        course_content = rag_service.get_context_for_query(subject, max_chunks=5)
+        if cids and hasattr(rag_service, "get_context_for_course_ids"):
+            # Strict filtered mode: never fall back to global query when course_ids are provided.
+            course_content = rag_service.get_context_for_course_ids(
+                subject, cids, max_chunks=10
+            )
+        else:
+            if not course_content or len(course_content) < 50:
+                course_content = rag_service.get_context_for_query(context_query, max_chunks=5)
+            if not course_content or len(course_content) < 50:
+                course_content = rag_service.get_context_for_query(subject, max_chunks=5)
     course_content = (course_content or "").strip()
     # Keep within small-model context limits (ctx is typically 2048–4096).
     if len(course_content) > 2800:
         course_content = course_content[:2800]
 
-    base_prompt = prompt_templates.get_level_test_prompt(subject, difficulty, topic)
+    prev_q = previous_questions or []
+    prev_blob = "\n".join(f"- {str(x)[:120]}" for x in prev_q[:10]) or "- (aucune)"
+    prompt = f"""Tu es un professeur qui crée une question d'examen pour tester les connaissances.
+
+LANGUE: Français UNIQUEMENT. Toute la question et toutes les réponses DOIVENT être en français.
+
+MATIÈRE: {subject}
+SUJET SPÉCIFIQUE: {topic}
+DIFFICULTÉ: {difficulty}
+
+CONTENU DU COURS (BASE tes questions sur CE CONTENU):
+{course_content[:1800]}
+
+QUESTIONS DÉJÀ POSÉES (NE PAS RÉPÉTER):
+{prev_blob}
+
+RÈGLES ABSOLUES:
+1. Question et réponses 100% en FRANÇAIS
+2. La question DOIT tester une CONNAISSANCE SPÉCIFIQUE du contenu ci-dessus
+3. La question DOIT être en rapport direct avec "{topic}" — utilise le vocabulaire du sujet dans ta question
+4. NE PAS créer de questions génériques comme "Dans {topic}, quelle pratique..."
+5. NE PAS mentionner le nom du chapitre dans la question
+6. Options DISTINCTES et SPÉCIFIQUES (pas "Étape 1, Étape 2...")
+7. UNE SEULE réponse correcte qui correspond EXACTEMENT à une des 4 options
+8. correct_answer DOIT être le texte EXACT d'une option, pas une lettre
+
+FRANÇAIS UNIQUEMENT. Réponds UNIQUEMENT avec le JSON, rien d'autre:
+{{
+  "question": "...",
+  "options": ["...", "...", "...", "..."],
+  "correct_answer": "...",
+  "difficulty": "{difficulty}",
+  "topic": "{topic}"
+}}
+"""
     if diversity_seed:
-        base_prompt = (
-            base_prompt
-            + "\n\nSESSION / DIVERSITY: "
+        prompt += (
+            "\n\nSESSION / DIVERSITY: "
             + str(diversity_seed).strip()
-            + "\nInstruction: cette session doit différer des autres — varie angles et exemples; "
-            "reste fidèle au contenu et au sujet. Tout le texte de la question doit être en français."
+            + "\nVarie les angles et exemples, sans sortir du contenu fourni."
         )
 
-    prompt = (
-        f"{base_prompt}\n\n"
-        f"COURSE CONTENT (from ChromaDB / course database via RAG):\n{course_content}\n\n"
-        f"Return STRICT JSON only (no markdown fences). French only for question, options, explanation.\n"
-    )
-
     invalid_json_count = 0
-    for attempt in range(3):
+
+    def _normalize_generated_mcq(raw: dict[str, Any]) -> dict[str, Any] | None:
+        if not isinstance(raw, dict):
+            return None
+        qtxt = str(raw.get("question") or raw.get("questionText") or "").strip()
+        options_raw = raw.get("options")
+        options: list[str] = []
+        if isinstance(options_raw, dict):
+            options = [str(options_raw.get(k, "")).strip() for k in ("A", "B", "C", "D")]
+            options = [o for o in options if o]
+        elif isinstance(options_raw, list):
+            options = [str(x).strip() for x in options_raw if str(x).strip()]
+            if len(options) == 4:
+                options = [re.sub(r"^[A-Da-d]\s*[\)\.\-:]\s*", "", o).strip() for o in options]
+        if len(options) != 4:
+            return None
+        corr = str(raw.get("correct_answer") or raw.get("correctAnswer") or "").strip()
+        if re.fullmatch(r"[A-Da-d]", corr):
+            corr = options[ord(corr.upper()) - ord("A")]
+        corr = re.sub(r"^[A-Da-d]\s*[\)\.\-:]\s*", "", corr).strip()
+        out = {
+            "question": qtxt,
+            "questionText": qtxt,
+            "options": options,
+            "correct_answer": corr,
+            "correctAnswer": corr,
+            "difficulty": str(raw.get("difficulty") or difficulty).strip().lower() or difficulty,
+            "topic": str(raw.get("topic") or topic).strip() or topic,
+            "explanation": str(raw.get("explanation") or "").strip(),
+        }
+        if not out["explanation"]:
+            out["explanation"] = "Réponse justifiée par le contenu fourni."
+        return out
+    llm_attempts = max(1, int(getattr(config, "LEVEL_TEST_LLM_ATTEMPTS", 1)))
+    for attempt in range(llm_attempts):
         try:
             strict_suffix = ""
             if attempt >= 1:
@@ -426,16 +577,10 @@ def generate_level_test_question(
                         data = repaired
                 else:
                     if invalid_json_count >= 2:
-                        fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "") or "").strip()
-                        if fb:
-                            response_fb = _ollama_generate_text(prompt=final_prompt, model_name=fb)
-                            if response_fb:
-                                data = parse_json_response(response_fb) or repair_to_strict_json(
-                                    response_fb, model_name=fb
-                                )
-                                if data is None:
-                                    continue
                         continue
+                continue
+            data = _normalize_generated_mcq(data)
+            if data is None:
                 continue
             if not validate_question(data):
                 print(
@@ -444,9 +589,23 @@ def generate_level_test_question(
                 )
                 continue
 
-            if validate_question_quality(data, course_content, topic=topic):
+            quality = validate_question_quality(
+                data,
+                course_content,
+                topic=topic,
+                subject=subject,
+            )
+            if quality.get("is_valid") and prev_q:
+                n_new = _strip_accents(data.get("question", "")).lower()
+                for old in prev_q:
+                    n_old = _strip_accents(str(old)).lower()
+                    if n_old and (n_old in n_new or n_new in n_old):
+                        quality = {"is_valid": False, "issues": ["Too similar to previous questions"]}
+                        break
+            if quality.get("is_valid"):
                 return data
-            print("[question_generator] Question failed validation; retrying...")
+            reasons = quality.get('issues', ['unknown'])
+            print(f"[question_generator] Question failed validation: {reasons}; retrying...")
         except Exception as e:
             print(f"[question_generator] generate_level_test_question error: {e}")
     return None

@@ -15,6 +15,7 @@ export class LevelTest {
       options: [String],
       correctAnswer: String,
       topic: String,
+      chapter_title: String,
       difficulty: String
     }],
     default: []
@@ -24,6 +25,7 @@ export class LevelTest {
     options: string[];
     correctAnswer: string;
     topic: string;
+    chapter_title?: string;
     difficulty: string;
   }[];
 
@@ -52,10 +54,11 @@ export class LevelTest {
   })
   resultLevel: string;
 
-  // ── Changé : objets au lieu de strings ──
   @Prop({
     type: [{
       topic: String,
+      chapter: String,
+      subject: String,
       score: Number,
       correct: Number,
       total: Number
@@ -64,14 +67,18 @@ export class LevelTest {
   })
   detectedStrengths: {
     topic: string;
+    chapter?: string;
+    subject?: string;
     score: number;
-    correct: number;
-    total: number;
+    correct?: number;
+    total?: number;
   }[];
 
   @Prop({
     type: [{
       topic: String,
+      chapter: String,
+      subject: String,
       score: Number,
       correct: Number,
       total: Number
@@ -80,9 +87,11 @@ export class LevelTest {
   })
   detectedWeaknesses: {
     topic: string;
+    chapter?: string;
+    subject?: string;
     score: number;
-    correct: number;
-    total: number;
+    correct?: number;
+    total?: number;
   }[];
 
   @Prop({

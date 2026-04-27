@@ -104,6 +104,7 @@ def embed_all_chunks(chunks: list[dict], show_progress: bool = True) -> list[dic
 def store_chunks_in_chromadb(
     chunks: list[dict],
     collection_name: str = "course_chunks",
+    replace_existing: bool = True,
 ) -> int:
     """
     Stores embedded chunks in ChromaDB. Skips chunks without embedding or duplicate chunk_id.
@@ -130,7 +131,7 @@ def store_chunks_in_chromadb(
             if c.get("embedding") is None:
                 continue
             cid = c.get("chunk_id")
-            if not cid or cid in existing_ids:
+            if not cid:
                 continue
             ids.append(cid)
             documents.append((c.get("text") or "")[:100000])
@@ -141,6 +142,12 @@ def store_chunks_in_chromadb(
         if not ids:
             logger.info("store_chunks_in_chromadb: no new chunks to add (all skipped)")
             return 0
+        if replace_existing and ids:
+            try:
+                collection.delete(ids=ids)
+            except Exception:
+                # Best-effort delete; add still works for new ids.
+                pass
         collection.add(ids=ids, documents=documents, embeddings=embeddings, metadatas=metadatas)
         logger.info("store_chunks_in_chromadb: stored %s chunks", len(ids))
         return len(ids)

@@ -19,6 +19,7 @@ import { CodebattleModule } from './codebattle/codebattle.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { ReportModule } from './report/report.module';
 import { PrositsModule } from './prosits/prosits.module';
+import { CoursesModule } from './courses/courses.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { PrositsModule } from './prosits/prosits.module';
     ChatModule,
     BrainrushModule,
     SubjectsModule,
+    CoursesModule,
     PrositsModule,
     CodebattleModule,
   ],

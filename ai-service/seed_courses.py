@@ -35,7 +35,7 @@ def seed_courses():
             "title": "Mathematics Fundamentals",
             "description": "Master the core concepts of mathematics including algebra, geometry, calculus, and statistics.",
             "level": "beginner",
-            "modules": [
+            "subChapters": [
                 {
                     "id": "math_algebra",
                     "title": "Algebra",
@@ -73,7 +73,7 @@ def seed_courses():
             "title": "General Science",
             "description": "Comprehensive introduction to physics, chemistry, and biology.",
             "level": "beginner",
-            "modules": [
+            "subChapters": [
                 {
                     "id": "sci_physics",
                     "title": "Physics",
@@ -111,7 +111,7 @@ def seed_courses():
             "title": "English & Literature",
             "description": "Develop reading, writing, and literary analysis skills.",
             "level": "beginner",
-            "modules": [
+            "subChapters": [
                 {
                     "id": "eng_grammar",
                     "title": "Grammar",
@@ -149,7 +149,7 @@ def seed_courses():
             "title": "World History",
             "description": "Explore major historical events and civilizations.",
             "level": "beginner",
-            "modules": [
+            "subChapters": [
                 {
                     "id": "hist_ancient",
                     "title": "Ancient Civilizations",

@@ -341,7 +341,7 @@ savingPrositEdit = false;
     this.loadingSubjects = true;
     this.error = '';
 
-    this.subjectsService.getSubjects(String(instructorId)).subscribe({
+    this.subjectsService.getSubjects(String(instructorId), false).subscribe({
       next: (rows) => {
         let loadedSubjects = Array.isArray(rows) ? rows : [];
         
@@ -392,7 +392,7 @@ savingPrositEdit = false;
     this.loadingSubject = true;
     this.error = '';
 
-    this.subjectsService.getSubject(subjectId).subscribe({
+    this.subjectsService.getSubject(subjectId, false).subscribe({
       next: (subject) => {
         this.selectedSubject = this.normalizeContentFolders(subject);
         this.loadInstructorQuizFileSubmissions();

@@ -57,7 +57,8 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     
     this.route.queryParams.subscribe(params => {
       const subject = params['subject'];
-      this.initializeTest(subject ? [subject] : []);
+      const subjectId = params['subjectId'];
+      this.initializeTest(subject ? [subject] : [], subjectId);
     });
   }
 
@@ -67,8 +68,8 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     }
   }
 
-  initializeTest(subjects: string[] = []) {
-    this.adaptiveService.startLevelTestStage(subjects).subscribe({
+  initializeTest(subjects: string[] = [], subjectId?: string) {
+    this.adaptiveService.startLevelTestStage(subjects, subjectId).subscribe({
       next: (response) => this.setupTestFromSession(response),
       error: () => (this.loading = false),
     });
@@ -139,6 +140,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       options: question.options || [],
       difficulty: question.difficulty || 'medium',
       topic: question.topic || 'General',
+      chapter_title: question.chapter_title || '',
       subject: question.subject || '',
       pending: false,
     };
@@ -520,6 +522,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
         questionText: q?.question || q?.questionText || `Question ${idx + 1}`,
         options: Array.isArray(q?.options) ? q.options : [],
         topic: q.topic || 'General',
+        chapter_title: q.chapter_title || '',
         difficulty: q?.difficulty || 'beginner',
       }));
 
@@ -534,12 +537,20 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
     const detectedStrengths = (profile?.strengths || []).map((s: any) => ({
       topic: s?.title || 'General',
+      chapter: s?.chapter || '',
+      subject: s?.subject || '',
       score: Math.round(s?.mastery || 0),
+      correct: s?.correct,
+      total: s?.total,
     }));
 
     const detectedWeaknesses = (profile?.weaknesses || []).map((w: any) => ({
       topic: w?.title || 'General',
+      chapter: w?.chapter || '',
+      subject: w?.subject || '',
       score: Math.round(w?.mastery || 0),
+      correct: w?.correct,
+      total: w?.total,
     }));
 
     return {
