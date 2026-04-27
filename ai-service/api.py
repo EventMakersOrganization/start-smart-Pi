@@ -4054,5 +4054,148 @@ async def interventions_effectiveness_global():
         raise HTTPException(status_code=500, detail=f"Global intervention effectiveness failed: {e}")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# VIDEO GENERATION  —  Course → Narrated Avatar Video (D-ID)
+# ─────────────────────────────────────────────────────────────────────────────
+
+import threading
+from video.script_generator import ScriptGenerator
+from video.slide_renderer import SlideRenderer
+from video.avatar_service import AvatarService
+
+# In-memory job store  { job_id: { status, result, error, script, slides } }
+_video_jobs: dict[str, dict] = {}
+_video_lock = threading.Lock()
+
+_script_gen  = ScriptGenerator()
+_slide_rend  = SlideRenderer()
+_avatar_svc  = AvatarService()
+
+
+class VideoGenerateRequest(BaseModel):
+    course_content: str = Field(..., min_length=50, max_length=20000,
+                                description="Raw course text to convert to video")
+    language: str       = Field(default="en", description="'en' or 'fr'")
+    presenter_url: str | None = Field(default=None,
+                                      description="Optional custom avatar image URL (D-ID)")
+
+
+class VideoStatusResponse(BaseModel):
+    job_id: str
+    status: str          # pending | processing | done | error
+    avatar_url: str | None = None
+    slide_count: int = 0
+    script_title: str | None = None
+    error: str | None = None
+
+
+def _run_video_pipeline(job_id: str, content: str, language: str, presenter_url: str | None):
+    """Background thread that runs the full pipeline."""
+    def _update(patch: dict):
+        with _video_lock:
+            _video_jobs[job_id].update(patch)
+
+    try:
+        _update({"status": "processing", "step": "generating_script"})
+
+        # 1. Generate script via Ollama
+        script = _script_gen.generate(content)
+        _update({"script": script, "step": "rendering_slides"})
+
+        # 2. Render PNG slides
+        slide_paths = _slide_rend.render_all(script, job_id)
+        _update({"slide_count": len(slide_paths), "step": "avatar_video"})
+
+        # 3. Build full narration text for D-ID
+        narration = "\n\n".join(
+            s.get("narration", "") for s in script.get("scenes", [])
+        )
+
+        # 4. Create avatar video via D-ID (returns None if key not configured)
+        avatar_url = _avatar_svc.create_video(narration, language, presenter_url)
+
+        _update({
+            "status": "done",
+            "step": "complete",
+            "avatar_url": avatar_url,
+            "script_title": script.get("title", ""),
+        })
+        logger.info(f"[video] Job {job_id} complete. avatar_url={avatar_url}")
+
+    except Exception as exc:
+        logger.exception(f"[video] Job {job_id} failed: {exc}")
+        _update({"status": "error", "error": str(exc), "step": "failed"})
+
+
+@app.post("/video/generate", summary="Course → Narrated Avatar Video (async)")
+async def video_generate(req: VideoGenerateRequest):
+    """
+    Submit a video generation job.
+
+    Pipeline (runs in background):
+      1. Ollama generates a structured video script from course content
+      2. Pillow renders PNG slides for each scene
+      3. D-ID API (free tier) creates a talking-avatar MP4
+
+    Returns a job_id — poll GET /video/status/{job_id} for the result.
+    """
+    job_id = str(uuid.uuid4())
+    with _video_lock:
+        _video_jobs[job_id] = {
+            "status": "pending",
+            "step": "queued",
+            "avatar_url": None,
+            "slide_count": 0,
+            "script_title": None,
+            "error": None,
+        }
+
+    thread = threading.Thread(
+        target=_run_video_pipeline,
+        args=(job_id, req.course_content, req.language, req.presenter_url),
+        daemon=True,
+    )
+    thread.start()
+    logger.info(f"[video] Job {job_id} queued")
+    return {"job_id": job_id, "status": "pending"}
+
+
+@app.get("/video/status/{job_id}", response_model=VideoStatusResponse,
+         summary="Poll video generation job status")
+async def video_status(job_id: str):
+    """
+    Poll the status of a video generation job.
+
+    status values:
+      - pending     → job queued, not started
+      - processing  → pipeline running (check 'step' for current phase)
+      - done        → complete; avatar_url contains the D-ID video link
+      - error       → failed; see 'error' field
+    """
+    with _video_lock:
+        job = _video_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    return VideoStatusResponse(
+        job_id=job_id,
+        status=job.get("status", "unknown"),
+        avatar_url=job.get("avatar_url"),
+        slide_count=job.get("slide_count", 0),
+        script_title=job.get("script_title"),
+        error=job.get("error"),
+    )
+
+
+@app.get("/video/jobs", summary="List all video generation jobs (debug)")
+async def video_list_jobs():
+    """Return a summary of all in-memory video jobs."""
+    with _video_lock:
+        summary = {
+            jid: {"status": j.get("status"), "step": j.get("step"), "title": j.get("script_title")}
+            for jid, j in _video_jobs.items()
+        }
+    return {"total": len(summary), "jobs": summary}
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

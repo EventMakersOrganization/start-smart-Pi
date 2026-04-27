@@ -240,7 +240,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private adaptiveService: AdaptiveLearningService,
     private subjectsService: SubjectsService,
-  ) {}
+  ) { }
 
   private collectRoles(): string[] {
     const normalized = new Set<string>();
@@ -347,10 +347,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
       const reason = this.cleanRecommendationText(
         rec?.rationale ||
-          rec?.reason ||
-          rec?.description ||
-          rec?.relevant_material_preview ||
-          rec?.action,
+        rec?.reason ||
+        rec?.description ||
+        rec?.relevant_material_preview ||
+        rec?.action,
       );
 
       const successProbability = this.normalizePercent(
@@ -368,9 +368,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         reason: reason || 'Updated from your latest progress.',
         level: this.cleanRecommendationText(
           rec?.priority ||
-            rec?.type ||
-            rec?.category ||
-            rec?.suggestedDifficulty,
+          rec?.type ||
+          rec?.category ||
+          rec?.suggestedDifficulty,
         ),
         duration:
           Number.isFinite(effortHours) && effortHours > 0
@@ -521,8 +521,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       : [];
     const weakFromConcepts = Array.isArray(this.conceptWeaknesses)
       ? this.conceptWeaknesses
-          .map((item: any) => String(item?.concept || '').trim())
-          .filter((item: string) => !!item)
+        .map((item: any) => String(item?.concept || '').trim())
+        .filter((item: string) => !!item)
       : [];
 
     const weaknesses = Array.from(
@@ -536,11 +536,11 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       sourceRecommendations.length > 0
         ? sourceRecommendations
         : weaknesses.slice(0, 6).map((topic) => ({
-            subject: topic,
-            focus_topics: [topic],
-            priority: 'high',
-            rationale: `Reinforce ${topic} through guided practice.`,
-          }));
+          subject: topic,
+          focus_topics: [topic],
+          priority: 'high',
+          rationale: `Reinforce ${topic} through guided practice.`,
+        }));
 
     return {
       ...profile,
@@ -635,7 +635,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           points_gamification: data?.profile?.points_gamification,
         };
       },
-      error: () => {},
+      error: () => { },
     });
   }
 
@@ -759,7 +759,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           this.buildTopicRings();
         }
       },
-      error: () => {},
+      error: () => { },
     });
 
     // ── Charger recommandations (AI service + fallback backend) ──
@@ -1894,9 +1894,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     const totalScore =
       Number(
         profile?.levelTestScore ??
-          profile?.level_test_score ??
-          profile?.progress ??
-          0,
+        profile?.level_test_score ??
+        profile?.progress ??
+        0,
       ) || 0;
     const resultLevel = profile?.level || 'beginner';
     const strengths = Array.isArray(profile?.strengths)
@@ -2001,7 +2001,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       this.router.url.includes('/student-dashboard/learning-path') ||
       this.router.url.includes('/student-dashboard/continue-learning') ||
       this.router.url.includes('/student-dashboard/chat') ||
-      this.router.url.includes('/student-dashboard/profile')
+      this.router.url.includes('/student-dashboard/profile') ||
+      this.router.url.includes('/student-dashboard/video-generator')
     );
   }
 

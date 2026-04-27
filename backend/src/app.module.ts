@@ -19,6 +19,7 @@ import { CodebattleModule } from './codebattle/codebattle.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { ReportModule } from './report/report.module';
 import { PrositsModule } from './prosits/prosits.module';
+import { VideoGeneratorModule } from './video-generator/video-generator.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { PrositsModule } from './prosits/prosits.module';
     SubjectsModule,
     PrositsModule,
     CodebattleModule,
+    VideoGeneratorModule,
   ],
   controllers: [AppController],
   providers: [],

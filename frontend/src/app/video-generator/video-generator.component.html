@@ -1,0 +1,138 @@
+<section class="vg-page">
+
+    <!-- ── HERO HEADER ─────────────────────────────── -->
+    <header class="vg-hero">
+        <div class="vg-hero__badge">
+            <span class="vg-hero__icon">🎬</span>
+            <span class="vg-hero__tag">AI · D-ID Avatar</span>
+        </div>
+        <h1 class="vg-hero__title">Course to Explainer Video</h1>
+        <p class="vg-hero__sub">
+            Paste your course content → our AI writes the script, generates slides,
+            and creates a <strong>talking avatar video</strong> in minutes.
+        </p>
+    </header>
+
+    <!-- ── INPUT FORM ──────────────────────────────── -->
+    <div class="vg-card" *ngIf="state === 'idle'">
+        <div class="vg-form">
+
+            <div class="vg-field">
+                <label class="vg-label" for="lang">Language</label>
+                <div class="vg-radio-group">
+                    <label class="vg-radio" [class.active]="language === 'en'">
+                        <input type="radio" id="lang-en" name="lang" value="en" [(ngModel)]="language"> 🇬🇧 English
+                    </label>
+                    <label class="vg-radio" [class.active]="language === 'fr'">
+                        <input type="radio" id="lang-fr" name="lang" value="fr" [(ngModel)]="language"> 🇫🇷 Français
+                    </label>
+                </div>
+            </div>
+
+            <div class="vg-field">
+                <label class="vg-label" for="content">Course Content</label>
+                <p class="vg-hint">Paste your lecture notes, markdown, or any educational text (50–20 000 chars)</p>
+                <textarea id="content" class="vg-textarea" rows="14"
+                    placeholder="e.g. Chapter 1: Introduction to Algorithms&#10;&#10;An algorithm is a finite sequence of well-defined instructions..."
+                    [(ngModel)]="courseContent"></textarea>
+                <span class="vg-char-count" [class.warn]="courseContent.length > 18000">
+                    {{ courseContent.length }} / 20 000
+                </span>
+            </div>
+
+            <button class="vg-btn vg-btn--primary" id="btn-generate" (click)="generate()"
+                [disabled]="courseContent.trim().length < 50">
+                <span class="vg-btn__icon">🚀</span> Generate Video
+            </button>
+
+        </div>
+    </div>
+
+    <!-- ── PROCESSING ───────────────────────────────── -->
+    <div class="vg-card vg-card--processing" *ngIf="state === 'loading'">
+        <div class="vg-processing">
+            <div class="vg-avatar-anim">
+                <div class="vg-avatar-ring"></div>
+                <div class="vg-avatar-ring vg-avatar-ring--2"></div>
+                <span class="vg-avatar-emoji">🤖</span>
+            </div>
+            <h2 class="vg-processing__title">AI is working…</h2>
+            <p class="vg-processing__step">{{ currentStep }}</p>
+
+            <div class="vg-progress-wrap">
+                <div class="vg-progress-bar">
+                    <div class="vg-progress-fill" [style.width.%]="progress"></div>
+                </div>
+                <span class="vg-progress-pct">{{ progress }}%</span>
+            </div>
+
+            <div class="vg-steps">
+                <div class="vg-step" [class.active]="progress >= 5" [class.done]="progress >= 30">
+                    <span class="vg-step__dot"></span> Script Generation
+                </div>
+                <div class="vg-step" [class.active]="progress >= 30" [class.done]="progress >= 60">
+                    <span class="vg-step__dot"></span> Slide Rendering
+                </div>
+                <div class="vg-step" [class.active]="progress >= 60" [class.done]="progress >= 100">
+                    <span class="vg-step__dot"></span> Avatar Video (D-ID)
+                </div>
+            </div>
+
+            <p class="vg-processing__note">
+                ⏱ This usually takes 1-3 minutes. You can leave this page and come back.
+            </p>
+        </div>
+    </div>
+
+    <!-- ── RESULT ────────────────────────────────────── -->
+    <div class="vg-card vg-card--result" *ngIf="state === 'done' && job">
+
+        <div class="vg-result-header">
+            <div class="vg-result-badge">✅ Video Ready</div>
+            <h2 class="vg-result-title">{{ job.scriptTitle || 'Your Video' }}</h2>
+            <p class="vg-result-meta">
+                <span>{{ job.slideCount }} slides generated</span>
+                <span *ngIf="job.avatarUrl"> · Talking avatar included</span>
+            </p>
+        </div>
+
+        <!-- D-ID Avatar Video -->
+        <div class="vg-video-wrap" *ngIf="job.avatarUrl">
+            <video id="avatar-video" class="vg-video" [src]="job.avatarUrl" controls autoplay playsinline></video>
+        </div>
+
+        <!-- Fallback: no avatar (D-ID key not set) -->
+        <div class="vg-no-avatar" *ngIf="!job.avatarUrl">
+            <div class="vg-no-avatar__icon">📊</div>
+            <p>
+                <strong>Avatar video unavailable</strong> — <code>DID_API_KEY</code> not configured in
+                <code>ai-service/.env</code>.<br>
+                The script and slides were still generated successfully ({{ job.slideCount }} slides).
+            </p>
+            <a class="vg-link" href="https://www.d-id.com/" target="_blank" rel="noopener">
+                Get your free D-ID API key →
+            </a>
+        </div>
+
+        <div class="vg-result-actions">
+            <button class="vg-btn vg-btn--secondary" id="btn-new-video" (click)="reset()">
+                🔄 Generate Another Video
+            </button>
+            <a *ngIf="job.avatarUrl" class="vg-btn vg-btn--primary" [href]="job.avatarUrl" target="_blank" download>
+                ⬇ Download Video
+            </a>
+        </div>
+    </div>
+
+    <!-- ── ERROR ─────────────────────────────────────── -->
+    <div class="vg-card vg-card--error" *ngIf="state === 'error'">
+        <div class="vg-error">
+            <span class="vg-error__icon">⚠️</span>
+            <h2>Generation Failed</h2>
+            <p class="vg-error__msg">{{ currentStep }}</p>
+            <p *ngIf="job?.error" class="vg-error__detail">{{ job?.error }}</p>
+            <button class="vg-btn vg-btn--secondary" (click)="reset()">Try Again</button>
+        </div>
+    </div>
+
+</section>
