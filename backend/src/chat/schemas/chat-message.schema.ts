@@ -16,11 +16,14 @@ export class ChatMessage {
   @Prop({ type: mongoose.Schema.Types.Mixed, required: true })
   sender: string | Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   content: string;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
   readBy: (User | Types.ObjectId)[];
+
+  @Prop({ type: [{ url: String, filename: String, fileType: String }], default: [] })
+  attachments: { url: string; filename: string; fileType: string }[];
 }
 
 export const ChatMessageSchema = SchemaFactory.createForClass(ChatMessage);

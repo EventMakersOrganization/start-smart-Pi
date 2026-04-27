@@ -282,6 +282,126 @@ export class ChatService {
     return room.save();
   }
 
+  async addParticipantsToRoom(studentId: string, roomId: string, participants: string[]) {
+    const room = await this.chatRoomModel.findById(roomId);
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    const currentIds = room.participants.map(p => p.toString());
+    if (!currentIds.includes(studentId)) {
+      throw new UnauthorizedException('You are not a member of this group.');
+    }
+
+    const studentClass = await this.getStudentClass(studentId);
+    if (!studentClass) {
+      throw new UnauthorizedException('Your class is not set.');
+    }
+
+    const newIds = (participants || []).map(id => String(id)).filter(id => !currentIds.includes(id));
+    if (newIds.length === 0) return this.resolveParticipants(room.toObject());
+
+    const validObjectIds = newIds
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+
+    const students = await this.userModel
+      .find({ _id: { $in: validObjectIds }, role: { $regex: /^student$/i } })
+      .select('_id')
+      .lean();
+
+    const studentIds = students.map((s: any) => String(s._id));
+    const studentObjectIds = studentIds
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+
+    const sameClassProfiles = await this.studentProfileModel
+      .find({
+        $and: [
+          {
+            $or: [
+              { class: studentClass },
+              { academic_level: studentClass },
+            ],
+          },
+          {
+            $or: [
+              { userId: { $in: studentObjectIds } },
+              { userId: { $in: studentIds } },
+            ],
+          },
+        ],
+      } as any)
+      .select('userId')
+      .lean();
+
+    const allowedIds = sameClassProfiles.map((p: any) => String(p.userId));
+    const invalidIds = newIds.filter(id => !allowedIds.includes(id));
+    if (invalidIds.length > 0) {
+      throw new UnauthorizedException('Some selected students are not in your class.');
+    }
+
+    for (const id of allowedIds) {
+      room.participants.push(new Types.ObjectId(id) as any);
+    }
+
+    await room.save();
+    return this.resolveParticipants(room.toObject());
+  }
+
+  async leaveRoom(userId: string, roomId: string) {
+    const room = await this.chatRoomModel.findById(roomId);
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    room.participants = room.participants.filter(p => p.toString() !== userId);
+    
+    if (room.participants.length === 0) {
+      // Potentially delete the room if empty
+      await this.chatRoomModel.findByIdAndDelete(roomId);
+      return { success: true, deleted: true };
+    }
+
+    await room.save();
+    return { success: true };
+  }
+
+  async renameRoom(userId: string, roomId: string, newName: string) {
+    console.log('Renaming room:', { userId, roomId, newName });
+    const room = await this.chatRoomModel.findById(roomId);
+    if (!room) {
+      console.log('Room not found:', roomId);
+      throw new NotFoundException('Room not found');
+    }
+
+    const participantIds = room.participants.map(p => p.toString());
+    console.log('Current participants:', participantIds);
+    if (!participantIds.includes(userId)) {
+      console.log('User not authorized to rename:', { userId, participants: participantIds });
+      throw new UnauthorizedException('You are not a member of this group.');
+    }
+
+    room.name = newName.trim() || 'Unnamed Group';
+    await room.save();
+    return this.resolveParticipants(room.toObject());
+  }
+
+  async updateAvatar(userId: string, roomId: string, avatarUrl: string) {
+    const room = await this.chatRoomModel.findById(roomId);
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    if (!room.participants.map(p => p.toString()).includes(userId)) {
+      throw new UnauthorizedException('You are not a member of this group.');
+    }
+
+    room.avatar = avatarUrl;
+    await room.save();
+    return this.resolveParticipants(room.toObject());
+  }
+
   async getUserSessions(userId: string, role?: string) {
     const aiSessions = await this.chatAiModel.find({ student: userId }).sort({ updatedAt: -1 }).lean();
     const rawInstructorSessions = await this.chatInstructorModel.find({ participants: userId }).sort({ updatedAt: -1 }).lean();
@@ -317,7 +437,10 @@ export class ChatService {
         throw new UnauthorizedException('Access denied to this AI chat.');
       }
     }
-    return this.chatMessageModel.find({ sessionType, sessionId }).sort({ createdAt: 1 }).lean();
+    return this.chatMessageModel.find({ sessionType, sessionId })
+      .sort({ createdAt: 1 })
+      .populate('sender', 'first_name last_name avatar')
+      .lean();
   }
 
   async getRecentHistory(sessionId: string, limit = 6) {
@@ -329,7 +452,7 @@ export class ChatService {
       .then((msgs) => msgs.reverse());
   }
 
-  async saveMessage(data: { sessionType: string; sessionId: string; sender: string | 'AI'; content: string }) {
+  async saveMessage(data: { sessionType: string; sessionId: string; sender: string | 'AI'; content: string; attachments?: any[] }) {
     const message = new this.chatMessageModel(data);
     await message.save();
 
@@ -345,8 +468,12 @@ export class ChatService {
     } catch (e) {
       console.error('Failed to update session timestamp', e);
     }
-
-    return message;
+    
+    const saved = await this.chatMessageModel.findById(message._id).lean();
+    if (data.sender !== 'AI') {
+      return this.chatMessageModel.findById(message._id).populate('sender', 'first_name last_name avatar').lean();
+    }
+    return saved;
   }
 
   async isParticipant(sessionType: string, sessionId: string, userId: string): Promise<boolean> {
@@ -373,7 +500,12 @@ export class ChatService {
       throw new NotFoundException('Message not found');
     }
 
-    if (message.sender.toString() !== userId) {
+    const senderId = (message.sender as any)?._id?.toString() || message.sender?.toString();
+    const requesterId = userId?.toString();
+
+    console.log(`[DeleteMessage] MessageSender: ${senderId}, Requester: ${requesterId}`);
+
+    if (senderId !== requesterId) {
       throw new UnauthorizedException('You can only delete your own messages');
     }
 
@@ -395,5 +527,39 @@ export class ChatService {
 
     // Delete the session itself
     return this.chatAiModel.findByIdAndDelete(sessionId);
+  }
+
+  async deleteInstructorSession(sessionId: string, userId: string): Promise<any> {
+    const session = await this.chatInstructorModel.findById(sessionId);
+    if (!session) {
+      throw new NotFoundException('Instructor Session not found');
+    }
+
+    if (!session.participants.map(p => p.toString()).includes(userId)) {
+      throw new UnauthorizedException('You are not a participant in this chat.');
+    }
+
+    // Delete all messages associated with this session
+    await this.chatMessageModel.deleteMany({ sessionType: 'ChatInstructor', sessionId });
+
+    // Delete the session itself
+    return this.chatInstructorModel.findByIdAndDelete(sessionId);
+  }
+
+  async deleteRoom(roomId: string, userId: string): Promise<any> {
+    const room = await this.chatRoomModel.findById(roomId);
+    if (!room) {
+      throw new NotFoundException('Group chat not found');
+    }
+
+    if (!room.participants.map(p => p.toString()).includes(userId)) {
+      throw new UnauthorizedException('You are not a member of this group.');
+    }
+
+    // Delete all messages associated with this room
+    await this.chatMessageModel.deleteMany({ sessionType: 'ChatRoom', sessionId: roomId });
+
+    // Delete the room itself
+    return this.chatRoomModel.findByIdAndDelete(roomId);
   }
 }

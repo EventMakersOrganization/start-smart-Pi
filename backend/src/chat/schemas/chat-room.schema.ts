@@ -11,6 +11,9 @@ export class ChatRoom {
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], required: true })
   participants: (User | Types.ObjectId)[];
+
+  @Prop()
+  avatar?: string;
 }
 
 export const ChatRoomSchema = SchemaFactory.createForClass(ChatRoom);

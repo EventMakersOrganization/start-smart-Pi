@@ -1,402 +1,367 @@
-<div class="p-8 pb-4">
-  <div class="flex items-end justify-between gap-4 mb-6">
-    <div>
-      <h1
-        class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
-      >
-        Classes Management
-      </h1>
-      <p class="text-slate-500 mt-1">
-        Create classes, enroll students, and link subjects to the right cohort.
-      </p>
-    </div>
-    <button
-      (click)="openCreateModal()"
-      class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary/90 transition-all"
-    >
-      <span class="material-symbols-outlined text-sm">add</span> Add Class
-    </button>
-  </div>
-
-  <div
-    class="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm"
-  >
-    <div class="flex-1 min-w-[300px] relative">
-      <span
-        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"
-        >search</span
-      >
-      <input
-        [(ngModel)]="filterText"
-        class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-        placeholder="Filter by class name, code, year, or level..."
-        type="text"
-      />
-    </div>
-  </div>
-
-  <p *ngIf="error" class="mt-4 text-sm text-red-500">{{ error }}</p>
-  <p *ngIf="success" class="mt-4 text-sm text-green-600">{{ success }}</p>
-</div>
-
-<div class="px-8 pb-8 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-  <div
-    class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
-  >
-    <div
-      class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"
-    >
-      <h2 class="text-lg font-bold text-slate-900 dark:text-white">
-        All Classes
-      </h2>
-      <span class="text-xs font-semibold text-slate-500"
-        >{{ filteredClasses.length }} records</span
-      >
-    </div>
-
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead>
-          <tr
-            class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800"
-          >
-            <th
-              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
-            >
-              Class
-            </th>
-            <th
-              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
-            >
-              Info
-            </th>
-            <th
-              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
-            >
-              Students
-            </th>
-            <th
-              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap"
-            >
-              Subjects
-            </th>
-            <th
-              class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap text-right"
-            >
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-          <tr
-            *ngFor="let row of filteredClasses"
-            (click)="selectClass(row)"
-            class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-            [class.bg-slate-100]="selectedClass?.id === row.id"
-            [class.dark:bg-slate-800]="selectedClass?.id === row.id"
-          >
-            <td class="px-6 py-4 min-w-[220px]">
-              <p class="font-semibold text-slate-900 dark:text-white">
-                {{ row.name }}
-              </p>
-              <p class="text-xs text-slate-500">{{ row.code }}</p>
-            </td>
-            <td
-              class="px-6 py-4 min-w-[260px] text-sm text-slate-600 dark:text-slate-300"
-            >
-              <p>
-                {{ row.level || "-" }}
-                <span *ngIf="row.section">• {{ row.section }}</span>
-              </p>
-              <p>{{ row.academicYear || "-" }}</p>
-              <p class="truncate max-w-[260px]">{{ row.description || "-" }}</p>
-            </td>
-            <td class="px-6 py-4">
-              <span
-                class="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
-                >{{ row.studentCount || 0 }} enrolled</span
-              >
-            </td>
-            <td class="px-6 py-4">
-              <span
-                class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
-                >{{ row.subjectCount || 0 }} linked</span
-              >
-            </td>
-            <td class="px-6 py-4 text-right whitespace-nowrap">
-              <button
-                (click)="selectClass(row)"
-                class="text-slate-500 hover:text-slate-900 dark:hover:text-white mr-3 text-sm font-semibold"
-              >
-                Manage
-              </button>
-              <button
-                (click)="openEditModal(row)"
-                class="text-slate-500 hover:text-slate-900 dark:hover:text-white mr-3"
-              >
-                <span class="material-symbols-outlined">edit</span>
-              </button>
-              <button (click)="deleteClass(row)" class="text-red-600">
-                <span class="material-symbols-outlined">delete</span>
-              </button>
-            </td>
-          </tr>
-          <tr *ngIf="!filteredClasses.length">
-            <td colspan="5" class="px-6 py-10 text-center text-slate-500">
-              No classes found.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="space-y-6">
-    <div
-      class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xl overflow-hidden"
-    >
-      <div class="p-6 border-b border-white/10">
-        <p
-          class="text-xs uppercase tracking-[0.25em] text-white/60 font-semibold"
-        >
-          Selected Class
-        </p>
-        <h2 class="mt-2 text-2xl font-bold">
-          {{ selectedClass?.name || "Choose a class" }}
-        </h2>
-        <p class="text-sm text-white/70 mt-1">
-          {{
-            selectedClass?.code ||
-              "Manage enrollments and subject links from here."
-          }}
+<div class="h-[calc(100vh-64px)] flex flex-col bg-slate-50/50 dark:bg-slate-950/50 overflow-hidden">
+  <!-- Header Area -->
+  <div class="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">groups</span>
+          Classes Management
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">
+          Monitor cohorts, enroll students, and manage academic assignments.
         </p>
       </div>
+      <div class="flex items-center gap-3">
+        <div class="relative w-64">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+          <input
+            [(ngModel)]="filterText"
+            class="w-full pl-10 pr-10 py-2 bg-slate-100 dark:bg-slate-800 border-transparent rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+            placeholder="Search classes..."
+            type="text"
+          />
+          <button 
+            *ngIf="filterText"
+            (click)="filterText = ''"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+          >
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+        <button
+          (click)="openCreateModal()"
+          class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95"
+        >
+          <span class="material-symbols-outlined text-sm">add</span> New Class
+        </button>
+      </div>
+    </div>
+    
+    <div *ngIf="error || success" class="mt-4">
+      <p *ngIf="error" class="text-xs font-semibold text-red-500 flex items-center gap-1">
+        <span class="material-symbols-outlined text-xs">error</span> {{ error }}
+      </p>
+      <p *ngIf="success" class="text-xs font-semibold text-green-600 flex items-center gap-1">
+        <span class="material-symbols-outlined text-xs">check_circle</span> {{ success }}
+      </p>
+    </div>
+  </div>
 
-      <div *ngIf="selectedClass; else emptyState" class="p-6 space-y-6">
-        <div class="grid grid-cols-4 gap-3">
-          <div class="rounded-xl bg-white/10 p-4">
-            <p class="text-xs text-white/60">Students</p>
-            <p class="text-2xl font-bold">
-              {{ selectedClass.studentCount || 0 }}
+  <!-- Main Content Grid -->
+  <div class="flex-1 flex overflow-hidden p-6 gap-6">
+    <!-- Left Pane: Class List -->
+    <div class="w-1/2 flex flex-col gap-4">
+      <div class="flex items-center justify-between px-2">
+        <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Available Cohorts</h2>
+        <span class="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] px-2 py-0.5 rounded-full font-bold">
+          {{ filteredClasses.length }} TOTAL
+        </span>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+        <div
+          *ngFor="let row of filteredClasses"
+          (click)="selectClass(row)"
+          class="group relative bg-white dark:bg-slate-900 rounded-xl border transition-all cursor-pointer p-3 hover:shadow-md"
+          [class.border-primary]="selectedClass?.id === row.id"
+          [class.ring-1]="selectedClass?.id === row.id"
+          [class.ring-primary]="selectedClass?.id === row.id"
+          [class.border-slate-200]="selectedClass?.id !== row.id"
+          [class.dark:border-slate-800]="selectedClass?.id !== row.id"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  {{ row.code }}
+                </span>
+                <span *ngIf="row.active" class="w-1 h-1 rounded-full bg-emerald-500"></span>
+              </div>
+              <h3 class="font-bold text-slate-900 dark:text-white truncate text-base">
+                {{ row.name }}
+              </h3>
+              <div class="flex items-center gap-3 mt-1.5">
+                <span class="text-[10px] text-slate-500 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">calendar_today</span>
+                  {{ row.academicYear || 'No Year' }}
+                </span>
+                <span class="text-[10px] text-slate-500 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">school</span>
+                  {{ row.level || 'No Level' }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="flex flex-col items-end gap-2">
+              <div class="flex items-center -space-x-1.5">
+                <div class="w-7 h-7 rounded-full bg-primary/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-bold text-primary">
+                  {{ row.studentCount || 0 }}
+                </div>
+                <div class="w-7 h-7 rounded-full bg-emerald-500/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-bold text-emerald-600">
+                  {{ row.subjectCount || 0 }}
+                </div>
+              </div>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button (click)="openEditModal(row); $event.stopPropagation()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-primary transition-colors">
+                  <span class="material-symbols-outlined text-base">edit</span>
+                </button>
+                <button (click)="deleteClass(row); $event.stopPropagation()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-red-500 transition-colors">
+                  <span class="material-symbols-outlined text-base">delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div *ngIf="!filteredClasses.length" class="flex flex-col items-center justify-center py-20 text-slate-400">
+          <span class="material-symbols-outlined text-5xl mb-2 opacity-20">search_off</span>
+          <p>No classes match your search.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Pane: Class Details (Tabbed) -->
+    <div class="w-1/2 flex flex-col">
+      <div *ngIf="selectedClass; else emptyState" class="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+        <!-- Details Header -->
+        <div class="p-6 bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-800 text-white relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl -mr-20 -mt-20"></div>
+          <div class="absolute bottom-0 left-0 w-32 h-32 bg-indigo-400/10 rounded-full blur-2xl -ml-10 -mb-10"></div>
+          <div class="relative z-10">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="px-2 py-0.5 rounded-lg bg-white/20 text-[10px] font-bold uppercase tracking-wider text-white">
+                Cohort details
+              </span>
+            </div>
+            <h2 class="text-3xl font-black">{{ selectedClass.name }}</h2>
+            <p class="text-white/60 text-sm mt-1 max-w-md line-clamp-2">
+              {{ selectedClass.description || 'No description provided for this class.' }}
             </p>
           </div>
-          <div class="rounded-xl bg-white/10 p-4">
-            <p class="text-xs text-white/60">Subjects</p>
-            <p class="text-2xl font-bold">
-              {{ selectedClass.subjectCount || 0 }}
-            </p>
-          </div>
-          <div class="rounded-xl bg-white/10 p-4">
-            <p class="text-xs text-white/60">Instructors</p>
-            <p class="text-2xl font-bold">
-              {{ selectedClass.instructorCount || 0 }}
-            </p>
-          </div>
-          <div class="rounded-xl bg-white/10 p-4">
-            <p class="text-xs text-white/60">Capacity</p>
-            <p class="text-2xl font-bold">{{ selectedClass.capacity || 0 }}</p>
+          
+          <!-- Summary Stats -->
+          <div class="grid grid-cols-4 gap-3 mt-6 relative z-10">
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 hover:bg-white/20 transition-all cursor-default group/stat">
+              <span class="text-[10px] text-white/50 font-bold uppercase group-hover/stat:text-white/80 transition-colors">Students</span>
+              <p class="text-xl font-black">{{ selectedClass.studentCount || 0 }}</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 hover:bg-white/20 transition-all cursor-default group/stat">
+              <span class="text-[10px] text-white/50 font-bold uppercase group-hover/stat:text-white/80 transition-colors">Subjects</span>
+              <p class="text-xl font-black">{{ selectedClass.subjectCount || 0 }}</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 hover:bg-white/20 transition-all cursor-default group/stat">
+              <span class="text-[10px] text-white/50 font-bold uppercase group-hover/stat:text-white/80 transition-colors">Staff</span>
+              <p class="text-xl font-black">{{ selectedClass.instructorCount || 0 }}</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 hover:bg-white/20 transition-all cursor-default group/stat">
+              <span class="text-[10px] text-white/50 font-bold uppercase group-hover/stat:text-white/80 transition-colors">Limit</span>
+              <p class="text-xl font-black">{{ selectedClass.capacity || '∞' }}</p>
+            </div>
           </div>
         </div>
 
-        <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold">Enroll Students</h3>
-            <span class="text-xs text-slate-500"
-              >{{ availableStudents.length }} available</span
-            >
-          </div>
-          <select
-            [(ngModel)]="selectedStudentIds"
-            multiple
-            class="w-full min-h-[140px] border border-slate-200 rounded-xl p-3 text-sm bg-slate-50 focus:ring-2 focus:ring-primary/20"
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-100 dark:border-slate-800 px-4">
+          <button 
+            (click)="setActiveTab('students')"
+            class="px-6 py-4 text-sm font-bold transition-all relative"
+            [class.text-primary]="activeTab === 'students'"
+            [class.text-slate-400]="activeTab !== 'students'"
           >
-            <option
-              *ngFor="let student of availableStudents"
-              [value]="student.id"
-            >
-              {{ labelStudent(student) }}
-            </option>
-          </select>
-          <button
-            (click)="enrollSelectedStudents()"
-            [disabled]="!selectedStudentIds.length || actionLoading"
-            class="w-full rounded-xl bg-primary text-white py-2.5 font-semibold disabled:opacity-60"
+            Students
+            <div *ngIf="activeTab === 'students'" class="absolute bottom-0 left-4 right-4 h-1 bg-primary rounded-t-full"></div>
+          </button>
+          <button 
+            (click)="setActiveTab('subjects')"
+            class="px-6 py-4 text-sm font-bold transition-all relative"
+            [class.text-primary]="activeTab === 'subjects'"
+            [class.text-slate-400]="activeTab !== 'subjects'"
           >
-            {{ actionLoading ? "Processing..." : "Enroll selected students" }}
+            Curriculum
+            <div *ngIf="activeTab === 'subjects'" class="absolute bottom-0 left-4 right-4 h-1 bg-primary rounded-t-full"></div>
+          </button>
+          <button 
+            (click)="setActiveTab('instructors')"
+            class="px-6 py-4 text-sm font-bold transition-all relative"
+            [class.text-primary]="activeTab === 'instructors'"
+            [class.text-slate-400]="activeTab !== 'instructors'"
+          >
+            Faculty
+            <div *ngIf="activeTab === 'instructors'" class="absolute bottom-0 left-4 right-4 h-1 bg-primary rounded-t-full"></div>
           </button>
         </div>
 
-        <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold">Link Subjects</h3>
-            <span class="text-xs text-slate-500"
-              >{{ availableSubjects.length }} available</span
-            >
-          </div>
-          <select
-            [(ngModel)]="selectedSubjectIds"
-            multiple
-            class="w-full min-h-[140px] border border-slate-200 rounded-xl p-3 text-sm bg-slate-50 focus:ring-2 focus:ring-primary/20"
-          >
-            <option
-              *ngFor="let subject of availableSubjects"
-              [value]="subject.id"
-            >
-              {{ labelSubject(subject) }}
-            </option>
-          </select>
-          <button
-            (click)="linkSelectedSubjects()"
-            [disabled]="!selectedSubjectIds.length || actionLoading"
-            class="w-full rounded-xl bg-emerald-600 text-white py-2.5 font-semibold disabled:opacity-60"
-          >
-            {{ actionLoading ? "Processing..." : "Link selected subjects" }}
-          </button>
-        </div>
-
-        <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold">Assign Instructors</h3>
-            <span class="text-xs text-slate-500"
-              >{{ availableInstructors.length }} available</span
-            >
-          </div>
-          <select
-            [(ngModel)]="selectedInstructorIds"
-            multiple
-            class="w-full min-h-[140px] border border-slate-200 rounded-xl p-3 text-sm bg-slate-50 focus:ring-2 focus:ring-primary/20"
-          >
-            <option
-              *ngFor="let instructor of availableInstructors"
-              [value]="instructor.id"
-            >
-              {{ labelInstructor(instructor) }}
-            </option>
-          </select>
-          <button
-            (click)="assignSelectedInstructors()"
-            [disabled]="!selectedInstructorIds.length || actionLoading"
-            class="w-full rounded-xl bg-blue-600 text-white py-2.5 font-semibold disabled:opacity-60"
-          >
-            {{ actionLoading ? "Processing..." : "Assign selected instructors" }}
-          </button>
-        </div>
-
-        <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold">Enrolled Students</h3>
-          </div>
-          <div
-            *ngIf="selectedClass.students?.length; else noStudents"
-            class="space-y-2 max-h-64 overflow-auto pr-1"
-          >
-            <div
-              *ngFor="let student of selectedClass.students"
-              class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
-            >
-              <div class="min-w-0">
-                <p class="font-semibold truncate">
-                  {{ labelStudent(student) }}
-                </p>
-                <p class="text-xs text-slate-500">
-                  {{ student.status || "active" }}
-                </p>
+        <!-- Tab Content Area -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+          
+          <!-- Tab: STUDENTS -->
+          <div *ngIf="activeTab === 'students'" class="space-y-6">
+            <div class="flex flex-col gap-4">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 dark:text-slate-200">Current Enrollment</h3>
+                <span class="text-xs text-slate-400">{{ selectedClass.students?.length || 0 }} Active</span>
               </div>
-              <button
-                (click)="removeStudent(student.id)"
-                class="text-red-600 text-sm font-semibold"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-          <ng-template #noStudents>
-            <div
-              class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500"
-            >
-              No students enrolled yet.
-            </div>
-          </ng-template>
-        </div>
-
-        <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold">Linked Subjects</h3>
-          </div>
-          <div
-            *ngIf="selectedClass.subjects?.length; else noSubjects"
-            class="space-y-2 max-h-64 overflow-auto pr-1"
-          >
-            <div
-              *ngFor="let subject of selectedClass.subjects"
-              class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
-            >
-              <div class="min-w-0">
-                <p class="font-semibold truncate">
-                  {{ labelSubject(subject) }}
-                </p>
-                <p class="text-xs text-slate-500 truncate">
-                  {{ subject.description || "No description" }}
-                </p>
+              <div *ngIf="selectedClass.students?.length; else noStudents" class="grid gap-2">
+                <div *ngFor="let student of selectedClass.students" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500">
+                      {{ (student.first_name?.[0] || '') + (student.last_name?.[0] || '') }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-bold text-slate-900 dark:text-white truncate">{{ student.first_name }} {{ student.last_name }}</p>
+                      <p class="text-[10px] text-slate-500 truncate">{{ student.email }}</p>
+                    </div>
+                  </div>
+                  <button (click)="removeStudent(student.id)" class="text-slate-400 hover:text-red-500 p-1 transition-colors">
+                    <span class="material-symbols-outlined text-lg">logout</span>
+                  </button>
+                </div>
               </div>
-              <button
-                (click)="unlinkSubject(subject.id)"
-                class="text-red-600 text-sm font-semibold"
-              >
-                Unlink
-              </button>
+              <ng-template #noStudents>
+                <div class="py-10 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl text-slate-400 italic text-sm">
+                  No students enrolled in this cohort yet.
+                </div>
+              </ng-template>
             </div>
-          </div>
-          <ng-template #noSubjects>
-            <div
-              class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500"
-            >
-              No subjects linked yet.
-            </div>
-          </ng-template>
-        </div>
 
-        <div class="rounded-2xl bg-white text-slate-900 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold">Assigned Instructors</h3>
-          </div>
-          <div
-            *ngIf="selectedClass.instructors?.length; else noInstructors"
-            class="space-y-2 max-h-64 overflow-auto pr-1"
-          >
-            <div
-              *ngFor="let instructor of selectedClass.instructors"
-              class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
-            >
-              <div class="min-w-0">
-                <p class="font-semibold truncate">
-                  {{ labelInstructor(instructor) }}
-                </p>
-                <p class="text-xs text-slate-500 truncate">
-                  {{ instructor.status || "instructor" }}
-                </p>
+            <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-800 dark:text-slate-200">New Enrollment</h3>
+                <span class="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">{{ availableStudents.length }} Candidates</span>
               </div>
-              <button
-                (click)="removeInstructor(instructor.id)"
-                class="text-red-600 text-sm font-semibold"
-              >
-                Unassign
-              </button>
+              <div class="space-y-3">
+                <select
+                  [(ngModel)]="selectedStudentIds"
+                  multiple
+                  class="w-full min-h-[160px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all custom-scrollbar"
+                >
+                  <option *ngFor="let student of availableStudents" [value]="student.id" class="py-2 px-1">
+                    {{ labelStudent(student) }}
+                  </option>
+                </select>
+                <button
+                  (click)="enrollSelectedStudents()"
+                  [disabled]="!selectedStudentIds.length || actionLoading"
+                  class="w-full bg-primary text-white py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition-all disabled:opacity-50 disabled:scale-100"
+                >
+                  {{ actionLoading ? 'Enrolling...' : 'Confirm Enrollment (' + selectedStudentIds.length + ')' }}
+                </button>
+              </div>
             </div>
           </div>
-          <ng-template #noInstructors>
-            <div
-              class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500"
-            >
-              No instructors assigned yet.
+
+          <!-- Tab: SUBJECTS -->
+          <div *ngIf="activeTab === 'subjects'" class="space-y-6">
+            <div class="flex flex-col gap-4">
+              <h3 class="font-bold text-slate-800 dark:text-slate-200">Linked Subjects</h3>
+              <div *ngIf="selectedClass.subjects?.length; else noSubjects" class="grid gap-2">
+                <div *ngFor="let subject of selectedClass.subjects" class="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10 flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center">
+                      <span class="material-symbols-outlined text-xl">menu_book</span>
+                    </div>
+                    <div>
+                      <p class="font-bold text-slate-900 dark:text-white">{{ subject.title }}</p>
+                      <p class="text-xs text-slate-500 font-mono">{{ subject.code }}</p>
+                    </div>
+                  </div>
+                  <button (click)="unlinkSubject(subject.id)" class="text-emerald-600 hover:text-red-500 p-2 transition-colors">
+                    <span class="material-symbols-outlined">link_off</span>
+                  </button>
+                </div>
+              </div>
+              <ng-template #noSubjects>
+                <div class="py-10 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl text-slate-400 italic text-sm">
+                  No subjects linked to this class curriculum.
+                </div>
+              </ng-template>
             </div>
-          </ng-template>
+
+            <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
+              <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-4">Add to Curriculum</h3>
+              <div class="space-y-3">
+                <select
+                  [(ngModel)]="selectedSubjectIds"
+                  multiple
+                  class="w-full min-h-[160px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-sm outline-none transition-all custom-scrollbar"
+                >
+                  <option *ngFor="let subject of availableSubjects" [value]="subject.id" class="py-2">
+                    {{ labelSubject(subject) }}
+                  </option>
+                </select>
+                <button
+                  (click)="linkSelectedSubjects()"
+                  [disabled]="!selectedSubjectIds.length || actionLoading"
+                  class="w-full bg-emerald-600 text-white py-3 rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+                >
+                  Link Selected Subjects
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: INSTRUCTORS -->
+          <div *ngIf="activeTab === 'instructors'" class="space-y-6">
+            <div class="flex flex-col gap-4">
+              <h3 class="font-bold text-slate-800 dark:text-slate-200">Teaching Staff</h3>
+              <div *ngIf="selectedClass.instructors?.length; else noInstructors" class="grid gap-2">
+                <div *ngFor="let inst of selectedClass.instructors" class="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                      {{ (inst.first_name?.[0] || '') + (inst.last_name?.[0] || '') }}
+                    </div>
+                    <div>
+                      <p class="font-bold text-slate-900 dark:text-white">{{ inst.first_name }} {{ inst.last_name }}</p>
+                      <p class="text-xs text-blue-600 font-medium">{{ inst.email }}</p>
+                    </div>
+                  </div>
+                  <button (click)="removeInstructor(inst.id)" class="text-slate-400 hover:text-red-500 p-2 transition-colors">
+                    <span class="material-symbols-outlined">person_remove</span>
+                  </button>
+                </div>
+              </div>
+              <ng-template #noInstructors>
+                <div class="py-10 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl text-slate-400 italic text-sm">
+                  No instructors assigned to this class yet.
+                </div>
+              </ng-template>
+            </div>
+
+            <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
+              <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-4">Assign Staff</h3>
+              <div class="space-y-3">
+                <select
+                  [(ngModel)]="selectedInstructorIds"
+                  multiple
+                  class="w-full min-h-[160px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-sm outline-none transition-all custom-scrollbar"
+                >
+                  <option *ngFor="let inst of availableInstructors" [value]="inst.id" class="py-2">
+                    {{ labelInstructor(inst) }}
+                  </option>
+                </select>
+                <button
+                  (click)="assignSelectedInstructors()"
+                  [disabled]="!selectedInstructorIds.length || actionLoading"
+                  class="w-full bg-blue-600 text-white py-3 rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50"
+                >
+                  Assign Selected Staff
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
       <ng-template #emptyState>
-        <div class="p-6 text-white/70">
-          Select a class from the table to manage enrollments and links.
+        <div class="flex-1 flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 p-10 text-center">
+          <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 text-slate-300">
+            <span class="material-symbols-outlined text-4xl">touch_app</span>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Manage Cohort</h2>
+          <p class="text-slate-500 max-w-xs">
+            Select a class from the list on the left to manage its students, subjects, and staff.
+          </p>
         </div>
       </ng-template>
     </div>

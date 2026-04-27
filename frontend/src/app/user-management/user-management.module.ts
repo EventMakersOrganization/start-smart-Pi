@@ -52,6 +52,10 @@ import { ReportBuilderComponent } from '../modules/analytics/pages/report-builde
 import { InstructorDashboardComponent } from './instructor-dashboard/instructor-dashboard.component';
 import { QuizFileViewerComponent } from './quiz-file-viewer/quiz-file-viewer.component';
 import { InstructorClassesComponent } from './instructor-classes/instructor-classes.component';
+import { ChatModule } from '../chat/chat.module';
+import { ChatInstructorComponent } from '../chat/chat-instructor/chat-instructor.component';
+import { ChatRoomComponent } from '../chat/chat-room/chat-room.component';
+import { ChatAiComponent } from '../chat/chat-ai/chat-ai.component';
 
 const routes: Routes = [
   {
@@ -80,12 +84,7 @@ const routes: Routes = [
     component: ResetPasswordComponent,
     data: { title: 'Reset Password' },
   },
-  {
-    path: 'profile',
-    component: ProfileComponent,
-    canActivate: [AuthGuard],
-    data: { title: 'Profile' },
-  },
+
   {
     path: 'admin',
     component: AdminDashboardComponent,
@@ -139,8 +138,15 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['admin'] },
       },
+      {
+        path: 'profile',
+        component: ProfileComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'], title: 'My Profile' },
+      },
     ],
   },
+
   {
     path: 'student-dashboard',
     component: StudentDashboardComponent,
@@ -192,6 +198,30 @@ const routes: Routes = [
         component: ContinueLearningComponent,
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['student'], title: 'Continue Learning' },
+      },
+      {
+        path: 'chat/instructor',
+        component: ChatInstructorComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'Conversations' },
+      },
+      {
+        path: 'chat/room',
+        component: ChatRoomComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'Groups' },
+      },
+      {
+        path: 'chat/ai',
+        component: ChatAiComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'AI Chat' },
+      },
+      {
+        path: 'profile',
+        component: ProfileComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'My Profile' },
       },
     ],
   },
@@ -281,6 +311,24 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['instructor', 'admin'], title: 'Progress Reports' },
       },
+      {
+        path: 'chat/instructor',
+        component: ChatInstructorComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'], title: 'Conversations' },
+      },
+      {
+        path: 'chat/ai',
+        component: ChatAiComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'], title: 'AI Chat' },
+      },
+      {
+        path: 'profile',
+        component: ProfileComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'], title: 'My Profile' },
+      },
     ],
   },
   {
@@ -368,6 +416,7 @@ const routes: Routes = [
     HttpClientModule,
     AnalyticsSharedModule,
     SharedModule,
+    ChatModule,
     RouterModule.forChild(routes),
   ],
   providers: [

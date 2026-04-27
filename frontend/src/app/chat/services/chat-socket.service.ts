@@ -34,9 +34,9 @@ export class ChatSocketService {
     this.socket?.emit('leaveRoom', sessionId);
   }
 
-  sendMessage(sessionType: string, sessionId: string, content: string) {
+  sendMessage(sessionType: string, sessionId: string, content: string, attachments: any[] = []) {
     // sender is now derived from the authenticated socket on the backend
-    this.socket?.emit('sendMessage', { sessionType, sessionId, content });
+    this.socket?.emit('sendMessage', { sessionType, sessionId, content, attachments });
   }
 
   onNewMessage(): Observable<any> {

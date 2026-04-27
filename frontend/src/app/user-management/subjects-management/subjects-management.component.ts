@@ -255,4 +255,18 @@ export class SubjectsManagementComponent implements OnInit {
     }
     return false;
   }
+
+  getSubjectIcon(name: string): string {
+    const n = name.toLowerCase();
+    if (n.includes('algo')) return 'code';
+    if (n.includes('graphe')) return 'account_tree';
+    if (n.includes('architecture') || n.includes('si')) return 'layers';
+    if (n.includes('data')) return 'database';
+    if (n.includes('math')) return 'calculate';
+    if (n.includes('ai') || n.includes('intelligence')) return 'psychology';
+    if (n.includes('web')) return 'language';
+    if (n.includes('mobile')) return 'phone_android';
+    if (n.includes('cloud')) return 'cloud';
+    return 'menu_book';
+  }
 }

@@ -101,6 +101,7 @@ export class ClassManagementComponent implements OnInit {
   success = '';
 
   filterText = '';
+  activeTab: 'students' | 'subjects' | 'instructors' = 'students';
 
   private readonly classesApi = 'http://localhost:3000/api/admin/classes';
   private readonly studentsApi = 'http://localhost:3000/api/admin/students';
@@ -114,35 +115,31 @@ export class ClassManagementComponent implements OnInit {
   }
 
   get filteredClasses(): SchoolClassRow[] {
-    const text = this.filterText.trim().toLowerCase();
+    const text = (this.filterText || '').trim().toLowerCase();
     if (!text) {
       return this.classes;
     }
 
     return this.classes.filter((item) => {
-      const haystack = [
-        item.name,
-        item.code,
-        item.description,
-        item.academicYear,
-        item.level,
-        item.section,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
+      const name = (item.name || '').toLowerCase();
+      const code = (item.code || '').toLowerCase();
+      const level = (item.level || '').toLowerCase();
+      const academicYear = (item.academicYear || '').toLowerCase();
+      const section = (item.section || '').toLowerCase();
 
-      return haystack.includes(text);
+      return (
+        name.includes(text) ||
+        code.includes(text) ||
+        level.includes(text) ||
+        academicYear.includes(text) ||
+        section.includes(text)
+      );
     });
   }
 
   get availableStudents(): StudentOption[] {
-    if (!this.selectedClass) {
-      return this.students;
-    }
-
-    const enrolledIds = new Set((this.selectedClass.students || []).map((student) => student.id));
-    return this.students.filter((student) => !enrolledIds.has(student.id));
+    // Show only students who are NOT assigned to any class yet
+    return this.students.filter((student) => !student.class);
   }
 
   get availableSubjects(): SubjectOption[] {
@@ -331,6 +328,11 @@ export class ClassManagementComponent implements OnInit {
     this.selectedClass = row;
     this.selectedStudentIds = [];
     this.selectedSubjectIds = [];
+    this.selectedInstructorIds = [];
+  }
+
+  setActiveTab(tab: 'students' | 'subjects' | 'instructors') {
+    this.activeTab = tab;
   }
 
   enrollSelectedStudents() {

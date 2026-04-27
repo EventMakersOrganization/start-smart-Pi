@@ -1,94 +1,139 @@
-:host ::ng-deep .chat-ai-markdown pre {
-  margin: 0.75rem 0;
-  overflow-x: auto;
-  border-radius: 0.625rem;
-  padding: 1rem 1.125rem;
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  background: #0d1117;
-  border: 1px solid rgba(15, 23, 42, 0.35);
+/* Modern Chat Styles */
+.chat-container {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-:host ::ng-deep .chat-ai-markdown pre code.hljs {
-  display: block;
-  background: transparent !important;
-  padding: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+.dark .chat-container {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 }
 
-:host ::ng-deep .chat-ai-markdown p {
-  margin: 0.5rem 0;
+/* Sidebar Styling */
+.sidebar-glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-:host ::ng-deep .chat-ai-markdown p:first-child {
-  margin-top: 0;
+.dark .sidebar-glass {
+    background: rgba(15, 23, 42, 0.7);
+    border-right: 1px solid rgba(51, 65, 85, 0.8);
 }
 
-:host ::ng-deep .chat-ai-markdown p:last-child {
-  margin-bottom: 0;
+.nav-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-:host ::ng-deep .chat-ai-markdown ul,
-:host ::ng-deep .chat-ai-markdown ol {
-  margin: 0.5rem 0;
-  padding-left: 1.35rem;
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: var(--primary-color, #6366f1);
+    opacity: 0.1;
+    transition: width 0.3s ease;
 }
 
-:host ::ng-deep .chat-ai-markdown h1,
-:host ::ng-deep .chat-ai-markdown h2,
-:host ::ng-deep .chat-ai-markdown h3 {
-  font-weight: 700;
-  margin: 1rem 0 0.5rem;
-  line-height: 1.3;
+.nav-item:hover::before {
+    width: 100%;
 }
 
-:host ::ng-deep .chat-ai-markdown h1 {
-  font-size: 1.125rem;
+.nav-item.active {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: translateX(4px);
 }
 
-:host ::ng-deep .chat-ai-markdown h2 {
-  font-size: 1.05rem;
+.dark .nav-item.active {
+    background: #1e293b;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-:host ::ng-deep .chat-ai-markdown h3 {
-  font-size: 1rem;
-}
-
-:host ::ng-deep .chat-ai-markdown blockquote {
-  margin: 0.5rem 0;
-  padding-left: 0.75rem;
-  border-left: 3px solid rgba(99, 102, 241, 0.5);
-  color: inherit;
-  opacity: 0.95;
-}
-
-:host ::ng-deep .chat-ai-markdown a {
-  color: #6366f1;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-:host ::ng-deep .chat-ai-markdown hr {
-  margin: 1rem 0;
-  border: none;
-  border-top: 1px solid rgba(148, 163, 184, 0.45);
-}
-
-.chat-ai-bubble {
-  animation: chat-in 0.35s ease-out;
-}
-
-.chat-user-bubble {
-  animation: chat-in 0.3s ease-out;
-}
-
-@keyframes chat-in {
-  from {
+/* Message Bubbles */
+.message-animation {
+    animation: slideUpFade 0.4s ease-out forwards;
     opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    transform: translateY(10px);
+}
+
+@keyframes slideUpFade {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bubble-user {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+    border-radius: 20px 20px 4px 20px;
+    color: white;
+}
+
+.bubble-other {
+    background: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border-radius: 20px 20px 20px 4px;
+    border: 1px solid #f1f5f9;
+}
+
+.dark .bubble-other {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+/* Input Area */
+.input-glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.dark .input-glass {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: rgba(51, 65, 85, 0.8);
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155;
+}
+
+/* Empty State Animation */
+.empty-state-icon {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+.shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
 }
