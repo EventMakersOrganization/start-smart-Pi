@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { VideoGeneratorService } from './video-generator.service';
 import { GenerateVideoDto } from './dto/generate-video.dto';
 
@@ -6,14 +7,13 @@ import { GenerateVideoDto } from './dto/generate-video.dto';
 export class VideoGeneratorController {
     constructor(private readonly svc: VideoGeneratorService) { }
 
-    /**
-     * POST /video-generator/generate
-     * Submit a course → avatar video job.
-     * Body: { courseContent, language?, presenterUrl? }
-     */
     @Post('generate')
-    async generate(@Body() dto: GenerateVideoDto) {
-        return this.svc.generateVideo(dto);
+    @UseInterceptors(FileInterceptor('presenter_image'))
+    async generate(
+        @Body() dto: GenerateVideoDto,
+        @UploadedFile() file?: Express.Multer.File
+    ) {
+        return this.svc.generateVideo(dto, file);
     }
 
     /**

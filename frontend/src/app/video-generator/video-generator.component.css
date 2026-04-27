@@ -463,3 +463,143 @@
         transform: translateY(0);
     }
 }
+
+/* ── E-LEARNING PLAYER ───────────────────────── */
+.vg-card--player {
+    max-width: 1100px !important;
+    padding: 2rem;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.vg-player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.vg-badge--pro {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.vg-player-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.vg-main-view {
+    flex: 2;
+}
+
+.vg-slide-frame {
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vg-slide-img {
+    width: 100%;
+    display: block;
+}
+
+.vg-slide-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(30, 41, 59, 1);
+    color: white;
+}
+
+.vg-slide-nav button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.vg-slide-nav button:hover:not(:disabled) {
+    background: #6366f1;
+}
+
+.vg-professor-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.vg-avatar-box {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #6366f1;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+}
+
+.vg-avatar-video {
+    width: 100%;
+    display: block;
+}
+
+.vg-avatar-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(99, 102, 241, 0.9);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.3rem;
+    text-align: center;
+    font-weight: 600;
+}
+
+.vg-professor-info {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.vg-player-actions {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.vg-btn--pro-link {
+    background: #6366f1;
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.vg-btn--pro-link:hover {
+    background: #4f46e5;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 900px) {
+    .vg-player-layout {
+        flex-direction: column;
+    }
+}

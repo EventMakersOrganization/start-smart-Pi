@@ -11,14 +11,20 @@ export class VideoGeneratorService {
     constructor(private readonly http: HttpService) { }
 
     /** Submit a video generation job to the Python AI service. */
-    async generateVideo(dto: GenerateVideoDto): Promise<{ jobId: string; status: string }> {
+    async generateVideo(dto: GenerateVideoDto, file?: Express.Multer.File): Promise<{ jobId: string; status: string }> {
         this.logger.log(`[VideoGenerator] Submitting job | lang=${dto.language}`);
+
+        const formData = new FormData();
+        formData.append('course_content', dto.courseContent);
+        formData.append('language', dto.language || 'en');
+        if (dto.presenterUrl) formData.append('presenter_url', dto.presenterUrl);
+        if (file) {
+            const blob = new Blob([new Uint8Array(file.buffer)], { type: file.mimetype });
+            formData.append('presenter_image', blob, file.originalname);
+        }
+
         const resp = await firstValueFrom(
-            this.http.post(`${this.AI_URL}/video/generate`, {
-                course_content: dto.courseContent,
-                language: dto.language || 'en',
-                presenter_url: dto.presenterUrl || null,
-            }),
+            this.http.post(`${this.AI_URL}/video/generate`, formData),
         );
         return { jobId: resp.data.job_id, status: resp.data.status };
     }

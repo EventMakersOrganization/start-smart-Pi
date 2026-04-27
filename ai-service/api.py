@@ -4,6 +4,7 @@ FastAPI application - AI service API for embeddings, search, RAG, and question g
 import json
 import logging
 import math
+import os
 import re
 import sys
 import time
@@ -4089,7 +4090,7 @@ class VideoStatusResponse(BaseModel):
     error: str | None = None
 
 
-def _run_video_pipeline(job_id: str, content: str, language: str, presenter_url: str | None):
+def _run_video_pipeline(job_id: str, content: str, language: str, presenter_url: str | None, local_image_path: str | None = None):
     """Background thread that runs the full pipeline."""
     def _update(patch: dict):
         with _video_lock:
@@ -4112,7 +4113,7 @@ def _run_video_pipeline(job_id: str, content: str, language: str, presenter_url:
         )
 
         # 4. Create avatar video via D-ID (returns None if key not configured)
-        avatar_url = _avatar_svc.create_video(narration, language, presenter_url)
+        avatar_url = _avatar_svc.create_video(narration, language, presenter_url, local_image_path=local_image_path)
 
         _update({
             "status": "done",
@@ -4127,19 +4128,28 @@ def _run_video_pipeline(job_id: str, content: str, language: str, presenter_url:
         _update({"status": "error", "error": str(exc), "step": "failed"})
 
 
+from fastapi import UploadFile, File, Form
+
 @app.post("/video/generate", summary="Course → Narrated Avatar Video (async)")
-async def video_generate(req: VideoGenerateRequest):
+async def video_generate(
+    course_content: str = Form(...),
+    language: str = Form("en"),
+    presenter_url: str = Form(None),
+    presenter_image: UploadFile = File(None)
+):
     """
     Submit a video generation job.
-
-    Pipeline (runs in background):
-      1. Ollama generates a structured video script from course content
-      2. Pillow renders PNG slides for each scene
-      3. D-ID API (free tier) creates a talking-avatar MP4
-
-    Returns a job_id — poll GET /video/status/{job_id} for the result.
+    Accepts Form-data to support file uploads.
     """
     job_id = str(uuid.uuid4())
+    
+    local_image_path = None
+    if presenter_image:
+        temp_dir = os.path.join(OUTPUT_DIR, job_id, "source")
+        os.makedirs(temp_dir, exist_ok=True)
+        local_image_path = os.path.join(temp_dir, presenter_image.filename)
+        with open(local_image_path, "wb") as f:
+            f.write(await presenter_image.read())
     with _video_lock:
         _video_jobs[job_id] = {
             "status": "pending",
@@ -4152,7 +4162,7 @@ async def video_generate(req: VideoGenerateRequest):
 
     thread = threading.Thread(
         target=_run_video_pipeline,
-        args=(job_id, req.course_content, req.language, req.presenter_url),
+        args=(job_id, course_content, language, presenter_url, local_image_path),
         daemon=True,
     )
     thread.start()
@@ -4197,5 +4207,16 @@ async def video_list_jobs():
     return {"total": len(summary), "jobs": summary}
 
 
+
+# --- Static File Serving for Generated Videos ---
+from fastapi.staticfiles import StaticFiles
+from video.slide_renderer import OUTPUT_DIR
+
+# Ensure directory exists and use absolute path for mounting
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+app.mount("/static/video", StaticFiles(directory=str(OUTPUT_DIR.resolve())), name="video_static")
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import uvicorn
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)

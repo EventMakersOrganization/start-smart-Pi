@@ -40,6 +40,31 @@
                 </span>
             </div>
 
+            <!-- NEW: Image Upload -->
+            <div class="vg-field">
+                <label class="vg-label">📸 1. Upload Professor Portrait (Recommended)</label>
+                <div
+                    style="display: flex; gap: 10px; align-items: center; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed #333;">
+                    <input type="file" (change)="onFileSelected($event)" accept="image/*" id="avatar-upload" hidden
+                        #fileInput>
+                    <button type="button" class="vg-btn vg-btn--secondary" (click)="fileInput.click()" style="margin:0">
+                        📁 Choose Photo
+                    </button>
+                    <span style="color: #00ff88; font-size: 0.9rem;" *ngIf="selectedFile">
+                        ✅ {{ selectedFile.name }}
+                    </span>
+                </div>
+                <p class="vg-hint">Head & shoulders shot works best.</p>
+            </div>
+
+            <!-- OR Custom URL -->
+            <div class="vg-field">
+                <label class="vg-label">🔗 2. OR Paste Image URL</label>
+                <input type="text" [(ngModel)]="presenterUrl" placeholder="https://example.com/professor.jpg"
+                    class="vg-textarea" style="height: 50px;">
+                <p class="vg-hint">Use this if you don't have a file to upload.</p>
+            </div>
+
             <button class="vg-btn vg-btn--primary" id="btn-generate" (click)="generate()"
                 [disabled]="courseContent.trim().length < 50">
                 <span class="vg-btn__icon">🚀</span> Generate Video
@@ -84,42 +109,47 @@
         </div>
     </div>
 
-    <!-- ── RESULT ────────────────────────────────────── -->
-    <div class="vg-card vg-card--result" *ngIf="state === 'done' && job">
+    <!-- ── E-LEARNING PLAYER ───────────────────────── -->
+    <div class="vg-card vg-card--player" *ngIf="state === 'done' && job">
 
-        <div class="vg-result-header">
-            <div class="vg-result-badge">✅ Video Ready</div>
-            <h2 class="vg-result-title">{{ job.scriptTitle || 'Your Video' }}</h2>
-            <p class="vg-result-meta">
-                <span>{{ job.slideCount }} slides generated</span>
-                <span *ngIf="job.avatarUrl"> · Talking avatar included</span>
-            </p>
+        <div class="vg-player-header">
+            <div class="vg-badge vg-badge--pro">👨‍🏫 E-Learning Mode</div>
+            <h2 class="vg-player-title">{{ job.scriptTitle || 'Modern Course Overview' }}</h2>
         </div>
 
-        <!-- D-ID Avatar Video -->
-        <div class="vg-video-wrap" *ngIf="job.avatarUrl">
-            <video id="avatar-video" class="vg-video" [src]="job.avatarUrl" controls autoplay playsinline></video>
+        <div class="vg-player-layout">
+            <!-- 1. MAIN CONTENT (SCREENS / SCHEMAS) -->
+            <div class="vg-main-view">
+                <div class="vg-slide-frame">
+                    <img [src]="getSlideUrl(currentSlideIdx)" class="vg-slide-img" alt="Course Schema">
+                    <div class="vg-slide-nav">
+                        <button (click)="prevSlide()" [disabled]="currentSlideIdx === 0">←</button>
+                        <span>Slide {{ currentSlideIdx + 1 }} / {{ job.slideCount }}</span>
+                        <button (click)="nextSlide()" [disabled]="currentSlideIdx >= job.slideCount - 1">→</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. PROFESSOR VIEW (AVATAR) -->
+            <div class="vg-professor-view">
+                <div class="vg-avatar-box">
+                    <video id="avatar-video" class="vg-avatar-video" [src]="job.avatarUrl" controls autoplay playsinline
+                        loop></video>
+                    <span class="vg-avatar-label">Professor (AI)</span>
+                </div>
+                <div class="vg-professor-info">
+                    <p>Listen as the professor explains the schemas on the left. Use the arrows to navigate through the
+                        course concepts.</p>
+                </div>
+            </div>
         </div>
 
-        <!-- Fallback: no avatar (D-ID key not set) -->
-        <div class="vg-no-avatar" *ngIf="!job.avatarUrl">
-            <div class="vg-no-avatar__icon">📊</div>
-            <p>
-                <strong>Avatar video unavailable</strong> — <code>DID_API_KEY</code> not configured in
-                <code>ai-service/.env</code>.<br>
-                The script and slides were still generated successfully ({{ job.slideCount }} slides).
-            </p>
-            <a class="vg-link" href="https://www.d-id.com/" target="_blank" rel="noopener">
-                Get your free D-ID API key →
-            </a>
-        </div>
-
-        <div class="vg-result-actions">
-            <button class="vg-btn vg-btn--secondary" id="btn-new-video" (click)="reset()">
-                🔄 Generate Another Video
+        <div class="vg-player-actions">
+            <button class="vg-btn vg-btn--secondary" (click)="reset()">
+                🔄 Generate New Lesson
             </button>
-            <a *ngIf="job.avatarUrl" class="vg-btn vg-btn--primary" [href]="job.avatarUrl" target="_blank" download>
-                ⬇ Download Video
+            <a *ngIf="job.avatarUrl" class="vg-btn vg-btn--pro-link" [href]="job.avatarUrl" target="_blank" download>
+                ⬇ Download Full Lecture
             </a>
         </div>
     </div>

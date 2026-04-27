@@ -12,11 +12,14 @@ type UIState = 'idle' | 'loading' | 'done' | 'error';
 export class VideoGeneratorComponent implements OnDestroy {
     courseContent = '';
     language: 'en' | 'fr' = 'en';
+    presenterUrl = '';
+    selectedFile: File | null = null; // New
 
     state: UIState = 'idle';
     progress = 0;
     currentStep = '';
     job: VideoJob | null = null;
+    currentSlideIdx = 0;
 
     private pollSub?: Subscription;
 
@@ -31,6 +34,10 @@ export class VideoGeneratorComponent implements OnDestroy {
 
     constructor(private svc: VideoGeneratorService) { }
 
+    onFileSelected(event: any) {
+        this.selectedFile = event.target.files[0];
+    }
+
     generate() {
         if (!this.courseContent.trim() || this.state === 'loading') return;
 
@@ -39,7 +46,7 @@ export class VideoGeneratorComponent implements OnDestroy {
         this.currentStep = 'Submitting job…';
         this.job = null;
 
-        this.svc.generate(this.courseContent, this.language).subscribe({
+        this.svc.generate(this.courseContent, this.language, this.presenterUrl, this.selectedFile || undefined).subscribe({
             next: ({ jobId }) => {
                 this.pollSub = this.svc.pollStatus(jobId).subscribe({
                     next: (job) => this._onPoll(job),
@@ -64,6 +71,26 @@ export class VideoGeneratorComponent implements OnDestroy {
         this.progress = 0;
         this.currentStep = '';
         this.courseContent = '';
+        this.presenterUrl = '';
+        this.currentSlideIdx = 0;
+    }
+
+    nextSlide() {
+        if (this.job && this.currentSlideIdx < this.job.slideCount - 1) {
+            this.currentSlideIdx++;
+        }
+    }
+
+    prevSlide() {
+        if (this.currentSlideIdx > 0) {
+            this.currentSlideIdx--;
+        }
+    }
+
+    getSlideUrl(index: number): string {
+        if (!this.job) return '';
+        // Point to the Python service static mount
+        return `http://localhost:8000/static/video/${this.job.jobId}/slides/slide_${(index + 1).toString().padStart(2, '0')}.png`;
     }
 
     ngOnDestroy() {
@@ -73,8 +100,6 @@ export class VideoGeneratorComponent implements OnDestroy {
     private _onPoll(job: VideoJob) {
         this.job = job;
 
-        // Determine progress from step field (not directly in VideoJob — we stored it in the Python side)
-        // Since we only get status from the response, estimate from status:
         if (job.status === 'done') {
             this.state = 'done';
             this.progress = 100;
@@ -83,7 +108,6 @@ export class VideoGeneratorComponent implements OnDestroy {
             this.state = 'error';
             this.currentStep = job.error || 'An error occurred';
         } else {
-            // Animate progress smoothly while processing
             this.state = 'loading';
             if (this.progress < 90) this.progress += 5;
             this.currentStep = 'Processing… please wait';

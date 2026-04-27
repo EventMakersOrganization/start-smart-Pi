@@ -30,19 +30,68 @@ import requests
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = "qwen2.5:3b"
+# Prefer env override; default to llama3.2:1b (lightweight), fall back automatically
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
-_SYSTEM_PROMPT = """You are an expert educational content creator.
-Your task is to convert raw course material into a structured, engaging video script.
-The script must be friendly, clear, and suitable for a 3-6 minute explainer video.
-Always respond with VALID JSON only — no markdown fences, no extra text."""
+# Model priority: lightweight first to prevent OOM/crashes
+_MODEL_PRIORITY = ["llama3.2:1b", "qwen2.5:1.5b", "qwen2.5:3b", "mistral:latest", "qwen2.5:0.5b"]
 
-_USER_TEMPLATE = """Convert the following course content into a video script.
+
+def _resolve_model(preferred: str, base_url: str) -> str:
+    """Return `preferred` if installed, else first model from priority list, else first available."""
+    try:
+        resp = requests.get(f"{base_url}/api/tags", timeout=5)
+        if resp.ok:
+            installed = {m["name"] for m in resp.json().get("models", [])}
+            installed_bases = {m.split(":")[0] for m in installed}
+
+            logger.info("[ScriptGenerator] Installed models: %s", sorted(installed))
+
+            # Exact match for preferred
+            if preferred in installed:
+                return preferred
+            # Base-name match for preferred (e.g. "qwen2.5:3b" vs "qwen2.5:3b-instruct-q4")
+            pref_base = preferred.split(":")[0]
+            for m in installed:
+                if m.split(":")[0] == pref_base:
+                    logger.info("[ScriptGenerator] Resolved '%s' → '%s'", preferred, m)
+                    return m
+
+            # Walk priority list
+            for candidate in _MODEL_PRIORITY:
+                if candidate in installed:
+                    logger.warning("[ScriptGenerator] '%s' not found; using '%s'", preferred, candidate)
+                    return candidate
+                cand_base = candidate.split(":")[0]
+                for m in installed:
+                    if m.split(":")[0] == cand_base:
+                        logger.warning("[ScriptGenerator] '%s' not found; using '%s'", preferred, m)
+                        return m
+
+            # Last resort: whatever is installed
+            first = next(iter(installed), None)
+            if first:
+                logger.warning("[ScriptGenerator] Falling back to first available model: '%s'", first)
+                return first
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[ScriptGenerator] Could not query Ollama tags: %s", exc)
+    return preferred  # best-effort — Ollama will surface the error
+
+
+_SYSTEM_PROMPT = (
+    "You are an expert educational content creator. "
+    "Convert raw course material into a structured, engaging video script. "
+    "The script must be friendly, clear, and suitable for a 3-6 minute explainer video. "
+    "IMPORTANT: Respond with VALID JSON only — no markdown fences, no extra text, no explanation."
+)
+
+_USER_TEMPLATE = """\
+Convert the following course content into a video script.
 
 COURSE CONTENT:
 {content}
 
-Return a JSON object with this EXACT schema (no extra fields):
+Return ONLY a raw JSON object (no markdown, no extra text) with this schema:
 {{
   "title": "<short video title>",
   "language": "<en or fr>",
@@ -50,35 +99,38 @@ Return a JSON object with this EXACT schema (no extra fields):
     {{
       "scene_number": 1,
       "title": "<scene heading>",
-      "narration": "<full spoken narration — 50-120 words>",
+      "narration": "<full spoken narration 50-120 words>",
       "key_points": ["<bullet 1>", "<bullet 2>", "<bullet 3>"],
+      "visual_schema": "<bullet_list | process_flow | concept_map | cycle>",
       "duration_estimate_seconds": <integer 30-90>
     }}
   ]
 }}
 
 Rules:
-- Between 4 and 7 scenes total
-- Each narration is natural spoken English or French (match the course language)
-- Key points are SHORT (max 8 words each)
-- Do NOT include code snippets in narration — describe concepts only
-- Respond with raw JSON only"""
+- 4 to 6 scenes total.
+- Use process_flow, concept_map, or cycle for most scenes.
+- Use bullet_list ONLY for intro or conclusion.
+- Each narration is natural spoken language.
+- Key points SHORT (max 8 words each).
+- Output raw JSON only."""
 
 
 class ScriptGenerator:
     """Generate a structured video script from course text using Ollama."""
 
     def __init__(self, model: str | None = None):
-        self.model = model or OLLAMA_MODEL
         self.base_url = OLLAMA_BASE_URL
+        self.model = _resolve_model(model or OLLAMA_MODEL, self.base_url)
+        logger.info("[ScriptGenerator] Initialized with model='%s'", self.model)
 
-    def generate(self, course_content: str, max_content_chars: int = 4000) -> dict:
+    def generate(self, course_content: str, max_content_chars: int = 1500) -> dict:
         """
         Generate a video script from raw course text.
 
         Args:
             course_content: Raw course text (markdown, plain text, etc.)
-            max_content_chars: Truncate content to avoid token overflow
+            max_content_chars: Truncate content to avoid token overflow (default 2000)
 
         Returns:
             Parsed script dict with title, language, and scenes list
@@ -89,32 +141,48 @@ class ScriptGenerator:
 
         prompt = _USER_TEMPLATE.format(content=content)
 
-        logger.info(f"[ScriptGenerator] Calling Ollama model={self.model}, content_len={len(content)}")
+        logger.info(
+            "[ScriptGenerator] Calling Ollama model=%s content_len=%d prompt_len=%d",
+            self.model, len(content), len(prompt),
+        )
+
+        # Use /api/chat — handles system messages more reliably across models
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user",   "content": prompt},
+            ],
+            "stream": False,
+            "format": "json",  # Force Ollama to return valid JSON
+            "options": {
+                "temperature": 0.2,
+                "num_ctx": 2048,       # Increased to allow for prompt + long response
+                "num_predict": 1500,   # Increased to accommodate 4-6 scenes
+            },
+        }
 
         try:
             resp = requests.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "system": _SYSTEM_PROMPT,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.3,
-                        "num_predict": 2048,
-                    },
-                },
+                f"{self.base_url}/api/chat",
+                json=payload,
                 timeout=300,
             )
+            if not resp.ok:
+                # Log full body so we can see the real error
+                logger.error(
+                    "[ScriptGenerator] Ollama error %s: %s",
+                    resp.status_code, resp.text[:500],
+                )
             resp.raise_for_status()
-            raw_text = resp.json().get("response", "")
+            raw_text = resp.json().get("message", {}).get("content", "")
         except requests.RequestException as exc:
-            logger.error(f"[ScriptGenerator] Ollama request failed: {exc}")
+            logger.error("[ScriptGenerator] Ollama request failed: %s", exc)
             raise RuntimeError(f"Ollama unavailable: {exc}") from exc
 
         script = self._parse_json(raw_text)
         self._validate(script)
-        logger.info(f"[ScriptGenerator] Script generated: {len(script['scenes'])} scenes")
+        logger.info("[ScriptGenerator] Script generated: %d scenes", len(script["scenes"]))
         return script
 
     # ------------------------------------------------------------------

@@ -18,12 +18,14 @@ export class VideoGeneratorService {
 
     constructor(private http: HttpClient) { }
 
-    generate(courseContent: string, language = 'en', presenterUrl?: string): Observable<{ jobId: string; status: string }> {
-        return this.http.post<{ jobId: string; status: string }>(`${this.BASE}/generate`, {
-            courseContent,
-            language,
-            presenterUrl: presenterUrl || undefined,
-        });
+    generate(courseContent: string, language = 'en', presenterUrl?: string, presenterImage?: File): Observable<{ jobId: string; status: string }> {
+        const fd = new FormData();
+        fd.append('courseContent', courseContent); // Match DTO
+        fd.append('language', language);
+        if (presenterUrl) fd.append('presenterUrl', presenterUrl); // Match DTO
+        if (presenterImage) fd.append('presenter_image', presenterImage);
+
+        return this.http.post<{ jobId: string; status: string }>(`${this.BASE}/generate`, fd);
     }
 
     pollStatus(jobId: string): Observable<VideoJob> {
