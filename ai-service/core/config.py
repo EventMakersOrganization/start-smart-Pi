@@ -44,7 +44,7 @@ OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 OLLAMA_FAST_MODEL = os.getenv("OLLAMA_FAST_MODEL", "")
 
 # Level-test / MCQ generation (single-model strategy).
-OLLAMA_LEVEL_TEST_MODEL = os.getenv("OLLAMA_LEVEL_TEST_MODEL", "mistral:7b-instruct")
+OLLAMA_LEVEL_TEST_MODEL = os.getenv("OLLAMA_LEVEL_TEST_MODEL", "llama3.2:3b")
 
 def _int_env(name: str, default: int) -> int:
     try:

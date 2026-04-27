@@ -493,9 +493,14 @@ class AdaptiveLevelTest:
             )
 
         subject_title = (subject_doc.get("title") or "").strip()
-        subject_db_id = str(subject_doc.get("id") or "")
+        subject_db_id = str(subject_doc.get("_id") or subject_doc.get("id") or "")
         total_questions = len(subchapter_specs)
-        session_seed = str(uuid.uuid4())
+        
+        # Use a stable seed for the session to allow cross-request caching for the same student/subject today.
+        # This prevents the "double-generation" issue when the frontend or API retries.
+        day_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        seed_raw = f"{student_id}|{subject_db_id}|{day_str}"
+        session_seed = hashlib.md5(seed_raw.encode()).hexdigest()
 
         # RAG chunks are primarily linked to course IDs from ``courses``.
         # In subchapter mode we receive a Subject document ID, so map it to the

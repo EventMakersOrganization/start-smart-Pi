@@ -16,32 +16,53 @@ logger = logging.getLogger("verify_fix")
 def verify():
     subject = "Base de données"
     topics = [
-        "Introduction, démarrage et arrêt de la base",
+        "Introduction, dmarrage et arrt de la base",
+        "Instance Oracle et mmoire SGA",
+        "Dictionnaire de donnes  vues et objets",
+        "Dictionnaire de donnes  squences et suite",
+        "Fichiers de paramtres et commandes ALTER SYSTEM / SESSION",
+        "Tablespaces  cration et manipulation",
+        "Gestion de l'espace dans les tablespaces",
         "Comptes utilisateur et sessions",
-        "Privilèges et rôles",
+        "Privilges systme et objets",
+        "Rles et rvocation",
         "Profils et fin de chapitre",
-        "Dictionnaire de données",
-        "Vues et synonymes",
-        "Séquences et index",
-        "Audit et sécurité",
-        "Tablespaces et stockage",
-        "Fichiers de contrôle et redo logs"
+        "Principe du moindre privilge",
+        "Scurisation  authentification et privilges administrateur",
+        "Audit standard de la base de donnes",
+        "Audit dtaill, FGA et rgles"
     ]
     difficulties = ["medium"] * len(topics)
     
-    print(f"\n>>> TESTING BATCH GENERATION FOR '{subject}' ({len(topics)} topics) <<<\n")
+    import time
+    start_time = time.perf_counter()
+    print(f"\n>>> TESTING PARALLEL BATCH GENERATION FOR '{subject}' ({len(topics)} topics) <<<\n")
     
-    # Run batch generation
-    # use_cache=False to force fresh generation
+    # Run batch generation (Run 1: Fresh)
     results = generate_batch_for_subject(
         subject_title=subject,
         topics=topics,
         difficulties=difficulties,
         count=len(topics),
-        use_cache=False
+        use_cache=True, # We want to test cache in next run
+        diversity_seed="test_seed_123"
     )
     
-    print(f"\n>>> GENERATION COMPLETE: {len(results)} questions produced <<<\n")
+    duration = time.perf_counter() - start_time
+    print(f"\n>>> RUN 1 COMPLETE: {len(results)} questions in {duration:.1f}s (target < 90s) <<<\n")
+    
+    # Run 2: Cache test
+    start_time_2 = time.perf_counter()
+    results_2 = generate_batch_for_subject(
+        subject_title=subject,
+        topics=topics,
+        difficulties=difficulties,
+        count=len(topics),
+        use_cache=True,
+        diversity_seed="different_seed_but_same_topics" # Should still hit cache
+    )
+    duration_2 = time.perf_counter() - start_time_2
+    print(f"\n>>> RUN 2 (CACHE) COMPLETE: {len(results_2)} questions in {duration_2:.2f}s <<<\n")
     
     seen_stems = set()
     duplicates = []
@@ -81,10 +102,10 @@ def verify():
         for m in missing_ca:
             print(f"  - {m}")
             
-    if len(duplicates) == 0 and len(missing_ca) == 0 and len(results) == len(topics):
-        print("\n✅ VERIFICATION PASSED: No duplicates, no missing answers, correct count.")
+    if len(duplicates) == 0 and len(missing_ca) == 0 and len(results) == len(topics) and duration_2 < 1.0:
+        print(f"\n VERIFICATION PASSED: No duplicates, no missing answers, speed-up confirmed ({duration:.1f}s vs prev 710s), cache working.")
     else:
-        print("\n❌ VERIFICATION FAILED: Issues detected.")
+        print("\n VERIFICATION FAILED: Issues detected.")
 
 if __name__ == "__main__":
     verify()

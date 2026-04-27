@@ -6,6 +6,7 @@ Includes quality filtering, topic-slot alignment, and cache bypass support.
 """
 from __future__ import annotations
 
+import threading
 import hashlib
 import logging
 import re
@@ -221,7 +222,14 @@ def _normalize_question_fields(q: dict[str, Any]) -> dict[str, Any]:
     if not q.get("questionText"):
         q["questionText"] = q.get("question", "")
     # Normalize answer aliases.
-    ca = str(q.get("correct_answer") or q.get("correctAnswer") or "").strip()
+    ca = str(
+        q.get("correct_answer") 
+        or q.get("correctAnswer") 
+        or q.get("answer") 
+        or q.get("correct") 
+        or q.get("solution") 
+        or ""
+    ).strip()
     if not ca and isinstance(q.get("options"), list) and q.get("options"):
         ca = str(q["options"][0]).strip()
     q["correct_answer"] = ca
@@ -337,6 +345,36 @@ def _generate_single_level_test_question(
     return None
 
 
+_MAX_WORKERS = 10
+
+
+def _cache_key(
+    subject: str,
+    topics: list[str],
+    difficulty: str,
+    course_ids: list[str] | None = None,
+    question_course_ids: list[str] | None = None,
+) -> str:
+    version = "v16_2q_fr_parallel"
+    cid = "|".join(sorted(course_ids)) if course_ids else ""
+    qcid = "|".join(question_course_ids or [])
+    raw = f"{version}|{subject}|{difficulty}|{cid}|{qcid}|{'|'.join(sorted(topics))}"
+    return hashlib.md5(raw.encode()).hexdigest()
+
+
+def _mongo_course_text_for_level_test(course_id: str | None, topic_hint: str = "") -> str:
+    if not course_id:
+        return ""
+    try:
+        c = get_course_by_id(course_id)
+        if not c:
+            return ""
+        return f"{c.get('title','')}\n{c.get('description','')}"
+    except Exception as e:
+        logger.error("Error fetching course text: %s", e)
+        return ""
+
+
 def generate_batch_for_subject(
     subject_title: str,
     topics: list[str],
@@ -348,7 +386,9 @@ def generate_batch_for_subject(
     use_cache: bool = True,
     diversity_seed: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Generate exactly one question per topic/subchapter."""
+    """
+    Generate questions for ONE subject (multiple topics) in parallel.
+    """
     t0 = time.perf_counter()
     base_budget = int(
         getattr(
@@ -357,8 +397,8 @@ def generate_batch_for_subject(
             getattr(config, "LEVEL_TEST_MAX_GENERATION_SECONDS", 120),
         )
     )
-    per_q_budget = int(getattr(config, "LEVEL_TEST_SECONDS_PER_QUESTION", 10))
-    max_total_seconds = max(base_budget, count * max(10, per_q_budget * 2))
+    per_q_budget = int(getattr(config, "LEVEL_TEST_SECONDS_PER_QUESTION", 25))
+    max_total_seconds = max(base_budget, count * max(10, per_q_budget))
 
     ck = _cache_key(
         subject_title,
@@ -366,7 +406,6 @@ def generate_batch_for_subject(
         "|".join(difficulties[:count]),
         course_ids,
         (question_course_ids or [])[:count],
-        diversity_seed,
     )
     if use_cache and ck in _question_cache:
         logger.info("Cache HIT for %s (%d questions)", subject_title, len(_question_cache[ck]))
@@ -375,113 +414,34 @@ def generate_batch_for_subject(
     if rag_service is None:
         rag_service = RAGService.get_instance()
 
-    # Exactly one question per topic/subchapter slot.
-    result: list[dict[str, Any]] = []
-    global_seen: set[str] = set()
-    fallback_used_questions: set[str] = set()
-    last_context = ""
-    provided_course_scope = course_ids is not None
-    for i in range(count):
-        if (time.perf_counter() - t0) >= max_total_seconds:
-            logger.warning(
-                "Generation budget reached for %s (>%ss), using fallback for remaining slots",
-                subject_title,
-                max_total_seconds,
-            )
-            for j in range(i, count):
-                slot_topic = topics[j] if j < len(topics) else "general"
-                slot_diff = difficulties[j] if j < len(difficulties) else "medium"
-                picked = _fallback_question(
-                    subject_title,
-                    slot_topic,
-                    slot_diff,
-                    context=last_context,
-                    diversity_seed=f"{(diversity_seed or '').strip()}:{j}:budget",
-                    question_index=j,
-                    used_questions_set=fallback_used_questions,
-                )
-                picked["topic"] = slot_topic
-                picked["difficulty"] = slot_diff
-                picked = _normalize_question_fields(picked)
-                canonicalize_correct_answer_in_place(picked)
-                picked = _normalize_question_fields(picked)
-                sig = _question_signature(picked)
-                if sig in global_seen:
-                    picked["question"] = f"{picked.get('question','')} [{slot_topic}]"
-                    picked["questionText"] = picked["question"]
-                    sig = _question_signature(picked)
-                global_seen.add(sig)
-                result.append(picked)
-            break
+    seen_lock = threading.Lock()
+    seen_sigs = set()
 
+    def generate_slot(i: int) -> dict[str, Any]:
         slot_topic = topics[i] if i < len(topics) else "general"
         slot_diff = difficulties[i] if i < len(difficulties) else "medium"
         slot_cid = str(question_course_ids[i] or "").strip() if (question_course_ids and i < len(question_course_ids)) else ""
-
-        logger.info("Generating Q%d/%d for '%s' (%s)", i + 1, count, slot_topic, slot_diff)
+        
         slot_cids = [slot_cid] if slot_cid else [str(x).strip() for x in (course_ids or []) if str(x).strip()]
         query = f"{subject_title} {slot_topic}".strip()
+        
+        context = ""
         if slot_cids and hasattr(rag_service, "get_context_for_course_ids"):
             context = (rag_service.get_context_for_course_ids(query, slot_cids, max_chunks=3) or "").strip()
-        elif not provided_course_scope:
+        elif course_ids is None: # only if not provided scope
             context = (rag_service.get_context_for_query(query, max_chunks=3) or "").strip()
-        else:
-            # Subject-scoped generation requested but no linked/embedded course ids:
-            # do NOT leak to global context (causes off-topic C-programming questions).
-            context = ""
-        if context:
-            last_context = context
-        elif slot_cids:
-            # Strictly scoped fallback: use Mongo course text before safe template fallback.
+            
+        if not context and slot_cids:
             context = _mongo_course_text_for_level_test(slot_cids[0], slot_topic)
-            if context:
-                last_context = context
-            else:
-                logger.warning(
-                    "No filtered context for subject=%s topic=%s course_ids=%s; using safe fallback",
-                    subject_title,
-                    slot_topic,
-                    slot_cids,
-                )
-                picked = _fallback_question(
-                    subject_title,
-                    slot_topic,
-                    slot_diff,
-                    context=last_context,
-                    diversity_seed=f"{(diversity_seed or '').strip()}:{i}",
-                    question_index=i,
-                    used_questions_set=fallback_used_questions,
-                )
-                picked["topic"] = slot_topic
-                picked["difficulty"] = slot_diff
-                picked.setdefault("type", "MCQ")
-                if slot_cid:
-                    picked["course_id"] = slot_cid
-                picked = _normalize_question_fields(picked)
-                canonicalize_correct_answer_in_place(picked)
-                picked = _normalize_question_fields(picked)
-                sig = _question_signature(picked)
-                if sig in global_seen:
-                    picked["question"] = f"{picked.get('question','')} (variante {i + 1})"
-                    picked["questionText"] = picked["question"]
-                    sig = _question_signature(picked)
-                global_seen.add(sig)
-                result.append(picked)
-                continue
 
         max_attempts = max(2, int(getattr(config, "LEVEL_TEST_RETRIES_PER_TOPIC", 2)))
         picked = None
-        sig = ""
+        
+        # Shared set of signatures for this subject batch
         for attempt in range(1, max_attempts + 1):
-            logger.info(
-                "Generating Q%d/%d for '%s' (%s) - Attempt %d/%d",
-                i + 1,
-                count,
-                slot_topic,
-                slot_diff,
-                attempt,
-                max_attempts,
-            )
+            if (time.perf_counter() - t0) >= max_total_seconds:
+                break
+                
             candidate = _generate_single_level_test_question(
                 subject=subject_title,
                 topic=slot_topic,
@@ -491,79 +451,82 @@ def generate_batch_for_subject(
                 course_ids=slot_cids or None,
                 diversity_seed=f"{(diversity_seed or '').strip()}:{i}:{attempt}",
                 max_retries=1,
-                previous_questions=[str(x.get("question") or x.get("questionText") or "") for x in result],
+                previous_questions=[], 
             )
-            if not candidate:
-                logger.info("Q%d attempt %d failed generation", i + 1, attempt)
-                continue
-            candidate["topic"] = slot_topic
-            candidate["difficulty"] = slot_diff
-            candidate.setdefault("type", "MCQ")
-            if slot_cid:
-                candidate["course_id"] = slot_cid
-            candidate = _normalize_question_fields(candidate)
-            canonicalize_correct_answer_in_place(candidate)
-            candidate = _normalize_question_fields(candidate)
-            sig = _question_signature(candidate)
-            if sig in global_seen:
-                logger.info("Q%d attempt %d duplicate signature, retrying", i + 1, attempt)
-                continue
-            picked = candidate
-            break
-
+            if candidate:
+                candidate = _normalize_question_fields(candidate)
+                canonicalize_correct_answer_in_place(candidate)
+                candidate["topic"] = slot_topic
+                candidate["difficulty"] = slot_diff
+                candidate.setdefault("type", "MCQ")
+                candidate.setdefault("is_fallback", False)
+                if slot_cid:
+                    candidate["course_id"] = slot_cid
+                
+                # Double check signature uniqueness even in parallel
+                sig = _strip_accents(str(candidate.get("question") or "")).lower()[:100]
+                with seen_lock:
+                    if sig in seen_sigs:
+                        picked = None
+                        continue # try another attempt
+                    seen_sigs.add(sig)
+                
+                picked = candidate
+                break
+        
         if not picked:
-            logger.warning("Q%d failed after %d attempts, using unique fallback", i + 1, max_attempts)
             picked = _fallback_question(
                 subject_title,
                 slot_topic,
                 slot_diff,
-                context=context or last_context,
+                context=context,
                 diversity_seed=f"{(diversity_seed or '').strip()}:{i}:final",
                 question_index=i,
-                used_questions_set=fallback_used_questions,
             )
             picked["topic"] = slot_topic
             picked["difficulty"] = slot_diff
-            picked.setdefault("type", "MCQ")
-            if slot_cid:
-                picked["course_id"] = slot_cid
             picked = _normalize_question_fields(picked)
             canonicalize_correct_answer_in_place(picked)
-            picked = _normalize_question_fields(picked)
-            sig = _question_signature(picked)
-            if sig in global_seen:
-                picked["question"] = f"{picked.get('question','')} [{slot_topic}]"
-                picked["questionText"] = picked["question"]
-                sig = _question_signature(picked)
-        global_seen.add(sig)
-        result.append(picked)
+            
+        return picked
 
-    final_result = final_duplicate_check(result[:count])
+
+    # Parallel execution for the slots
+    result: list[dict[str, Any]] = [None] * count # type: ignore
+    with ThreadPoolExecutor(max_workers=min(count, _MAX_WORKERS)) as executor:
+        futures = {executor.submit(generate_slot, i): i for i in range(count)}
+        for fut in as_completed(futures):
+            idx = futures[fut]
+            try:
+                result[idx] = fut.result()
+            except Exception as exc:
+                logger.error("Slot %d failed: %s", idx, exc)
+                # Fail-safe if even the slot logic crashed
+                result[idx] = _fallback_question(subject_title, topics[idx], difficulties[idx], question_index=idx)
+
+    # Post-process for duplicates across the batch
+    final_result = final_duplicate_check(result)
+    
+    # Fill any gaps if final check removed too many
     if len(final_result) < count:
+        seen = set(_strip_accents(str(q.get("question") or "")).lower()[:100] for q in final_result if q)
         for k in range(len(final_result), count):
-            slot_topic = topics[k] if k < len(topics) else "general"
-            slot_diff = difficulties[k] if k < len(difficulties) else "medium"
             fill = _fallback_question(
-                subject_title,
-                slot_topic,
-                slot_diff,
-                context=last_context,
-                diversity_seed=f"{(diversity_seed or '').strip()}:{k}:fill",
+                subject_title, 
+                topics[k] if k < len(topics) else "general", 
+                difficulties[k] if k < len(difficulties) else "medium", 
                 question_index=k,
-                used_questions_set=fallback_used_questions,
+                used_questions_set=seen
             )
-            fill["topic"] = slot_topic
-            fill["difficulty"] = slot_diff
             fill = _normalize_question_fields(fill)
             canonicalize_correct_answer_in_place(fill)
-            fill = _normalize_question_fields(fill)
             final_result.append(fill)
+            seen.add(_strip_accents(str(fill.get("question") or "")).lower()[:100])
 
     if use_cache:
         _question_cache[ck] = final_result
         if len(_question_cache) > MAX_CACHE:
-            oldest_key = next(iter(_question_cache))
-            del _question_cache[oldest_key]
+            _question_cache.pop(next(iter(_question_cache)))
 
     elapsed = time.perf_counter() - t0
     logger.info("Subject %s complete: %d questions in %.1fs", subject_title, len(final_result), elapsed)
@@ -577,12 +540,6 @@ def generate_all_subjects_parallel(
 ) -> dict[str, list[dict]]:
     """
     Generate questions for ALL subjects in parallel.
-
-    Args:
-        subjects: list of ``{key, title, topics, difficulties, count}``
-
-    Returns:
-        ``{subject_key: [question_dicts]}``
     """
     if rag_service is None:
         rag_service = RAGService.get_instance()
@@ -590,12 +547,12 @@ def generate_all_subjects_parallel(
     t0 = time.perf_counter()
     results: dict[str, list[dict]] = {}
 
-    max_workers = max(1, min(_MAX_WORKERS, len(subjects)))
+    # We now have nested parallelism. Subject-level + Question-level.
+    # Keep subject-level workers low to avoid overwhelming Ollama.
+    max_workers = max(1, min(2, len(subjects))) 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = {}
-        for s in subjects:
-            key = s["key"]
-            fut = pool.submit(
+        futures = {
+            pool.submit(
                 generate_batch_for_subject,
                 subject_title=s["title"],
                 topics=s["topics"],
@@ -606,9 +563,9 @@ def generate_all_subjects_parallel(
                 question_course_ids=s.get("question_course_ids"),
                 use_cache=use_cache,
                 diversity_seed=s.get("diversity_seed"),
-            )
-            futures[fut] = key
-
+            ): s["key"]
+            for s in subjects
+        }
         for fut in as_completed(futures):
             key = futures[fut]
             try:
@@ -618,11 +575,8 @@ def generate_all_subjects_parallel(
                 results[key] = []
 
     elapsed = time.perf_counter() - t0
-    total_q = sum(len(v) for v in results.values())
-    logger.info(
-        "All subjects done: %d subjects, %d total questions in %.1fs (avg %.1fs/subject)",
-        len(results), total_q, elapsed, elapsed / max(len(results), 1),
-    )
+    logger.info("All subjects done: %d subjects, %d total questions in %.1fs", 
+                len(subjects), sum(len(x) for x in results.values()), elapsed)
     return results
 
 
@@ -641,6 +595,12 @@ def create_safe_fallback_question(
     """
     used = used_questions_set if used_questions_set is not None else set()
     t = (slot_topic or "ce sujet").strip()
+    
+    # Clean topic title (remove suffixes like (suite), - introduction, etc)
+    t = re.sub(r"\s*[\(\[].*?[\)\]]\s*", " ", t)
+    t = re.sub(r"\s+[-—–].*$", "", t)
+    t = t.strip()
+    
     s = (subject or "ce cours").strip()
     diff = (difficulty or "medium").strip().lower()
     if diff not in {"easy", "medium", "hard"}:

@@ -185,6 +185,11 @@ def canonicalize_correct_answer_in_place(question_dict: dict) -> bool:
     def norm(s: str) -> str:
         t = _strip_accents(str(s)).lower().strip()
         t = t.strip('"').strip("'").replace("\u2019", "'")
+        # Strip common LLM prefixes like "Option A: ", "A) ", "Answer: "
+        t = re.sub(r"^(option|choice|answer|reponse)\s*[a-d1-4]?\s*[:\-\)]\s*", "", t)
+        t = re.sub(r"^[a-d1-4]\s*[:\-\)]\s*", "", t)
+        # Strip trailing punctuation/spaces
+        t = re.sub(r"[\s\.,;:\?!]+$", "", t)
         return re.sub(r"\s+", " ", t)
 
     nca = norm(str(ca))
@@ -194,16 +199,10 @@ def canonicalize_correct_answer_in_place(question_dict: dict) -> bool:
             question_dict["correct_answer"] = raw
             return True
     candidates = [no for no, _ in pairs]
-    close = difflib.get_close_matches(nca, candidates, n=1, cutoff=0.9)
+    close = difflib.get_close_matches(nca, candidates, n=1, cutoff=0.8)
     if len(close) == 1:
         for no, raw in pairs:
             if no == close[0]:
-                question_dict["correct_answer"] = raw
-                return True
-    close2 = difflib.get_close_matches(nca, candidates, n=2, cutoff=0.82)
-    if len(close2) == 1:
-        for no, raw in pairs:
-            if no == close2[0]:
                 question_dict["correct_answer"] = raw
                 return True
     return False
