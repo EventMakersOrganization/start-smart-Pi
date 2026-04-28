@@ -51,9 +51,11 @@ export interface RiskDistributionData {
   low: number;
   medium: number;
   high: number;
+  critical?: number;
   lowPercentage: number;
   mediumPercentage: number;
   highPercentage: number;
+  criticalPercentage?: number;
   total: number;
 }
 
@@ -94,15 +96,30 @@ export interface StudentRiskListItem {
   riskScore: number;
   riskLevel: string;
   alertStatus: 'Pending' | 'Reviewed' | 'Resolved';
+  isOnline?: boolean;
 }
 
 export interface InterventionTrackingItem {
   userId: string;
   name: string;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
   dropoutProbability: number;
   suggestions: string[];
   status: 'applied' | 'pending';
+  interventionType?: 'post_evaluation' | 'remedial_content' | 'instructor_alert' | 'none' | string;
+}
+
+export interface AbAutomationSummary {
+  winner: 'A' | 'B' | 'tie' | string;
+  sampleSize: number;
+  groupA: { count: number; avgRiskDelta: number };
+  groupB: { count: number; avgRiskDelta: number };
+}
+
+export interface AbAutomationRunResult {
+  processed: number;
+  highRiskStudents: number;
+  winner: string;
 }
 
 export interface RetentionTrendPoint {
@@ -378,6 +395,17 @@ export class AnalyticsService {
     );
   }
 
+  getAbAutomationSummary(): Observable<AbAutomationSummary> {
+    return this.shareAnalyticsRequest('abAutomationSummary', () =>
+      this.http.get<AbAutomationSummary>(`${this.apiUrl}/ab-testing/automation/summary`),
+    );
+  }
+
+  runAbAutomationNow(): Observable<AbAutomationRunResult> {
+    this.sharedObservables.delete('abAutomationSummary');
+    return this.http.post<AbAutomationRunResult>(`${this.apiUrl}/ab-testing/automation/run`, {});
+  }
+
   markInterventionCompleted(userId: string): Observable<any> {
     return this.http
       .post(`${this.apiUrl}/ab-testing/outcome`, {
@@ -444,7 +472,10 @@ export class AnalyticsService {
   private normalizeRiskLevel(level: string): 'low' | 'medium' | 'high' {
     const normalized = String(level || '').toLowerCase();
     if (normalized === 'high' || normalized === 'medium' || normalized === 'low') {
-      return normalized;
+      return normalized as 'low' | 'medium' | 'high';
+    }
+    if (normalized === 'critical') {
+      return 'high';
     }
 
     return 'medium';

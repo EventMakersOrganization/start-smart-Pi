@@ -1,15 +1,8 @@
-<div
-  class="flex flex-col h-screen overflow-hidden bg-background-light dark:bg-background-dark"
->
+<div class="flex flex-col h-screen overflow-hidden bg-background-light dark:bg-background-dark">
   <!-- Full-width top navbar (above sidebar; same pattern as instructor shell) -->
-  <app-navbar
-    *ngIf="showDashboardShell()"
-    [user]="user"
-    homeLink="/student-dashboard"
-    searchPlaceholder="Search courses, skills, or mentors..."
-    (logoutRequest)="logout()"
-    (profileSidebarRequest)="openProfileSidebar()"
-  />
+  <app-navbar *ngIf="showDashboardShell()" [user]="user" homeLink="/student-dashboard"
+    searchPlaceholder="Search courses, skills, or mentors..." (logoutRequest)="logout()"
+    (profileSidebarRequest)="openProfileSidebar()" />
 
 
   <div class="flex flex-1 min-h-0 overflow-hidden" *ngIf="showDashboardShell()">
@@ -17,42 +10,27 @@
     <app-student-sidebar />
 
     <!-- Main Content Area -->
-    <main
-      id="main-content"
-      tabindex="-1"
-      [class]="
+    <main id="main-content" tabindex="-1" [class]="
         showDashboardShell()
           ? (isChatRoute() ? 'flex-1 h-full overflow-hidden bg-background-light dark:bg-background-dark' : 'flex-1 h-full overflow-y-auto bg-background-light dark:bg-background-dark')
           : 'flex-1 h-full overflow-y-auto bg-background-light dark:bg-background-dark'
-      "
-    >
-      <div
-        class="p-8 space-y-8 max-w-7xl mx-auto"
-        *ngIf="showDashboardShell() && !isSubPageView()"
-      >
+      ">
+      <div class="p-8 space-y-8 max-w-7xl mx-auto" *ngIf="showDashboardShell() && !isSubPageView()">
         <!-- Welcome Header -->
         <section class="flex flex-wrap items-end justify-between gap-4">
           <section
-            class="relative flex flex-wrap items-end justify-between gap-4 p-8 rounded-3xl bg-gradient-to-br from-primary/90 via-indigo-500/80 to-blue-400/80 text-white overflow-hidden group shadow-2xl backdrop-blur-md border border-white/10 animate-fade-in-up"
-          >
+            class="relative flex flex-wrap items-end justify-between gap-4 p-8 rounded-3xl bg-gradient-to-br from-primary/90 via-indigo-500/80 to-blue-400/80 text-white overflow-hidden group shadow-2xl backdrop-blur-md border border-white/10 animate-fade-in-up">
             <div class="absolute inset-0 pointer-events-none">
-              <div
-                class="absolute -top-10 -left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"
-              ></div>
-              <div
-                class="absolute -bottom-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-2xl animate-pulse"
-              ></div>
+              <div class="absolute -top-10 -left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+              <div class="absolute -bottom-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-2xl animate-pulse">
+              </div>
             </div>
             <div class="relative z-10">
-              <h1
-                class="text-2xl md:text-4xl font-extrabold tracking-tight text-white drop-shadow animate-fade-in-up"
-              >
+              <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight text-white drop-shadow animate-fade-in-up">
                 Welcome back, {{ user?.first_name }}!
                 <span class="animate-wave inline-block">👋</span>
               </h1>
-              <p
-                class="text-white/90 mt-3 text-lg animate-fade-in-up animate-delay-200"
-              >
+              <p class="text-white/90 mt-3 text-lg animate-fade-in-up animate-delay-200">
                 <ng-container *ngIf="progress > 0; else noCourseProgressYet">
                   Your average score this
                   {{ learningProgressPeriod === "monthly" ? "month" : "week" }}:
@@ -62,185 +40,134 @@
                   Start a course in <strong>My Courses</strong> to build real
                   learning progress here.
                 </ng-template>
-                <span
-                  *ngIf="levelTestScore > 0"
-                  class="block mt-1 text-indigo-100 animate-fade-in-up animate-delay-300"
-                >
+                <span *ngIf="levelTestScore > 0"
+                  class="block mt-1 text-indigo-100 animate-fade-in-up animate-delay-300">
                   Latest level test: <strong>{{ levelTestScore }}%</strong>.
                 </span>
               </p>
             </div>
-            <div
-              class="relative z-10 flex gap-4 animate-fade-in-up animate-delay-300"
-            >
-              <button
-                routerLink="/brainrush"
-                class="px-5 py-3 bg-gradient-to-r from-blue-700 via-indigo-500 text-white rounded-xl text-base font-bold flex items-center gap-2 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-200 animate-bounce-soft"
-              >
-                <span
-                  class="material-symbols-outlined text-2xl animate-spin-slow"
-                  >sports_esports</span
-                >
+            <div class="relative z-10 flex gap-4 animate-fade-in-up animate-delay-300">
+              <button routerLink="/brainrush"
+                class="px-5 py-3 bg-gradient-to-r from-blue-700 via-indigo-500 text-white rounded-xl text-base font-bold flex items-center gap-2 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-200 animate-bounce-soft">
+                <span class="material-symbols-outlined text-2xl animate-spin-slow">sports_esports</span>
                 Play BrainRush
               </button>
-              <button
-                routerLink="/codebattle/lobby"
-                class="px-5 py-3 bg-gradient-to-r from-cyan-600 via-indigo-600 text-white rounded-xl text-base font-bold flex items-center gap-2 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-200 animate-bounce-soft animate-delay-200"
-              >
-                <span class="material-symbols-outlined text-2xl animate-pulse"
-                  >terminal</span
-                >
+              <button routerLink="/codebattle/lobby"
+                class="px-5 py-3 bg-gradient-to-r from-cyan-600 via-indigo-600 text-white rounded-xl text-base font-bold flex items-center gap-2 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-200 animate-bounce-soft animate-delay-200">
+                <span class="material-symbols-outlined text-2xl animate-pulse">terminal</span>
                 Code Battle
+              </button>
+              <button id="btn-video-generator" routerLink="/student-dashboard/video-generator"
+                class="px-5 py-3 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 text-white rounded-xl text-base font-bold flex items-center gap-2 shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-200 animate-bounce-soft animate-delay-400">
+                <span class="material-symbols-outlined text-2xl animate-pulse">smart_display</span>
+                Generate Video
               </button>
             </div>
           </section>
+        </section>
+
+        <section
+          *ngIf="shouldShowPostEvaluationCta"
+          class="rounded-2xl border border-red-200 bg-red-50 px-6 py-5 shadow-sm flex flex-wrap items-center justify-between gap-4"
+        >
+          <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-red-600">warning</span>
+            <div>
+              <p class="text-sm font-bold text-red-800">
+                Post-Evaluation Test Recommended
+              </p>
+              <p class="text-xs text-red-700">
+                Your current risk level is high. Take a targeted post-evaluation on weak areas:
+                {{ postEvaluationWeakAreasPreview || "your detected weak topics" }}.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="takePostEvaluationTest()"
+            [disabled]="postEvaluationInProgress"
+            class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
+          >
+            Take Post-Evaluation Test
+          </button>
         </section>
 
         <!-- Grid Layout for Widgets -->
         <div class="grid grid-cols-12 gap-8 mt-6">
           <!-- Learning Progress Rings -->
           <div
-            class="col-span-12 lg:col-span-8 bg-white/70 dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl backdrop-blur-md animate-fade-in-up animate-delay-200"
-          >
+            class="col-span-12 lg:col-span-8 bg-white/70 dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl backdrop-blur-md animate-fade-in-up animate-delay-200">
             <div class="flex items-center justify-between mb-6">
               <h3
-                class="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2 animate-fade-in-up"
-              >
-                <span
-                  class="material-symbols-outlined text-blue-500 animate-bounce-soft"
-                  >auto_graph</span
-                >
+                class="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2 animate-fade-in-up">
+                <span class="material-symbols-outlined text-blue-500 animate-bounce-soft">auto_graph</span>
                 Learning Progress
               </h3>
-              <select
-                [ngModel]="learningProgressPeriod"
-                (ngModelChange)="onLearningProgressPeriodChange($event)"
-                class="bg-slate-50 border-none text-sm font-medium rounded-lg py-1 px-3"
-              >
+              <select [ngModel]="learningProgressPeriod" (ngModelChange)="onLearningProgressPeriodChange($event)"
+                class="bg-slate-50 border-none text-sm font-medium rounded-lg py-1 px-3">
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
               </select>
             </div>
-            <div
-              class="grid grid-cols-2 md:grid-cols-4 gap-6"
-              *ngIf="topicRings.length > 0"
-            >
-              <div
-                *ngFor="let ring of topicRings"
-                class="flex flex-col items-center gap-3"
-              >
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6" *ngIf="topicRings.length > 0">
+              <div *ngFor="let ring of topicRings" class="flex flex-col items-center gap-3">
                 <div class="relative w-24 h-24">
-                  <svg
-                    class="progress-ring w-full h-full"
-                    viewBox="0 0 100 100"
-                  >
-                    <circle
-                      class="text-slate-100 dark:text-slate-800"
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="transparent"
-                      stroke="currentColor"
-                      stroke-width="8"
-                    ></circle>
-                    <circle
-                      [class]="ring.color"
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="transparent"
-                      stroke="currentColor"
-                      stroke-dasharray="251.2"
-                      [attr.stroke-dashoffset]="getRingDashoffset(ring.score)"
-                      stroke-linecap="round"
-                      stroke-width="8"
-                    ></circle>
+                  <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
+                    <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+                      stroke="currentColor" stroke-width="8"></circle>
+                    <circle [class]="ring.color" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
+                      stroke-dasharray="251.2" [attr.stroke-dashoffset]="getRingDashoffset(ring.score)"
+                      stroke-linecap="round" stroke-width="8"></circle>
                   </svg>
-                  <span
-                    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg"
-                    >{{ ring.score }}%</span
-                  >
+                  <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">{{
+                    ring.score }}%</span>
                 </div>
                 <span class="text-xs font-bold text-slate-500 uppercase">{{
                   formatTopicRingName(ring.name)
-                }}</span>
+                  }}</span>
               </div>
             </div>
-            <p
-              *ngIf="topicRings.length === 0"
-              class="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-200 rounded-xl"
-            >
+            <p *ngIf="topicRings.length === 0"
+              class="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-200 rounded-xl">
               No course activity in this period yet. Open
-              <a
-                routerLink="/student-dashboard/my-courses"
-                class="text-primary font-semibold underline"
-                >My Courses</a
-              >
+              <a routerLink="/student-dashboard/my-courses" class="text-primary font-semibold underline">My Courses</a>
               to start learning.
             </p>
           </div>
 
           <!-- Goal Tracking Widget -->
           <div
-            class="col-span-12 lg:col-span-4 bg-white/70 dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl backdrop-blur-md animate-fade-in-up animate-delay-300"
-          >
+            class="col-span-12 lg:col-span-4 bg-white/70 dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl backdrop-blur-md animate-fade-in-up animate-delay-300">
             <h3
-              class="text-2xl font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2 animate-fade-in-up"
-            >
-              <span
-                class="material-symbols-outlined text-emerald-500 animate-bounce"
-                >flag</span
-              >
+              class="text-2xl font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2 animate-fade-in-up">
+              <span class="material-symbols-outlined text-emerald-500 animate-bounce">flag</span>
               Goal Tracking
             </h3>
-            <div
-              class="space-y-6"
-              *ngIf="goalTracking?.hasGoals; else noGoalsConfigured"
-            >
+            <div class="space-y-6" *ngIf="goalTracking?.hasGoals; else noGoalsConfigured">
               <div>
                 <div class="flex justify-between text-sm mb-2">
-                  <span class="font-medium text-slate-600 dark:text-slate-400"
-                    >Study Hours</span
-                  >
-                  <span class="font-bold"
-                    >{{ goalTracking.studyHoursCompleted | number: "1.0-1" }}/{{
-                      goalTracking.studyHoursGoal | number: "1.0-1"
-                    }}h</span
-                  >
+                  <span class="font-medium text-slate-600 dark:text-slate-400">Study Hours</span>
+                  <span class="font-bold">{{ goalTracking.studyHoursCompleted | number: "1.0-1" }}/{{
+                    goalTracking.studyHoursGoal | number: "1.0-1"
+                    }}h</span>
                 </div>
-                <div
-                  class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"
-                >
-                  <div
-                    class="bg-primary h-full"
-                    [style.width.%]="getStudyHoursGoalPercent()"
-                  ></div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-primary h-full" [style.width.%]="getStudyHoursGoalPercent()"></div>
                 </div>
               </div>
               <div>
                 <div class="flex justify-between text-sm mb-2">
-                  <span class="font-medium text-slate-600 dark:text-slate-400"
-                    >Quiz Success ({{
-                      goalTracking.targetTopic || "general"
-                    }})</span
-                  >
-                  <span class="font-bold"
-                    >{{ goalTracking.quizSuccess | number: "1.0-0" }}% /
-                    {{ goalTracking.quizSuccessGoal | number: "1.0-0" }}%</span
-                  >
+                  <span class="font-medium text-slate-600 dark:text-slate-400">Quiz Success ({{
+                    goalTracking.targetTopic || "general"
+                    }})</span>
+                  <span class="font-bold">{{ goalTracking.quizSuccess | number: "1.0-0" }}% /
+                    {{ goalTracking.quizSuccessGoal | number: "1.0-0" }}%</span>
                 </div>
-                <div
-                  class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden"
-                >
-                  <div
-                    class="bg-emerald-500 h-full"
-                    [style.width.%]="getQuizGoalPercent()"
-                  ></div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-emerald-500 h-full" [style.width.%]="getQuizGoalPercent()"></div>
                 </div>
               </div>
-              <div
-                class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800"
-              >
+              <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
                 <p class="text-sm font-medium italic text-slate-500">
                   Deadline: {{ goalTracking.deadline || "Not set" }}
                 </p>
@@ -248,8 +175,7 @@
             </div>
             <ng-template #noGoalsConfigured>
               <div
-                class="bg-slate-100 dark:bg-slate-800 rounded-xl p-5 text-slate-500 dark:text-slate-400 text-base animate-fade-in-up animate-delay-400"
-              >
+                class="bg-slate-100 dark:bg-slate-800 rounded-xl p-5 text-slate-500 dark:text-slate-400 text-base animate-fade-in-up animate-delay-400">
                 No backend goal configured yet. Configure goals from Goal
                 Setting to start real tracking.
               </div>
@@ -260,117 +186,72 @@
           <div class="col-span-12 lg:col-span-9">
             <div class="flex items-center justify-between mb-6">
               <h3
-                class="text-3xl font-extrabold text-slate-900 dark:text-white animate-fade-in-up animate-delay-400 flex items-center gap-2"
-              >
-                <span
-                  class="material-symbols-outlined text-pink-500 animate-bounce"
-                  >recommend</span
-                >
+                class="text-3xl font-extrabold text-slate-900 dark:text-white animate-fade-in-up animate-delay-400 flex items-center gap-2">
+                <span class="material-symbols-outlined text-pink-500 animate-bounce">recommend</span>
                 Personalized Recommendations
               </h3>
-              <button
-                type="button"
-                (click)="navigateToMyCoursesRecommendations()"
-                class="text-primary text-base font-bold hover:underline transition-all"
-              >
+              <button type="button" (click)="navigateToMyCoursesRecommendations()"
+                class="text-primary text-base font-bold hover:underline transition-all">
                 {{ showAllRecommendations ? "Show Less" : "View All" }}
               </button>
             </div>
-            <div
-              *ngIf="recommendationsLoading"
-              class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-            >
+            <div *ngIf="recommendationsLoading"
+              class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
               Loading AI recommendations...
             </div>
 
-            <div
-              *ngIf="!recommendationsLoading && recommendationsError"
-              class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"
-            >
+            <div *ngIf="!recommendationsLoading && recommendationsError"
+              class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
               {{ recommendationsError }}
             </div>
 
-            <div
-              *ngIf="
+            <div *ngIf="
                 !recommendationsLoading &&
                 !recommendationsError &&
                 suggestedCourses.length === 0
-              "
-              class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
-            >
+              " class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
               No recommendations available yet. Keep learning activities to get
               personalized suggestions.
             </div>
 
-            <div
-              *ngIf="!recommendationsLoading && suggestedCourses.length > 0"
-              class="grid grid-cols-1 md:grid-cols-3 gap-8"
-            >
+            <div *ngIf="!recommendationsLoading && suggestedCourses.length > 0"
+              class="grid grid-cols-1 md:grid-cols-3 gap-8">
               <!-- Show only 3 recommendations unless showAllRecommendations is true -->
-              <div
-                *ngFor="
+              <div *ngFor="
                   let course of showAllRecommendations
                     ? suggestedCourses
                     : (suggestedCourses | slice: 0 : 3);
                   let i = index
-                "
-                (click)="navigateToRecommendedCourse(course)"
+                " (click)="navigateToRecommendedCourse(course)"
                 class="bg-gradient-to-br from-indigo-200/80 via-purple-200/80 to-blue-200/80 dark:from-indigo-900/60 dark:via-purple-900/60 dark:to-blue-900/60 rounded-3xl p-7 shadow-2xl animate-fade-in-up"
-                [ngStyle]="{ 'animation-delay': i * 180 + 400 + 'ms' }"
-                role="button"
-                tabindex="0"
-                (keydown.enter)="navigateToRecommendedCourse(course)"
-                (keydown.space)="
+                [ngStyle]="{ 'animation-delay': i * 180 + 400 + 'ms' }" role="button" tabindex="0"
+                (keydown.enter)="navigateToRecommendedCourse(course)" (keydown.space)="
                   $event.preventDefault(); navigateToRecommendedCourse(course)
-                "
-              >
-                <div
-                  class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden"
-                >
-                  <div
-                    class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"
-                  ></div>
+                ">
+                <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
+                  <div class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"></div>
                 </div>
                 <div class="flex items-center gap-2 mb-2">
-                  <span
-                    class="material-symbols-outlined text-xl text-primary animate-bounce"
-                    >star</span
-                  >
-                  <h4
-                    class="font-bold text-base text-slate-900 dark:text-white"
-                  >
+                  <span class="material-symbols-outlined text-xl text-primary animate-bounce">star</span>
+                  <h4 class="font-bold text-base text-slate-900 dark:text-white">
                     {{ course.title }}
                   </h4>
                 </div>
                 <p class="text-slate-700 dark:text-slate-200 mb-2 text-sm">
                   {{ course.reason }}
                 </p>
-                <div
-                  class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mb-1"
-                >
-                  <span
-                    class="material-symbols-outlined text-base text-indigo-400"
-                    >schedule</span
-                  >
-                  <span
-                    >{{ course.level || "Adaptive" }} •
-                    {{ course.duration }}</span
-                  >
+                <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  <span class="material-symbols-outlined text-base text-indigo-400">schedule</span>
+                  <span>{{ course.level || "Adaptive" }} •
+                    {{ course.duration }}</span>
                 </div>
                 <div class="flex items-center justify-between mt-2">
-                  <span
-                    class="text-xs font-bold text-slate-900 dark:text-slate-100"
-                    >Open in My Courses</span
-                  >
-                  <button
-                    type="button"
-                    (click)="
+                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Open in My Courses</span>
+                  <button type="button" (click)="
                       $event.stopPropagation();
                       navigateToRecommendedCourse(course)
-                    "
-                    class="text-primary material-symbols-outlined hover:scale-110 transition-transform"
-                    aria-label="Open recommended subject"
-                  >
+                    " class="text-primary material-symbols-outlined hover:scale-110 transition-transform"
+                    aria-label="Open recommended subject">
                     arrow_forward_ios
                   </button>
                 </div>
@@ -381,18 +262,13 @@
           <!-- ── Peer Comparison ── -->
           <div class="col-span-12 grid grid-cols-1 gap-6 xl:grid-cols-3">
             <section
-              class="rounded-3xl glass-effect bg-gradient-to-br from-blue-50/80 via-white/80 to-purple-100/80 dark:from-blue-900/40 dark:via-slate-900/60 dark:to-purple-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up"
-            >
+              class="rounded-3xl glass-effect bg-gradient-to-br from-blue-50/80 via-white/80 to-purple-100/80 dark:from-blue-900/40 dark:via-slate-900/60 dark:to-purple-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <div class="flex items-center gap-2">
                   <span
-                    class="material-symbols-outlined text-blue-500 text-2xl bg-blue-100 rounded-full p-2 shadow-glow"
-                    >group</span
-                  >
+                    class="material-symbols-outlined text-blue-500 text-2xl bg-blue-100 rounded-full p-2 shadow-glow">group</span>
                   <div>
-                    <h3
-                      class="text-lg font-extrabold text-slate-900 dark:text-white"
-                    >
+                    <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">
                       Collaborative Recommendations
                     </h3>
                     <p class="text-xs text-slate-500">
@@ -400,56 +276,36 @@
                     </p>
                   </div>
                 </div>
-                <span
-                  class="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 shadow"
-                  >{{ collaborativeRecommendations.length }} items</span
-                >
+                <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 shadow">{{
+                  collaborativeRecommendations.length }} items</span>
               </div>
 
-              <div
-                *ngIf="adaptiveInsightsLoading"
-                class="mt-4 text-sm text-slate-500"
-              >
+              <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
                 Loading collaborative insights...
               </div>
 
-              <div
-                *ngIf="
+              <div *ngIf="
                   !adaptiveInsightsLoading &&
                   collaborativeRecommendations.length > 0
-                "
-                class="mt-4 space-y-3"
-              >
-                <article
-                  *ngFor="
+                " class="mt-4 space-y-3">
+                <article *ngFor="
                     let rec of collaborativeRecommendations | slice: 0 : 3
-                  "
-                  class="rounded-xl bg-slate-50 p-3"
-                >
+                  " class="rounded-xl bg-slate-50 p-3">
                   <div class="flex items-center justify-between gap-2">
                     <p class="font-semibold text-slate-800">{{ rec.topic }}</p>
-                    <span class="text-xs text-slate-500"
-                      >{{ rec.similarStudentsCount }} peers</span
-                    >
+                    <span class="text-xs text-slate-500">{{ rec.similarStudentsCount }} peers</span>
                   </div>
                   <p class="mt-1 text-sm text-slate-600">{{ rec.reason }}</p>
                   <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span
-                      class="rounded-full bg-emerald-100 px-2 py-1 font-semibold text-emerald-700"
-                      >{{ rec.averageSuccessRate }}%</span
-                    >
-                    <span
-                      class="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-700"
-                      >{{ rec.suggestedDifficulty }}</span
-                    >
+                    <span class="rounded-full bg-emerald-100 px-2 py-1 font-semibold text-emerald-700">{{
+                      rec.averageSuccessRate }}%</span>
+                    <span class="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-700">{{
+                      rec.suggestedDifficulty }}</span>
                   </div>
                 </article>
               </div>
 
-              <p
-                *ngIf="!adaptiveInsightsLoading && adaptiveInsightsError"
-                class="mt-4 text-sm text-amber-700"
-              >
+              <p *ngIf="!adaptiveInsightsLoading && adaptiveInsightsError" class="mt-4 text-sm text-amber-700">
                 {{ adaptiveInsightsError }}
               </p>
 
@@ -459,31 +315,23 @@
                 </p>
               </ng-template>
 
-              <p
-                *ngIf="
+              <p *ngIf="
                   !adaptiveInsightsLoading &&
                   !adaptiveInsightsError &&
                   collaborativeRecommendations.length === 0
-                "
-                class="mt-4 text-sm text-slate-500"
-              >
+                " class="mt-4 text-sm text-slate-500">
                 No collaborative recommendations yet.
               </p>
             </section>
 
             <section
-              class="rounded-3xl glass-effect bg-gradient-to-br from-emerald-50/80 via-white/80 to-emerald-100/80 dark:from-emerald-900/40 dark:via-slate-900/60 dark:to-emerald-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up"
-            >
+              class="rounded-3xl glass-effect bg-gradient-to-br from-emerald-50/80 via-white/80 to-emerald-100/80 dark:from-emerald-900/40 dark:via-slate-900/60 dark:to-emerald-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <div class="flex items-center gap-2">
                   <span
-                    class="material-symbols-outlined text-emerald-500 text-2xl bg-emerald-100 rounded-full p-2 shadow-glow"
-                    >groups</span
-                  >
+                    class="material-symbols-outlined text-emerald-500 text-2xl bg-emerald-100 rounded-full p-2 shadow-glow">groups</span>
                   <div>
-                    <h3
-                      class="text-lg font-extrabold text-slate-900 dark:text-white"
-                    >
+                    <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">
                       Study Group Suggestions
                     </h3>
                     <p class="text-xs text-slate-500">
@@ -491,49 +339,33 @@
                     </p>
                   </div>
                 </div>
-                <span
-                  class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 shadow"
-                  >{{ studyGroupsAnalyzed }} students</span
-                >
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 shadow">{{
+                  studyGroupsAnalyzed }} students</span>
               </div>
 
-              <div
-                *ngIf="adaptiveInsightsLoading"
-                class="mt-4 text-sm text-slate-500"
-              >
+              <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
                 Loading study group suggestions...
               </div>
 
-              <div
-                *ngIf="
+              <div *ngIf="
                   !adaptiveInsightsLoading && studyGroupSuggestions.length > 0
-                "
-                class="mt-4 space-y-3"
-              >
-                <article
-                  *ngFor="let group of studyGroupSuggestions | slice: 0 : 3"
-                  class="rounded-xl bg-slate-50 p-3"
-                >
+                " class="mt-4 space-y-3">
+                <article *ngFor="let group of studyGroupSuggestions | slice: 0 : 3" class="rounded-xl bg-slate-50 p-3">
                   <div class="flex items-center justify-between gap-2">
                     <p class="font-semibold text-slate-800">
                       {{ group.groupName }}
                     </p>
-                    <span class="text-xs text-slate-500"
-                      >{{
-                        formatCompatibilityScore(group.compatibilityScore)
+                    <span class="text-xs text-slate-500">{{
+                      formatCompatibilityScore(group.compatibilityScore)
                       }}
-                      compat.</span
-                    >
+                      compat.</span>
                   </div>
                   <p class="mt-1 text-sm text-slate-600">
                     {{ formatGroupTypeLabel(group.groupType) }}
                   </p>
                   <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span
-                      *ngFor="let topic of group.commonTopics | slice: 0 : 3"
-                      class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-700"
-                      >{{ topic }}</span
-                    >
+                    <span *ngFor="let topic of group.commonTopics | slice: 0 : 3"
+                      class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-700">{{ topic }}</span>
                   </div>
                 </article>
               </div>
@@ -544,31 +376,23 @@
                 </p>
               </ng-template>
 
-              <p
-                *ngIf="
+              <p *ngIf="
                   !adaptiveInsightsLoading &&
                   !adaptiveInsightsError &&
                   studyGroupSuggestions.length === 0
-                "
-                class="mt-4 text-sm text-slate-500"
-              >
+                " class="mt-4 text-sm text-slate-500">
                 No study group suggestions yet.
               </p>
             </section>
 
             <section
-              class="rounded-3xl glass-effect bg-gradient-to-br from-violet-50/80 via-white/80 to-purple-100/80 dark:from-violet-900/40 dark:via-slate-900/60 dark:to-purple-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up"
-            >
+              class="rounded-3xl glass-effect bg-gradient-to-br from-violet-50/80 via-white/80 to-purple-100/80 dark:from-violet-900/40 dark:via-slate-900/60 dark:to-purple-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <div class="flex items-center gap-2">
                   <span
-                    class="material-symbols-outlined text-violet-500 text-2xl bg-violet-100 rounded-full p-2 shadow-glow"
-                    >psychology</span
-                  >
+                    class="material-symbols-outlined text-violet-500 text-2xl bg-violet-100 rounded-full p-2 shadow-glow">psychology</span>
                   <div>
-                    <h3
-                      class="text-lg font-extrabold text-slate-900 dark:text-white"
-                    >
+                    <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">
                       Learning Style
                     </h3>
                     <p class="text-xs text-slate-500">
@@ -576,34 +400,24 @@
                     </p>
                   </div>
                 </div>
-                <span
-                  class="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700 shadow"
-                  >{{ getLearningStyleConfidencePercent() }}%</span
-                >
+                <span class="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700 shadow">{{
+                  getLearningStyleConfidencePercent() }}%</span>
               </div>
 
-              <div
-                *ngIf="adaptiveInsightsLoading"
-                class="mt-4 text-sm text-slate-500"
-              >
+              <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
                 Loading learning style insight...
               </div>
 
-              <ng-container
-                *ngIf="
+              <ng-container *ngIf="
                   !adaptiveInsightsLoading && learningStyleInsight;
                   else noLearningStyle
-                "
-              >
+                ">
                 <div class="mt-4 space-y-3">
                   <div>
                     <p class="text-sm font-semibold text-slate-800">
                       {{ learningStyleInsight.primaryStyle }}
                     </p>
-                    <p
-                      class="text-sm text-slate-600"
-                      *ngIf="learningStyleInsight.secondaryStyle"
-                    >
+                    <p class="text-sm text-slate-600" *ngIf="learningStyleInsight.secondaryStyle">
                       Secondary: {{ learningStyleInsight.secondaryStyle }}
                     </p>
                   </div>
@@ -619,10 +433,7 @@
               </ng-container>
 
               <ng-template #noLearningStyle>
-                <p
-                  class="mt-4 text-sm text-slate-500"
-                  *ngIf="!adaptiveInsightsLoading"
-                >
+                <p class="mt-4 text-sm text-slate-500" *ngIf="!adaptiveInsightsLoading">
                   Learning style detection will appear once enough performance
                   data is available.
                 </p>
@@ -631,10 +442,7 @@
           </div>
 
           <div class="col-span-12">
-            <app-peer-comparison
-              [studentId]="user?._id || user?.id"
-              [adaptiveProfile]="adaptiveProfile"
-            >
+            <app-peer-comparison [studentId]="user?._id || user?.id" [adaptiveProfile]="adaptiveProfile">
             </app-peer-comparison>
           </div>
 
@@ -654,10 +462,7 @@
                 </p>
               </div>
             </div>
-            <app-skill-mastery
-              [studentId]="user?._id || user?.id"
-              [adaptiveProfile]="adaptiveProfile"
-            >
+            <app-skill-mastery [studentId]="user?._id || user?.id" [adaptiveProfile]="adaptiveProfile">
             </app-skill-mastery>
           </div>
         </div>
@@ -674,28 +479,17 @@
   </div>
   <!-- AI Quick-Access Floating Button -->
   <div class="fixed bottom-8 right-8 z-40" *ngIf="showDashboardShell()">
-    <button
-      type="button"
-      aria-label="Open AI assistant"
-      routerLink="/student-dashboard/chat/ai"
-      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"
-    >
+    <button type="button" aria-label="Open AI assistant" routerLink="/student-dashboard/chat/ai"
+      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
       <span class="material-symbols-outlined text-3xl">psychology</span>
       <div
-        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity"
-      >
+        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">
         ASK EDU AI
       </div>
     </button>
   </div>
 </div>
 
-<app-profile-sidebar
-  [show]="showProfileSidebar"
-  [user]="user"
-  [studyHours]="studyHours"
-  [coursesCount]="performances.length"
-  (close)="closeProfileSidebar()"
-  (logout)="logout()"
-  (manageAccount)="manageAccount()"
-/>
+<app-profile-sidebar [show]="showProfileSidebar" [user]="user" [studyHours]="studyHours"
+  [coursesCount]="performances.length" (close)="closeProfileSidebar()" (logout)="logout()"
+  (manageAccount)="manageAccount()" />

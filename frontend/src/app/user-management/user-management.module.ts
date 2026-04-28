@@ -56,6 +56,7 @@ import { ChatModule } from '../chat/chat.module';
 import { ChatInstructorComponent } from '../chat/chat-instructor/chat-instructor.component';
 import { ChatRoomComponent } from '../chat/chat-room/chat-room.component';
 import { ChatAiComponent } from '../chat/chat-ai/chat-ai.component';
+import { VideoGeneratorComponent } from '../video-generator/video-generator.component';
 
 const routes: Routes = [
   {
@@ -223,6 +224,12 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['student'], title: 'My Profile' },
       },
+      {
+        path: 'video-generator',
+        component: VideoGeneratorComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'Video Generator' },
+      },
     ],
   },
   {
@@ -329,6 +336,12 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['instructor'], title: 'My Profile' },
       },
+      {
+        path: 'video-generator',
+        component: VideoGeneratorComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'], title: 'Video Generator' },
+      },
     ],
   },
   {
@@ -408,6 +421,7 @@ const routes: Routes = [
     InstructorDashboardComponent,
     QuizFileViewerComponent,
     InstructorClassesComponent,
+    VideoGeneratorComponent,
   ],
   imports: [
     CommonModule,
@@ -427,4 +441,4 @@ const routes: Routes = [
     AdaptiveLearningService,
   ],
 })
-export class UserManagementModule {}
+export class UserManagementModule { }

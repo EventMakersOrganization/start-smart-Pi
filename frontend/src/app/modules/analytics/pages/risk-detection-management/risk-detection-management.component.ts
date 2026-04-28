@@ -230,6 +230,8 @@ export class RiskDetectionManagementComponent implements OnInit {
 
   getRiskBadgeClass(riskLevel: RiskLevel): string {
     switch (riskLevel) {
+      case RiskLevel.CRITICAL:
+        return 'bg-red-700 text-white';
       case RiskLevel.HIGH:
         return 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400';
       case RiskLevel.MEDIUM:
@@ -243,6 +245,8 @@ export class RiskDetectionManagementComponent implements OnInit {
 
   getRiskLabel(riskLevel: RiskLevel): string {
     switch (riskLevel) {
+      case RiskLevel.CRITICAL:
+        return 'Critical Risk';
       case RiskLevel.HIGH:
         return 'High Risk';
       case RiskLevel.MEDIUM:

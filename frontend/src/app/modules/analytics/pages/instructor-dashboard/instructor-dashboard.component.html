@@ -136,6 +136,10 @@
               <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-error"></span> High Risk</div>
               <span class="font-bold">{{ riskDistribution.high }} Students</span>
             </div>
+            <div class="flex justify-between items-center text-xs">
+              <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-900"></span> Critical Risk</div>
+              <span class="font-bold">{{ riskDistribution.critical || 0 }} Students</span>
+            </div>
           </div>
         </div>
       </section>
@@ -155,6 +159,7 @@
               <thead class="bg-surface-container-low text-on-surface-variant text-[11px] font-bold uppercase tracking-wider">
                 <tr>
                   <th class="px-6 py-4">Student Name</th>
+                  <th class="px-6 py-4">Session</th>
                   <th class="px-6 py-4">Risk Score</th>
                   <th class="px-6 py-4">Status</th>
                   <th class="px-6 py-4">Alert</th>
@@ -173,6 +178,16 @@
                         <p class="text-[10px] text-on-surface-variant">{{ student.email }}</p>
                       </div>
                     </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span
+                      class="px-2 py-1 text-[10px] font-bold rounded-full"
+                      [ngClass]="student.isOnline
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-100 text-slate-600'"
+                    >
+                      {{ student.isOnline ? 'Online' : 'Offline' }}
+                    </span>
                   </td>
                   <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
@@ -216,7 +231,7 @@
                   </td>
                 </tr>
                 <tr *ngIf="studentRiskList.length === 0">
-                  <td colspan="5" class="px-6 py-8 text-center text-sm text-on-surface-variant">No student risk records found.</td>
+                  <td colspan="6" class="px-6 py-8 text-center text-sm text-on-surface-variant">No student risk records found.</td>
                 </tr>
               </tbody>
             </table>

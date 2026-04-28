@@ -39,9 +39,11 @@ export class AnalyticsInstructorDashboardComponent implements OnInit {
     low: 0,
     medium: 0,
     high: 0,
+    critical: 0,
     lowPercentage: 0,
     mediumPercentage: 0,
     highPercentage: 0,
+    criticalPercentage: 0,
     total: 0,
   };
 
@@ -117,9 +119,11 @@ export class AnalyticsInstructorDashboardComponent implements OnInit {
             low: 0,
             medium: 0,
             high: 0,
+            critical: 0,
             lowPercentage: 0,
             mediumPercentage: 0,
             highPercentage: 0,
+            criticalPercentage: 0,
             total: 0,
           } as RiskDistributionData),
         ),
@@ -177,23 +181,29 @@ export class AnalyticsInstructorDashboardComponent implements OnInit {
   }
 
   getOverallHealth(): number {
-    return Math.max(0, Math.min(100, 100 - this.riskDistribution.highPercentage));
+    const highLoad =
+      Number(this.riskDistribution.highPercentage || 0) +
+      Number(this.riskDistribution.criticalPercentage || 0);
+    return Math.max(0, Math.min(100, 100 - highLoad));
   }
 
   getRiskDistributionGradient(): string {
     const low = Math.max(0, this.riskDistribution.lowPercentage);
     const medium = Math.max(0, this.riskDistribution.mediumPercentage);
     const high = Math.max(0, this.riskDistribution.highPercentage);
+    const critical = Math.max(0, this.riskDistribution.criticalPercentage || 0);
 
     const lowEnd = low;
     const mediumEnd = low + medium;
     const highEnd = low + medium + high;
+    const criticalEnd = low + medium + high + critical;
 
     return `conic-gradient(
       #006c49 0% ${lowEnd}%,
       #40009c ${lowEnd}% ${mediumEnd}%,
       #ba1a1a ${mediumEnd}% ${highEnd}%,
-      #e5eeff ${highEnd}% 100%
+      #7f1d1d ${highEnd}% ${criticalEnd}%,
+      #e5eeff ${criticalEnd}% 100%
     )`;
   }
 

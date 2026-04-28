@@ -205,6 +205,10 @@ export class ComprehensiveAnalyticsDashboardComponent implements OnInit {
   getRiskBadgeClass(level: string): string {
     const normalized = String(level || '').toLowerCase();
 
+    if (normalized === 'critical') {
+      return 'bg-red-700 text-white';
+    }
+
     if (normalized === 'high') {
       return 'bg-red-100 text-red-700';
     }

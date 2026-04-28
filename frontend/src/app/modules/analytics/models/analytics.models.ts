@@ -4,6 +4,7 @@ export enum RiskLevel {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
+  CRITICAL = 'critical',
 }
 
 export enum AlertSeverity {
@@ -17,6 +18,23 @@ export interface RiskScore {
   user: string | any;
   score: number;
   riskLevel: RiskLevel;
+  dimensions?: {
+    performance_risk: number;
+    engagement_risk: number;
+    progression_risk: number;
+    weakness_persistence: number;
+    trend_risk: number;
+  };
+  requiresIntervention?: boolean;
+  interventionType?: 'post_evaluation' | 'remedial_content' | 'instructor_alert' | 'none';
+  weakAreas?: Array<{
+    topic: string;
+    currentScore: number;
+    suggestedDifficulty: 'easy' | 'medium' | 'hard';
+    action: string;
+    source: 'level-test' | 'performance' | 'profile';
+  }>;
+  reason?: string;
   lastUpdated: Date;
   createdAt?: Date;
   updatedAt?: Date;
@@ -41,6 +59,7 @@ export interface User {
   phone?: string;
   role: string;
   status: string;
+  isOnline?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   academic_level?: string;
