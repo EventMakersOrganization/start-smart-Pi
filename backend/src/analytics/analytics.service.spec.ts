@@ -70,6 +70,7 @@ describe('AnalyticsService engagement scoring', () => {
       {} as any,
       {} as any,
       integrationService as any,
+      {} as any,
     );
 
     return { service, integrationService };
@@ -232,6 +233,7 @@ describe('AnalyticsService retention analytics', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     return { service, userModel, activityModel };
@@ -324,6 +326,7 @@ describe('AnalyticsService cohort analytics', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     const result = await service.getCohortAnalytics();
@@ -362,6 +365,7 @@ describe('AnalyticsService activity by hour', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     const result = await service.getActivityByHour();
@@ -390,6 +394,7 @@ describe('AnalyticsService activity by hour', () => {
       {} as any,
       mockConnection as any,
       mockReadCache as any,
+      {} as any,
       {} as any,
       {} as any,
       {} as any,
@@ -428,6 +433,7 @@ describe('AnalyticsService activity channel split', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     const result = await service.getActivityChannelSplit();
@@ -457,6 +463,7 @@ describe('AnalyticsService activity channel split', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     const result = await service.getActivityChannelSplit();
@@ -481,6 +488,7 @@ describe('AnalyticsService health', () => {
       {} as any,
       mockConnection as any,
       mockReadCache as any,
+      {} as any,
       {} as any,
       {} as any,
       {} as any,

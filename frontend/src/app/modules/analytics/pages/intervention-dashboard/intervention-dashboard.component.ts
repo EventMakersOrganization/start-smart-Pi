@@ -2,9 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../user-management/auth.service';
 import {
+  AbAutomationRunResult,
+  AbAutomationSummary,
   AnalyticsService,
   InterventionTrackingItem,
 } from '../../services/analytics.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-intervention-dashboard',
@@ -20,6 +24,14 @@ export class InterventionDashboardComponent implements OnInit {
   impactSeries: Array<{ label: string; value: number; height: number }> = [];
   priorityFilter: 'all' | 'high' = 'all';
   statusFilter: 'all' | 'pending' | 'applied' = 'all';
+  abSummary: AbAutomationSummary = {
+    winner: 'tie',
+    sampleSize: 0,
+    groupA: { count: 0, avgRiskDelta: 0 },
+    groupB: { count: 0, avgRiskDelta: 0 },
+  };
+  runningAutomation = false;
+  automationMessage: string | null = null;
 
   constructor(
     private analyticsService: AnalyticsService,
@@ -87,9 +99,22 @@ export class InterventionDashboardComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.analyticsService.getInterventions().subscribe({
-      next: (rows) => {
-        this.interventions = rows || [];
+    forkJoin({
+      interventions: this.analyticsService.getInterventions(),
+      abSummary: this.analyticsService.getAbAutomationSummary().pipe(
+        catchError(() =>
+          of({
+            winner: 'tie',
+            sampleSize: 0,
+            groupA: { count: 0, avgRiskDelta: 0 },
+            groupB: { count: 0, avgRiskDelta: 0 },
+          } as AbAutomationSummary),
+        ),
+      ),
+    }).subscribe({
+      next: ({ interventions, abSummary }) => {
+        this.interventions = interventions || [];
+        this.abSummary = abSummary;
         this.buildImpactSeries();
         this.loading = false;
       },
@@ -97,21 +122,6 @@ export class InterventionDashboardComponent implements OnInit {
         console.error('Failed to load interventions', err);
         this.error = 'Failed to load intervention tracking data.';
         this.loading = false;
-      },
-    });
-  }
-
-  markAsCompleted(item: InterventionTrackingItem): void {
-    if (!item?.userId || item.status === 'applied') {
-      return;
-    }
-
-    this.analyticsService.markInterventionCompleted(item.userId).subscribe({
-      next: () => {
-        item.status = 'applied';
-      },
-      error: (err) => {
-        console.error('Failed to mark intervention as completed', err);
       },
     });
   }
@@ -144,6 +154,10 @@ export class InterventionDashboardComponent implements OnInit {
   getRiskClass(level: string): string {
     const normalized = String(level || '').toLowerCase();
 
+    if (normalized === 'critical') {
+      return 'bg-red-700 text-white';
+    }
+
     if (normalized === 'high') {
       return 'bg-error-container text-on-error-container';
     }
@@ -175,6 +189,7 @@ export class InterventionDashboardComponent implements OnInit {
 
   private buildImpactSeries(): void {
     const total = Math.max(1, this.interventions.length);
+    const critical = this.interventions.filter((item) => item.riskLevel === 'critical').length;
     const high = this.interventions.filter((item) => item.riskLevel === 'high').length;
     const medium = this.interventions.filter((item) => item.riskLevel === 'medium').length;
     const low = this.interventions.filter((item) => item.riskLevel === 'low').length;
@@ -182,6 +197,7 @@ export class InterventionDashboardComponent implements OnInit {
     const applied = this.completedInterventions;
 
     const rows = [
+      { label: 'Critical', value: critical },
       { label: 'High Risk', value: high },
       { label: 'Medium Risk', value: medium },
       { label: 'Low Risk', value: low },
@@ -201,5 +217,43 @@ export class InterventionDashboardComponent implements OnInit {
 
   setStatusFilter(next: 'all' | 'pending' | 'applied'): void {
     this.statusFilter = next;
+  }
+
+  runAutomationNow(): void {
+    if (this.runningAutomation) {
+      return;
+    }
+
+    this.runningAutomation = true;
+    this.automationMessage = null;
+
+    this.analyticsService.runAbAutomationNow().subscribe({
+      next: (result: AbAutomationRunResult) => {
+        this.automationMessage = `Automation completed: processed ${result.processed} students.`;
+        this.analyticsService.clearSharedAnalyticsCache();
+        this.loadInterventions();
+        this.runningAutomation = false;
+      },
+      error: (err) => {
+        console.error('Failed to run automation cycle', err);
+        this.automationMessage = 'Failed to run automation cycle.';
+        this.runningAutomation = false;
+      },
+    });
+  }
+
+  getWinnerLabel(): string {
+    if (this.abSummary.winner === 'A') {
+      return 'A (Daily reminders)';
+    }
+    if (this.abSummary.winner === 'B') {
+      return 'B (Weekly weak-point plan)';
+    }
+    return 'Tie';
+  }
+
+  getGroupDeltaLabel(delta: number): string {
+    const value = Number(delta || 0);
+    return value <= 0 ? `${value}% risk` : `+${value}% risk`;
   }
 }

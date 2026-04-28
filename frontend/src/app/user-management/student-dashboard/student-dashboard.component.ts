@@ -213,6 +213,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   };
 
   alerts: any[] = [];
+  backendRiskAlerts: any[] = [];
+  postEvaluationInProgress = false;
   showProfileSidebar = false;
   activeNav = 'dashboard';
   private routerEventsSubscription?: Subscription;
@@ -323,6 +325,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       const forceAnalyticsRefresh = this.consumeForceAnalyticsRefreshFlag();
       this.loadUserInfo();
       this.loadAdaptiveData(forceAnalyticsRefresh);
+      this.loadBackendInterventionAlerts();
     }
   }
 
@@ -1841,6 +1844,58 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         message: `${this.recommendations.length} personalized recommendations ready for you!`,
       });
     }
+
+    // Backend intervention alerts (A/B automation) appear in student dashboard too.
+    this.alerts.push(...this.backendRiskAlerts);
+  }
+
+  get shouldShowPostEvaluationCta(): boolean {
+    const riskRaw = String(this.adaptiveProfile?.risk_level || '')
+      .trim()
+      .toLowerCase();
+    return riskRaw === 'high' || riskRaw === 'critical';
+  }
+
+  get postEvaluationWeakAreasPreview(): string {
+    const weaknesses = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+    return weaknesses.slice(0, 4).join(', ');
+  }
+
+  takePostEvaluationTest(): void {
+    if (this.postEvaluationInProgress) {
+      return;
+    }
+    this.postEvaluationInProgress = true;
+    const weakAreas = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+
+    this.router.navigate(['/student-dashboard/level-test'], {
+      queryParams: { mode: 'post-evaluation' },
+      state: { weakAreas },
+    });
+    this.postEvaluationInProgress = false;
+  }
+
+  private loadBackendInterventionAlerts(): void {
+    this.http
+      .get<any[]>('http://localhost:3000/api/alerts/me?limit=6')
+      .pipe(catchError(() => of([] as any[])))
+      .subscribe((rows) => {
+        const mapped = (Array.isArray(rows) ? rows : []).map((row) => {
+          const severity = String(row?.severity || '').toLowerCase();
+          const type = severity === 'high' ? 'warning' : severity === 'medium' ? 'info' : 'success';
+          return {
+            type,
+            icon: 'notifications',
+            message: String(row?.message || 'Intervention update available.'),
+          };
+        });
+        this.backendRiskAlerts = mapped;
+        this.updateAlerts();
+      });
   }
 
   calculateStreak(performances: any[]): number {

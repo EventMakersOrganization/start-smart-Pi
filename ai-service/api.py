@@ -383,6 +383,24 @@ class LevelTestStartRequest(BaseModel):
     )
 
 
+class PostEvaluationStartRequest(BaseModel):
+    student_id: str = Field(..., description="Unique student identifier")
+    weak_areas: list[str] = Field(
+        default_factory=list,
+        description="Global weak-area topics across all subjects",
+    )
+    regenerate: bool = Field(
+        default=False,
+        description="If true, bypass generation cache for fresh questions",
+    )
+    questions_per_topic: int = Field(
+        default=1,
+        ge=1,
+        le=3,
+        description="How many MCQs to generate per weak-area topic",
+    )
+
+
 class LevelTestSubmitRequest(BaseModel):
     session_id: str = Field(..., description="Active session ID")
     answer: str = Field(..., description="Student answer text")
@@ -467,6 +485,184 @@ def _state_hash(state: dict[str, Any] | None) -> str:
     }
     raw = json.dumps(payload, sort_keys=True, default=str)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+_POST_EVAL_COLLECTION = "post_evaluation_sessions"
+
+
+def _post_eval_col():
+    return db_connection.get_database()[_POST_EVAL_COLLECTION]
+
+
+def _normalize_weak_areas(raw_topics: list[str] | None) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for topic in raw_topics or []:
+        cleaned = str(topic or "").strip()
+        key = cleaned.lower()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        out.append(cleaned)
+    return out
+
+
+def _normalize_topic_key(value: str) -> str:
+    text = str(value or "").strip().lower()
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    text = re.sub(r"[^a-z0-9\s]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _topic_matches_weak_area(
+    candidate_topic: str,
+    allowed_topics: list[str],
+    question_text: str = "",
+) -> bool:
+    c = _normalize_topic_key(candidate_topic)
+    if not c:
+        return False
+    allowed_norm = [_normalize_topic_key(t) for t in allowed_topics if str(t or "").strip()]
+    if not allowed_norm:
+        return False
+
+    # Direct topic match (exact or containment both ways).
+    for t in allowed_norm:
+        if c == t or c in t or t in c:
+            return True
+
+    # Semantic-ish lexical fallback: question text mentions weak-area tokens.
+    q = _normalize_topic_key(question_text)
+    if q:
+        q_tokens = set(q.split())
+        for t in allowed_norm:
+            tokens = [tok for tok in t.split() if len(tok) >= 4]
+            if tokens and sum(1 for tok in tokens if tok in q_tokens) >= max(1, len(tokens) // 2):
+                return True
+
+    return False
+
+
+def _post_eval_difficulties(count: int) -> list[str]:
+    pattern = ["easy", "medium", "hard", "medium"]
+    return [pattern[i % len(pattern)] for i in range(max(0, count))]
+
+
+def _topic_chunk_candidates(topic: str, limit: int = 40) -> list[dict[str, Any]]:
+    """
+    Retrieve chunk candidates and keep only those whose module_name/course_title
+    semantically align with the requested weak-area topic.
+    """
+    raw = embeddings_pipeline_v2.search_chunks(
+        query=topic,
+        n_results=max(10, limit),
+        collection_name=embeddings_pipeline_v2.DEFAULT_CHUNK_COLLECTION,
+    )
+    aligned: list[dict[str, Any]] = []
+    for row in raw or []:
+        meta = row.get("metadata") or {}
+        module_name = str(meta.get("module_name") or "").strip()
+        course_title = str(meta.get("course_title") or "").strip()
+        if _topic_matches_weak_area(module_name, [topic]) or _topic_matches_weak_area(
+            f"{module_name} {course_title}",
+            [topic],
+            row.get("chunk_text") or "",
+        ):
+            aligned.append(row)
+    return aligned[:limit]
+
+
+def _build_post_eval_topic_scope(
+    weak_areas: list[str],
+) -> tuple[list[str], list[str], list[str]]:
+    """
+    Build per-topic slot list + per-slot scoped course_ids using chunk metadata.
+    Only keeps topics that have chunk-backed evidence.
+    """
+    slot_topics: list[str] = []
+    slot_course_ids: list[str] = []
+    allowed_topics: list[str] = []
+
+    for topic in weak_areas:
+        chunks = _topic_chunk_candidates(topic, limit=50)
+        if not chunks:
+            continue
+        seen_course: set[str] = set()
+        course_ids: list[str] = []
+        for chunk in chunks:
+            cid = str(chunk.get("course_id") or "").strip()
+            if cid and cid not in seen_course:
+                seen_course.add(cid)
+                course_ids.append(cid)
+        if not course_ids:
+            continue
+
+        allowed_topics.append(topic)
+        # Add one slot now; additional slots can reuse first scoped course.
+        slot_topics.append(topic)
+        slot_course_ids.append(course_ids[0])
+
+    return slot_topics, slot_course_ids, allowed_topics
+
+
+def _post_eval_serve_next_question(session: dict[str, Any]) -> dict[str, Any] | None:
+    subject_key = "__post_eval__"
+    subj = session.get("subjects", {}).get(subject_key) or {}
+    q_num = int(subj.get("questions_asked", 0))
+    pool = list(subj.get("question_pool") or [])
+    if q_num >= len(pool):
+        return None
+
+    question = dict(pool[q_num] or {})
+    topic = str(question.get("topic") or "General").strip() or "General"
+    question.setdefault("topic", topic)
+    question.setdefault("difficulty", "medium")
+    question.setdefault("type", "MCQ")
+    question["correct_answer"] = str(
+        question.get("correct_answer")
+        or question.get("correctAnswer")
+        or "",
+    ).strip()
+    question["correctAnswer"] = question["correct_answer"]
+
+    answer_entry = {
+        "question_index": q_num,
+        "question": question,
+        "difficulty": question.get("difficulty", "medium"),
+        "topic": topic,
+        "chapter_title": question.get("chapter_title", ""),
+        "subject_key": subject_key,
+        "answered": False,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    answers = list(subj.get("answers") or [])
+    answers.append(answer_entry)
+    subj["answers"] = answers
+    subj["questions_asked"] = q_num + 1
+    session["subjects"][subject_key] = subj
+
+    _post_eval_col().update_one(
+        {"session_id": session["session_id"]},
+        {
+            "$set": {
+                f"subjects.{subject_key}.answers": answers,
+                f"subjects.{subject_key}.questions_asked": q_num + 1,
+            }
+        },
+    )
+
+    total = int(subj.get("questions_per_subject", len(pool)))
+    return {
+        "question": question.get("question", ""),
+        "options": question.get("options", []),
+        "difficulty": question.get("difficulty", "medium"),
+        "topic": topic,
+        "chapter_title": question.get("chapter_title", ""),
+        "subject": "Post Evaluation",
+        "question_index": q_num,
+        "progress": {"answered": max(0, q_num), "total": total},
+    }
 
 
 def _cache_key(endpoint: str, payload: dict[str, Any]) -> str:
@@ -3777,6 +3973,289 @@ async def level_test_start(body: LevelTestStartRequest):
         ai_monitor.record_request("/level-test/start", time.time() - t0, False, {"error": str(e)})
         logger.exception("level-test/start error")
         raise HTTPException(status_code=500, detail=f"Failed to start level test: {e}")
+
+
+@app.post("/post-evaluation/start")
+async def post_evaluation_start(body: PostEvaluationStartRequest):
+    """
+    Start a post-evaluation session scoped strictly to the student's weak-area topics.
+    Questions are generated only from `weak_areas` (across all subjects).
+    """
+    from level_test.batch_question_generator import generate_batch_for_subject
+
+    t0 = time.time()
+    try:
+        weak_areas = _normalize_weak_areas(body.weak_areas)
+        if not weak_areas:
+            raise HTTPException(
+                status_code=400,
+                detail="weak_areas is required and must contain at least one topic",
+            )
+
+        # Build strict scope from chunked PDF/course text aligned with weak topics.
+        scoped_topics, scoped_course_ids, allowed_topics = _build_post_eval_topic_scope(weak_areas)
+        if not scoped_topics:
+            raise HTTPException(
+                status_code=400,
+                detail="No chunked content found for provided weak-area topics",
+            )
+
+        # Keep test bounded while preserving strict topic->chunk scope.
+        per_topic = max(1, int(body.questions_per_topic or 1))
+        topic_slots: list[str] = []
+        question_course_ids: list[str] = []
+        for idx, topic in enumerate(scoped_topics):
+            for _ in range(per_topic):
+                topic_slots.append(topic)
+                question_course_ids.append(scoped_course_ids[idx])
+        topic_slots = topic_slots[:20]
+        question_course_ids = question_course_ids[: len(topic_slots)]
+        difficulties = _post_eval_difficulties(len(topic_slots))
+
+        questions = generate_batch_for_subject(
+            subject_title="Post Evaluation",
+            topics=topic_slots,
+            difficulties=difficulties,
+            count=len(topic_slots),
+            rag_service=rag_service,
+            course_ids=list(dict.fromkeys(question_course_ids)),
+            question_course_ids=question_course_ids,
+            use_cache=not body.regenerate,
+            diversity_seed=f"post-eval:{body.student_id}:{datetime.now(timezone.utc).date().isoformat()}",
+        )
+
+        allowed = {w.lower() for w in allowed_topics}
+        filtered: list[dict[str, Any]] = []
+        dropped_for_topic_drift = 0
+        for idx, q in enumerate(questions or []):
+            forced_topic = topic_slots[idx] if idx < len(topic_slots) else ""
+            topic = str(q.get("topic") or forced_topic).strip()
+            if topic.lower() not in allowed:
+                topic = forced_topic or allowed_topics[idx % len(allowed_topics)]
+
+            normalized = {
+                **q,
+                "topic": topic,
+                "question": str(q.get("question") or q.get("questionText") or "").strip(),
+                "options": list(q.get("options") or []),
+                "difficulty": str(q.get("difficulty") or difficulties[idx]).strip(),
+                "correct_answer": str(
+                    q.get("correct_answer") or q.get("correctAnswer") or ""
+                ).strip(),
+            }
+            normalized["correctAnswer"] = normalized["correct_answer"]
+            if not normalized["question"] or len(normalized["options"]) < 2:
+                continue
+            if not _topic_matches_weak_area(
+                normalized["topic"],
+                allowed_topics,
+                normalized["question"],
+            ):
+                dropped_for_topic_drift += 1
+                continue
+            filtered.append(normalized)
+
+        if not filtered:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate post-evaluation questions from weak areas",
+            )
+        if dropped_for_topic_drift > 0:
+            logger.warning(
+                "post-evaluation strict topic audit dropped %d drifting question(s) for student=%s",
+                dropped_for_topic_drift,
+                body.student_id,
+            )
+
+        session_id = str(uuid.uuid4())
+        subject_key = "__post_eval__"
+        session = {
+            "session_id": session_id,
+            "student_id": body.student_id,
+            "subjects": {
+                subject_key: {
+                    "group_key": subject_key,
+                    "course_id": "post-evaluation",
+                    "course_ids": [],
+                    "title": "Post Evaluation",
+                    "questions_per_subject": len(filtered),
+                    "current_difficulty": "medium",
+                    "questions_asked": 0,
+                    "answers": [],
+                    "completed": False,
+                    "question_pool": filtered,
+                }
+            },
+            "subject_order": [subject_key],
+            "current_subject_idx": 0,
+            "status": "in_progress",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "completed_at": None,
+            "test_mode": "post_evaluation",
+            "allowed_topics": weak_areas,
+            "allowed_topic_source": "chunked_pdf",
+        }
+        _post_eval_col().insert_one(session)
+        first_question = _post_eval_serve_next_question(session)
+        ai_monitor.record_request("/post-evaluation/start", time.time() - t0, True)
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "subjects": [{"subject_key": subject_key, "title": "Post Evaluation"}],
+            "total_questions": len(filtered),
+            "allowed_topics": allowed_topics,
+            "first_question": first_question,
+            "is_ai_generated": True,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        ai_monitor.record_request(
+            "/post-evaluation/start",
+            time.time() - t0,
+            False,
+            {"error": str(e)},
+        )
+        logger.exception("post-evaluation/start error")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start post evaluation: {e}",
+        )
+
+
+@app.post("/post-evaluation/submit-answer")
+async def post_evaluation_submit_answer(body: LevelTestSubmitRequest):
+    t0 = time.time()
+    try:
+        session = _post_eval_col().find_one({"session_id": body.session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        if session.get("status") != "in_progress":
+            raise HTTPException(status_code=400, detail="Session already completed")
+
+        subject_key = "__post_eval__"
+        subj = (session.get("subjects") or {}).get(subject_key) or {}
+        answers = list(subj.get("answers") or [])
+        if not answers or answers[-1].get("answered"):
+            raise HTTPException(status_code=400, detail="No pending question to answer")
+
+        current = answers[-1]
+        question = dict(current.get("question") or {})
+        topic = str(question.get("topic") or current.get("topic") or "").strip()
+        allowed = {str(t).lower() for t in (session.get("allowed_topics") or [])}
+        if topic.lower() not in allowed:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Question topic '{topic}' is outside allowed weak areas",
+            )
+
+        correct = str(
+            question.get("correct_answer") or question.get("correctAnswer") or ""
+        ).strip()
+        is_correct = body.answer.strip().lower() == correct.lower()
+
+        current["student_answer"] = body.answer
+        current["is_correct"] = is_correct
+        current["answered"] = True
+        current["answered_at"] = datetime.now(timezone.utc).isoformat()
+        answers[-1] = current
+        subj["answers"] = answers
+
+        _post_eval_col().update_one(
+            {"session_id": body.session_id},
+            {"$set": {f"subjects.{subject_key}.answers": answers}},
+        )
+
+        total = int(subj.get("questions_per_subject", len(subj.get("question_pool") or [])))
+        answered_count = len([a for a in answers if a.get("answered")])
+
+        next_question = _post_eval_serve_next_question(session)
+        finished = next_question is None or answered_count >= total
+        if finished:
+            subj["completed"] = True
+            _post_eval_col().update_one(
+                {"session_id": body.session_id},
+                {"$set": {f"subjects.{subject_key}.completed": True}},
+            )
+
+        ai_monitor.record_request("/post-evaluation/submit-answer", time.time() - t0, True)
+        return {
+            "status": "success",
+            "correct": is_correct,
+            "correct_answer": correct,
+            "next_difficulty": question.get("difficulty", "medium"),
+            "progress": {"answered": answered_count, "total": total},
+            "finished": bool(finished),
+            "next_question": next_question,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        ai_monitor.record_request(
+            "/post-evaluation/submit-answer",
+            time.time() - t0,
+            False,
+            {"error": str(e)},
+        )
+        logger.exception("post-evaluation/submit-answer error")
+        raise HTTPException(status_code=500, detail=f"Submit post-evaluation answer failed: {e}")
+
+
+@app.post("/post-evaluation/complete")
+async def post_evaluation_complete(body: LevelTestCompleteRequest):
+    t0 = time.time()
+    try:
+        session = _post_eval_col().find_one({"session_id": body.session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        _post_eval_col().update_one(
+            {"session_id": body.session_id},
+            {
+                "$set": {
+                    "status": "completed",
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                }
+            },
+        )
+        session["status"] = "completed"
+        session["test_mode"] = "subchapter"  # reuse subchapter scoring shape by topic
+        profile = generate_student_profile(session)
+        profile["assessment_type"] = "post_evaluation"
+        profile["weak_area_topics"] = list(session.get("allowed_topics") or [])
+
+        _post_eval_col().update_one(
+            {"session_id": body.session_id},
+            {"$set": {"profile": profile}},
+        )
+        state = student_state_store.upsert_from_level_test(profile, body.session_id)
+        ai_monitor.record_request("/post-evaluation/complete", time.time() - t0, True)
+        return {"status": "success", "profile": profile, "learning_state": state}
+    except HTTPException:
+        raise
+    except Exception as e:
+        ai_monitor.record_request(
+            "/post-evaluation/complete",
+            time.time() - t0,
+            False,
+            {"error": str(e)},
+        )
+        logger.exception("post-evaluation/complete error")
+        raise HTTPException(status_code=500, detail=f"Complete post-evaluation failed: {e}")
+
+
+@app.get("/post-evaluation/session/{session_id}")
+async def post_evaluation_session(session_id: str):
+    try:
+        session = _post_eval_col().find_one({"session_id": session_id}, {"_id": 0})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return {"status": "success", "session": session}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("post-evaluation/session error")
+        raise HTTPException(status_code=500, detail=f"Failed to get post-evaluation session: {e}")
 
 
 @app.post("/level-test/submit-answer")

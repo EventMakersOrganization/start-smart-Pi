@@ -13,11 +13,15 @@ import { ActivityService } from "./activity.service";
 import { LogActivityDto } from "./dto/log-activity.dto";
 import { classifyChannelFromHeaders } from "./activity.service";
 import { ActivityAction } from "./schemas/activity.schema";
+import { SessionService } from "./session.service";
 
 @ApiTags("tracking")
 @Controller("tracking")
 export class TrackingController {
-  constructor(private readonly activityService: ActivityService) {}
+  constructor(
+    private readonly activityService: ActivityService,
+    private readonly sessionService: SessionService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -72,6 +76,28 @@ export class TrackingController {
       metadata: body.metadata || {},
     });
 
+    return { status: "success" };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post("heartbeat")
+  @ApiOperation({ summary: "Keep current user session online" })
+  async heartbeat(@Req() req: any) {
+    const userId = String(req.user?.id || req.user?._id || "").trim();
+    if (!userId) {
+      return { status: "error", message: "Authenticated user not found" };
+    }
+
+    const channel = classifyChannelFromHeaders(
+      req.headers["user-agent"],
+      req.headers["x-client-channel"],
+    );
+    await this.sessionService.touchSession(userId, {
+      action: ActivityAction.PAGE_VIEW,
+      channel,
+      at: new Date(),
+    });
     return { status: "success" };
   }
 }

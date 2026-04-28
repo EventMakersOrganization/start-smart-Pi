@@ -10,6 +10,7 @@ import { AuthService } from '../auth.service';
 })
 export class LevelTestResultComponent implements OnInit {
   result: any = null;
+  resultType: 'level-test' | 'post-evaluation' = 'level-test';
   totalTimeSeconds = 0;
   recommendations: any[] = [];
   loadingRecs = true;
@@ -111,6 +112,13 @@ export class LevelTestResultComponent implements OnInit {
       nav?.['aiPersonalizedRecommendations'] ||
       (history.state && history.state['aiPersonalizedRecommendations']) ||
       [];
+    this.resultType =
+      (nav?.['resultType'] ||
+        (history.state && history.state['resultType']) ||
+        navResult?.assessmentType ||
+        'level-test') === 'post-evaluation'
+        ? 'post-evaluation'
+        : 'level-test';
 
     if (navResult) {
       this.initializeFromResult(navResult);
@@ -148,7 +156,11 @@ export class LevelTestResultComponent implements OnInit {
       return;
     }
 
-    this.adaptiveService.getLatestCompletedLevelTest(studentId).subscribe({
+    const latest$ =
+      this.resultType === 'post-evaluation'
+        ? this.adaptiveService.getLatestCompletedPostEvaluation(studentId)
+        : this.adaptiveService.getLatestCompletedLevelTest(studentId);
+    latest$.subscribe({
       next: (latest) => {
         if (latest) {
           this.initializeFromResult(latest);
@@ -283,6 +295,12 @@ export class LevelTestResultComponent implements OnInit {
   }
 
   retakeTest(): void {
+    if (this.resultType === 'post-evaluation') {
+      this.router.navigate(['/student-dashboard/level-test'], {
+        queryParams: { mode: 'post-evaluation' },
+      });
+      return;
+    }
     this.router.navigate(['/student-dashboard/level-test']);
   }
 

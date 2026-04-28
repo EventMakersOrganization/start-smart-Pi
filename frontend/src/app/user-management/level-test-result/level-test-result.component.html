@@ -14,12 +14,12 @@
         <span
           class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider w-fit"
         >
-          Assessment Complete
+          {{ resultType === "post-evaluation" ? "Post-Evaluation Complete" : "Assessment Complete" }}
         </span>
         <h1
           class="text-slate-900 dark:text-slate-100 text-4xl font-black leading-tight tracking-tighter"
         >
-          Evaluation Results
+          {{ resultType === "post-evaluation" ? "Post-Evaluation Results" : "Evaluation Results" }}
         </h1>
         <p class="text-slate-500 dark:text-slate-400 text-lg">
           {{ getLevelMessage() }}
