@@ -28,6 +28,21 @@ export class SubChapterContent {
 
     @Prop()
     quizText?: string;
+
+    @Prop({ type: [Object], default: undefined })
+    quizQuestions?: any[];
+
+    @Prop()
+    dueDate?: Date;
+
+    @Prop()
+    submissionInstructions?: string;
+
+    @Prop()
+    codeSnippet?: string;
+
+    @Prop()
+    createdAt?: Date;
 }
 
 export const SubChapterContentSchema = SchemaFactory.createForClass(SubChapterContent);

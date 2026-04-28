@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 interface QuizAnswerDto {
   questionIndex: number;
-  selectedOptionIndex: number;
+  selectedOptionIndex: number | null;
   correctOptionIndex?: number;
   isCorrect: boolean;
 }
