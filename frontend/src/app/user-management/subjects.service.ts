@@ -66,15 +66,28 @@ export function normalizeSubjectItem(raw: any): SubjectItem {
 @Injectable({ providedIn: 'root' })
 export class SubjectsService {
   private apiUrl = 'http://localhost:3000/api/subjects';
+  private coursesApiUrl = 'http://localhost:3000/api/courses';
 
   constructor(private http: HttpClient) {}
 
-  getSubjects(instructorId?: string): Observable<SubjectItem[]> {
+  getSubjects(
+    instructorId?: string,
+    preferCoursesView = true,
+  ): Observable<SubjectItem[]> {
     const query = instructorId
       ? `?instructorId=${encodeURIComponent(instructorId)}`
       : '';
+    if (!preferCoursesView) {
+      return this.http
+        .get<any[]>(`${this.apiUrl}${query}`)
+        .pipe(
+          map((rows) =>
+            Array.isArray(rows) ? rows.map(normalizeSubjectItem) : [],
+          ),
+        );
+    }
     return this.http
-      .get<any[]>(`${this.apiUrl}${query}`)
+      .get<any[]>(`${this.coursesApiUrl}/subjects/list${query}`)
       .pipe(
         map((rows) =>
           Array.isArray(rows) ? rows.map(normalizeSubjectItem) : [],
@@ -82,7 +95,14 @@ export class SubjectsService {
       );
   }
 
-  getSubject(id: string): Observable<SubjectItem> {
+  getSubject(id: string, preferCoursesView = true): Observable<SubjectItem> {
+    // Compatibility: id may be `course-subject:<title>` from courses grouping endpoint.
+    if (preferCoursesView && String(id || '').startsWith('course-subject:')) {
+      const title = encodeURIComponent(String(id).replace(/^course-subject:/, ''));
+      return this.http
+        .get<any>(`${this.coursesApiUrl}/subjects/by-title/${title}`)
+        .pipe(map(normalizeSubjectItem));
+    }
     return this.http
       .get<any>(`${this.apiUrl}/${id}`)
       .pipe(map(normalizeSubjectItem));

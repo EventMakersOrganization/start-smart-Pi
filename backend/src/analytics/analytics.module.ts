@@ -13,6 +13,8 @@ import { InterventionService } from './intervention.service';
 import { AbTestingService } from './ab-testing.service';
 import { IntegrationService } from './integration.service';
 import { InsightService } from './insight.service';
+import { AbInterventionAutomationService } from './ab-intervention-automation.service';
+import { AlertService } from './alert.service';
 import { AnalyticsReadCacheService } from './services/analytics-read-cache.service';
 import { AnalyticsWebhookController } from './analytics-webhook.controller';
 import { AnalyticsWebhookService } from './analytics-webhook.service';
@@ -26,21 +28,31 @@ import {
 } from './schemas/explainability.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { Activity, ActivitySchema } from '../activity/schemas/activity.schema';
+import { UserSession, UserSessionSchema } from '../activity/schemas/user-session.schema';
+import { ActivityModule } from '../activity/activity.module';
+import { EmailService } from '../notification/email.service';
 import {
   StudentProfile,
   StudentProfileSchema,
 } from '../users/schemas/student-profile.schema';
+import {
+  StudentPerformance,
+  StudentPerformanceSchema,
+} from '../adaptive-learning/schemas/student-performance.schema';
 
 @Module({
   imports: [
     HttpModule,
+    ActivityModule,
     MongooseModule.forFeature([
       { name: RiskScore.name, schema: RiskScoreSchema },
       { name: Alert.name, schema: AlertSchema },
       { name: ExplainabilityLog.name, schema: ExplainabilityLogSchema },
       { name: User.name, schema: UserSchema },
       { name: Activity.name, schema: ActivitySchema },
+      { name: UserSession.name, schema: UserSessionSchema },
       { name: StudentProfile.name, schema: StudentProfileSchema },
+      { name: StudentPerformance.name, schema: StudentPerformanceSchema },
       { name: AbTesting.name, schema: AbTestingSchema },
       { name: AnalyticsWebhook.name, schema: AnalyticsWebhookSchema },
     ]),
@@ -59,6 +71,9 @@ import {
     IntegrationService,
     InsightService,
     AnalyticsWebhookService,
+    AlertService,
+    EmailService,
+    AbInterventionAutomationService,
   ],
   exports: [
     AnalyticsReadCacheService,
@@ -69,6 +84,7 @@ import {
     PredictiveService,
     InterventionService,
     AbTestingService,
+    AbInterventionAutomationService,
     IntegrationService,
     InsightService,
   ],

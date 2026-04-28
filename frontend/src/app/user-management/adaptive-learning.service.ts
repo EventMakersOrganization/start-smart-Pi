@@ -505,6 +505,13 @@ export interface MonitorThroughputResponse {
   requests_per_minute?: number;
 }
 
+export interface PostEvaluationAreaScore {
+  topic: string;
+  score: number;
+  correct: number;
+  total: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
@@ -652,12 +659,16 @@ export class AdaptiveLearningService {
     });
   }
 
-  startLevelTestStage(subjects?: string[]): Observable<any> {
+  startLevelTestStage(subjects?: string[], subjectId?: string): Observable<any> {
     const studentId = this.resolveCurrentStudentId();
-    return this.http.post(`${this.aiServiceUrl}/level-test/start`, {
+    const body: any = {
       student_id: studentId,
       subjects: subjects || [],
-    });
+    };
+    if (subjectId) {
+      body.subject_id = subjectId;
+    }
+    return this.http.post(`${this.aiServiceUrl}/level-test/start`, body);
   }
 
   submitLevelTestAnswer(sessionId: string, answer: string): Observable<any> {
@@ -671,6 +682,53 @@ export class AdaptiveLearningService {
     return this.http.post(`${this.aiServiceUrl}/level-test/complete`, {
       session_id: sessionId,
     });
+  }
+
+  startPostEvaluationStage(weakAreas: string[] = []): Observable<any> {
+    const studentId = this.resolveCurrentStudentId();
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/start`, {
+      student_id: studentId,
+      weak_areas: weakAreas,
+    });
+  }
+
+  submitPostEvaluationAnswer(sessionId: string, answer: string): Observable<any> {
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/submit-answer`, {
+      session_id: sessionId,
+      answer,
+    });
+  }
+
+  completePostEvaluationStage(sessionId: string): Observable<any> {
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/complete`, {
+      session_id: sessionId,
+    });
+  }
+
+  getPostEvaluationSession(sessionId: string): Observable<any> {
+    return this.http.get(`${this.aiServiceUrl}/post-evaluation/session/${sessionId}`);
+  }
+
+  syncPostEvaluationProfileToBackend(
+    studentId: string,
+    profile: any,
+    sessionId?: string,
+    postEvaluationResult?: any,
+  ): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/post-evaluation/student/${studentId}/sync-profile`,
+      {
+        profile,
+        sessionId,
+        postEvaluationResult,
+      },
+    );
+  }
+
+  getLatestCompletedPostEvaluation(studentId: string): Observable<any> {
+    return this.http
+      .get(`${this.apiUrl}/post-evaluation/student/${studentId}/latest-completed`)
+      .pipe(catchError(() => of(null)));
   }
 
   syncLevelTestProfileToBackend(

@@ -67,12 +67,14 @@ import {
   ClassSubjectDocument,
 } from "../academic/schemas/class-subject.schema";
 import { UserRole } from "../users/schemas/user.schema";
+import { CourseIndexingService } from "../courses/course-indexing.service";
 
 @Injectable()
 export class SubjectsService {
   private readonly logger = new Logger(SubjectsService.name);
 
   constructor(
+    private readonly courseIndexing: CourseIndexingService,
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
     @InjectModel(Exercise.name)
     private exerciseModel: Model<ExerciseDocument>,
@@ -160,7 +162,7 @@ export class SubjectsService {
       .populate("instructors", "first_name last_name email role")
       .exec();
 
-    return subjects.map((subject) => this.toResponse(subject));
+    return Promise.all(subjects.map((subject) => this.toResponse(subject)));
   }
 
   /** Course documents still use a single `instructorId`; mirror the first subject instructor. */
@@ -175,6 +177,225 @@ export class SubjectsService {
     return raw instanceof Types.ObjectId
       ? raw
       : new Types.ObjectId(String(raw));
+  }
+
+  private subjectIdString(subject: SubjectDocument): string {
+    return String((subject as any)._id);
+  }
+
+  /**
+   * Load the Course document for a chapter slot (subject shell + chapterOrder).
+   * Prefers subjectId + chapterOrder; falls back to legacy subject+title or ordered list.
+   */
+  private async findCourseByChapterOrder(
+    subject: SubjectDocument,
+    chapterOrder: number,
+  ): Promise<CourseDocument | null> {
+    const instructorId = this.primaryCourseInstructorId(subject);
+    if (!instructorId) {
+      return null;
+    }
+    const sid = this.subjectIdString(subject);
+    const ord = Number(chapterOrder);
+    const subjectTitle = String(subject.title || "").trim();
+
+    let course = await this.courseModel
+      .findOne({
+        instructorId,
+        subjectId: sid,
+        chapterOrder: ord,
+      })
+      .exec();
+
+    if (!course && subjectTitle) {
+      course = await this.courseModel
+        .findOne({
+          instructorId,
+          subject: subjectTitle,
+          chapterOrder: ord,
+        })
+        .exec();
+    }
+
+    if (!course && subjectTitle) {
+      const legacy = await this.courseModel
+        .find({
+          instructorId,
+          subject: subjectTitle,
+          $or: [
+            { subjectId: { $exists: false } },
+            { subjectId: null },
+            { subjectId: "" },
+          ],
+        })
+        .sort({ createdAt: 1 })
+        .exec();
+      if (legacy[ord]) {
+        course = legacy[ord];
+      }
+    }
+
+    return course;
+  }
+
+  /** Map Course documents to the Subject API chapter shape (hydrated reads). */
+  private coursesToChapterPayload(
+    courses: CourseDocument[],
+    prositAssetsByContentId: Map<string, any> = new Map(),
+    prositAssetsByLogicalKey: Map<string, any> = new Map(),
+  ): Record<string, unknown>[] {
+    const sorted = [...courses].sort(
+      (a, b) =>
+        Number((a as any).chapterOrder ?? 0) -
+        Number((b as any).chapterOrder ?? 0),
+    );
+    return sorted.map((course) => ({
+      title: String((course as any).title || "").trim(),
+      description:
+        String((course as any).description || "").trim() || undefined,
+      order: Number((course as any).chapterOrder ?? 0),
+      subChapters: Array.isArray((course as any).subChapters)
+        ? (course as any).subChapters.map((sc: any) => ({
+            title: String(sc.title || "").trim(),
+            description: String(sc.description || "").trim() || undefined,
+            order: Number(sc.order) || 0,
+            contents: Array.isArray(sc.contents)
+              ? sc.contents.map((rawContent: any) => {
+                  const content = { ...(rawContent?.toObject?.() || rawContent) };
+                  const contentId = String(content?.contentId || "").trim();
+                  const assetById = contentId
+                    ? prositAssetsByContentId.get(contentId)
+                    : undefined;
+                  const logicalKey = `${Number((course as any).chapterOrder ?? 0)}|${Number(sc?.order ?? 0)}|${String(content?.title || "").trim().toLowerCase()}`;
+                  const assetByKey = prositAssetsByLogicalKey.get(logicalKey);
+                  const asset = assetById || assetByKey;
+                  if (asset) {
+                    if (!content.dueDate && asset.dueDate) {
+                      content.dueDate = asset.dueDate;
+                    }
+                    if (
+                      !content.submissionInstructions &&
+                      asset.submissionInstructions
+                    ) {
+                      content.submissionInstructions =
+                        asset.submissionInstructions;
+                    }
+                  }
+                  return content;
+                })
+              : [],
+          }))
+        : [],
+    }));
+  }
+
+  private async hydrateChaptersFromCourses(
+    subject: SubjectDocument,
+  ): Promise<Record<string, unknown>[]> {
+    await this.patchMissingContentIdsForSubjectCourses(subject);
+
+    const instructorId = this.primaryCourseInstructorId(subject);
+    const sid = this.subjectIdString(subject);
+    const subjectTitle = String(subject.title || "").trim();
+
+    let courses: CourseDocument[] = [];
+
+    if (instructorId) {
+      const byShell = await this.courseModel
+        .find({ subjectId: sid, instructorId })
+        .exec();
+      if (byShell.length > 0) {
+        courses = byShell;
+      }
+    }
+
+    if (courses.length === 0 && instructorId && subjectTitle) {
+      courses = await this.courseModel
+        .find({ subject: subjectTitle, instructorId })
+        .exec();
+    }
+
+    if (courses.length === 0) {
+      return [];
+    }
+    const sourceContentIds = new Set<string>();
+    for (const course of courses) {
+      const subChapters = Array.isArray((course as any)?.subChapters)
+        ? (course as any).subChapters
+        : [];
+      for (const subChapter of subChapters) {
+        const contents = Array.isArray(subChapter?.contents)
+          ? subChapter.contents
+          : [];
+        for (const content of contents) {
+          const contentId = String((content as any)?.contentId || "").trim();
+          if (contentId) {
+            sourceContentIds.add(contentId);
+          }
+        }
+      }
+    }
+
+    const subjectObjectId = (subject as any)?._id;
+    const assets = await this.prositQuizAssetModel
+      .find({
+        subjectId: subjectObjectId,
+        assetType: PrositQuizAssetType.PROSIT,
+      })
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .lean()
+      .exec();
+
+    const prositAssetsByContentId = new Map<string, any>();
+    const prositAssetsByLogicalKey = new Map<string, any>();
+    for (const asset of assets || []) {
+      const sourceContentId = String(asset?.sourceContentId || "").trim();
+      if (sourceContentId && !prositAssetsByContentId.has(sourceContentId)) {
+        prositAssetsByContentId.set(sourceContentId, asset);
+      }
+      const logicalKey = `${Number(asset?.chapterOrder ?? 0)}|${Number(asset?.subChapterOrder ?? 0)}|${String(asset?.title || "").trim().toLowerCase()}`;
+      if (logicalKey && !prositAssetsByLogicalKey.has(logicalKey)) {
+        prositAssetsByLogicalKey.set(logicalKey, asset);
+      }
+    }
+
+    return this.coursesToChapterPayload(
+      courses,
+      prositAssetsByContentId,
+      prositAssetsByLogicalKey,
+    );
+  }
+
+  /** Next chapter slot index for new chapters under this subject shell. */
+  private async nextChapterOrder(subject: SubjectDocument): Promise<number> {
+    const instructorId = this.primaryCourseInstructorId(subject);
+    const sid = this.subjectIdString(subject);
+    const subjectTitle = String(subject.title || "").trim();
+
+    let rows: any[] = [];
+    if (instructorId) {
+      rows = await this.courseModel
+        .find({ subjectId: sid, instructorId })
+        .select("chapterOrder")
+        .lean()
+        .exec();
+    }
+    if (rows.length === 0 && instructorId && subjectTitle) {
+      rows = await this.courseModel
+        .find({ subject: subjectTitle, instructorId })
+        .select("chapterOrder")
+        .lean()
+        .exec();
+    }
+
+    let max = -1;
+    for (const r of rows as any[]) {
+      const n = Number(r?.chapterOrder);
+      if (!Number.isNaN(n)) {
+        max = Math.max(max, n);
+      }
+    }
+    return max + 1;
   }
 
   private normalizeCode(value: string): string {
@@ -200,24 +421,39 @@ export class SubjectsService {
     return candidate;
   }
 
-  private async ensureContentIds(subject: SubjectDocument): Promise<void> {
-    let changed = false;
+  /** Ensure contentId on nested course payloads (canonical storage on Course documents). */
+  private async patchMissingContentIdsForSubjectCourses(
+    subject: SubjectDocument,
+  ): Promise<void> {
+    const sid = this.subjectIdString(subject);
+    const instructorId = this.primaryCourseInstructorId(subject);
+    const subjectTitle = String(subject.title || "").trim();
 
-    for (const chapter of subject.chapters || []) {
-      // Handle 3-level hierarchy: chapter.subChapters[].contents[]
-      for (const subChapter of chapter.subChapters || []) {
-        for (const content of subChapter.contents || []) {
-          if (!content.contentId) {
-            (content as any).contentId = randomUUID();
+    let courses: CourseDocument[] = [];
+    if (instructorId) {
+      courses = await this.courseModel
+        .find({ subjectId: sid, instructorId })
+        .exec();
+    }
+    if (courses.length === 0 && instructorId && subjectTitle) {
+      courses = await this.courseModel
+        .find({ subject: subjectTitle, instructorId })
+        .exec();
+    }
+    for (const course of courses) {
+      let changed = false;
+      for (const sc of (course as any).subChapters || []) {
+        for (const c of sc.contents || []) {
+          if (!c.contentId) {
+            c.contentId = randomUUID();
             changed = true;
           }
         }
       }
-    }
-
-    if (changed) {
-      subject.markModified("chapters");
-      await subject.save();
+      if (changed) {
+        course.markModified("subChapters");
+        await course.save();
+      }
     }
   }
 
@@ -233,47 +469,72 @@ export class SubjectsService {
   private async upsertCourseChapter(
     subject: SubjectDocument,
     chapter: { title: string; description?: string; order: number },
-  ): Promise<void> {
+  ): Promise<CourseDocument | null> {
     const subjectTitle = String(subject.title || "").trim();
     const chapterTitle = String(chapter.title || "").trim();
     if (!subjectTitle || !chapterTitle) {
-      return;
+      return null;
     }
 
     const instructorId = this.primaryCourseInstructorId(subject);
     if (!instructorId) {
-      return;
+      return null;
     }
 
+    const sid = this.subjectIdString(subject);
+    const ord = Number(chapter.order);
     const level = await this.resolveCourseLevel(subjectTitle);
-    await this.courseModel
-      .findOneAndUpdate(
-        {
+
+    let course =
+      (await this.courseModel
+        .findOne({
+          instructorId,
+          subjectId: sid,
+          chapterOrder: ord,
+        })
+        .exec()) ?? null;
+
+    if (!course) {
+      course = await this.courseModel
+        .findOne({
+          instructorId,
           subject: subjectTitle,
           title: chapterTitle,
-          instructorId,
-        },
-        {
-          $set: {
-            title: chapterTitle,
-            description:
-              String(chapter.description || "").trim() || chapterTitle,
-            level,
-            subject: subjectTitle,
-            instructorId,
-          },
-          $setOnInsert: {
-            modules: [],
-          },
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      )
-      .exec();
+        })
+        .exec();
+    }
+
+    const payload = {
+      title: chapterTitle,
+      description: String(chapter.description || "").trim() || chapterTitle,
+      level,
+      subject: subjectTitle,
+      subjectId: sid,
+      chapterOrder: ord,
+      instructorId,
+    };
+
+    if (course) {
+      Object.assign(course, payload);
+      if (!(course as any).subChapters) {
+        (course as any).subChapters = [];
+      }
+      await course.save();
+      this.courseIndexing.scheduleCourseReindex(String(course._id));
+      return course;
+    }
+
+    const created = await this.courseModel.create({
+      ...payload,
+      subChapters: [],
+    });
+    this.courseIndexing.scheduleCourseReindex(String(created._id));
+    return created;
   }
 
   private async upsertCourseSubChapter(
     subject: SubjectDocument,
-    chapter: { title: string; description?: string },
+    chapter: { title: string; description?: string; order: number },
     subChapter: { title: string; description?: string; order: number },
   ): Promise<void> {
     const subjectTitle = String(subject.title || "").trim();
@@ -288,93 +549,56 @@ export class SubjectsService {
       return;
     }
 
-    const level = await this.resolveCourseLevel(subjectTitle);
-    const course = await this.courseModel
-      .findOneAndUpdate(
-        {
-          subject: subjectTitle,
-          title: chapterTitle,
-          instructorId,
-        },
-        {
-          $setOnInsert: {
-            title: chapterTitle,
-            description:
-              String(chapter.description || "").trim() || chapterTitle,
-            level,
-            subject: subjectTitle,
-            instructorId,
-            modules: [],
-          },
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      )
-      .exec();
+    let course = await this.findCourseByChapterOrder(subject, chapter.order);
+    if (!course) {
+      await this.upsertCourseChapter(subject, chapter);
+      course = await this.findCourseByChapterOrder(subject, chapter.order);
+    }
+    if (!course) {
+      return;
+    }
 
-    const modules = Array.isArray(course?.modules) ? [...course.modules] : [];
-    const existingIndex = modules.findIndex(
+    const subChapters = Array.isArray((course as any)?.subChapters)
+      ? [...(course as any).subChapters]
+      : [];
+    const existingIndex = subChapters.findIndex(
       (item) => Number(item.order) === Number(subChapter.order),
     );
 
-    const modulePayload = {
+    const prevContents =
+      existingIndex >= 0 &&
+      Array.isArray((subChapters[existingIndex] as any)?.contents)
+        ? [...((subChapters[existingIndex] as any).contents || [])]
+        : [];
+
+    const subChapterPayload = {
       title: subChapterTitle,
       description: String(subChapter.description || "").trim() || undefined,
       order: Number(subChapter.order) || 0,
+      contents: prevContents,
     };
 
     if (existingIndex >= 0) {
-      modules[existingIndex] = {
-        ...modules[existingIndex],
-        ...modulePayload,
+      subChapters[existingIndex] = {
+        ...subChapters[existingIndex],
+        ...subChapterPayload,
+        contents: prevContents,
       };
     } else {
-      modules.push(modulePayload as any);
+      subChapters.push(subChapterPayload as any);
     }
 
-    course.modules = modules as any;
-    course.markModified("modules");
+    (course as any).subChapters = subChapters as any;
+    course.markModified("subChapters");
     await course.save();
+    this.courseIndexing.scheduleCourseReindex(String(course._id));
   }
 
   private async ensureCourseForChapter(
     subject: SubjectDocument,
     chapter: { title: string; description?: string; order: number },
   ): Promise<CourseDocument | null> {
-    const subjectTitle = String(subject.title || "").trim();
-    const chapterTitle = String(chapter.title || "").trim();
-    if (!subjectTitle || !chapterTitle) {
-      return null;
-    }
-
-    const instructorId = this.primaryCourseInstructorId(subject);
-    if (!instructorId) {
-      return null;
-    }
-
-    const level = await this.resolveCourseLevel(subjectTitle);
-    return this.courseModel
-      .findOneAndUpdate(
-        {
-          subject: subjectTitle,
-          title: chapterTitle,
-          instructorId,
-        },
-        {
-          $set: {
-            title: chapterTitle,
-            description:
-              String(chapter.description || "").trim() || chapterTitle,
-            level,
-            subject: subjectTitle,
-            instructorId,
-          },
-          $setOnInsert: {
-            modules: [],
-          },
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      )
-      .exec();
+    return this.upsertCourseChapter(subject, chapter);
   }
 
   private async persistMcqQuizInExercises(
@@ -606,19 +830,21 @@ export class SubjectsService {
   async addChapter(
     subjectId: string,
     chapterDto: AddChapterDto,
-  ): Promise<Subject> {
+  ): Promise<any> {
     const subject = await this.subjectModel.findById(subjectId).exec();
     if (!subject) {
       throw new NotFoundException(`Subject with ID "${subjectId}" not found`);
     }
 
+    const order =
+      typeof chapterDto.order === "number"
+        ? chapterDto.order
+        : await this.nextChapterOrder(subject);
+
     const chapter = {
       title: String(chapterDto.title || "").trim(),
       description: String(chapterDto.description || "").trim() || undefined,
-      order:
-        typeof chapterDto.order === "number"
-          ? chapterDto.order
-          : subject.chapters.length,
+      order,
       subChapters: [],
     };
 
@@ -626,10 +852,8 @@ export class SubjectsService {
       throw new BadRequestException("Chapter title is required");
     }
 
-    subject.chapters.push(chapter as any);
-    await subject.save();
     await this.upsertCourseChapter(subject, chapter);
-    return subject.populate("instructors", "first_name last_name email");
+    return this.findOne(subjectId);
   }
 
   // ==================== SubChapter Methods ====================
@@ -638,20 +862,22 @@ export class SubjectsService {
     subjectId: string,
     chapterOrder: number,
     subChapterDto: AddSubChapterDto,
-  ): Promise<Subject> {
+  ): Promise<any> {
     const subject = await this.subjectModel.findById(subjectId).exec();
     if (!subject) {
       throw new NotFoundException(`Subject with ID "${subjectId}" not found`);
     }
 
-    const chapter = subject.chapters.find(
-      (item) => Number(item.order) === Number(chapterOrder),
-    );
-    if (!chapter) {
+    const courseDoc = await this.findCourseByChapterOrder(subject, chapterOrder);
+    if (!courseDoc) {
       throw new NotFoundException(
         `Chapter with order "${chapterOrder}" not found in this subject`,
       );
     }
+
+    const existingSubs = Array.isArray((courseDoc as any).subChapters)
+      ? (courseDoc as any).subChapters
+      : [];
 
     const subChapter = {
       title: String(subChapterDto.title || "").trim(),
@@ -659,7 +885,7 @@ export class SubjectsService {
       order:
         typeof subChapterDto.order === "number"
           ? subChapterDto.order
-          : chapter.subChapters?.length || 0,
+          : existingSubs.length,
       contents: [],
     };
 
@@ -667,63 +893,65 @@ export class SubjectsService {
       throw new BadRequestException("SubChapter title is required");
     }
 
-    chapter.subChapters = chapter.subChapters || [];
-    chapter.subChapters.push(subChapter as any);
+    const chapterMeta = {
+      title: String((courseDoc as any).title || "").trim(),
+      description: String((courseDoc as any).description || "").trim() || undefined,
+      order: chapterOrder,
+    };
 
-    subject.markModified("chapters");
-    await subject.save();
-    await this.upsertCourseSubChapter(subject, chapter, subChapter);
-    return subject.populate("instructors", "first_name last_name email");
+    await this.upsertCourseSubChapter(subject, chapterMeta, subChapter);
+    return this.findOne(subjectId);
   }
 
   async deleteChapter(
     subjectId: string,
     chapterOrder: number,
-  ): Promise<Subject> {
+  ): Promise<any> {
     const subject = await this.subjectModel.findById(subjectId).exec();
     if (!subject) {
       throw new NotFoundException(`Subject with ID "${subjectId}" not found`);
     }
 
-    const chapterIndex = (subject.chapters || []).findIndex(
-      (item) => Number(item.order) === Number(chapterOrder),
+    const deletedCourse = await this.findCourseByChapterOrder(
+      subject,
+      chapterOrder,
     );
-    if (chapterIndex < 0) {
+    if (!deletedCourse) {
       throw new NotFoundException(
         `Chapter with order "${chapterOrder}" not found in this subject`,
       );
     }
 
-    const deletedChapter: any = subject.chapters[chapterIndex];
-    const deletedChapterOrder = Number(deletedChapter?.order);
-    const deletedChapterTitle = String(deletedChapter?.title || "").trim();
+    const deletedChapterOrder = Number(chapterOrder);
+    const deletedChapterTitle = String((deletedCourse as any)?.title || "").trim();
 
-    // Remove chapter from subject then normalize chapter orders to avoid duplicates.
-    subject.chapters.splice(chapterIndex, 1);
-    subject.chapters = (subject.chapters || []).map(
-      (chapter: any, idx: number) => ({
-        ...chapter,
-        order: idx,
-      }),
-    ) as any;
-
-    subject.markModified("chapters");
-    await subject.save();
-
-    // Best-effort cleanup in synchronized collections.
     try {
       const primaryInstructorId = this.primaryCourseInstructorId(subject);
-      const courseFilter: FilterQuery<CourseDocument> = {
-        subject: String(subject.title || "").trim(),
-        title: deletedChapterTitle,
-      };
-      if (primaryInstructorId) {
-        courseFilter.instructorId = primaryInstructorId;
-      }
-      const linkedCourses = await this.courseModel
-        .find(courseFilter)
+      const sid = this.subjectIdString(subject);
+
+      let linkedCourses = await this.courseModel
+        .find({
+          subjectId: sid,
+          chapterOrder: deletedChapterOrder,
+          ...(primaryInstructorId ? { instructorId: primaryInstructorId } : {}),
+        })
         .select("_id")
         .exec();
+
+      if (
+        linkedCourses.length === 0 &&
+        deletedChapterTitle &&
+        primaryInstructorId
+      ) {
+        linkedCourses = await this.courseModel
+          .find({
+            subject: String(subject.title || "").trim(),
+            title: deletedChapterTitle,
+            instructorId: primaryInstructorId,
+          })
+          .select("_id")
+          .exec();
+      }
 
       const courseIds = linkedCourses.map((course: any) => course._id);
       if (courseIds.length) {
@@ -766,7 +994,7 @@ export class SubjectsService {
       );
     }
 
-    return subject.populate("instructors", "first_name last_name email");
+    return this.findOne(subjectId);
   }
 
   async addSubChapterContent(
@@ -774,22 +1002,29 @@ export class SubjectsService {
     chapterOrder: number,
     subChapterOrder: number,
     contentDto: AddSubChapterContentDto,
-  ): Promise<Subject> {
+  ): Promise<any> {
     const subject = await this.subjectModel.findById(subjectId).exec();
     if (!subject) {
       throw new NotFoundException(`Subject with ID "${subjectId}" not found`);
     }
 
-    const chapter = subject.chapters.find(
-      (item) => Number(item.order) === Number(chapterOrder),
-    );
-    if (!chapter) {
+    const courseDoc = await this.findCourseByChapterOrder(subject, chapterOrder);
+    if (!courseDoc) {
       throw new NotFoundException(
         `Chapter with order "${chapterOrder}" not found in this subject`,
       );
     }
 
-    const subChapter = (chapter.subChapters || []).find(
+    const chapter = {
+      title: String((courseDoc as any).title || ""),
+      description: String((courseDoc as any).description || ""),
+      order: chapterOrder,
+    };
+
+    const subChapters = Array.isArray((courseDoc as any).subChapters)
+      ? (courseDoc as any).subChapters
+      : [];
+    const subChapter = subChapters.find(
       (item: any) => Number(item.order) === Number(subChapterOrder),
     );
     if (!subChapter) {
@@ -1002,9 +1237,10 @@ export class SubjectsService {
       createdAt: new Date(),
     } as any);
 
-    subject.markModified("chapters");
-    await subject.save();
-    return subject.populate("instructors", "first_name last_name email");
+    (courseDoc as any).markModified("subChapters");
+    await courseDoc.save();
+    this.courseIndexing.scheduleCourseReindex(String(courseDoc._id));
+    return this.findOne(subjectId);
   }
 
   async updateSubChapterContent(
@@ -1013,22 +1249,29 @@ export class SubjectsService {
     subChapterOrder: number,
     contentId: string,
     dto: UpdateSubChapterContentDto,
-  ): Promise<Subject> {
+  ): Promise<any> {
     const subject = await this.subjectModel.findById(subjectId).exec();
     if (!subject) {
       throw new NotFoundException(`Subject with ID "${subjectId}" not found`);
     }
 
-    const chapter = subject.chapters.find(
-      (item) => Number(item.order) === Number(chapterOrder),
-    );
-    if (!chapter) {
+    const courseDoc = await this.findCourseByChapterOrder(subject, chapterOrder);
+    if (!courseDoc) {
       throw new NotFoundException(
         `Chapter with order "${chapterOrder}" not found in this subject`,
       );
     }
 
-    const subChapter = (chapter.subChapters || []).find(
+    const chapter = {
+      title: String((courseDoc as any).title || ""),
+      description: String((courseDoc as any).description || ""),
+      order: chapterOrder,
+    };
+
+    const subChapters = Array.isArray((courseDoc as any).subChapters)
+      ? (courseDoc as any).subChapters
+      : [];
+    const subChapter = subChapters.find(
       (item: any) => Number(item.order) === Number(subChapterOrder),
     );
     if (!subChapter) {
@@ -1208,9 +1451,10 @@ export class SubjectsService {
       });
     }
 
-    subject.markModified("chapters");
-    await subject.save();
-    return subject.populate("instructors", "first_name last_name email");
+    (courseDoc as any).markModified("subChapters");
+    await courseDoc.save();
+    this.courseIndexing.scheduleCourseReindex(String(courseDoc._id));
+    return this.findOne(subjectId);
   }
 
   async deleteSubChapterContent(
@@ -1218,22 +1462,23 @@ export class SubjectsService {
     chapterOrder: number,
     subChapterOrder: number,
     contentId: string,
-  ): Promise<Subject> {
+  ): Promise<any> {
     const subject = await this.subjectModel.findById(subjectId).exec();
     if (!subject) {
       throw new NotFoundException(`Subject with ID "${subjectId}" not found`);
     }
 
-    const chapter = subject.chapters.find(
-      (item) => Number(item.order) === Number(chapterOrder),
-    );
-    if (!chapter) {
+    const courseDoc = await this.findCourseByChapterOrder(subject, chapterOrder);
+    if (!courseDoc) {
       throw new NotFoundException(
         `Chapter with order "${chapterOrder}" not found in this subject`,
       );
     }
 
-    const subChapter = (chapter.subChapters || []).find(
+    const subChapters = Array.isArray((courseDoc as any).subChapters)
+      ? (courseDoc as any).subChapters
+      : [];
+    const subChapter = subChapters.find(
       (item: any) => Number(item.order) === Number(subChapterOrder),
     );
     if (!subChapter) {
@@ -1260,9 +1505,10 @@ export class SubjectsService {
       })
       .exec();
 
-    subject.markModified("chapters");
-    await subject.save();
-    return subject.populate("instructors", "first_name last_name email");
+    (courseDoc as any).markModified("subChapters");
+    await courseDoc.save();
+    this.courseIndexing.scheduleCourseReindex(String(courseDoc._id));
+    return this.findOne(subjectId);
   }
 
   // Backward-compatible wrappers for chapter-content routes.
@@ -1271,7 +1517,7 @@ export class SubjectsService {
     subjectId: string,
     chapterOrder: number,
     _contentDto: AddChapterContentDto,
-  ): Promise<Subject> {
+  ): Promise<any> {
     throw new BadRequestException(
       `Chapter content is now nested under subchapters. Use POST /subjects/${subjectId}/chapters/${chapterOrder}/subchapters/:subChapterOrder/contents`,
     );
@@ -1282,7 +1528,7 @@ export class SubjectsService {
     chapterOrder: number,
     _contentId: string,
     _dto: UpdateChapterContentDto,
-  ): Promise<Subject> {
+  ): Promise<any> {
     throw new BadRequestException(
       `Chapter content is now nested under subchapters. Use PUT /subjects/${subjectId}/chapters/${chapterOrder}/subchapters/:subChapterOrder/contents/:contentId`,
     );
@@ -1292,7 +1538,7 @@ export class SubjectsService {
     subjectId: string,
     chapterOrder: number,
     _contentId: string,
-  ): Promise<Subject> {
+  ): Promise<any> {
     throw new BadRequestException(
       `Chapter content is now nested under subchapters. Use DELETE /subjects/${subjectId}/chapters/${chapterOrder}/subchapters/:subChapterOrder/contents/:contentId`,
     );
@@ -1488,7 +1734,10 @@ export class SubjectsService {
       .populate("instructors", "first_name last_name email role")
       .exec();
 
-    return subjects.map((subject) => this.toResponse(subject));
+    const out = await Promise.all(
+      subjects.map((subject) => this.toResponse(subject)),
+    );
+    return out;
   }
 
   async findOne(
@@ -1522,6 +1771,8 @@ export class SubjectsService {
       throw new NotFoundException("Subject not found");
     }
 
+    const previousTitle = String(subject.title || "").trim();
+
     if (dto.title !== undefined) {
       subject.title = dto.title;
     }
@@ -1538,10 +1789,51 @@ export class SubjectsService {
 
     await subject.save();
 
+    const newTitle = String(subject.title || "").trim();
+    if (
+      dto.title !== undefined &&
+      previousTitle &&
+      newTitle &&
+      previousTitle !== newTitle
+    ) {
+      const shellId = String(subject._id);
+      await this.courseModel
+        .updateMany(
+          { subjectId: shellId },
+          { $set: { subject: newTitle } },
+        )
+        .exec();
+      const inst = this.primaryCourseInstructorId(subject);
+      if (inst) {
+        await this.courseModel
+          .updateMany(
+            {
+              subject: previousTitle,
+              instructorId: inst,
+              $or: [
+                { subjectId: { $exists: false } },
+                { subjectId: null },
+                { subjectId: "" },
+              ],
+            },
+            { $set: { subject: newTitle, subjectId: shellId } },
+          )
+          .exec();
+      }
+    }
+
     return this.findOne(id);
   }
 
   async remove(id: string) {
+    const existing = await this.subjectModel.findById(id).exec();
+    if (!existing) {
+      throw new NotFoundException("Subject not found");
+    }
+
+    const sid = String(existing._id);
+    await this.courseModel.deleteMany({ subjectId: sid }).exec();
+
     const deleted = await this.subjectModel.findByIdAndDelete(id).exec();
     if (!deleted) {
       throw new NotFoundException("Subject not found");
@@ -1572,14 +1864,15 @@ export class SubjectsService {
     }
   }
 
-  private toResponse(subject: SubjectDocument) {
+  private async toResponse(subject: SubjectDocument) {
+    const chapters = await this.hydrateChaptersFromCourses(subject);
     return {
       id: (subject as any)._id,
       code: subject.code,
       title: subject.title,
       name: subject.title,
       description: subject.description,
-      chapters: subject.chapters || [],
+      chapters,
       instructors: ((subject as any).instructors || []).map(
         (instructor: any) => ({
           id: instructor._id,

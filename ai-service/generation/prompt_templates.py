@@ -26,9 +26,10 @@ Generate multiple-choice questions (MCQs) using ONLY the reference material in t
 General principles:
 - Each question tests one clear idea: definitions, distinctions, applying a rule, reading code,
   predicting behaviour, or spotting errors — not memorizing document structure or labels.
-- Do NOT ask which step is first, second, or Nth in a procedure or workflow (e.g. “première étape”,
-  “first step”, “quel est le deuxième pas”). That only tests memorized order. Instead ask what a
-  phase means, why it matters, or how two phases differ.
+- Avoid pure memorization of step numbers in generic programming workflows (e.g. “première étape”
+  of compiling/linking). For **database administration** topics (démarrage/arrêt d’instance,
+  NOMOUNT/MOUNT/OPEN, tablespaces, redo), you MAY compare phases or typical order if grounded in
+  the reference — prefer “what does this phase do?” over “what is step 3?” when possible.
 - Every statement you assert (including in options and in the explanation) must be faithful to the
   reference and internally consistent.
 - For programming (C, control flow, types): double-check semantics before output JSON.

@@ -66,6 +66,32 @@
           </section>
         </section>
 
+        <section
+          *ngIf="shouldShowPostEvaluationCta"
+          class="rounded-2xl border border-red-200 bg-red-50 px-6 py-5 shadow-sm flex flex-wrap items-center justify-between gap-4"
+        >
+          <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-red-600">warning</span>
+            <div>
+              <p class="text-sm font-bold text-red-800">
+                Post-Evaluation Test Recommended
+              </p>
+              <p class="text-xs text-red-700">
+                Your current risk level is high. Take a targeted post-evaluation on weak areas:
+                {{ postEvaluationWeakAreasPreview || "your detected weak topics" }}.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="takePostEvaluationTest()"
+            [disabled]="postEvaluationInProgress"
+            class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
+          >
+            Take Post-Evaluation Test
+          </button>
+        </section>
+
         <!-- Grid Layout for Widgets -->
         <div class="grid grid-cols-12 gap-8 mt-6">
           <!-- Learning Progress Rings -->

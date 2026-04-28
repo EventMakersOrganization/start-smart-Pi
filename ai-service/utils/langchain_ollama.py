@@ -86,13 +86,10 @@ def resolve_ollama_model_name(want: str) -> str:
 
 def _is_level_test_model_key(key: str) -> bool:
     lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
-    fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "") or "").strip()
-    if not key or (not lt and not fb):
+    if not key or not lt:
         return False
     rk = resolve_ollama_model_name(key)
     if lt and resolve_ollama_model_name(lt) == rk:
-        return True
-    if fb and resolve_ollama_model_name(fb) == rk:
         return True
     return False
 
@@ -338,15 +335,8 @@ def generate_with_model(prompt: str, model_name: str) -> str:
     lt = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL", "") or "").strip()
     lt_res = resolve_ollama_model_name(lt) if lt else ""
     mn = resolve_ollama_model_name((model_name or "").strip())
-    fb = (getattr(config, "OLLAMA_LEVEL_TEST_MODEL_FALLBACK", "") or "").strip()
-    fb_res = resolve_ollama_model_name(fb) if fb else ""
 
     if lt and _level_test_primary_failed and lt_res and mn == lt_res:
-        if fb_res and fb_res != lt_res:
-            print(
-                "[langchain_ollama] Level-test primary had errors; trying OLLAMA_LEVEL_TEST_MODEL_FALLBACK."
-            )
-            return generate_with_model(prompt, fb_res)
         print(
             "[langchain_ollama] Level-test models unavailable; "
             f"using OLLAMA_MODEL={config.OLLAMA_MODEL}."
@@ -364,11 +354,6 @@ def generate_with_model(prompt: str, model_name: str) -> str:
         if lt_res and mn == lt_res:
             _level_test_primary_failed = True
             _model_instances.pop(mn, None)
-            if fb_res and fb_res != lt_res:
-                try:
-                    return generate_with_model(prompt, fb_res)
-                except Exception:
-                    pass
         return ""
 
 

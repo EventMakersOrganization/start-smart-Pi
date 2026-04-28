@@ -70,8 +70,10 @@
       >
         <!-- Status Indicator -->
         <div class="absolute top-4 right-4 flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full" [class.bg-emerald-500]="s.status === 'active' || !s.status" [class.bg-amber-500]="s.status === 'suspended'"></span>
-          <span class="text-[10px] font-black uppercase text-slate-400">{{ s.status || 'active' }}</span>
+          <span class="w-2 h-2 rounded-full"
+                [class.bg-emerald-500]="s.isOnline"
+                [class.bg-slate-400]="!s.isOnline"></span>
+          <span class="text-[10px] font-black uppercase text-slate-400">{{ s.isOnline ? 'online' : 'offline' }}</span>
         </div>
 
         <div class="flex flex-col items-center text-center">

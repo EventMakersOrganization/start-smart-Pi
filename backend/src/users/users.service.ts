@@ -5,6 +5,7 @@ import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema'
 import { StudentProfile, StudentProfileDocument } from './schemas/student-profile.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ActivityService } from '../activity/activity.service';
+import { SessionService } from '../activity/session.service';
 import { ActivityAction } from '../activity/schemas/activity.schema';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -18,6 +19,7 @@ export class UsersService {
     @InjectModel(StudentProfile.name)
     private profileModel: Model<StudentProfileDocument>,
     private activityService: ActivityService,
+    private sessionService: SessionService,
   ) { }
 
   private profileLookupFilter(userId: string) {
@@ -113,6 +115,7 @@ export class UsersService {
     }
 
     const users = await this.userModel.find(query).select('-password').exec();
+    const onlineUserIds = await this.sessionService.getOnlineUserIdSet('allUsers');
 
     // If requesting students, include their student profiles (match userId as ObjectId or string)
     if (role.toLowerCase() === 'student') {
@@ -156,6 +159,7 @@ export class UsersService {
           phone: u.phone,
           role: u.role,
           status: u.status,
+          isOnline: onlineUserIds.has(String(u._id)),
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
           class: userClass,
@@ -179,6 +183,7 @@ export class UsersService {
       phone: u.phone,
       role: u.role,
       status: u.status,
+      isOnline: onlineUserIds.has(String(u._id)),
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     }));
@@ -187,6 +192,7 @@ export class UsersService {
   /** All users with student profile fields when applicable (admin analytics UI). */
   async listAllUsersForAdmin() {
     const users = await this.userModel.find().select('-password').sort({ createdAt: -1 }).exec();
+    const onlineUserIds = await this.sessionService.getOnlineUserIdSet('allUsers');
     const userIds = users.map((u) => u._id);
     const userIdStrings = userIds.map((id) => String(id));
     const objectIds = userIdStrings
@@ -210,6 +216,7 @@ export class UsersService {
         phone: u.phone,
         role: u.role,
         status: u.status,
+        isOnline: onlineUserIds.has(String(u._id)),
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
         academic_level: p ? p.class : undefined,

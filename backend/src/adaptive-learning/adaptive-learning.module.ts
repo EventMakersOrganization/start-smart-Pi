@@ -15,6 +15,10 @@ import {
   RecommendationSchema,
 } from "./schemas/recommendation.schema";
 import { LevelTest, LevelTestSchema } from "./schemas/level-test.schema";
+import {
+  PostEvaluationTest,
+  PostEvaluationTestSchema,
+} from "./schemas/post-evaluation-test.schema";
 import { Question, QuestionSchema } from "./schemas/question.schema";
 import { ChatAi, ChatAiSchema } from "../chat/schemas/chat-ai.schema";
 import {
@@ -43,6 +47,7 @@ import {
   QuizFileSubmission,
   QuizFileSubmissionSchema,
 } from "../subjects/schemas/quiz-file-submission.schema";
+import { Subject, SubjectSchema } from "../subjects/schemas/subject.schema";
 import {
   PrositSubmission,
   PrositSubmissionSchema,
@@ -66,6 +71,10 @@ import {
       {
         name: LevelTest.name,
         schema: LevelTestSchema,
+      },
+      {
+        name: PostEvaluationTest.name,
+        schema: PostEvaluationTestSchema,
       },
       {
         name: Question.name,
@@ -106,6 +115,10 @@ import {
       {
         name: QuizFileSubmission.name,
         schema: QuizFileSubmissionSchema,
+      },
+      {
+        name: Subject.name,
+        schema: SubjectSchema,
       },
       {
         name: PrositSubmission.name,

@@ -21,6 +21,7 @@ export class DeepAnalyticsComponent implements OnInit {
   // Aggregated metrics
   totalStudents = 0;
   highRiskStudents = 0;
+  criticalRiskStudents = 0;
   mediumRiskStudents = 0;
   lowRiskStudents = 0;
   totalAlerts = 0;
@@ -104,17 +105,27 @@ export class DeepAnalyticsComponent implements OnInit {
 
     // Count by risk level
     this.highRiskStudents = this.riskScores.filter(
-      (rs) => rs.riskLevel === RiskLevel.HIGH
+      (rs) => String(rs.riskLevel || '').toLowerCase() === RiskLevel.HIGH
+    ).length;
+    this.criticalRiskStudents = this.riskScores.filter(
+      (rs) => String(rs.riskLevel || '').toLowerCase() === RiskLevel.CRITICAL
     ).length;
     this.mediumRiskStudents = this.riskScores.filter(
-      (rs) => rs.riskLevel === RiskLevel.MEDIUM
+      (rs) => String(rs.riskLevel || '').toLowerCase() === RiskLevel.MEDIUM
     ).length;
     this.lowRiskStudents = this.riskScores.filter(
-      (rs) => rs.riskLevel === RiskLevel.LOW
+      (rs) => String(rs.riskLevel || '').toLowerCase() === RiskLevel.LOW
     ).length;
 
     // Calculate distribution for visualization
     this.riskDistribution = [
+      {
+        level: 'Critical Risk',
+        count: this.criticalRiskStudents,
+        percentage: this.totalStudents > 0
+          ? Math.round((this.criticalRiskStudents / this.totalStudents) * 100)
+          : 0,
+      },
       {
         level: 'High Risk',
         count: this.highRiskStudents,
@@ -185,7 +196,9 @@ export class DeepAnalyticsComponent implements OnInit {
 
   getAtRiskPercentage(): number {
     if (this.totalStudents === 0) return 0;
-    return Math.round(((this.highRiskStudents + this.mediumRiskStudents) / this.totalStudents) * 100);
+    return Math.round(
+      ((this.criticalRiskStudents + this.highRiskStudents + this.mediumRiskStudents) / this.totalStudents) * 100,
+    );
   }
 
   getAlertResolutionRate(): number {

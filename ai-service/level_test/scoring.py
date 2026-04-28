@@ -129,20 +129,70 @@ def _classify_level(score: float) -> str:
     return "intermediate"
 
 
+def compute_subchapter_mastery(session: dict[str, Any]) -> list[dict[str, Any]]:
+    """
+    Compute per-subchapter (sous-acquis) mastery from answered questions.
+
+    Each answer's ``topic`` field holds the subchapter title and
+    ``chapter_title`` holds the parent chapter title (set in subchapter mode).
+
+    Returns a list of ``{subchapter, chapter, subject, mastery, correct, total}``.
+    """
+    subjects_state: dict[str, dict] = session.get("subjects", {}) or {}
+    per_sc: dict[str, dict[str, Any]] = {}
+
+    for subj in subjects_state.values():
+        subject_title = subj.get("title", "")
+        answers = [a for a in (subj.get("answers", []) or []) if a.get("answered")]
+        for a in answers:
+            sc_title = (a.get("topic") or "").strip()
+            if not sc_title:
+                continue
+            ch_title = (a.get("chapter_title") or "").strip()
+            key = f"{subject_title}|{ch_title}|{sc_title}"
+            row = per_sc.setdefault(key, {
+                "subchapter": sc_title,
+                "chapter": ch_title,
+                "subject": subject_title,
+                "earned": 0.0,
+                "total_weight": 0.0,
+                "correct": 0,
+                "total": 0,
+            })
+            diff = str(a.get("difficulty", "medium")).lower()
+            w = float(_DIFF_WEIGHT.get(diff, 1.0))
+            row["total_weight"] += w
+            row["total"] += 1
+            if a.get("is_correct"):
+                row["earned"] += w
+                row["correct"] += 1
+
+    results: list[dict[str, Any]] = []
+    for row in per_sc.values():
+        tw = float(row["total_weight"])
+        mastery = round((row["earned"] / tw) * 100.0, 2) if tw else 0.0
+        results.append({
+            "subchapter": row["subchapter"],
+            "chapter": row["chapter"],
+            "subject": row["subject"],
+            "mastery": mastery,
+            "correct": row["correct"],
+            "total": row["total"],
+        })
+    return results
+
+
 def generate_student_profile(session: dict) -> dict[str, Any]:
     """
     Build a full student profile from a completed level-test session.
 
-    Args:
-        session: The full session document from MongoDB.
-
-    Returns:
-        ``{student_id, overall_level, overall_mastery,
-           subjects (list), strengths, weaknesses,
-           recommendations (list)}``
+    In **subchapter mode** (``test_mode == "subchapter"``), strengths and
+    weaknesses are reported per subchapter (sous-acquis).  In legacy mode
+    they remain per subject for backward compatibility.
     """
     student_id = session.get("student_id", "")
     subjects_state: dict[str, dict] = session.get("subjects", {})
+    is_subchapter_mode = session.get("test_mode") == "subchapter"
 
     subject_results: list[dict[str, Any]] = []
     mastery_scores: list[float] = []
@@ -159,17 +209,60 @@ def generate_student_profile(session: dict) -> dict[str, Any]:
     overall = round(statistics.mean(mastery_scores), 2) if mastery_scores else 0.0
     level = _classify_level(overall)
 
-    strengths = sorted(
-        [s for s in subject_results if s["mastery_score"] >= 60],
-        key=lambda x: x["mastery_score"],
-        reverse=True,
-    )
-    weaknesses = sorted(
-        [s for s in subject_results if s["mastery_score"] < 60],
-        key=lambda x: x["mastery_score"],
-    )
-
     concept_mastery = compute_topic_mastery(session)
+
+    if is_subchapter_mode:
+        sc_results = compute_subchapter_mastery(session)
+        sc_strengths = sorted(
+            [r for r in sc_results if r["mastery"] >= 60],
+            key=lambda x: x["mastery"],
+            reverse=True,
+        )
+        sc_weaknesses = sorted(
+            [r for r in sc_results if r["mastery"] < 60],
+            key=lambda x: x["mastery"],
+        )
+        strengths_out = [
+            {
+                "title": s["subchapter"],
+                "chapter": s["chapter"],
+                "subject": s["subject"],
+                "mastery": s["mastery"],
+                "correct": s["correct"],
+                "total": s["total"],
+            }
+            for s in sc_strengths
+        ]
+        weaknesses_out = [
+            {
+                "title": w["subchapter"],
+                "chapter": w["chapter"],
+                "subject": w["subject"],
+                "mastery": w["mastery"],
+                "correct": w["correct"],
+                "total": w["total"],
+            }
+            for w in sc_weaknesses
+        ]
+    else:
+        legacy_strengths = sorted(
+            [s for s in subject_results if s["mastery_score"] >= 60],
+            key=lambda x: x["mastery_score"],
+            reverse=True,
+        )
+        legacy_weaknesses = sorted(
+            [s for s in subject_results if s["mastery_score"] < 60],
+            key=lambda x: x["mastery_score"],
+        )
+        strengths_out = [
+            {"title": s["title"], "mastery": s["mastery_score"]}
+            for s in legacy_strengths
+        ]
+        weaknesses_out = [
+            {"title": s["title"], "mastery": s["mastery_score"]}
+            for s in legacy_weaknesses
+        ]
+
     recommendations = _build_recommendations(subject_results, level, concept_mastery)
 
     return {
@@ -177,14 +270,8 @@ def generate_student_profile(session: dict) -> dict[str, Any]:
         "overall_level": level,
         "overall_mastery": overall,
         "subjects": subject_results,
-        "strengths": [
-            {"title": s["title"], "mastery": s["mastery_score"]}
-            for s in strengths
-        ],
-        "weaknesses": [
-            {"title": s["title"], "mastery": s["mastery_score"]}
-            for s in weaknesses
-        ],
+        "strengths": strengths_out,
+        "weaknesses": weaknesses_out,
         "concept_mastery": concept_mastery,
         "recommendations": recommendations,
     }

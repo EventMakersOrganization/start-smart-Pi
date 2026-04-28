@@ -120,7 +120,10 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   openContentId: string | null = null;
 
   async onOpenContent(content: any) {
-    this.selectedContentForView = { ...content };
+    this.selectedContentForView = {
+      ...content,
+      dueDate: this.getNormalizedPrositDueDate(content),
+    };
     this.showViewModal = true;
 
     const url = content.url || '';
@@ -160,6 +163,24 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   closeViewModal() {
     this.showViewModal = false;
     this.selectedContentForView = null;
+  }
+
+  private getNormalizedPrositDueDate(content: any): string {
+    const candidates = [
+      content?.dueDate,
+      content?.deadline,
+      content?.due_date,
+      content?.endDate,
+    ];
+    for (const raw of candidates) {
+      const value = String(raw ?? '').trim();
+      if (!value) continue;
+      const d = new Date(value);
+      if (!Number.isNaN(d.getTime())) {
+        return value;
+      }
+    }
+    return '';
   }
 
   startEditContent(chapterOrder: number, subChapterOrder: number, content: any) {
@@ -446,7 +467,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     this.loadingSubjects = true;
     this.error = '';
 
-    this.subjectsService.getSubjects(String(instructorId)).subscribe({
+    this.subjectsService.getSubjects(String(instructorId), false).subscribe({
       next: (rows) => {
         let loadedSubjects = Array.isArray(rows) ? rows : [];
         
@@ -497,7 +518,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     this.loadingSubject = true;
     this.error = '';
 
-    this.subjectsService.getSubject(subjectId).subscribe({
+    this.subjectsService.getSubject(subjectId, false).subscribe({
       next: (subject) => {
         this.selectedSubject = this.normalizeContentFolders(subject);
         this.loadInstructorQuizFileSubmissions();
@@ -1480,7 +1501,8 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         this.error = "Date d'echeance requise pour le prosit.";
         return;
       }
-      if (!submissionInstructions && !this.selectedChapterFile) {
+      // Skip instructions/file validation if editing, as these fields are hidden/simplified
+      if (!this.editingContentId && !submissionInstructions && !this.selectedChapterFile) {
         this.error =
           "Ajoute un fichier d'instructions OU saisis les consignes du prosit.";
         return;

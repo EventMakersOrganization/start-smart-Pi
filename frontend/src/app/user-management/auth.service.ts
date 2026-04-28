@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription, catchError, interval, of, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { AnalyticsService } from '../modules/analytics/services/analytics.service';
 
@@ -25,6 +25,8 @@ export class AuthService {
   private userKey = 'authUser';
   private userSubject = new BehaviorSubject<any>(null);
   public user$ = this.userSubject.asObservable();
+  private heartbeatSub?: Subscription;
+  private readonly heartbeatMs = 60_000;
 
   constructor(
     private http: HttpClient,
@@ -53,6 +55,7 @@ export class AuthService {
         localStorage.setItem(this.userKey, JSON.stringify(mergedUser));
         localStorage.setItem('userRole', this.normalizeRole(mergedUser.role));
         this.userSubject.next(mergedUser);
+        this.startSessionHeartbeat();
       }
     }
   }
@@ -70,6 +73,7 @@ export class AuthService {
         const normalizedUser = this.normalizeLoginUser(response.user);
         localStorage.setItem(this.userKey, JSON.stringify(normalizedUser));
         this.userSubject.next(normalizedUser);
+        this.startSessionHeartbeat();
       })
     );
   }
@@ -83,6 +87,7 @@ export class AuthService {
         const normalizedUser = this.normalizeLoginUser(response.user);
         localStorage.setItem(this.userKey, JSON.stringify(normalizedUser));
         this.userSubject.next(normalizedUser);
+        this.startSessionHeartbeat();
       })
     );
   }
@@ -97,6 +102,8 @@ export class AuthService {
 
   logout() {
     this.analyticsService.clearSharedAnalyticsCache();
+    this.http.post(`${this.apiUrl}/auth/logout`, {}).pipe(catchError(() => of(null))).subscribe();
+    this.stopSessionHeartbeat();
     this.clearSession();
     this.userSubject.next(null);
     this.router.navigate(['/login']);
@@ -172,8 +179,37 @@ export class AuthService {
   }
 
   private clearSession(): void {
+    this.stopSessionHeartbeat();
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
     localStorage.removeItem('userRole');
+  }
+
+  private startSessionHeartbeat(): void {
+    this.stopSessionHeartbeat();
+    if (!this.getToken()) {
+      return;
+    }
+
+    this.http
+      .post(`${this.apiUrl}/tracking/heartbeat`, {})
+      .pipe(catchError(() => of(null)))
+      .subscribe();
+
+    this.heartbeatSub = interval(this.heartbeatMs).subscribe(() => {
+      if (!this.getToken()) {
+        this.stopSessionHeartbeat();
+        return;
+      }
+      this.http
+        .post(`${this.apiUrl}/tracking/heartbeat`, {})
+        .pipe(catchError(() => of(null)))
+        .subscribe();
+    });
+  }
+
+  private stopSessionHeartbeat(): void {
+    this.heartbeatSub?.unsubscribe();
+    this.heartbeatSub = undefined;
   }
 }

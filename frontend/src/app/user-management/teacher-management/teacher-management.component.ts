@@ -11,6 +11,7 @@ interface UserRow {
   phone?: string;
   createdAt?: string;
   updatedAt?: string;
+  isOnline?: boolean;
   password?: string;
 }
 

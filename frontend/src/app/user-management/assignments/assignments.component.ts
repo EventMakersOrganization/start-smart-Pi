@@ -43,7 +43,7 @@ export class AssignmentsComponent implements OnInit {
     description: '',
     level: '',
     subject: '',
-    modules: [{ title: '', description: '' }],
+    subChapters: [{ title: '', description: '' }],
   };
 
   user = {
@@ -173,7 +173,7 @@ export class AssignmentsComponent implements OnInit {
       description: '',
       level: '',
       subject: '',
-      modules: [{ title: '', description: '' }],
+      subChapters: [{ title: '', description: '' }],
     };
   }
 
@@ -184,8 +184,8 @@ export class AssignmentsComponent implements OnInit {
     this.error = '';
     this.selectedFiles = [];
 
-    const modules = Array.isArray(course?.modules)
-      ? course.modules.map((m: any) => ({
+    const subChapters = Array.isArray(course?.subChapters)
+      ? course.subChapters.map((m: any) => ({
           title: m?.title || '',
           description: m?.description || '',
         }))
@@ -196,7 +196,7 @@ export class AssignmentsComponent implements OnInit {
       description: course?.description || '',
       level: course?.level || '',
       subject: course?.subject || '',
-      modules: modules.length ? modules : [{ title: '', description: '' }],
+      subChapters: subChapters.length ? subChapters : [{ title: '', description: '' }],
     };
   }
 
@@ -212,13 +212,13 @@ export class AssignmentsComponent implements OnInit {
     this.selectedFiles = files;
   }
 
-  addModule(): void {
-    this.courseForm.modules.push({ title: '', description: '' });
+  addSubChapter(): void {
+    this.courseForm.subChapters.push({ title: '', description: '' });
   }
 
-  removeModule(index: number): void {
-    if (this.courseForm.modules.length <= 1) return;
-    this.courseForm.modules.splice(index, 1);
+  removeSubChapter(index: number): void {
+    if (this.courseForm.subChapters.length <= 1) return;
+    this.courseForm.subChapters.splice(index, 1);
   }
 
   saveCourse(): void {
@@ -239,11 +239,12 @@ export class AssignmentsComponent implements OnInit {
       return;
     }
 
-    const modules = this.courseForm.modules
+    const subChapters = this.courseForm.subChapters
       .map((m, idx) => ({
         title: String(m.title || '').trim(),
         description: String(m.description || '').trim(),
         order: idx,
+        contents: [],
       }))
       .filter((m) => !!m.title);
 
@@ -253,7 +254,7 @@ export class AssignmentsComponent implements OnInit {
       level,
       subject,
       instructorId,
-      modules,
+      subChapters,
     };
 
     this.savingCourse = true;
@@ -367,9 +368,9 @@ export class AssignmentsComponent implements OnInit {
     });
   }
 
-  get totalModulesCount(): number {
+  get totalSubChaptersCount(): number {
     return (this.instructorCourses || []).reduce(
-      (sum: number, course: any) => sum + (course?.modules?.length || 0),
+      (sum: number, course: any) => sum + (course?.subChapters?.length || 0),
       0,
     );
   }

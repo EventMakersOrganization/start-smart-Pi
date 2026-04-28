@@ -9,6 +9,7 @@ import * as nodemailer from 'nodemailer';
 import { User, UserDocument, UserRole } from '../users/schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ActivityService, classifyChannelFromHeaders } from '../activity/activity.service';
+import { SessionService } from '../activity/session.service';
 import { ActivityAction } from '../activity/schemas/activity.schema';
 import type { Request } from 'express';
 
@@ -18,6 +19,7 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
     private activityService: ActivityService,
+    private sessionService: SessionService,
   ) {}
 
   async register(createUserDto: CreateUserDto): Promise<{ message: string }> {
@@ -153,6 +155,14 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  async logout(user: { id?: string; _id?: string }) {
+    const userId = String(user?.id || user?._id || '').trim();
+    if (userId) {
+      await this.sessionService.markSessionEnded(userId);
+    }
+    return { message: 'Logged out successfully' };
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {

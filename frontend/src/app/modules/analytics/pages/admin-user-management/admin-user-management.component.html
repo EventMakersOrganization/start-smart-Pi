@@ -84,6 +84,7 @@
             <th class="px-6 py-4">Email</th>
             <th class="px-6 py-4">Role</th>
             <th class="px-6 py-4">Status</th>
+            <th class="px-6 py-4">Session</th>
             <th class="px-6 py-4">Risk Level</th>
             <th class="px-6 py-4">Created At</th>
             <th class="px-6 py-4 text-right">Actions</th>
@@ -91,7 +92,7 @@
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
           <tr *ngIf="users.length === 0">
-            <td colspan="7" class="px-6 py-8 text-center text-slate-500">
+            <td colspan="8" class="px-6 py-8 text-center text-slate-500">
               No users found.
             </td>
           </tr>
@@ -123,6 +124,12 @@
               </span>
             </td>
             <td class="px-6 py-4">
+              <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase"
+                    [ngClass]="getSessionBadgeClass(user.isOnline)">
+                {{ getSessionLabel(user.isOnline) }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
               <span *ngIf="user.risk_level" 
                     class="px-3 py-1 rounded-full text-[10px] font-black uppercase" 
                     [ngClass]="getRiskBadgeClass(user.risk_level)">
@@ -150,7 +157,7 @@
   </div>
 
   <!-- Statistics Summary -->
-  <div *ngIf="!loading && users.length > 0" class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+  <div *ngIf="!loading && users.length > 0" class="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
     <div class="bg-white dark:bg-slate-900 rounded-lg border border-primary/10 p-4">
       <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Users</p>
       <p class="text-2xl font-black text-slate-900 dark:text-slate-100">{{ users.length }}</p>
@@ -166,6 +173,10 @@
     <div class="bg-white dark:bg-slate-900 rounded-lg border border-primary/10 p-4">
       <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Admins</p>
       <p class="text-2xl font-black text-purple-600">{{ getAdminCount() }}</p>
+    </div>
+    <div class="bg-white dark:bg-slate-900 rounded-lg border border-primary/10 p-4">
+      <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Online Now</p>
+      <p class="text-2xl font-black text-emerald-600">{{ getOnlineCount() }}</p>
     </div>
   </div>
 

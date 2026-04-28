@@ -20,6 +20,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { ReportModule } from './report/report.module';
 import { PrositsModule } from './prosits/prosits.module';
 import { VideoGeneratorModule } from './video-generator/video-generator.module';
+import { CoursesModule } from './courses/courses.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { VideoGeneratorModule } from './video-generator/video-generator.module';
     ChatModule,
     BrainrushModule,
     SubjectsModule,
+    CoursesModule,
     PrositsModule,
     CodebattleModule,
     VideoGeneratorModule,

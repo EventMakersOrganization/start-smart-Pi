@@ -6,6 +6,8 @@ import {
   ActivityAction,
   ActivityDocument,
 } from '../activity/schemas/activity.schema';
+import { UserSession, UserSessionDocument } from '../activity/schemas/user-session.schema';
+import { SessionService } from '../activity/session.service';
 
 interface AggregatedUserUsage {
   userId: string;
@@ -32,11 +34,15 @@ export class UsageService {
   constructor(
     @InjectModel(Activity.name)
     private readonly activityModel: Model<ActivityDocument>,
+    @InjectModel(UserSession.name)
+    private readonly sessionModel: Model<UserSessionDocument>,
+    private readonly sessionService: SessionService,
   ) {}
 
   async getUsageAnalytics(): Promise<UsageAnalyticsResponse> {
     const now = new Date();
     const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    await this.sessionService.closeExpiredSessions(now);
 
     const perUserUsage = await this.activityModel
       .aggregate<AggregatedUserUsage>([
@@ -71,11 +77,12 @@ export class UsageService {
       ])
       .exec();
 
-    const activeUsers = perUserUsage.length;
-    const sessionCount = perUserUsage.reduce((sum, item) => {
-      // Use login actions as the primary session boundary signal.
-      return sum + item.loginCount;
-    }, 0);
+    const [activeUsers, sessionCount] = await Promise.all([
+      this.sessionService.countOnlineUsers('allUsers'),
+      this.sessionModel.countDocuments({
+        startedAt: { $gte: from, $lte: now },
+      }),
+    ]);
 
     const averageSessionTime = this.computeAverageSessionTime(perUserUsage);
     const engagementScore = this.computeEngagementScore(perUserUsage);
