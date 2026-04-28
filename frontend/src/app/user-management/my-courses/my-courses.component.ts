@@ -427,17 +427,12 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
         if (isDocx) {
           const arrayBuffer = await response.arrayBuffer();
           try {
-            // Mammoth is usually available in the global scope if imported in the index.html or as a script
-            // If not, we fall back to raw text or a message
-            const mammothModule: any = (window as any).mammoth;
+            const mammothModule: any = await import('mammoth/mammoth.browser');
             if (mammothModule) {
               const result = await mammothModule.convertToHtml({ arrayBuffer });
               this.selectedContentForView.previewHtml = result.value;
             } else {
-              // Fallback if mammoth is not loaded
-              const decoder = new TextDecoder('utf-8');
-              const text = decoder.decode(arrayBuffer);
-              this.selectedContentForView.previewHtml = text.replace(/\n/g, '<br>');
+              this.selectedContentForView.previewError = 'Module de conversion Word non disponible.';
             }
           } catch (mErr) {
             console.error('Mammoth conversion failed', mErr);
@@ -1663,6 +1658,41 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     return this.quizResultsById[quizId];
   }
 
+  isModalFileQuiz(): boolean {
+    return !!(this.selectedContentForView && 
+             this.selectedContentForView.type === 'quiz' && 
+             !this.selectedContentForView.quizQuestions?.length);
+  }
+
+  buildQuizFileContentFromModal() {
+    if (!this.selectedContentForView) return null;
+    return {
+      contentId: this.selectedContentForView.quizId || this.selectedContentForView.title,
+      title: this.selectedContentForView.title,
+      url: this.getItemUrl(this.selectedContentForView),
+      fileName: this.getDownloadFileName(this.selectedContentForView),
+      subChapterTitle: this.selectedContentForView.moduleTitle
+    };
+  }
+
+  getSelectedQuizFileSubmission(): any {
+    if (!this.selectedContentForView || this.selectedContentForView.type !== 'quiz') return null;
+    const quizId = this.selectedContentForView.quizId || this.selectedContentForView.title;
+    return this.quizFileSubmissionsById[quizId];
+  }
+
+  onQuizFileSubmitted(submission: any): void {
+    if (!this.selectedContentForView) return;
+    const quizId = this.selectedContentForView.quizId || this.selectedContentForView.title;
+    if (quizId) {
+      this.quizFileSubmissionsById[quizId] = submission;
+    }
+    // Optional: add a small delay before closing or just let the viewer show the success state
+    setTimeout(() => {
+      this.closeViewModal();
+    }, 2000);
+  }
+
   backToChapterContent(): void {
     this.clearPrositTracking('back-to-content');
     this.trackActivity('content_open', {
@@ -2471,12 +2501,6 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     return 'En attente de correction';
   }
 
-  isQuizSubmitted(item: any): boolean {
-    if (item.type !== 'quiz') return false;
-    const quizId = item.quizId || item.title;
-    return !!this.quizResultsById[quizId];
-  }
-
   isPrositSubmitted(module: any, item: any): boolean {
     if (item.type !== 'prosit') return false;
     const key = this.buildPrositSubmissionKey(
@@ -2508,6 +2532,22 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       this.selectedContentForView.title
     );
     return key ? this.prositSubmissionsByKey[key] : null;
+  }
+
+  isItemQuizSubmitted(item: any): boolean {
+    const quizId = item.quizId || item.title;
+    return !!(quizId && this.quizResultsById[quizId]);
+  }
+
+  isItemQuizFileSubmitted(item: any): boolean {
+    const quizId = item.quizId || item.title;
+    return !!(quizId && this.quizFileSubmissionsById[quizId]);
+  }
+
+  getQuizSubmission(item: any): any {
+    const quizId = item.quizId || item.title;
+    if (!quizId) return null;
+    return this.quizResultsById[quizId] || this.quizFileSubmissionsById[quizId] || null;
   }
 
   editCurrentPrositSubmission(): void {

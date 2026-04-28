@@ -816,7 +816,7 @@ export class SubjectsService {
     const allowedByFolder: Record<string, string[]> = {
       cours: ["file", "link"],
       exercices: ["quiz", "prosit"],
-      videos: ["video", "file"],
+      videos: ["video", "file", "link"],
       ressources: ["file", "link", "code"],
     };
 
@@ -1176,7 +1176,7 @@ export class SubjectsService {
       });
     }
 
-    if (folder === "videos" && (type === "video" || type === "file")) {
+    if (folder === "videos" && (type === "video" || type === "file" || type === "link")) {
       await this.persistVideoAsset({
         subject,
         chapterOrder,
@@ -1185,7 +1185,7 @@ export class SubjectsService {
         subChapterTitle: String((subChapter as any).title || ""),
         sourceContentId: contentId,
         assetType:
-          type === "video"
+          type === "video" || type === "link"
             ? VideoAssetType.VIDEO_LINK
             : VideoAssetType.VIDEO_FILE,
         title,

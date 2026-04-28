@@ -466,10 +466,23 @@
                           
                           <div class="flex items-center gap-2 shrink-0">
                             <!-- REMIS Tag -->
-                            <span *ngIf="isPrositSubmitted(module, item) || isQuizSubmitted(item)" 
+                            <span *ngIf="isPrositSubmitted(module, item)" 
                               class="rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest animate-fade-in flex items-center gap-1">
                               <span class="material-symbols-outlined text-[12px]">check_circle</span>
                               REMIS
+                              <ng-container *ngIf="getPrositSubmission(module, item)?.status === 'graded'">
+                                - NOTE: {{ getPrositSubmission(module, item)?.grade || 0 }}/20
+                              </ng-container>
+                            </span>
+                            
+                            <!-- REMIS Tag for Quiz -->
+                            <span *ngIf="item.type === 'quiz' && (isItemQuizSubmitted(item) || isItemQuizFileSubmitted(item))" 
+                              class="rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest animate-fade-in flex items-center gap-1">
+                              <span class="material-symbols-outlined text-[12px]">check_circle</span>
+                              REMIS
+                              <ng-container *ngIf="getQuizSubmission(item)?.status === 'graded'">
+                                - NOTE: {{ getQuizSubmission(item)?.grade || 0 }}/100
+                              </ng-container>
                             </span>
                             
                             <span class="rounded-full bg-primary/10 px-2.5 py-0.5 text-[9px] font-bold uppercase text-primary tracking-tight">
@@ -480,7 +493,12 @@
                               class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95"
                               type="button">
                               <span class="material-symbols-outlined text-[14px]">visibility</span>
-                              {{ (isPrositSubmitted(module, item) || isQuizSubmitted(item)) ? 'VIEW REMISE' : 'VIEW' }}
+                              <ng-container *ngIf="item.type === 'quiz' && (isItemQuizSubmitted(item) || isItemQuizFileSubmitted(item)); else normalView">
+                                VIEW REMISE
+                              </ng-container>
+                              <ng-template #normalView>
+                                VIEW
+                              </ng-template>
                             </button>
                           </div>
                         </div>
@@ -517,7 +535,7 @@
               <span class="material-symbols-outlined text-3xl">
                 {{
                 selectedContentForView.type === 'quiz' ? 'quiz' :
-                selectedContentForView.type === 'video' ? 'movie' :
+                (selectedContentForView.type === 'video' || selectedContentForView.type === 'link') ? 'movie' :
                 selectedContentForView.type === 'prosit' ? 'assignment' : 'description'
                 }}
               </span>
@@ -549,8 +567,20 @@
         <div class="flex-1 overflow-y-auto p-10 custom-scrollbar bg-slate-50/30 dark:bg-slate-900/30">
           <!-- 1. Quiz Display -->
           <div *ngIf="selectedContentForView.type === 'quiz'" class="max-w-3xl mx-auto space-y-6 pb-12">
-            <!-- Empty State for Empty Quiz -->
-            <div *ngIf="!selectedContentForView.quizQuestions?.length"
+            <!-- 1.1 File Quiz View (No MCQ questions) -->
+            <div *ngIf="isModalFileQuiz()" class="animate-fade-in">
+              <app-quiz-file-viewer 
+                [content]="buildQuizFileContentFromModal()"
+                [subjectTitle]="selectedCourse?.subject || ''"
+                [chapterTitle]="selectedCourse?.title || ''"
+                [subChapterTitle]="selectedContentForView.moduleTitle || ''"
+                [existingSubmission]="getSelectedQuizFileSubmission()"
+                (submitted)="onQuizFileSubmitted($event)">
+              </app-quiz-file-viewer>
+            </div>
+
+            <!-- 1.2 Empty State (Only if no file AND no MCQ) -->
+            <div *ngIf="!selectedContentForView.quizQuestions?.length && !getItemUrl(selectedContentForView)"
                  class="p-16 text-center rounded-[3rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm animate-fade-in">
               <div class="w-24 h-24 bg-violet-100 dark:bg-violet-500/10 text-violet-600 rounded-full flex items-center justify-center mx-auto mb-8">
                 <span class="material-symbols-outlined text-5xl">inventory_2</span>
@@ -674,7 +704,7 @@
           </div>
 
           <!-- 2. Video Display -->
-          <div *ngIf="selectedContentForView.type === 'video' && getItemUrl(selectedContentForView)"
+          <div *ngIf="(selectedContentForView.type === 'video' || (selectedContentForView.type === 'link' && getVideoType(selectedContentForView))) && getItemUrl(selectedContentForView)"
             class="rounded-[3rem] overflow-hidden shadow-2xl bg-black aspect-video max-w-4xl mx-auto border-4 border-white/5">
             <!-- Hosted MP4 -->
             <video
@@ -688,7 +718,7 @@
           </div>
 
           <!-- 3. File Display (PDF/DOCX) -->
-          <div *ngIf="getItemUrl(selectedContentForView) && (selectedContentForView.type === 'file' || selectedContentForView.type === 'prosit' || (selectedContentForView.type === 'quiz' && !selectedContentForView.quizQuestions?.length && getItemUrl(selectedContentForView)))"
+          <div *ngIf="getItemUrl(selectedContentForView) && (selectedContentForView.type === 'file' || selectedContentForView.type === 'prosit' || (selectedContentForView.type === 'quiz' && !selectedContentForView.quizQuestions?.length && !isModalFileQuiz() && getItemUrl(selectedContentForView)))"
             class="space-y-4">
             
             <!-- Toggle Button (Always visible if it's a file type) -->

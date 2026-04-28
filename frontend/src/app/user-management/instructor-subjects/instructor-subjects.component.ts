@@ -103,7 +103,18 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     if (match && match[1]) {
       return `https://www.youtube.com/embed/${match[1]}`;
     }
+    // Vimeo
+    const vimeoRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/i;
+    match = url.match(vimeoRegex);
+    if (match && match[1]) {
+      return `https://player.vimeo.com/video/${match[1]}`;
+    }
     return url;
+  }
+
+  isVideoUrl(url: string): boolean {
+    if (!url) return false;
+    return this.toEmbedUrl(url) !== url || url.endsWith('.mp4') || url.includes('/uploads/');
   }
   // Used for *ngFor trackBy to prevent input focus loss
   trackByIndex(index: number, item: any): number {
@@ -277,6 +288,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   quizFileGradeForms: Record<string, QuizFileGradeFormModel> = {};
   prositGradeForms: Record<string, PrositGradeFormModel> = {};
   expandedQuizSubmissionId: string | null = null;
+  expandedPrositSubmissionId: string | null = null;
   quizFilePreviews: Record<string, QuizFilePreviewState> = {};
 
   // Attendance state
