@@ -67,12 +67,14 @@ import {
   ClassSubjectDocument,
 } from "../academic/schemas/class-subject.schema";
 import { UserRole } from "../users/schemas/user.schema";
+import { CourseIndexingService } from "../courses/course-indexing.service";
 
 @Injectable()
 export class SubjectsService {
   private readonly logger = new Logger(SubjectsService.name);
 
   constructor(
+    private readonly courseIndexing: CourseIndexingService,
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
     @InjectModel(Exercise.name)
     private exerciseModel: Model<ExerciseDocument>,
@@ -448,13 +450,16 @@ export class SubjectsService {
         (course as any).subChapters = [];
       }
       await course.save();
+      this.courseIndexing.scheduleCourseReindex(String(course._id));
       return course;
     }
 
-    return this.courseModel.create({
+    const created = await this.courseModel.create({
       ...payload,
       subChapters: [],
     });
+    this.courseIndexing.scheduleCourseReindex(String(created._id));
+    return created;
   }
 
   private async upsertCourseSubChapter(
@@ -516,6 +521,7 @@ export class SubjectsService {
     (course as any).subChapters = subChapters as any;
     course.markModified("subChapters");
     await course.save();
+    this.courseIndexing.scheduleCourseReindex(String(course._id));
   }
 
   private async ensureCourseForChapter(
@@ -1163,6 +1169,7 @@ export class SubjectsService {
 
     (courseDoc as any).markModified("subChapters");
     await courseDoc.save();
+    this.courseIndexing.scheduleCourseReindex(String(courseDoc._id));
     return this.findOne(subjectId);
   }
 
@@ -1376,6 +1383,7 @@ export class SubjectsService {
 
     (courseDoc as any).markModified("subChapters");
     await courseDoc.save();
+    this.courseIndexing.scheduleCourseReindex(String(courseDoc._id));
     return this.findOne(subjectId);
   }
 
@@ -1429,6 +1437,7 @@ export class SubjectsService {
 
     (courseDoc as any).markModified("subChapters");
     await courseDoc.save();
+    this.courseIndexing.scheduleCourseReindex(String(courseDoc._id));
     return this.findOne(subjectId);
   }
 

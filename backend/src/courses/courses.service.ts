@@ -5,6 +5,7 @@ import { Course, CourseDocument } from './schemas/course.schema';
 import { Subject, SubjectDocument } from '../subjects/schemas/subject.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { CourseIndexingService } from './course-indexing.service';
 
 export interface PaginatedResult<T> {
     data: T[];
@@ -36,11 +37,14 @@ export class CoursesService {
     constructor(
         @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
         @InjectModel(Subject.name) private subjectModel: Model<SubjectDocument>,
+        private readonly courseIndexing: CourseIndexingService,
     ) { }
 
     async create(createCourseDto: CreateCourseDto): Promise<Course> {
         const course = new this.courseModel(createCourseDto);
-        return course.save();
+        await course.save();
+        this.courseIndexing.scheduleCourseReindex(String(course._id));
+        return course;
     }
 
     async findAll(
@@ -86,6 +90,7 @@ export class CoursesService {
         if (!course) {
             throw new NotFoundException(`Course with ID "${id}" not found`);
         }
+        this.courseIndexing.scheduleCourseReindex(id);
         return course;
     }
 

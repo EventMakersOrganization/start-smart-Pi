@@ -1,5 +1,5 @@
 import { AuthModule } from "../auth/auth.module";
-import { Module, forwardRef } from '@nestjs/common';
+import { Module, forwardRef } from "@nestjs/common";
 import { MongooseModule } from '@nestjs/mongoose';
 import { SubjectsController } from './subjects.controller';
 import { SubjectsService } from './subjects.service';
@@ -39,9 +39,11 @@ import {
 import { ModuleProgressService } from "./module-progress.service";
 import { ClassEnrollment, ClassEnrollmentSchema } from "../academic/schemas/class-enrollment.schema";
 import { ClassSubject, ClassSubjectSchema } from "../academic/schemas/class-subject.schema";
+import { CoursesModule } from "../courses/courses.module";
 
 @Module({
   imports: [
+    forwardRef(() => CoursesModule),
     MongooseModule.forFeature([{ name: Course.name, schema: CourseSchema }]),
     MongooseModule.forFeature([
       { name: Exercise.name, schema: ExerciseSchema },
