@@ -4083,11 +4083,13 @@ class VideoGenerateRequest(BaseModel):
 
 class VideoStatusResponse(BaseModel):
     job_id: str
-    status: str          # pending | processing | done | error
+    status: str
     avatar_url: str | None = None
     slide_count: int = 0
     script_title: str | None = None
     error: str | None = None
+    scenes: list[dict] | None = None
+    full_transcript: str | None = None
 
 
 def _run_video_pipeline(job_id: str, content: str, language: str, presenter_url: str | None, local_image_path: str | None = None):
@@ -4120,6 +4122,8 @@ def _run_video_pipeline(job_id: str, content: str, language: str, presenter_url:
             "step": "complete",
             "avatar_url": avatar_url,
             "script_title": script.get("title", ""),
+            "scenes": script.get("scenes", []),
+            "full_transcript": narration,
         })
         logger.info(f"[video] Job {job_id} complete. avatar_url={avatar_url}")
 
@@ -4132,17 +4136,33 @@ from fastapi import UploadFile, File, Form
 
 @app.post("/video/generate", summary="Course → Narrated Avatar Video (async)")
 async def video_generate(
-    course_content: str = Form(...),
+    course_content: str = Form(None),
+    course_file: UploadFile = File(None),
     language: str = Form("en"),
     presenter_url: str = Form(None),
     presenter_image: UploadFile = File(None)
 ):
     """
     Submit a video generation job.
-    Accepts Form-data to support file uploads.
+    Supports either pasted 'course_content' or a 'course_file' (PDF, DOCX, TXT).
     """
+    if not course_content and not course_file:
+        raise HTTPException(status_code=400, detail="Missing course_content or course_file")
+
     job_id = str(uuid.uuid4())
     
+    # 1. Extract content from file if provided
+    final_content = course_content or ""
+    if course_file:
+        try:
+            final_content = _read_file_content(course_file)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"File extraction failed: {str(e)}")
+
+    if not final_content.strip():
+        raise HTTPException(status_code=400, detail="Extracted course content is empty")
+
+    # 2. Save presenter image if provided
     local_image_path = None
     if presenter_image:
         temp_dir = os.path.join(OUTPUT_DIR, job_id, "source")
@@ -4150,6 +4170,7 @@ async def video_generate(
         local_image_path = os.path.join(temp_dir, presenter_image.filename)
         with open(local_image_path, "wb") as f:
             f.write(await presenter_image.read())
+
     with _video_lock:
         _video_jobs[job_id] = {
             "status": "pending",
@@ -4162,7 +4183,7 @@ async def video_generate(
 
     thread = threading.Thread(
         target=_run_video_pipeline,
-        args=(job_id, course_content, language, presenter_url, local_image_path),
+        args=(job_id, final_content, language, presenter_url, local_image_path),
         daemon=True,
     )
     thread.start()
@@ -4193,6 +4214,8 @@ async def video_status(job_id: str):
         slide_count=job.get("slide_count", 0),
         script_title=job.get("script_title"),
         error=job.get("error"),
+        scenes=job.get("scenes"),
+        full_transcript=job.get("full_transcript"),
     )
 
 

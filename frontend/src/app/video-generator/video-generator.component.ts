@@ -13,7 +13,8 @@ export class VideoGeneratorComponent implements OnDestroy {
     courseContent = '';
     language: 'en' | 'fr' = 'en';
     presenterUrl = '';
-    selectedFile: File | null = null; // New
+    selectedFile: File | null = null; // Professor portrait
+    selectedCourseFile: File | null = null; // Course document (PDF/DOCX/TXT)
 
     state: UIState = 'idle';
     progress = 0;
@@ -38,15 +39,20 @@ export class VideoGeneratorComponent implements OnDestroy {
         this.selectedFile = event.target.files[0];
     }
 
+    onCourseFileSelected(event: any) {
+        this.selectedCourseFile = event.target.files[0];
+    }
+
     generate() {
-        if (!this.courseContent.trim() || this.state === 'loading') return;
+        if (!this.courseContent.trim() && !this.selectedCourseFile) return;
+        if (this.state === 'loading') return;
 
         this.state = 'loading';
         this.progress = 5;
         this.currentStep = 'Submitting job…';
         this.job = null;
 
-        this.svc.generate(this.courseContent, this.language, this.presenterUrl, this.selectedFile || undefined).subscribe({
+        this.svc.generate(this.courseContent, this.language, this.presenterUrl, this.selectedFile || undefined, this.selectedCourseFile || undefined).subscribe({
             next: ({ jobId }) => {
                 this.pollSub = this.svc.pollStatus(jobId).subscribe({
                     next: (job) => this._onPoll(job),
@@ -72,6 +78,8 @@ export class VideoGeneratorComponent implements OnDestroy {
         this.currentStep = '';
         this.courseContent = '';
         this.presenterUrl = '';
+        this.selectedFile = null;
+        this.selectedCourseFile = null;
         this.currentSlideIdx = 0;
     }
 
@@ -95,6 +103,25 @@ export class VideoGeneratorComponent implements OnDestroy {
 
     ngOnDestroy() {
         this.pollSub?.unsubscribe();
+    }
+
+    onTimeUpdate(event: Event) {
+        const video = event.target as HTMLVideoElement;
+        const currentTime = video.currentTime;
+
+        if (!this.job || !this.job.scenes) return;
+
+        let accumulatedTime = 0;
+        for (let i = 0; i < this.job.scenes.length; i++) {
+            const scene = this.job.scenes[i];
+            const duration = scene.duration_estimate_seconds || 20; // fallback
+
+            if (currentTime >= accumulatedTime && currentTime < (accumulatedTime + duration)) {
+                this.currentSlideIdx = i;
+                break;
+            }
+            accumulatedTime += duration;
+        }
     }
 
     private _onPoll(job: VideoJob) {

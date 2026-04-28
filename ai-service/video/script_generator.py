@@ -34,7 +34,7 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
 # Model priority: lightweight first to prevent OOM/crashes
-_MODEL_PRIORITY = ["llama3.2:1b", "qwen2.5:1.5b", "qwen2.5:3b", "mistral:latest", "qwen2.5:0.5b"]
+_MODEL_PRIORITY = ["qwen2.5:0.5b", "llama3.2:1b", "qwen2.5:1.5b", "qwen2.5:3b", "mistral:latest"]
 
 
 def _resolve_model(preferred: str, base_url: str) -> str:
@@ -79,10 +79,8 @@ def _resolve_model(preferred: str, base_url: str) -> str:
 
 
 _SYSTEM_PROMPT = (
-    "You are an expert educational content creator. "
-    "Convert raw course material into a structured, engaging video script. "
-    "The script must be friendly, clear, and suitable for a 3-6 minute explainer video. "
-    "IMPORTANT: Respond with VALID JSON only — no markdown fences, no extra text, no explanation."
+    "You are an expert educational video creator. Convert course material into a structured, engaging script. "
+    "Output ONLY valid JSON. Be descriptive and detailed."
 )
 
 _USER_TEMPLATE = """\
@@ -93,26 +91,24 @@ COURSE CONTENT:
 
 Return ONLY a raw JSON object (no markdown, no extra text) with this schema:
 {{
-  "title": "<short video title>",
-  "language": "<en or fr>",
+  "title": "<title>",
+  "language": "<en/fr>",
   "scenes": [
     {{
       "scene_number": 1,
-      "title": "<scene heading>",
-      "narration": "<full spoken narration 50-120 words>",
-      "key_points": ["<bullet 1>", "<bullet 2>", "<bullet 3>"],
-      "visual_schema": "<bullet_list | process_flow | concept_map | cycle>",
-      "duration_estimate_seconds": <integer 30-90>
+      "title": "<scene title>",
+      "narration": "<detailed spoken text, 50-100 words>",
+      "key_points": ["<point 1>", "<point 2>", "<point 3>"],
+      "duration_estimate_seconds": <integer 15-45>
     }}
   ]
 }}
 
 Rules:
 - 4 to 6 scenes total.
-- Use process_flow, concept_map, or cycle for most scenes.
-- Use bullet_list ONLY for intro or conclusion.
-- Each narration is natural spoken language.
-- Key points SHORT (max 8 words each).
+- Narration: Natural, professional teaching style.
+- Key points: 3 points per scene.
+- Duration: Estimate seconds based on narration length (~3 words/sec).
 - Output raw JSON only."""
 
 
@@ -156,9 +152,9 @@ class ScriptGenerator:
             "stream": False,
             "format": "json",  # Force Ollama to return valid JSON
             "options": {
-                "temperature": 0.2,
-                "num_ctx": 2048,       # Increased to allow for prompt + long response
-                "num_predict": 1500,   # Increased to accommodate 4-6 scenes
+                "temperature": 0.2,   
+                "num_ctx": 2048,      
+                "num_predict": 1000,   # plenty of room for 4-6 scenes
             },
         }
 

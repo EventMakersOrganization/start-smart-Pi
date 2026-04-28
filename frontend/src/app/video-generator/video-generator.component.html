@@ -31,13 +31,20 @@
 
             <div class="vg-field">
                 <label class="vg-label" for="content">Course Content</label>
-                <p class="vg-hint">Paste your lecture notes, markdown, or any educational text (50–20 000 chars)</p>
-                <textarea id="content" class="vg-textarea" rows="14"
-                    placeholder="e.g. Chapter 1: Introduction to Algorithms&#10;&#10;An algorithm is a finite sequence of well-defined instructions..."
-                    [(ngModel)]="courseContent"></textarea>
-                <span class="vg-char-count" [class.warn]="courseContent.length > 18000">
-                    {{ courseContent.length }} / 20 000
-                </span>
+                <div class="vg-input-tabs">
+                    <p class="vg-hint">Paste your text OR upload a document (PDF, DOCX, TXT)</p>
+                    <textarea id="content" class="vg-textarea" rows="10"
+                        placeholder="e.g. Chapter 1: Introduction to Algorithms..."
+                        [(ngModel)]="courseContent"></textarea>
+
+                    <div class="vg-file-dropbox">
+                        <input type="file" (change)="onCourseFileSelected($event)" accept=".pdf,.docx,.txt"
+                            id="course-upload" hidden #courseFileInput>
+                        <button type="button" class="vg-btn vg-btn--secondary" (click)="courseFileInput.click()">
+                            📄 {{ selectedCourseFile ? selectedCourseFile.name : 'Upload Lecture File (PDF/DOCX)' }}
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- NEW: Image Upload -->
@@ -128,18 +135,29 @@
                         <button (click)="nextSlide()" [disabled]="currentSlideIdx >= job.slideCount - 1">→</button>
                     </div>
                 </div>
+
+                <!-- NEW: Animated Transcript -->
+                <div class="vg-transcript-card" *ngIf="job.scenes && job.scenes.length > 0">
+                    <div class="vg-transcript-label">📜 Live Transcript</div>
+                    <div class="vg-transcript-scroll">
+                        <p *ngFor="let scene of job.scenes; let i = index" class="vg-transcript-line"
+                            [class.active]="i === currentSlideIdx">
+                            {{ scene.narration }}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- 2. PROFESSOR VIEW (AVATAR) -->
             <div class="vg-professor-view">
                 <div class="vg-avatar-box">
                     <video id="avatar-video" class="vg-avatar-video" [src]="job.avatarUrl" controls autoplay playsinline
-                        loop></video>
+                        loop (timeupdate)="onTimeUpdate($event)"></video>
                     <span class="vg-avatar-label">Professor (AI)</span>
                 </div>
                 <div class="vg-professor-info">
-                    <p>Listen as the professor explains the schemas on the left. Use the arrows to navigate through the
-                        course concepts.</p>
+                    <p>The slides on the left will move automatically as the professor speaks. Follow along with the
+                        highlighted transcript below.</p>
                 </div>
             </div>
         </div>

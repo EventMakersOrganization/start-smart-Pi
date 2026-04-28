@@ -11,16 +11,22 @@ export class VideoGeneratorService {
     constructor(private readonly http: HttpService) { }
 
     /** Submit a video generation job to the Python AI service. */
-    async generateVideo(dto: GenerateVideoDto, file?: Express.Multer.File): Promise<{ jobId: string; status: string }> {
+    async generateVideo(dto: GenerateVideoDto, presenterImage?: Express.Multer.File, courseFile?: Express.Multer.File): Promise<{ jobId: string; status: string }> {
         this.logger.log(`[VideoGenerator] Submitting job | lang=${dto.language}`);
 
         const formData = new FormData();
-        formData.append('course_content', dto.courseContent);
+        formData.append('course_content', dto.courseContent || '');
         formData.append('language', dto.language || 'en');
         if (dto.presenterUrl) formData.append('presenter_url', dto.presenterUrl);
-        if (file) {
-            const blob = new Blob([new Uint8Array(file.buffer)], { type: file.mimetype });
-            formData.append('presenter_image', blob, file.originalname);
+
+        if (presenterImage) {
+            const blob = new Blob([new Uint8Array(presenterImage.buffer)], { type: presenterImage.mimetype });
+            formData.append('presenter_image', blob, presenterImage.originalname);
+        }
+
+        if (courseFile) {
+            const blob = new Blob([new Uint8Array(courseFile.buffer)], { type: courseFile.mimetype });
+            formData.append('course_file', blob, courseFile.originalname);
         }
 
         const resp = await firstValueFrom(
@@ -37,6 +43,8 @@ export class VideoGeneratorService {
         slideCount: number;
         scriptTitle: string | null;
         error: string | null;
+        scenes: any[] | null;
+        fullTranscript: string | null;
     }> {
         try {
             const resp = await firstValueFrom(
@@ -50,6 +58,8 @@ export class VideoGeneratorService {
                 slideCount: d.slide_count ?? 0,
                 scriptTitle: d.script_title ?? null,
                 error: d.error ?? null,
+                scenes: d.scenes ?? null,
+                fullTranscript: d.full_transcript ?? null,
             };
         } catch (err: any) {
             this.logger.error(`[VideoGenerator] Status poll failed: ${err.message}`);
@@ -60,6 +70,8 @@ export class VideoGeneratorService {
                 slideCount: 0,
                 scriptTitle: null,
                 error: 'Failed to reach AI service',
+                scenes: null,
+                fullTranscript: null,
             };
         }
     }
