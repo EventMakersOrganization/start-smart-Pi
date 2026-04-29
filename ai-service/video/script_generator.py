@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 # Prefer env override; default to llama3.2:1b (lightweight), fall back automatically
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
+OLLAMA_MODEL = os.getenv("OLLAMA_FAST_MODEL") or os.getenv("OLLAMA_MODEL") or "qwen2.5:0.5b"
 
 # Model priority: lightweight first to prevent OOM/crashes
 _MODEL_PRIORITY = ["qwen2.5:0.5b", "llama3.2:1b", "qwen2.5:1.5b", "qwen2.5:3b", "mistral:latest"]
