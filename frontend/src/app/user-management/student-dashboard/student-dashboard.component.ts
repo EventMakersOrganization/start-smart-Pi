@@ -1758,7 +1758,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   private loadSubjectProgressRings(): void {
     this.subjectsService
-      .getSubjects()
+      .getSubjects(undefined, false)
       .pipe(catchError(() => of([] as DbSubjectItem[])))
       .subscribe({
         next: (subjects) => {

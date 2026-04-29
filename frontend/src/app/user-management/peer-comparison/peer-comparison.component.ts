@@ -109,6 +109,9 @@ export class PeerComparisonComponent implements OnInit, OnDestroy, OnChanges {
             }),
           ),
         ),
+      comparisonApi: this.adaptiveLearningService
+        .getStudentComparisonAnalytics(this.studentId)
+        .pipe(catchError(() => of(null))),
       allProfiles: this.adaptiveLearningService
         .getAllProfiles()
         .pipe(catchError(() => of([]))),
@@ -118,9 +121,10 @@ export class PeerComparisonComponent implements OnInit, OnDestroy, OnChanges {
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ myTracking, allProfiles, allPerformances }) => {
+        next: ({ myTracking, comparisonApi, allProfiles, allPerformances }) => {
           this.calculateComparison(
             myTracking,
+            comparisonApi,
             allProfiles || [],
             allPerformances || [],
           );
@@ -136,11 +140,56 @@ export class PeerComparisonComponent implements OnInit, OnDestroy, OnChanges {
 
   private calculateComparison(
     myTracking: any,
+    comparisonApi: any,
     allProfiles: any[],
     allPerformances: any[],
   ): void {
     // Build my metrics
     const myMetrics = this.buildStudentMetrics(this.studentId, myTracking);
+
+    if (comparisonApi && typeof comparisonApi === 'object') {
+      const apiStudent = comparisonApi?.student || {};
+      const apiClass = comparisonApi?.classAverage || {};
+      const topicScores: Record<string, number> = {};
+      (myTracking?.byTopic || []).forEach((topic: any) => {
+        const name = String(topic?.topic || '').trim();
+        if (!name) return;
+        topicScores[name] = Number(topic?.averageScore || 0);
+      });
+
+      const myFromApi: StudentMetrics = {
+        studentId: this.studentId,
+        averageScore: Number(apiStudent?.averageScore ?? myMetrics.averageScore ?? 0),
+        completionRate: Number(apiStudent?.completionRate ?? myMetrics.completionRate ?? 0),
+        totalTimeSpent: Number(apiStudent?.totalTimeSpent ?? myMetrics.totalTimeSpent ?? 0),
+        streak: Number(apiStudent?.streak ?? myMetrics.streak ?? 0),
+        topicScores,
+      };
+
+      const classFromApi: StudentMetrics = {
+        studentId: 'class-average',
+        averageScore: Number(apiClass?.averageScore ?? 0),
+        completionRate: Number(apiClass?.completionRate ?? 0),
+        totalTimeSpent: Number(apiClass?.totalTimeSpent ?? 0),
+        streak: Number(apiClass?.streak ?? 0),
+        topicScores: Object.keys(topicScores).reduce((acc, key) => {
+          acc[key] = Number(apiClass?.averageScore ?? 0);
+          return acc;
+        }, {} as Record<string, number>),
+      };
+
+      this.comparisonData = {
+        myMetrics: myFromApi,
+        classAverage: classFromApi,
+        rankingPercentile: Number(comparisonApi?.rankingPercentile ?? 0),
+        totalStudents: Math.max(1, Number(comparisonApi?.totalStudents ?? 0)),
+        topicsToCompare: Object.keys(topicScores),
+      };
+
+      this.updateComparisons();
+      this.initCharts();
+      return;
+    }
 
     // Build class metrics (from all other students or mock data)
     const allStudents = this.buildAllStudentMetrics(
@@ -227,7 +276,7 @@ export class PeerComparisonComponent implements OnInit, OnDestroy, OnChanges {
     const metricsByStudent = new Map<string, StudentMetrics>();
 
     profiles.forEach((profile: any) => {
-      const studentId = String(profile?._id || profile?.userId || '').trim();
+      const studentId = String(profile?.userId || profile?._id || '').trim();
       if (!studentId) return;
 
       const studentPerformances = performancesByStudent.get(studentId) || [];

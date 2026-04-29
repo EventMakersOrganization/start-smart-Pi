@@ -2669,9 +2669,25 @@ export class AdaptiveLearningService {
       .exec();
 
     if (!performances || performances.length < 5) {
-      throw new NotFoundException(
-        `Insufficient performance data for student ${studentId}. Need at least 5 exercises.`,
-      );
+      return {
+        primaryStyle: "learning_style_pending",
+        secondaryStyle: null,
+        confidence: 0,
+        styleDescription:
+          "More performance data is needed to detect a reliable learning style.",
+        learningTips: [
+          "Complete at least 5 graded exercises across different topics.",
+          "Mix easy and medium exercises to generate behavior signals.",
+          "Keep regular sessions so the system can detect your pace pattern.",
+        ],
+        indicators: {
+          averageTimePerExercise: 0,
+          scoreConsistency: 0,
+          preferredDifficulty: "beginner",
+          preferredTopics: [],
+          sessionsPerWeek: 0,
+        },
+      };
     }
 
     // ── Analyze performances ──

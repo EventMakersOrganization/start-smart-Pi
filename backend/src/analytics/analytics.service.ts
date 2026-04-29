@@ -1198,8 +1198,10 @@ export class AnalyticsService {
     }
 
     const anyRow = row as any;
+    const outcome = String(anyRow.outcome || '').toLowerCase();
     const hasAutomatedDelivery = Boolean(anyRow.lastReminderAt || anyRow.lastPlanAt);
     const hasTrackedCheckpoint = Array.isArray(anyRow.checkpoints) && anyRow.checkpoints.length > 0;
-    return hasAutomatedDelivery || hasTrackedCheckpoint ? 'applied' : 'pending';
+    const hasOutcomeSignal = ['applied', 'improved', 'stable', 'worse'].includes(outcome);
+    return hasAutomatedDelivery || hasTrackedCheckpoint || hasOutcomeSignal ? 'applied' : 'pending';
   }
 }

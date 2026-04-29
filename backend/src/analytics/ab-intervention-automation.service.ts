@@ -70,43 +70,65 @@ export class AbInterventionAutomationService {
     groupB: { count: number; avgRiskDelta: number };
   }> {
     const rows = await this.abTestingModel
-      .find({ 'checkpoints.0': { $exists: true } })
+      .find({ group: { $in: [AbGroup.A, AbGroup.B] } })
       .lean<AbTestingDocument[]>()
       .exec();
 
     const byGroup = {
-      A: [] as number[],
-      B: [] as number[],
+      A: {
+        deliveredCount: 0,
+        riskDeltas: [] as number[],
+      },
+      B: {
+        deliveredCount: 0,
+        riskDeltas: [] as number[],
+      },
     };
 
     for (const row of rows as any[]) {
+      const delivered = Boolean(
+        row?.lastReminderAt ||
+          row?.lastPlanAt ||
+          (Array.isArray(row?.checkpoints) && row.checkpoints.length > 0),
+      );
       const checkpoints = Array.isArray(row.checkpoints) ? row.checkpoints : [];
-      if (!checkpoints.length) {
-        continue;
-      }
-      const latest = checkpoints.sort((a: any, b: any) => Number(b.day || 0) - Number(a.day || 0))[0];
+
+      const latest = checkpoints.length
+        ? checkpoints.sort((a: any, b: any) => Number(b.day || 0) - Number(a.day || 0))[0]
+        : null;
       const riskDelta = Number(latest?.riskDelta || 0);
+
       if (row.group === AbGroup.A) {
-        byGroup.A.push(riskDelta);
+        if (delivered) {
+          byGroup.A.deliveredCount += 1;
+        }
+        if (latest) {
+          byGroup.A.riskDeltas.push(riskDelta);
+        }
       } else if (row.group === AbGroup.B) {
-        byGroup.B.push(riskDelta);
+        if (delivered) {
+          byGroup.B.deliveredCount += 1;
+        }
+        if (latest) {
+          byGroup.B.riskDeltas.push(riskDelta);
+        }
       }
     }
 
-    const avgA = byGroup.A.length
-      ? Number((byGroup.A.reduce((s, v) => s + v, 0) / byGroup.A.length).toFixed(2))
+    const avgA = byGroup.A.riskDeltas.length
+      ? Number((byGroup.A.riskDeltas.reduce((s, v) => s + v, 0) / byGroup.A.riskDeltas.length).toFixed(2))
       : 0;
-    const avgB = byGroup.B.length
-      ? Number((byGroup.B.reduce((s, v) => s + v, 0) / byGroup.B.length).toFixed(2))
+    const avgB = byGroup.B.riskDeltas.length
+      ? Number((byGroup.B.riskDeltas.reduce((s, v) => s + v, 0) / byGroup.B.riskDeltas.length).toFixed(2))
       : 0;
 
     const winner = avgA === avgB ? 'tie' : avgA < avgB ? 'A' : 'B';
 
     return {
       winner,
-      sampleSize: byGroup.A.length + byGroup.B.length,
-      groupA: { count: byGroup.A.length, avgRiskDelta: avgA },
-      groupB: { count: byGroup.B.length, avgRiskDelta: avgB },
+      sampleSize: byGroup.A.deliveredCount + byGroup.B.deliveredCount,
+      groupA: { count: byGroup.A.deliveredCount, avgRiskDelta: avgA },
+      groupB: { count: byGroup.B.deliveredCount, avgRiskDelta: avgB },
     };
   }
 
