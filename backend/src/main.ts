@@ -16,7 +16,8 @@ async function bootstrap() {
 
   // Enable CORS for Angular frontend with credentials (no wildcard allowed)
   app.enableCors({
-    origin: "http://localhost:4200",
+    origin: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
     credentials: true,
   });
 

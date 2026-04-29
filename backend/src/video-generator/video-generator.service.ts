@@ -6,7 +6,7 @@ import { GenerateVideoDto } from './dto/generate-video.dto';
 @Injectable()
 export class VideoGeneratorService {
     private readonly logger = new Logger(VideoGeneratorService.name);
-    private readonly AI_URL = process.env['AI_SERVICE_URL'] || 'http://localhost:8000';
+    private readonly AI_URL = process.env['AI_SERVICE_URL'] || 'http://127.0.0.1:8000';
 
     constructor(private readonly http: HttpService) { }
 

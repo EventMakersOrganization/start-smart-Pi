@@ -1,9 +1,9 @@
 import { IsString, IsOptional, MinLength, IsIn } from 'class-validator';
 
 export class GenerateVideoDto {
+    @IsOptional()
     @IsString()
-    @MinLength(50)
-    courseContent: string;
+    courseContent?: string;
 
     @IsOptional()
     @IsIn(['en', 'fr'])

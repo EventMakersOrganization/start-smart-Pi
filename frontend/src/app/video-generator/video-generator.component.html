@@ -73,7 +73,7 @@
             </div>
 
             <button class="vg-btn vg-btn--primary" id="btn-generate" (click)="generate()"
-                [disabled]="courseContent.trim().length < 50">
+                [disabled]="!courseContent.trim() && !selectedCourseFile">
                 <span class="vg-btn__icon">🚀</span> Generate Video
             </button>
 
