@@ -158,9 +158,12 @@ export class AcademicService {
     const students = enrollments.map((enrollment) => enrollment.studentId).filter(Boolean);
     const studentIds = students.map((s: any) => s._id);
 
-    // Fetch profiles to get attendance_percentage
+    // Fetch profiles to get attendance_percentage (handling both ObjectId and string representations)
     const profiles = await this.studentProfileModel.find({
-      userId: { $in: studentIds }
+      $or: [
+        { userId: { $in: studentIds } },
+        { userId: { $in: studentIds.map(id => String(id)) } }
+      ]
     }).lean().exec();
 
     return students.map((student: any) => {
@@ -486,18 +489,22 @@ export class AcademicService {
 
   async submitAttendance(instructorId: string, dto: SubmitAttendanceDto) {
     const schoolClassId = this.toObjectId(dto.schoolClassId);
+    
+    // Ensure date is treated as UTC midnight to avoid local timezone offset shifts
+    const dateStr = dto.date.split('T')[0];
+    const date = new Date(`${dateStr}T00:00:00.000Z`);
+    
     const instId = this.toObjectId(instructorId);
-    const date = new Date(dto.date);
-    date.setHours(0, 0, 0, 0); // Normalize date to start of day
+    const sessionType = dto.sessionType;
 
     const records = dto.records.map((r) => ({
       studentId: this.toObjectId(r.studentId),
       status: r.status,
     }));
 
-    // Update if exists for this class and date, otherwise create
+    // Update if exists for this class, date and sessionType, otherwise create
     const attendance = await this.attendanceModel.findOneAndUpdate(
-      { schoolClassId, date },
+      { schoolClassId, date, sessionType },
       {
         $set: {
           instructorId: instId,
@@ -543,19 +550,28 @@ export class AcademicService {
       
       await this.studentProfileModel.findOneAndUpdate(
         this.profileLookupFilter(studentId),
-        { $set: { attendance_percentage: percentage }, $setOnInsert: { userId: studentId } },
+        { $set: { attendance_percentage: percentage }, $setOnInsert: { userId: this.toObjectId(studentId) } },
         { upsert: true }
       ).exec();
     }
   }
 
-  async getAttendance(classId: string, date: string) {
+  async getAttendance(classId: string, date: string, sessionType: string) {
     const schoolClassId = this.toObjectId(classId);
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
+    
+    const dateStr = date.split('T')[0];
+    const queryDate = new Date(`${dateStr}T00:00:00.000Z`);
 
     return this.attendanceModel
-      .findOne({ schoolClassId, date: queryDate })
+      .findOne({ schoolClassId, date: queryDate, sessionType })
+      .exec();
+  }
+
+  async getAllAttendance(classId: string) {
+    const schoolClassId = this.toObjectId(classId);
+    return this.attendanceModel
+      .find({ schoolClassId })
+      .sort({ date: -1, sessionType: 1 })
       .exec();
   }
 

@@ -2,17 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { KpiService } from './kpi.service';
 import { User } from '../../users/schemas/user.schema';
-import { Activity } from '../../activity/schemas/activity.schema';
 import { RiskScore } from '../schemas/riskscore.schema';
 import { Alert } from '../schemas/alert.schema';
 import { AnalyticsReadCacheService } from './analytics-read-cache.service';
+import { SessionService } from '../../activity/session.service';
 
 describe('KpiService', () => {
   let service: KpiService;
-  let userModel: { countDocuments: jest.Mock };
-  let activityModel: { distinct: jest.Mock };
-  let riskScoreModel: { countDocuments: jest.Mock; aggregate: jest.Mock };
-  let alertModel: { countDocuments: jest.Mock };
+  let userModel: any;
+  let riskScoreModel: any;
+  let alertModel: any;
+  let sessionService: any;
 
   const readCache = {
     getOrSet: jest.fn(async (_k: string, fn: () => Promise<any>) => fn()),
@@ -21,18 +21,24 @@ describe('KpiService', () => {
   beforeEach(async () => {
     userModel = {
       countDocuments: jest.fn(),
-    };
-    activityModel = {
-      distinct: jest.fn(),
+      find: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([]),
+      }),
     };
     riskScoreModel = {
       countDocuments: jest.fn(),
       aggregate: jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue([{ _id: null, avg: 55 }]),
+        exec: jest.fn().mockResolvedValue([]),
       }),
     };
     alertModel = {
       countDocuments: jest.fn(),
+    };
+    sessionService = {
+      countOnlineUsers: jest.fn().mockResolvedValue(5),
+      countUsersSeenInWindow: jest.fn().mockResolvedValue(10),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -40,9 +46,9 @@ describe('KpiService', () => {
         KpiService,
         { provide: AnalyticsReadCacheService, useValue: readCache },
         { provide: getModelToken(User.name), useValue: userModel },
-        { provide: getModelToken(Activity.name), useValue: activityModel },
         { provide: getModelToken(RiskScore.name), useValue: riskScoreModel },
         { provide: getModelToken(Alert.name), useValue: alertModel },
+        { provide: SessionService, useValue: sessionService },
       ],
     }).compile();
 
@@ -60,15 +66,25 @@ describe('KpiService', () => {
     });
 
     it('should compute percent deltas from windowed counts', async () => {
-      activityModel.distinct
-        .mockResolvedValueOnce(['a', 'b'])
-        .mockResolvedValueOnce(['a']);
+      // Active users (24h)
+      sessionService.countUsersSeenInWindow
+        .mockResolvedValueOnce(2) // current
+        .mockResolvedValueOnce(1); // previous
 
-      userModel.countDocuments.mockResolvedValueOnce(10).mockResolvedValueOnce(5);
+      // New users (7d)
+      userModel.countDocuments
+        .mockResolvedValueOnce(10) // current
+        .mockResolvedValueOnce(5); // previous
 
-      alertModel.countDocuments.mockResolvedValueOnce(8).mockResolvedValueOnce(4);
+      // Total alerts (7d)
+      alertModel.countDocuments
+        .mockResolvedValueOnce(8) // current
+        .mockResolvedValueOnce(4); // previous
 
-      riskScoreModel.countDocuments.mockResolvedValueOnce(3).mockResolvedValueOnce(1);
+      // High risk users (7d)
+      riskScoreModel.countDocuments
+        .mockResolvedValueOnce(3) // current
+        .mockResolvedValueOnce(1); // previous
 
       const d = await service.getDashboardDeltas();
 
@@ -79,10 +95,10 @@ describe('KpiService', () => {
     });
 
     it('should return null when both windows are zero for each metric', async () => {
-      activityModel.distinct.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
-      userModel.countDocuments.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
-      alertModel.countDocuments.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
-      riskScoreModel.countDocuments.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+      sessionService.countUsersSeenInWindow.mockResolvedValue(0);
+      userModel.countDocuments.mockResolvedValue(0);
+      alertModel.countDocuments.mockResolvedValue(0);
+      riskScoreModel.countDocuments.mockResolvedValue(0);
 
       const d = await service.getDashboardDeltas();
 
@@ -95,8 +111,16 @@ describe('KpiService', () => {
 
   describe('getAverageRiskScorePercent', () => {
     it('should return rounded average from aggregation', async () => {
+      // Mock active students
+      userModel.find.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([{ _id: 'u1' }]),
+      });
+
+      // Mock risk score aggregation
       riskScoreModel.aggregate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue([{ _id: null, avg: 42.7 }]),
+        exec: jest.fn().mockResolvedValue([{ userId: 'u1', score: 42.7 }]),
       });
 
       const v = await service.getAverageRiskScorePercent();
@@ -104,7 +128,9 @@ describe('KpiService', () => {
     });
 
     it('should return 0 when no scores', async () => {
-      riskScoreModel.aggregate.mockReturnValue({
+      userModel.find.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue([]),
       });
 

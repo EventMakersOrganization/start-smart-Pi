@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { InstructorClassesComponent } from './instructor-classes.component';
 
 describe('InstructorClassesComponent', () => {
@@ -8,6 +8,7 @@ describe('InstructorClassesComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
       declarations: [InstructorClassesComponent]
     });
     fixture = TestBed.createComponent(InstructorClassesComponent);

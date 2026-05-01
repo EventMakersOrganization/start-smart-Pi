@@ -90,7 +90,7 @@
                 class="group flex items-center gap-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-black px-4 py-2 text-[10px] uppercase tracking-widest border border-green-400 shadow-lg shadow-green-500/20 transition-all duration-300 active:scale-95">
                 <span
                   class="material-symbols-outlined text-xs group-hover:rotate-12 transition-transform">how_to_reg</span>
-                Presence
+                Attendance
               </button>
             </div>
 
@@ -849,102 +849,167 @@
         class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
         <div>
           <h2 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <span class="material-symbols-outlined text-emerald-500">fact_check</span>
-            Attendance for {{ className }}
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <span class="material-symbols-outlined text-emerald-500">fact_check</span>
+            </div>
+            Attendance for <span class="text-emerald-600 dark:text-emerald-400">{{ className }}</span>
           </h2>
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Mark students presence for today's session</p>
+          <div class="flex gap-1 mt-4 bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-xl w-max shadow-inner">
+            <button (click)="switchAttendanceTab('saisie')" 
+              [ngClass]="attendanceActiveTab === 'saisie' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+              class="px-5 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">edit_calendar</span>
+              Saisie du jour
+            </button>
+            <button (click)="switchAttendanceTab('historique')" 
+              [ngClass]="attendanceActiveTab === 'historique' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+              class="px-5 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">history</span>
+              Historique
+            </button>
+          </div>
         </div>
         <button (click)="closeAttendanceModal()"
-          class="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+          class="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors self-start">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
-      <!-- Modal Body -->
-      <div class="flex-1 overflow-y-auto p-6 space-y-6">
-        <!-- Date Selector -->
-        <div
-          class="flex items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
-          <span class="material-symbols-outlined text-slate-400">calendar_month</span>
-          <div class="flex-1">
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Session Date</label>
-            <input type="date" [(ngModel)]="attendanceDate"
-              class="bg-transparent border-none p-0 focus:ring-0 text-slate-800 dark:text-white font-medium w-full cursor-pointer" />
+      <!-- Modal Body (Saisie) -->
+      <div *ngIf="attendanceActiveTab === 'saisie'" class="flex-1 overflow-y-auto p-6 space-y-6">
+        <!-- Date and Session Selector -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-800 p-3 sm:pl-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <!-- Date -->
+          <div class="flex items-center gap-4 w-full sm:w-auto group cursor-pointer relative" (click)="toggleDatePicker()">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <span class="material-symbols-outlined text-[24px]">calendar_month</span>
+            </div>
+            <div class="flex-1">
+              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5 block cursor-pointer">Date de l'appel</label>
+              <div class="text-slate-700 dark:text-white font-bold text-[15px] select-none">
+                {{ attendanceDate | date:'dd/MM/yyyy' }}
+              </div>
+            </div>
+
+            <!-- Custom Date Picker Dropdown -->
+            <div *ngIf="showCustomDatePicker" (click)="$event.stopPropagation()"
+              class="absolute top-[120%] left-0 z-50 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-4 w-72 animate-scale-in">
+              <!-- Header -->
+              <div class="flex items-center justify-between mb-4">
+                <button (click)="prevMonth($event)" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition-colors">
+                  <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+                <div class="font-bold text-slate-700 dark:text-white text-sm capitalize">
+                  {{ currentPickerMonth | date:'MMMM yyyy' }}
+                </div>
+                <button (click)="nextMonth($event)" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition-colors">
+                  <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
+              </div>
+              
+              <!-- Days of week -->
+              <div class="grid grid-cols-7 gap-1 mb-2">
+                <div *ngFor="let day of weekDays" class="text-center text-[10px] font-bold text-slate-400 uppercase">
+                  {{ day }}
+                </div>
+              </div>
+              
+              <!-- Calendar Grid -->
+              <div class="grid grid-cols-7 gap-1">
+                <button *ngFor="let cell of calendarDays" 
+                  (click)="selectDate(cell.date); $event.stopPropagation()"
+                  [ngClass]="{
+                    'text-slate-300 dark:text-slate-600': !cell.isCurrentMonth,
+                    'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700': cell.isCurrentMonth && !isSameDate(cell.date, attendanceDate),
+                    'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 font-bold': isSameDate(cell.date, attendanceDate)
+                  }"
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all mx-auto">
+                  {{ cell.label }}
+                </button>
+              </div>
+            </div>
+            
+            <!-- Click outside overlay -->
+            <div *ngIf="showCustomDatePicker" (click)="toggleDatePicker(); $event.stopPropagation()" class="fixed inset-0 z-40"></div>
+          </div>
+          
+          <div class="h-12 w-px bg-slate-100 dark:bg-slate-700 hidden sm:block"></div>
+
+          <!-- Session Segmented Control -->
+          <div class="flex w-full sm:w-auto flex-col items-start sm:items-end pr-0 sm:pr-2">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 ml-2 sm:ml-0 sm:mr-2">Séance</label>
+            <div class="flex bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-xl w-full sm:w-auto">
+              <button (click)="attendanceSession = 'S1'; onAttendanceParamsChange()"
+                [class]="attendanceSession === 'S1' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+                class="flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
+                S1
+              </button>
+              <button (click)="attendanceSession = 'S2'; onAttendanceParamsChange()"
+                [class]="attendanceSession === 'S2' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+                class="flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
+                S2
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Students Table -->
-        <div class="border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden">
-          <table class="w-full text-left border-collapse">
-            <thead
-              class="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
-              <tr>
-                <th class="px-6 py-4">Student</th>
-                <th class="px-6 py-4 text-center w-28">Rate</th>
-                <th class="px-6 py-4 text-center w-24">Present</th>
-                <th class="px-6 py-4 text-center w-24">Absent</th>
-                <th class="px-6 py-4 text-center w-24">Late</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-              <tr *ngFor="let student of classStudents"
-                class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-3">
-                    <div
-                      class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                      {{ student.first_name?.[0] }}{{ student.last_name?.[0] }}
-                    </div>
-                    <div>
-                      <div class="font-bold text-slate-800 dark:text-white">{{ student.first_name }} {{
-                        student.last_name }}</div>
-                      <div class="text-xs text-slate-500">{{ student.email }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold shadow-sm"
-                    [ngClass]="{
-                      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': (student.attendance_percentage ?? 100) >= 90,
-                      'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': (student.attendance_percentage ?? 100) >= 75 && (student.attendance_percentage ?? 100) < 90,
-                      'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400': (student.attendance_percentage ?? 100) < 75
-                    }">
-                    {{ student.attendance_percentage ?? 100 }}%
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <div class="flex justify-center">
-                    <input type="checkbox" [checked]="attendanceRecords[student.id] === 'present'"
-                      (change)="setAttendanceStatus(student.id, 'present')"
-                      class="w-6 h-6 rounded-lg border-2 border-slate-200 text-emerald-500 focus:ring-emerald-500/20 cursor-pointer transition-all" />
-                  </div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <div class="flex justify-center">
-                    <input type="checkbox" [checked]="attendanceRecords[student.id] === 'absent'"
-                      (change)="setAttendanceStatus(student.id, 'absent')"
-                      class="w-6 h-6 rounded-lg border-2 border-slate-200 text-rose-500 focus:ring-rose-500/20 cursor-pointer transition-all" />
-                  </div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <div class="flex justify-center">
-                    <input type="checkbox" [checked]="attendanceRecords[student.id] === 'late'"
-                      (change)="setAttendanceStatus(student.id, 'late')"
-                      class="w-6 h-6 rounded-lg border-2 border-slate-200 text-amber-500 focus:ring-amber-500/20 cursor-pointer transition-all" />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div *ngIf="loadingStudents" class="p-12 flex flex-col items-center justify-center gap-4">
-            <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-slate-500 font-medium">Loading student list...</p>
+        <!-- Students Card Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div *ngFor="let student of classStudents" class="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center">
+            
+            <!-- Global Rate Badge (Optional, but good to keep small in corner) -->
+            <div class="w-full flex justify-end mb-2 -mt-1 -mr-2">
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+                [ngClass]="{
+                  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': (student.attendance_percentage ?? 100) >= 90,
+                  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': (student.attendance_percentage ?? 100) >= 75 && (student.attendance_percentage ?? 100) < 90,
+                  'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400': (student.attendance_percentage ?? 100) < 75
+                }">
+                {{ student.attendance_percentage ?? 100 }}%
+              </span>
+            </div>
+
+            <!-- Avatar -->
+            <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold text-xl mb-3 shadow-inner">
+              <img *ngIf="student.avatar_url" [src]="student.avatar_url" class="w-full h-full rounded-full object-cover">
+              <span *ngIf="!student.avatar_url">{{ student.first_name?.[0] }}{{ student.last_name?.[0] }}</span>
+            </div>
+            
+            <!-- Name -->
+            <div class="font-bold text-slate-800 dark:text-white text-center text-sm truncate w-full">{{ student.first_name }} {{ student.last_name }}</div>
+            
+            <!-- P A L Buttons -->
+            <div class="flex items-center gap-2 mt-5 w-full justify-center">
+              <!-- Present (P) -->
+              <button (click)="setAttendanceStatus(student.id, 'present')"
+                [ngClass]="attendanceRecords[student.id] === 'present' ? 'bg-emerald-500 text-white border-transparent shadow-md shadow-emerald-500/20 scale-110' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-500'"
+                class="w-9 h-9 rounded-full border flex items-center justify-center font-bold text-[13px] transition-all transform hover:scale-110">
+                P
+              </button>
+              <!-- Absent (A) -->
+              <button (click)="setAttendanceStatus(student.id, 'absent')"
+                [ngClass]="attendanceRecords[student.id] === 'absent' ? 'bg-rose-500 text-white border-transparent shadow-md shadow-rose-500/20 scale-110' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-rose-500 hover:text-rose-500'"
+                class="w-9 h-9 rounded-full border flex items-center justify-center font-bold text-[13px] transition-all transform hover:scale-110">
+                A
+              </button>
+              <!-- Late (L) -->
+              <button (click)="setAttendanceStatus(student.id, 'late')"
+                [ngClass]="attendanceRecords[student.id] === 'late' ? 'bg-amber-500 text-white border-transparent shadow-md shadow-amber-500/20 scale-110' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-amber-500 hover:text-amber-500'"
+                class="w-9 h-9 rounded-full border flex items-center justify-center font-bold text-[13px] transition-all transform hover:scale-110">
+                L
+              </button>
+            </div>
           </div>
-          <div *ngIf="!loadingStudents && classStudents.length === 0"
-            class="p-12 flex flex-col items-center justify-center gap-4">
-            <span class="material-symbols-outlined text-5xl text-slate-300">group_off</span>
-            <p class="text-slate-500 font-medium">No students enrolled in this class.</p>
-          </div>
+        </div>
+
+        <div *ngIf="loadingStudents" class="p-12 flex flex-col items-center justify-center gap-4 border border-slate-100 dark:border-slate-700 rounded-3xl">
+          <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-slate-500 font-medium">Loading student list...</p>
+        </div>
+        
+        <div *ngIf="!loadingStudents && classStudents.length === 0" class="p-12 flex flex-col items-center justify-center gap-4 border border-slate-100 dark:border-slate-700 rounded-3xl">
+          <span class="material-symbols-outlined text-5xl text-slate-300">group_off</span>
+          <p class="text-slate-500 font-medium">No students enrolled in this class.</p>
         </div>
 
         <!-- Error message -->
@@ -962,8 +1027,8 @@
         </div>
       </div>
 
-      <!-- Modal Footer -->
-      <div
+      <!-- Modal Footer (Saisie) -->
+      <div *ngIf="attendanceActiveTab === 'saisie'"
         class="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 flex justify-end gap-3">
         <button (click)="closeAttendanceModal()"
           class="px-6 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
@@ -975,6 +1040,127 @@
             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
           {{ submittingAttendance ? 'Saving...' : 'Submit Attendance' }}
         </button>
+      </div>
+
+      <!-- Modal Body (Historique) -->
+      <div *ngIf="attendanceActiveTab === 'historique'" class="flex-1 flex flex-col overflow-hidden p-6 space-y-6">
+        
+        <div *ngIf="loadingAttendanceHistory" class="flex-1 flex flex-col items-center justify-center gap-4">
+          <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-slate-500 font-medium">Loading history...</p>
+        </div>
+
+        <div *ngIf="!loadingAttendanceHistory && attendanceHistory.length === 0"
+          class="flex-1 flex flex-col items-center justify-center gap-4">
+          <span class="material-symbols-outlined text-5xl text-slate-300">history_toggle_off</span>
+          <p class="text-slate-500 font-medium">No past attendance records found.</p>
+        </div>
+
+        <div *ngIf="!loadingAttendanceHistory && dailyHistory.length > 0" class="flex-1 overflow-auto rounded-3xl custom-scrollbar relative bg-slate-50/30 dark:bg-slate-900/10">
+          <table class="text-left border-separate border-spacing-0 whitespace-nowrap w-max min-w-full">
+            <thead class="sticky top-0 z-20 backdrop-blur-xl bg-white/80 dark:bg-slate-800/80 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)]">
+              <!-- Date Header Row -->
+              <tr>
+                <th rowspan="2" class="px-6 py-5 sticky left-0 top-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-slate-800/80 border-b border-r border-slate-100 dark:border-slate-700/50">
+                  <div class="flex items-center gap-2 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                    <span class="material-symbols-outlined text-[18px]">school</span>
+                    Étudiants
+                  </div>
+                </th>
+                <th *ngFor="let day of dailyHistory" colspan="2" class="px-2 py-3 border-b border-slate-100 dark:border-slate-700/50 text-center relative">
+                  <div class="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-slate-200 dark:via-slate-700 to-transparent"></div>
+                  <span class="inline-block px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[12px] font-black text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+                    {{ day.date | date:'dd MMM yyyy' }}
+                  </span>
+                </th>
+              </tr>
+              <!-- Session Header Row -->
+              <tr>
+                <ng-container *ngFor="let day of dailyHistory">
+                  <th class="px-2 py-2 border-b border-slate-100 dark:border-slate-700/50 cursor-pointer group text-center relative overflow-hidden" (click)="editPastAttendance(day.date, 'S1')">
+                    <div class="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/10 dark:group-hover:bg-emerald-500/20 transition-colors duration-300"></div>
+                    <div class="relative z-10 flex flex-col items-center justify-center gap-0.5">
+                      <span class="text-[10px] font-black text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors uppercase tracking-widest">S1</span>
+                      <div class="h-1 w-4 rounded-full bg-slate-200 dark:bg-slate-700 group-hover:bg-emerald-500 transition-colors"></div>
+                    </div>
+                  </th>
+                  <th class="px-2 py-2 border-b border-slate-100 dark:border-slate-700/50 cursor-pointer group text-center relative overflow-hidden" (click)="editPastAttendance(day.date, 'S2')">
+                    <div class="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-slate-200 dark:via-slate-700 to-transparent z-20"></div>
+                    <div class="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/10 dark:group-hover:bg-emerald-500/20 transition-colors duration-300"></div>
+                    <div class="relative z-10 flex flex-col items-center justify-center gap-0.5">
+                      <span class="text-[10px] font-black text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors uppercase tracking-widest">S2</span>
+                      <div class="h-1 w-4 rounded-full bg-slate-200 dark:bg-slate-700 group-hover:bg-emerald-500 transition-colors"></div>
+                    </div>
+                  </th>
+                </ng-container>
+              </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-slate-800">
+              <tr *ngFor="let student of classStudents; let last = last" class="group/row relative hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-all duration-300">
+                <td class="px-6 py-4 sticky left-0 z-10 bg-white dark:bg-slate-800 group-hover/row:bg-slate-50 dark:group-hover/row:bg-slate-800 border-r border-slate-100 dark:border-slate-700 shadow-[2px_0_10px_-3px_rgba(0,0,0,0.05)] transition-colors"
+                    [class.border-b]="!last" [class.border-slate-100]="!last" [class.dark:border-slate-700]="!last">
+                  <div class="flex items-center gap-4">
+                    <div class="relative">
+                      <div class="absolute inset-0 bg-emerald-500/20 rounded-full blur-md opacity-0 group-hover/row:opacity-100 transition-opacity duration-300"></div>
+                      <div class="relative w-11 h-11 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center font-black shadow-inner border border-white/50 dark:border-slate-600/50">
+                        {{ student.first_name?.[0] }}{{ student.last_name?.[0] }}
+                      </div>
+                    </div>
+                    <div>
+                      <div class="font-bold text-slate-800 dark:text-white text-[14px] group-hover/row:text-emerald-600 dark:group-hover/row:text-emerald-400 transition-colors">{{ student.first_name }} {{ student.last_name }}</div>
+                      <div class="text-[11px] text-slate-400 font-medium mt-0.5">{{ student.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <ng-container *ngFor="let day of dailyHistory">
+                  <!-- S1 Cell -->
+                  <td class="px-2 py-4 text-center group-hover/row:bg-slate-50/30 dark:group-hover/row:bg-slate-700/10 transition-colors"
+                      [class.border-b]="!last" [class.border-slate-100]="!last" [class.dark:border-slate-700]="!last">
+                    <div class="flex justify-center items-center h-full">
+                      <div *ngIf="getStudentStatusForHistory(day.s1, student.id) === 'present'" 
+                           class="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)] transform hover:scale-125 hover:rotate-6 transition-all duration-300 border border-emerald-200/50 dark:border-emerald-500/20 cursor-default" title="Present">
+                        <span class="material-symbols-outlined text-[18px] font-bold">done</span>
+                      </div>
+                      <div *ngIf="getStudentStatusForHistory(day.s1, student.id) === 'absent'" 
+                           class="flex items-center justify-center w-9 h-9 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-500 shadow-[0_0_15px_-3px_rgba(244,63,94,0.3)] transform hover:scale-125 hover:-rotate-6 transition-all duration-300 border border-rose-200/50 dark:border-rose-500/20 cursor-default" title="Absent">
+                        <span class="material-symbols-outlined text-[18px] font-bold">close</span>
+                      </div>
+                      <div *ngIf="getStudentStatusForHistory(day.s1, student.id) === 'late'" 
+                           class="flex items-center justify-center w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-500 shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)] transform hover:scale-125 hover:rotate-12 transition-all duration-300 border border-amber-200/50 dark:border-amber-500/20 cursor-default" title="Late">
+                        <span class="material-symbols-outlined text-[18px] font-bold">schedule</span>
+                      </div>
+                      <div *ngIf="getStudentStatusForHistory(day.s1, student.id) === '-'" 
+                           class="flex items-center justify-center w-4 h-1 rounded-full bg-slate-200 dark:bg-slate-700 opacity-50" title="No record">
+                      </div>
+                    </div>
+                  </td>
+                  <!-- S2 Cell -->
+                  <td class="px-2 py-4 text-center relative group-hover/row:bg-slate-50/30 dark:group-hover/row:bg-slate-700/10 transition-colors"
+                      [class.border-b]="!last" [class.border-slate-100]="!last" [class.dark:border-slate-700]="!last">
+                    <div class="absolute inset-y-4 right-0 w-px bg-slate-100 dark:bg-slate-700/50"></div>
+                    <div class="flex justify-center items-center h-full">
+                      <div *ngIf="getStudentStatusForHistory(day.s2, student.id) === 'present'" 
+                           class="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)] transform hover:scale-125 hover:rotate-6 transition-all duration-300 border border-emerald-200/50 dark:border-emerald-500/20 cursor-default" title="Present">
+                        <span class="material-symbols-outlined text-[18px] font-bold">done</span>
+                      </div>
+                      <div *ngIf="getStudentStatusForHistory(day.s2, student.id) === 'absent'" 
+                           class="flex items-center justify-center w-9 h-9 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-500 shadow-[0_0_15px_-3px_rgba(244,63,94,0.3)] transform hover:scale-125 hover:-rotate-6 transition-all duration-300 border border-rose-200/50 dark:border-rose-500/20 cursor-default" title="Absent">
+                        <span class="material-symbols-outlined text-[18px] font-bold">close</span>
+                      </div>
+                      <div *ngIf="getStudentStatusForHistory(day.s2, student.id) === 'late'" 
+                           class="flex items-center justify-center w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-500 shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)] transform hover:scale-125 hover:rotate-12 transition-all duration-300 border border-amber-200/50 dark:border-amber-500/20 cursor-default" title="Late">
+                        <span class="material-symbols-outlined text-[18px] font-bold">schedule</span>
+                      </div>
+                      <div *ngIf="getStudentStatusForHistory(day.s2, student.id) === '-'" 
+                           class="flex items-center justify-center w-4 h-1 rounded-full bg-slate-200 dark:bg-slate-700 opacity-50" title="No record">
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
