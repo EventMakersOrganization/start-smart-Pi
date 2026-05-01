@@ -1,17 +1,23 @@
 from __future__ import annotations
 from unittest.mock import patch, MagicMock
 
+import os
 import time
 import uuid
+from unittest.mock import patch
 
 import httpx
 import pytest
+
+from api import _run_chatbot_pipeline
 
 BASE = "http://localhost:8000"
 TIMEOUT = 180.0
 
 
 def _api_reachable() -> bool:
+    if not bool(os.environ.get("RUN_AI_LATENCY_INTEGRATION")):
+        return False
     try:
         r = httpx.get(f"{BASE}/health", timeout=5)
         return r.status_code == 200

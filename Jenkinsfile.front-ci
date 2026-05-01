@@ -1,3 +1,12 @@
+// Jenkinsfile fragment for frontend CI (Member-5 additions)
+pipeline {
+  agent any
+  stages {
+    stage('Frontend - Member5 tests') {
+      steps {
+        dir('frontend') {
+          // Run frontend unit tests (Chat service specs). This will run the project's test runner.
+          sh 'npm test --silent -- --watch=false --browsers ChromeHeadless'
 pipeline {
   agent any
 

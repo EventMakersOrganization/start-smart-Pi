@@ -135,4 +135,21 @@ describe('ChatRoomComponent', () => {
     expect(mockChatApi.deleteRoom).toHaveBeenCalledWith('r1');
     expect(component.rooms.length).toBe(0);
   });
+
+  it('getDashboardRoute returns correct route for roles', () => {
+    component.userRole = 'admin';
+    expect(component.getDashboardRoute()).toBe('/admin');
+    component.userRole = 'instructor';
+    expect(component.getDashboardRoute()).toBe('/instructor/dashboard');
+    component.userRole = 'student';
+    expect(component.getDashboardRoute()).toBe('/student-dashboard');
+  });
+
+  it('toggleStudentSelection adds and removes ids', () => {
+    component.selectedStudents = [];
+    component.toggleStudentSelection('a');
+    expect(component.selectedStudents).toContain('a');
+    component.toggleStudentSelection('a');
+    expect(component.selectedStudents).not.toContain('a');
+  });
 });
