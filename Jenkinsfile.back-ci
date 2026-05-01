@@ -59,11 +59,15 @@ pipeline {
       }
     }
 
+    // PEP 668: system Python on Debian/Ubuntu/Jenkins images blocks global pip — use a project venv.
     stage('AI Service Install') {
       steps {
         dir('ai-service') {
-          sh 'python3 -m pip install --upgrade pip'
-          sh 'pip3 install -r requirements.txt'
+          sh '''
+            python3 -m venv .venv
+            .venv/bin/python -m pip install --upgrade pip
+            .venv/bin/pip install -r requirements.txt
+          '''
         }
       }
     }
@@ -71,7 +75,7 @@ pipeline {
     stage('AI Service Member3 Tests') {
       steps {
         dir('ai-service') {
-          sh 'pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q'
+          sh '.venv/bin/pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q'
         }
       }
     }
@@ -79,7 +83,7 @@ pipeline {
     stage('AI Service Member5 Tests') {
       steps {
         dir('ai-service') {
-          sh 'pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py tests/test_unit_hybrid_response_cache.py -q'
+          sh '.venv/bin/pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py tests/test_unit_hybrid_response_cache.py -q'
         }
       }
     }
@@ -87,7 +91,7 @@ pipeline {
     stage('AI Service MemberKmar Tests') {
       steps {
         dir('ai-service') {
-          sh 'pytest tests/test_unit_learning_path_inputs.py tests/test_unit_level_progression.py -q'
+          sh '.venv/bin/pytest tests/test_unit_learning_path_inputs.py tests/test_unit_level_progression.py -q'
         }
       }
     }

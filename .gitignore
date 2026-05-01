@@ -41,6 +41,7 @@ frontend/my_output.txt
 venv/
 env/
 ai-service/venv/
+ai-service/.venv/
 ai-service/test_venv/
 **/test_venv/
 
