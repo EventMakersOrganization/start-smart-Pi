@@ -10,6 +10,12 @@ __pycache__/
 *.pyc
 *.pkl
 
+# --- Python test coverage (pytest / coverage.py) ---
+.coverage
+coverage.xml
+**/coverage.xml
+htmlcov/
+
 # --- Local data / logs ---
 *.sqlite3
 *.log
