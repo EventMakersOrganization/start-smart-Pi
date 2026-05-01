@@ -1,0 +1,52 @@
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Backend Install') {
+      steps {
+        dir('backend') {
+          sh 'npm ci'
+        }
+      }
+    }
+
+    stage('Backend Member3 Tests') {
+      steps {
+        dir('backend') {
+          sh 'npm run test -- --runInBand --testPathPattern=adaptive-learning.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=adaptive-learning.controller.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=adaptation.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=codebattle.service.spec'
+        }
+      }
+    }
+
+    stage('AI Service Install') {
+      steps {
+        dir('ai-service') {
+          sh 'python3 -m pip install --upgrade pip'
+          sh 'pip3 install -r requirements.txt'
+        }
+      }
+    }
+
+    stage('AI Service Member3 Tests') {
+      steps {
+        dir('ai-service') {
+          sh 'pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q'
+        }
+      }
+    }
+  }
+}
