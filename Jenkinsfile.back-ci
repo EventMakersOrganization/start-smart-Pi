@@ -59,14 +59,22 @@ pipeline {
       }
     }
 
-    // PEP 668: system Python on Debian/Ubuntu/Jenkins images blocks global pip — use a project venv.
+    // PEP 668: prefer a project venv; if ensurepip is missing (no python3-venv on agent), fall back to
+    // pip --break-system-packages (acceptable on ephemeral Jenkins agents).
     stage('AI Service Install') {
       steps {
         dir('ai-service') {
-          sh '''
-            python3 -m venv .venv
-            .venv/bin/python -m pip install --upgrade pip
-            .venv/bin/pip install -r requirements.txt
+          sh '''#!/usr/bin/env bash
+            set -e
+            rm -rf .venv
+            if python3 -m venv .venv 2>/dev/null; then
+              .venv/bin/python -m pip install --upgrade pip
+              .venv/bin/pip install -r requirements.txt
+            else
+              rm -rf .venv
+              python3 -m pip install --upgrade pip --break-system-packages
+              python3 -m pip install -r requirements.txt --break-system-packages
+            fi
           '''
         }
       }
@@ -75,7 +83,12 @@ pipeline {
     stage('AI Service Member3 Tests') {
       steps {
         dir('ai-service') {
-          sh '.venv/bin/pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q'
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q
+            else python3 -m pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q
+            fi
+          '''
         }
       }
     }
@@ -83,7 +96,12 @@ pipeline {
     stage('AI Service Member5 Tests') {
       steps {
         dir('ai-service') {
-          sh '.venv/bin/pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py tests/test_unit_hybrid_response_cache.py -q'
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py tests/test_unit_hybrid_response_cache.py -q
+            else python3 -m pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py tests/test_unit_hybrid_response_cache.py -q
+            fi
+          '''
         }
       }
     }
@@ -91,7 +109,12 @@ pipeline {
     stage('AI Service MemberKmar Tests') {
       steps {
         dir('ai-service') {
-          sh '.venv/bin/pytest tests/test_unit_learning_path_inputs.py tests/test_unit_level_progression.py -q'
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_unit_learning_path_inputs.py tests/test_unit_level_progression.py -q
+            else python3 -m pytest tests/test_unit_learning_path_inputs.py tests/test_unit_level_progression.py -q
+            fi
+          '''
         }
       }
     }
