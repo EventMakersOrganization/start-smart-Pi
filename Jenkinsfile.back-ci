@@ -102,8 +102,8 @@ pipeline {
         dir('ai-service') {
           sh '''#!/usr/bin/env bash
             set -e
-            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py tests/test_unit_hybrid_response_cache.py -q
-            else python3 -m pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py tests/test_unit_hybrid_response_cache.py -q
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py::TestLatencyFastPathUnit tests/test_unit_hybrid_response_cache.py -q
+            else python3 -m pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py::TestLatencyFastPathUnit tests/test_unit_hybrid_response_cache.py -q
             fi
           '''
         }

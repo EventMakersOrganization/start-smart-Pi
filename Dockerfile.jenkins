@@ -2,6 +2,8 @@ FROM jenkins/jenkins:lts
 
 USER root
 
+# python3-venv: enables `python3 -m venv` (ensurepip). If CI uses Python 3.13 but venv still fails,
+# add the matching package, e.g. python3.13-venv, for your Debian/Ubuntu release.
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
@@ -15,6 +17,9 @@ RUN apt-get update && apt-get install -y \
     && npm -v \
     && python3 --version \
     && pip3 --version \
+    && python3 -m venv /tmp/venv-smoke-test \
+    && /tmp/venv-smoke-test/bin/python -c "import sys; assert sys.prefix" \
+    && rm -rf /tmp/venv-smoke-test \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

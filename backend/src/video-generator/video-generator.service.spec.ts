@@ -202,6 +202,19 @@ describe('VideoGeneratorService', () => {
   });
 
   describe('getStatus', () => {
+    let errorLogSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      // getStatus logs Logger.error on handled HTTP failures; suppress noise in CI output.
+      errorLogSpy = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      errorLogSpy.mockRestore();
+    });
+
     it('should retrieve job status successfully', async () => {
       const jobId = 'job-12345';
 

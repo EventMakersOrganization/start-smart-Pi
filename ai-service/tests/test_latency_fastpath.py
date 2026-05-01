@@ -1,15 +1,14 @@
+"""Latency tests: unit suite runs in CI; integration suite needs RUN_AI_LATENCY_INTEGRATION + live API."""
+
 from __future__ import annotations
-from unittest.mock import patch, MagicMock
 
 import os
 import time
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
-
-from api import _run_chatbot_pipeline
 
 BASE = "http://localhost:8000"
 TIMEOUT = 180.0
@@ -27,11 +26,12 @@ def _api_reachable() -> bool:
 
 _needs_api = pytest.mark.skipif(
     not _api_reachable(),
-    reason="AI service not running at localhost:8000",
+    reason="Set RUN_AI_LATENCY_INTEGRATION=1 and run ai-service at localhost:8000",
 )
 
 
 @_needs_api
+@pytest.mark.integration
 class TestLatencyFastPath:
     def test_chatbot_cache_and_tier_metadata(self):
         student_id = f"latency-{uuid.uuid4()}"
@@ -93,6 +93,7 @@ def api_client():
         yield TestClient(api.app)
 
 
+@pytest.mark.unit
 class TestLatencyFastPathUnit:
     def test_chatbot_cache_hit_unit(self, api_client):
         # 1. Mock cache miss then hit
