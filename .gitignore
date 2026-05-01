@@ -2,6 +2,8 @@
 dist/
 backend/dist/
 frontend/dist/
+node_modules/
+**/node_modules/
 *.tsbuildinfo
 **/*.tsbuildinfo
 
@@ -21,12 +23,26 @@ htmlcov/
 *.log
 *.bin
 *.map
+stash.patch
+frontend/test_log_frontend*.txt
+frontend/test_output.txt
+backend/test_log.txt
+frontend/assign_final.txt
+frontend/assign_final2.txt
+frontend/assign_final3.txt
+frontend/assign_output.txt
+frontend/final_check.txt
+frontend/final_output.txt
+frontend/last_final.txt
+frontend/my_output.txt
 
 # Python virtual environments
 .venv/
 venv/
 env/
 ai-service/venv/
+ai-service/test_venv/
+**/test_venv/
 
 # Environment secrets
 .env

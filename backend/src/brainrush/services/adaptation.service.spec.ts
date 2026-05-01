@@ -40,4 +40,29 @@ describe('AdaptationService', () => {
         const nextDiff = service.adaptDifficulty('easy', false, 3000);
         expect(nextDiff).toBe('easy');
     });
+
+    it('should step up when correct just under threshold (4999ms)', () => {
+        const nextDiff = service.adaptDifficulty('easy', true, 4999);
+        expect(nextDiff).toBe('medium');
+    });
+
+    it('should not change level when correct exactly at threshold (5000ms)', () => {
+        const nextDiff = service.adaptDifficulty('medium', true, 5000);
+        expect(nextDiff).toBe('medium');
+    });
+
+    it('should step down when correct just over threshold (5001ms)', () => {
+        const nextDiff = service.adaptDifficulty('medium', true, 5001);
+        expect(nextDiff).toBe('easy');
+    });
+
+    it('should treat unknown difficulty as medium then step up when correct and fast', () => {
+        const nextDiff = service.adaptDifficulty('unknown', true, 1000);
+        expect(nextDiff).toBe('hard');
+    });
+
+    it('should step down when wrong even if response is fast', () => {
+        const nextDiff = service.adaptDifficulty('hard', false, 1000);
+        expect(nextDiff).toBe('medium');
+    });
 });

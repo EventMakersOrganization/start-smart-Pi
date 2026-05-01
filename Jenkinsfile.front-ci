@@ -1,0 +1,63 @@
+// Jenkinsfile fragment for frontend CI (Member-5 additions)
+pipeline {
+  agent any
+  stages {
+    stage('Frontend - Member5 tests') {
+      steps {
+        dir('frontend') {
+          // Run frontend unit tests (Chat service specs). This will run the project's test runner.
+          sh 'npm test --silent -- --watch=false --browsers ChromeHeadless'
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Frontend Install') {
+      steps {
+        dir('frontend') {
+          sh 'npm ci'
+        }
+      }
+    }
+
+    stage('Frontend Member3 Tests') {
+      steps {
+        dir('frontend') {
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/adaptive-learning.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/level-test.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/game-play.component.spec.ts'
+        }
+      }
+    }
+
+    stage('Frontend Member5 Tests') {
+      steps {
+        dir('frontend') {
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/chat/**/*.spec.ts --include=src/app/video-generator/**/*.spec.ts'
+        }
+      }
+    }
+    stage('Frontend MemberKmar Tests') {
+      steps {
+        dir('frontend') {
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/subjects.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/assignments.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/my-courses.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/recommendation-display.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/student-dashboard.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/instructor-classes.component.spec.ts'
+        }
+      }
+    }
+  }
+}
