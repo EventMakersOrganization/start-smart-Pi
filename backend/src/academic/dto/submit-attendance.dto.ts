@@ -20,6 +20,10 @@ export class SubmitAttendanceDto {
   @IsNotEmpty()
   date: string; // ISO date string
 
+  @IsString()
+  @IsNotEmpty()
+  sessionType: 'S1' | 'S2';
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AttendanceRecordDto)

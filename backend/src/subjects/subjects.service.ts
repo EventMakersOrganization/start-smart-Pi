@@ -241,6 +241,8 @@ export class SubjectsService {
   /** Map Course documents to the Subject API chapter shape (hydrated reads). */
   private coursesToChapterPayload(
     courses: CourseDocument[],
+    prositAssetsByContentId: Map<string, any> = new Map(),
+    prositAssetsByLogicalKey: Map<string, any> = new Map(),
   ): Record<string, unknown>[] {
     const sorted = [...courses].sort(
       (a, b) =>
@@ -257,7 +259,31 @@ export class SubjectsService {
             title: String(sc.title || "").trim(),
             description: String(sc.description || "").trim() || undefined,
             order: Number(sc.order) || 0,
-            contents: Array.isArray(sc.contents) ? sc.contents : [],
+            contents: Array.isArray(sc.contents)
+              ? sc.contents.map((rawContent: any) => {
+                  const content = { ...(rawContent?.toObject?.() || rawContent) };
+                  const contentId = String(content?.contentId || "").trim();
+                  const assetById = contentId
+                    ? prositAssetsByContentId.get(contentId)
+                    : undefined;
+                  const logicalKey = `${Number((course as any).chapterOrder ?? 0)}|${Number(sc?.order ?? 0)}|${String(content?.title || "").trim().toLowerCase()}`;
+                  const assetByKey = prositAssetsByLogicalKey.get(logicalKey);
+                  const asset = assetById || assetByKey;
+                  if (asset) {
+                    if (!content.dueDate && asset.dueDate) {
+                      content.dueDate = asset.dueDate;
+                    }
+                    if (
+                      !content.submissionInstructions &&
+                      asset.submissionInstructions
+                    ) {
+                      content.submissionInstructions =
+                        asset.submissionInstructions;
+                    }
+                  }
+                  return content;
+                })
+              : [],
           }))
         : [],
     }));
@@ -292,8 +318,52 @@ export class SubjectsService {
     if (courses.length === 0) {
       return [];
     }
+    const sourceContentIds = new Set<string>();
+    for (const course of courses) {
+      const subChapters = Array.isArray((course as any)?.subChapters)
+        ? (course as any).subChapters
+        : [];
+      for (const subChapter of subChapters) {
+        const contents = Array.isArray(subChapter?.contents)
+          ? subChapter.contents
+          : [];
+        for (const content of contents) {
+          const contentId = String((content as any)?.contentId || "").trim();
+          if (contentId) {
+            sourceContentIds.add(contentId);
+          }
+        }
+      }
+    }
 
-    return this.coursesToChapterPayload(courses);
+    const subjectObjectId = (subject as any)?._id;
+    const assets = await this.prositQuizAssetModel
+      .find({
+        subjectId: subjectObjectId,
+        assetType: PrositQuizAssetType.PROSIT,
+      })
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .lean()
+      .exec();
+
+    const prositAssetsByContentId = new Map<string, any>();
+    const prositAssetsByLogicalKey = new Map<string, any>();
+    for (const asset of assets || []) {
+      const sourceContentId = String(asset?.sourceContentId || "").trim();
+      if (sourceContentId && !prositAssetsByContentId.has(sourceContentId)) {
+        prositAssetsByContentId.set(sourceContentId, asset);
+      }
+      const logicalKey = `${Number(asset?.chapterOrder ?? 0)}|${Number(asset?.subChapterOrder ?? 0)}|${String(asset?.title || "").trim().toLowerCase()}`;
+      if (logicalKey && !prositAssetsByLogicalKey.has(logicalKey)) {
+        prositAssetsByLogicalKey.set(logicalKey, asset);
+      }
+    }
+
+    return this.coursesToChapterPayload(
+      courses,
+      prositAssetsByContentId,
+      prositAssetsByLogicalKey,
+    );
   }
 
   /** Next chapter slot index for new chapters under this subject shell. */
@@ -746,7 +816,7 @@ export class SubjectsService {
     const allowedByFolder: Record<string, string[]> = {
       cours: ["file", "link"],
       exercices: ["quiz", "prosit"],
-      videos: ["video", "file"],
+      videos: ["video", "file", "link"],
       ressources: ["file", "link", "code"],
     };
 
@@ -1106,7 +1176,7 @@ export class SubjectsService {
       });
     }
 
-    if (folder === "videos" && (type === "video" || type === "file")) {
+    if (folder === "videos" && (type === "video" || type === "file" || type === "link")) {
       await this.persistVideoAsset({
         subject,
         chapterOrder,
@@ -1115,7 +1185,7 @@ export class SubjectsService {
         subChapterTitle: String((subChapter as any).title || ""),
         sourceContentId: contentId,
         assetType:
-          type === "video"
+          type === "video" || type === "link"
             ? VideoAssetType.VIDEO_LINK
             : VideoAssetType.VIDEO_FILE,
         title,

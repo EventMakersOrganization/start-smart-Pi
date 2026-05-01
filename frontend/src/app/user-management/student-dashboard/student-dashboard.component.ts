@@ -213,6 +213,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   };
 
   alerts: any[] = [];
+  backendRiskAlerts: any[] = [];
+  postEvaluationInProgress = false;
   showProfileSidebar = false;
   activeNav = 'dashboard';
   private routerEventsSubscription?: Subscription;
@@ -240,7 +242,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private adaptiveService: AdaptiveLearningService,
     private subjectsService: SubjectsService,
-  ) {}
+  ) { }
 
   private collectRoles(): string[] {
     const normalized = new Set<string>();
@@ -323,6 +325,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       const forceAnalyticsRefresh = this.consumeForceAnalyticsRefreshFlag();
       this.loadUserInfo();
       this.loadAdaptiveData(forceAnalyticsRefresh);
+      this.loadBackendInterventionAlerts();
     }
   }
 
@@ -347,10 +350,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
       const reason = this.cleanRecommendationText(
         rec?.rationale ||
-          rec?.reason ||
-          rec?.description ||
-          rec?.relevant_material_preview ||
-          rec?.action,
+        rec?.reason ||
+        rec?.description ||
+        rec?.relevant_material_preview ||
+        rec?.action,
       );
 
       const successProbability = this.normalizePercent(
@@ -368,9 +371,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         reason: reason || 'Updated from your latest progress.',
         level: this.cleanRecommendationText(
           rec?.priority ||
-            rec?.type ||
-            rec?.category ||
-            rec?.suggestedDifficulty,
+          rec?.type ||
+          rec?.category ||
+          rec?.suggestedDifficulty,
         ),
         duration:
           Number.isFinite(effortHours) && effortHours > 0
@@ -521,8 +524,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       : [];
     const weakFromConcepts = Array.isArray(this.conceptWeaknesses)
       ? this.conceptWeaknesses
-          .map((item: any) => String(item?.concept || '').trim())
-          .filter((item: string) => !!item)
+        .map((item: any) => String(item?.concept || '').trim())
+        .filter((item: string) => !!item)
       : [];
 
     const weaknesses = Array.from(
@@ -536,11 +539,11 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       sourceRecommendations.length > 0
         ? sourceRecommendations
         : weaknesses.slice(0, 6).map((topic) => ({
-            subject: topic,
-            focus_topics: [topic],
-            priority: 'high',
-            rationale: `Reinforce ${topic} through guided practice.`,
-          }));
+          subject: topic,
+          focus_topics: [topic],
+          priority: 'high',
+          rationale: `Reinforce ${topic} through guided practice.`,
+        }));
 
     return {
       ...profile,
@@ -635,7 +638,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           points_gamification: data?.profile?.points_gamification,
         };
       },
-      error: () => {},
+      error: () => { },
     });
   }
 
@@ -759,7 +762,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           this.buildTopicRings();
         }
       },
-      error: () => {},
+      error: () => { },
     });
 
     // ── Charger recommandations (AI service + fallback backend) ──
@@ -1755,7 +1758,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   private loadSubjectProgressRings(): void {
     this.subjectsService
-      .getSubjects()
+      .getSubjects(undefined, false)
       .pipe(catchError(() => of([] as DbSubjectItem[])))
       .subscribe({
         next: (subjects) => {
@@ -1841,6 +1844,58 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         message: `${this.recommendations.length} personalized recommendations ready for you!`,
       });
     }
+
+    // Backend intervention alerts (A/B automation) appear in student dashboard too.
+    this.alerts.push(...this.backendRiskAlerts);
+  }
+
+  get shouldShowPostEvaluationCta(): boolean {
+    const riskRaw = String(this.adaptiveProfile?.risk_level || '')
+      .trim()
+      .toLowerCase();
+    return riskRaw === 'high' || riskRaw === 'critical';
+  }
+
+  get postEvaluationWeakAreasPreview(): string {
+    const weaknesses = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+    return weaknesses.slice(0, 4).join(', ');
+  }
+
+  takePostEvaluationTest(): void {
+    if (this.postEvaluationInProgress) {
+      return;
+    }
+    this.postEvaluationInProgress = true;
+    const weakAreas = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+
+    this.router.navigate(['/student-dashboard/level-test'], {
+      queryParams: { mode: 'post-evaluation' },
+      state: { weakAreas },
+    });
+    this.postEvaluationInProgress = false;
+  }
+
+  private loadBackendInterventionAlerts(): void {
+    this.http
+      .get<any[]>('http://localhost:3000/api/alerts/me?limit=6')
+      .pipe(catchError(() => of([] as any[])))
+      .subscribe((rows) => {
+        const mapped = (Array.isArray(rows) ? rows : []).map((row) => {
+          const severity = String(row?.severity || '').toLowerCase();
+          const type = severity === 'high' ? 'warning' : severity === 'medium' ? 'info' : 'success';
+          return {
+            type,
+            icon: 'notifications',
+            message: String(row?.message || 'Intervention update available.'),
+          };
+        });
+        this.backendRiskAlerts = mapped;
+        this.updateAlerts();
+      });
   }
 
   calculateStreak(performances: any[]): number {
@@ -1894,9 +1949,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     const totalScore =
       Number(
         profile?.levelTestScore ??
-          profile?.level_test_score ??
-          profile?.progress ??
-          0,
+        profile?.level_test_score ??
+        profile?.progress ??
+        0,
       ) || 0;
     const resultLevel = profile?.level || 'beginner';
     const strengths = Array.isArray(profile?.strengths)
@@ -2001,7 +2056,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       this.router.url.includes('/student-dashboard/learning-path') ||
       this.router.url.includes('/student-dashboard/continue-learning') ||
       this.router.url.includes('/student-dashboard/chat') ||
-      this.router.url.includes('/student-dashboard/profile')
+      this.router.url.includes('/student-dashboard/profile') ||
+      this.router.url.includes('/student-dashboard/video-generator')
     );
   }
 

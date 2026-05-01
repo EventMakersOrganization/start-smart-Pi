@@ -8,6 +8,7 @@ import {
   OnInit,
   AfterViewInit,
 } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-quiz-file-viewer',
@@ -18,7 +19,8 @@ export class QuizFileViewerComponent implements OnInit, AfterViewInit {
   @Input() subjectTitle = '';
   @Input() chapterTitle = '';
   @Input() subChapterTitle = '';
-  @Output() submitted = new EventEmitter<void>();
+  @Input() existingSubmission: any;
+  @Output() submitted = new EventEmitter<any>();
 
   @ViewChild('quizEditor') quizEditor!: ElementRef<HTMLDivElement>;
 
@@ -32,12 +34,62 @@ export class QuizFileViewerComponent implements OnInit, AfterViewInit {
   selectedFile: File | null = null;
   submitSuccess = false;
   submitError = '';
+  alreadySubmitted = false;
+  showIframeFallback = false;
+  submissionHtml: SafeHtml = '';
+
+  constructor(private sanitizer: DomSanitizer) {}
 
   ngOnInit() {
     this.isDocx = this.content.fileName?.toLowerCase().endsWith('.docx');
     this.isPdf = this.content.fileName?.toLowerCase().endsWith('.pdf');
-    if (this.isDocx) {
+    
+    if (this.existingSubmission) {
+      this.alreadySubmitted = true;
+      this.submitSuccess = true;
+      this.activeTab = 'upload'; // Show the submitted file/info
+      // Trigger preview for both HTML and potential HTML-wrapped DOC files
+      this.loadSubmissionPreview();
+    }
+
+    if (this.isDocx && !this.alreadySubmitted) {
       this.loadDocx();
+    }
+  }
+
+  async loadSubmissionPreview() {
+    if (!this.existingSubmission?.fileUrl) {
+      console.warn('[QuizFileViewer] No submission URL found');
+      return;
+    }
+    
+    console.log('[QuizFileViewer] Loading submission preview from:', this.existingSubmission.fileUrl);
+    
+    try {
+      const url = this.existingSubmission.fileUrl;
+      const isPotentialHtml = url.toLowerCase().endsWith('.html') || url.toLowerCase().endsWith('.doc');
+      
+      if (isPotentialHtml) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const text = await response.text();
+        const trimmedText = text.trim().toLowerCase();
+        
+        // Defensive check: render if it contains common HTML tags
+        if (trimmedText.startsWith('<html') || trimmedText.startsWith('<!doctype') || text.includes('<body') || text.includes('</div>')) {
+          this.submissionHtml = this.sanitizer.bypassSecurityTrustHtml(text);
+          console.log('[QuizFileViewer] HTML submission content loaded and sanitized');
+        } else {
+          console.log('[QuizFileViewer] Content does not look like HTML, falling back to iframe');
+          this.showIframeFallback = true;
+        }
+      } else {
+        this.showIframeFallback = true;
+      }
+    } catch (err) {
+      console.error('[QuizFileViewer] Failed to load submission preview via fetch:', err);
+      this.showIframeFallback = true;
     }
   }
 
@@ -137,8 +189,12 @@ export class QuizFileViewerComponent implements OnInit, AfterViewInit {
 
     if (this.activeTab === 'edit' && this.isDocx) {
       const html = this.quizEditor.nativeElement.innerHTML;
-      const blob = new Blob([html], { type: 'text/html' });
-      formData.append('file', blob, 'quiz-response.html');
+      // Convert HTML to a format Word can open directly (.doc via HTML wrapping)
+      const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Quiz Response</title></head><body>`;
+      const footer = `</body></html>`;
+      const fullHtml = header + html + footer;
+      const blob = new Blob([fullHtml], { type: 'application/msword' });
+      formData.append('file', blob, 'quiz-response.doc');
     } else if (this.activeTab === 'upload' && this.selectedFile) {
       formData.append('file', this.selectedFile, this.selectedFile.name);
     } else {
@@ -147,36 +203,25 @@ export class QuizFileViewerComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // ✅ Récupère le token depuis toutes les sources possibles
+    // ✅ Improved Token Retrieval
     let token = '';
-
-    // Essai 1 : clés directes
-    const tokenKeys = [
-      'access_token', 'token', 'jwt', 'authToken',
-      'auth_token', 'accessToken', 'id_token'
-    ];
-    for (const key of tokenKeys) {
+    const keys = ['authToken', 'access_token', 'token', 'jwt'];
+    
+    for (const key of keys) {
       const val = localStorage.getItem(key) || sessionStorage.getItem(key);
-      if (val && val.startsWith('eyJ')) { token = val; break; }
-    }
-
-    // Essai 2 : token imbriqué dans l'objet user
-    if (!token) {
-      for (const key of ['user', 'currentUser', 'auth', 'session']) {
-        try {
-          const obj = JSON.parse(localStorage.getItem(key) || '{}');
-          const candidate =
-            obj?.token || obj?.access_token || obj?.accessToken ||
-            obj?.jwt || obj?.id_token || '';
-          if (candidate && candidate.startsWith('eyJ')) {
-            token = candidate;
-            break;
-          }
-        } catch {}
+      if (val) {
+        token = val;
+        break;
       }
     }
 
-    console.log('[QuizFileViewer] Token found:', token ? token.slice(0, 30) + '...' : 'NONE');
+    if (!token) {
+      // Try nested in user object
+      try {
+        const user = JSON.parse(localStorage.getItem('authUser') || '{}');
+        token = user.token || user.accessToken || '';
+      } catch {}
+    }
 
     if (!token) {
       this.submitError = 'Session expirée. Veuillez vous reconnecter.';
@@ -205,8 +250,9 @@ export class QuizFileViewerComponent implements OnInit, AfterViewInit {
       throw new Error(errMsg);
     }
 
+    const responseData = await res.json();
     this.submitSuccess = true;
-    this.submitted.emit();
+    this.submitted.emit(responseData);
 
   } catch (e: any) {
     this.submitError = e?.message || 'Erreur inconnue lors de la soumission.';

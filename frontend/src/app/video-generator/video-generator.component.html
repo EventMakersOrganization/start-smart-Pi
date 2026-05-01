@@ -1,0 +1,186 @@
+<section class="vg-page">
+
+    <!-- ── HERO HEADER ─────────────────────────────── -->
+    <header class="vg-hero">
+        <div class="vg-hero__badge">
+            <span class="vg-hero__icon">🎬</span>
+            <span class="vg-hero__tag">AI · D-ID Avatar</span>
+        </div>
+        <h1 class="vg-hero__title">Course to Explainer Video</h1>
+        <p class="vg-hero__sub">
+            Paste your course content → our AI writes the script, generates slides,
+            and creates a <strong>talking avatar video</strong> in minutes.
+        </p>
+    </header>
+
+    <!-- ── INPUT FORM ──────────────────────────────── -->
+    <div class="vg-card" *ngIf="state === 'idle'">
+        <div class="vg-form">
+
+            <div class="vg-field">
+                <label class="vg-label" for="lang">Language</label>
+                <div class="vg-radio-group">
+                    <label class="vg-radio" [class.active]="language === 'en'">
+                        <input type="radio" id="lang-en" name="lang" value="en" [(ngModel)]="language"> 🇬🇧 English
+                    </label>
+                    <label class="vg-radio" [class.active]="language === 'fr'">
+                        <input type="radio" id="lang-fr" name="lang" value="fr" [(ngModel)]="language"> 🇫🇷 Français
+                    </label>
+                </div>
+            </div>
+
+            <div class="vg-field">
+                <label class="vg-label" for="content">Course Content</label>
+                <div class="vg-input-tabs">
+                    <p class="vg-hint">Paste your text OR upload a document (PDF, DOCX, TXT)</p>
+                    <textarea id="content" class="vg-textarea" rows="10"
+                        placeholder="e.g. Chapter 1: Introduction to Algorithms..."
+                        [(ngModel)]="courseContent"></textarea>
+
+                    <div class="vg-file-dropbox">
+                        <input type="file" (change)="onCourseFileSelected($event)" accept=".pdf,.docx,.txt"
+                            id="course-upload" hidden #courseFileInput>
+                        <button type="button" class="vg-btn vg-btn--secondary" (click)="courseFileInput.click()">
+                            📄 {{ selectedCourseFile ? selectedCourseFile.name : 'Upload Lecture File (PDF/DOCX)' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW: Image Upload -->
+            <div class="vg-field">
+                <label class="vg-label">📸 1. Upload Professor Portrait (Recommended)</label>
+                <div
+                    style="display: flex; gap: 10px; align-items: center; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed #333;">
+                    <input type="file" (change)="onFileSelected($event)" accept="image/*" id="avatar-upload" hidden
+                        #fileInput>
+                    <button type="button" class="vg-btn vg-btn--secondary" (click)="fileInput.click()" style="margin:0">
+                        📁 Choose Photo
+                    </button>
+                    <span style="color: #00ff88; font-size: 0.9rem;" *ngIf="selectedFile">
+                        ✅ {{ selectedFile.name }}
+                    </span>
+                </div>
+                <p class="vg-hint">Head & shoulders shot works best.</p>
+            </div>
+
+            <!-- OR Custom URL -->
+            <div class="vg-field">
+                <label class="vg-label">🔗 2. OR Paste Image URL</label>
+                <input type="text" [(ngModel)]="presenterUrl" placeholder="https://example.com/professor.jpg"
+                    class="vg-textarea" style="height: 50px;">
+                <p class="vg-hint">Use this if you don't have a file to upload.</p>
+            </div>
+
+            <button class="vg-btn vg-btn--primary" id="btn-generate" (click)="generate()"
+                [disabled]="!courseContent.trim() && !selectedCourseFile">
+                <span class="vg-btn__icon">🚀</span> Generate Video
+            </button>
+
+        </div>
+    </div>
+
+    <!-- ── PROCESSING ───────────────────────────────── -->
+    <div class="vg-card vg-card--processing" *ngIf="state === 'loading'">
+        <div class="vg-processing">
+            <div class="vg-avatar-anim">
+                <div class="vg-avatar-ring"></div>
+                <div class="vg-avatar-ring vg-avatar-ring--2"></div>
+                <span class="vg-avatar-emoji">🤖</span>
+            </div>
+            <h2 class="vg-processing__title">AI is working…</h2>
+            <p class="vg-processing__step">{{ currentStep }}</p>
+
+            <div class="vg-progress-wrap">
+                <div class="vg-progress-bar">
+                    <div class="vg-progress-fill" [style.width.%]="progress"></div>
+                </div>
+                <span class="vg-progress-pct">{{ progress }}%</span>
+            </div>
+
+            <div class="vg-steps">
+                <div class="vg-step" [class.active]="progress >= 5" [class.done]="progress >= 30">
+                    <span class="vg-step__dot"></span> Script Generation
+                </div>
+                <div class="vg-step" [class.active]="progress >= 30" [class.done]="progress >= 60">
+                    <span class="vg-step__dot"></span> Slide Rendering
+                </div>
+                <div class="vg-step" [class.active]="progress >= 60" [class.done]="progress >= 100">
+                    <span class="vg-step__dot"></span> Avatar Video (D-ID)
+                </div>
+            </div>
+
+            <p class="vg-processing__note">
+                ⏱ This usually takes 1-3 minutes. You can leave this page and come back.
+            </p>
+        </div>
+    </div>
+
+    <!-- ── E-LEARNING PLAYER ───────────────────────── -->
+    <div class="vg-card vg-card--player" *ngIf="state === 'done' && job">
+
+        <div class="vg-player-header">
+            <div class="vg-badge vg-badge--pro">👨‍🏫 E-Learning Mode</div>
+            <h2 class="vg-player-title">{{ job.scriptTitle || 'Modern Course Overview' }}</h2>
+        </div>
+
+        <div class="vg-player-layout">
+            <!-- 1. MAIN CONTENT (SCREENS / SCHEMAS) -->
+            <div class="vg-main-view">
+                <div class="vg-slide-frame">
+                    <img [src]="getSlideUrl(currentSlideIdx)" class="vg-slide-img" alt="Course Schema">
+                    <div class="vg-slide-nav">
+                        <button (click)="prevSlide()" [disabled]="currentSlideIdx === 0">←</button>
+                        <span>Slide {{ currentSlideIdx + 1 }} / {{ job.slideCount }}</span>
+                        <button (click)="nextSlide()" [disabled]="currentSlideIdx >= job.slideCount - 1">→</button>
+                    </div>
+                </div>
+
+                <!-- NEW: Animated Transcript -->
+                <div class="vg-transcript-card" *ngIf="job.scenes && job.scenes.length > 0">
+                    <div class="vg-transcript-label">📜 Live Transcript</div>
+                    <div class="vg-transcript-scroll">
+                        <p *ngFor="let scene of job.scenes; let i = index" class="vg-transcript-line"
+                            [class.active]="i === currentSlideIdx">
+                            {{ scene.narration }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. PROFESSOR VIEW (AVATAR) -->
+            <div class="vg-professor-view">
+                <div class="vg-avatar-box">
+                    <video id="avatar-video" class="vg-avatar-video" [src]="job.avatarUrl" controls autoplay playsinline
+                        loop (timeupdate)="onTimeUpdate($event)"></video>
+                    <span class="vg-avatar-label">Professor (AI)</span>
+                </div>
+                <div class="vg-professor-info">
+                    <p>The slides on the left will move automatically as the professor speaks. Follow along with the
+                        highlighted transcript below.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="vg-player-actions">
+            <button class="vg-btn vg-btn--secondary" (click)="reset()">
+                🔄 Generate New Lesson
+            </button>
+            <a *ngIf="job.avatarUrl" class="vg-btn vg-btn--pro-link" [href]="job.avatarUrl" target="_blank" download>
+                ⬇ Download Full Lecture
+            </a>
+        </div>
+    </div>
+
+    <!-- ── ERROR ─────────────────────────────────────── -->
+    <div class="vg-card vg-card--error" *ngIf="state === 'error'">
+        <div class="vg-error">
+            <span class="vg-error__icon">⚠️</span>
+            <h2>Generation Failed</h2>
+            <p class="vg-error__msg">{{ currentStep }}</p>
+            <p *ngIf="job?.error" class="vg-error__detail">{{ job?.error }}</p>
+            <button class="vg-btn vg-btn--secondary" (click)="reset()">Try Again</button>
+        </div>
+    </div>
+
+</section>

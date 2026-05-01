@@ -20,10 +20,12 @@ import {
   StudentPerformanceSchema,
 } from '../adaptive-learning/schemas/student-performance.schema';
 import { RiskScoreSchedulerService } from './risk-score.scheduler.service';
+import { ActivityModule } from '../activity/activity.module';
 
 @Module({
   imports: [
     AnalyticsModule,
+    ActivityModule,
     AlertConfigModule,
     AdaptiveLearningModule,
     MongooseModule.forFeature([

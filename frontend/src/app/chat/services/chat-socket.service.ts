@@ -7,13 +7,14 @@ import { Observable } from 'rxjs';
 })
 export class ChatSocketService {
   private socket: Socket | undefined;
+  private ioFunc = io;
 
   constructor() { }
 
   connect() {
     if (!this.socket) {
       const token = localStorage.getItem('authToken');
-      this.socket = io('http://localhost:3000', {
+      this.socket = this.ioFunc('http://localhost:3000', {
         auth: { token }
       });
     }

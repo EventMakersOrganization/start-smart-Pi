@@ -1,5 +1,5 @@
 <div class="rounded-3xl bg-gradient-to-br from-blue-50 via-white to-indigo-100 shadow-xl p-0 mb-8">
-  <div class="flex items-center gap-4 px-8 pt-6 pb-2">
+  <div class="flex items-center gap-4 px-8 pt-6 pb-2" *ngIf="!alreadySubmitted">
     <button
       class="px-4 py-2 rounded-xl font-bold text-blue-700 bg-white shadow border border-blue-100"
       [class.bg-blue-100]="activeTab === 'edit'"
@@ -29,83 +29,101 @@
   </div>
 
   <div class="px-8 pb-8">
+    <!-- SUBMITTED VIEW: Only show the submission content -->
+    <div *ngIf="alreadySubmitted" class="py-4">
+      <div class="mb-6 p-6 rounded-2xl bg-slate-50 border border-slate-100">
+        <h4 class="text-slate-900 font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">visibility</span>
+          Aperçu de votre remise
+        </h4>
+        
+        <!-- Preview of submitted content -->
+        <div class="bg-white rounded-xl border border-slate-200 p-6 min-h-[300px] overflow-auto shadow-sm">
+           <iframe *ngIf="showIframeFallback && existingSubmission?.fileUrl" 
+             [src]="existingSubmission.fileUrl | safeUrl" 
+             class="w-full h-[500px] border-none"></iframe>
+           
+           <div *ngIf="!showIframeFallback"
+             id="submission-preview" class="prose prose-slate max-w-none"
+             [innerHTML]="submissionHtml">
+             <p *ngIf="!submissionHtml" class="text-slate-400 italic text-sm mb-4">Chargement de votre réponse...</p>
+           </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 1: Répondre dans le document (DOCX) -->
-    <div *ngIf="activeTab === 'edit' && isDocx">
-      <div class="mb-4 flex flex-wrap gap-2 items-center">
-        <button class="btn-toolbar" (click)="execCommand('bold')" title="Gras">
-          <span class="material-symbols-outlined">format_bold</span>
+    <div *ngIf="activeTab === 'edit' && isDocx && !alreadySubmitted">
+      <div class="flex flex-wrap items-center gap-2 mb-4 p-3 bg-white/50 rounded-2xl border border-blue-100 shadow-sm">
+        <button (click)="execCommand('bold')" class="btn-toolbar" title="Gras">
+          <span class="material-symbols-outlined text-[18px]">format_bold</span>
         </button>
-        <button class="btn-toolbar" (click)="execCommand('italic')" title="Italique">
-          <span class="material-symbols-outlined">format_italic</span>
+        <button (click)="execCommand('italic')" class="btn-toolbar" title="Italique">
+          <span class="material-symbols-outlined text-[18px]">format_italic</span>
         </button>
-        <button class="btn-toolbar" (click)="execCommand('underline')" title="Souligner">
-          <span class="material-symbols-outlined">format_underlined</span>
+        <button (click)="execCommand('underline')" class="btn-toolbar" title="Souligné">
+          <span class="material-symbols-outlined text-[18px]">format_underlined</span>
         </button>
-        <button class="btn-toolbar" (click)="highlightSelection()" title="Surligner">
-          <span class="material-symbols-outlined text-yellow-400">highlight</span>
+        <div class="w-px h-6 bg-blue-100 mx-1"></div>
+        <button (click)="highlightSelection()" class="btn-toolbar text-yellow-600" title="Surligner">
+          <span class="material-symbols-outlined text-[18px]">stylus</span>
         </button>
-        <button class="btn-toolbar" (click)="addComment()" title="Ajouter un commentaire">
-          <span class="material-symbols-outlined text-blue-400">add_comment</span>
+        <button (click)="addComment()" class="btn-toolbar text-blue-600" title="Ajouter un commentaire">
+          <span class="material-symbols-outlined text-[18px]">add_comment</span>
         </button>
-        <button class="btn-toolbar" (click)="removeHighlights()" title="Retirer les surlignages/commentaires">
-          <span class="material-symbols-outlined">format_clear</span>
+        <button (click)="removeHighlights()" class="btn-toolbar text-rose-500" title="Effacer les annotations">
+          <span class="material-symbols-outlined text-[18px]">ink_eraser</span>
         </button>
       </div>
-      <div
-        #quizEditor
-        id="quiz-editor"
-        class="min-h-[400px] max-h-[60vh] overflow-auto bg-white rounded-xl border border-blue-100 p-6 shadow-inner focus:outline-none"
-        contenteditable="true"
-        spellcheck="true"
-        [innerHTML]="htmlContent"
-      ></div>
-      <div *ngIf="comments.length" class="mt-4">
-        <h4 class="font-bold text-blue-700 mb-2">Commentaires ajoutés :</h4>
-        <ul class="list-disc pl-6 text-blue-700 text-sm">
-          <li *ngFor="let c of comments">{{ c.text }}</li>
-        </ul>
+
+      <div class="relative group">
+        <div *ngIf="loading" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-[2rem]">
+          <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p class="text-blue-600 font-black uppercase tracking-widest text-[10px]">Chargement du document...</p>
+        </div>
+        <div #quizEditor contenteditable="true" 
+          class="min-h-[500px] p-10 bg-white rounded-[2rem] border border-blue-100 shadow-inner focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all prose prose-slate max-w-none">
+        </div>
       </div>
     </div>
 
     <!-- TAB 2: Soumettre un fichier -->
-    <div *ngIf="activeTab === 'upload'">
-      <div class="mb-4">
-        <iframe
-          *ngIf="content.url"
-          [src]="content.url"
-          class="w-full h-96 rounded-xl border border-blue-100 shadow"
-        ></iframe>
-      </div>
-      <input
-        type="file"
-        accept=".pdf,.doc,.docx,.png,.jpg"
-        (change)="onFileChange($event)"
-        class="block mb-4"
-      />
-      <div *ngIf="selectedFile" class="text-blue-700 font-bold mb-2">
-        Fichier sélectionné : {{ selectedFile.name }}
+    <div *ngIf="activeTab === 'upload' && !alreadySubmitted" class="py-10 text-center">
+      <div class="max-w-md mx-auto p-10 rounded-[3rem] border-2 border-dashed border-blue-200 bg-blue-50/30 hover:bg-blue-50 transition-all group">
+        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-blue-600 text-4xl">cloud_upload</span>
+        </div>
+        <h3 class="text-xl font-black text-slate-800 mb-2">Déposez votre fichier</h3>
+        <p class="text-sm text-slate-500 font-medium mb-8">Sélectionnez le document final de votre réponse.</p>
+        
+        <input type="file" (change)="onFileChange($event)" id="quiz-file-input" class="hidden">
+        <label for="quiz-file-input" class="inline-flex items-center gap-3 px-8 py-4 bg-white border border-blue-200 rounded-2xl text-blue-600 font-black tracking-widest text-[10px] uppercase cursor-pointer hover:shadow-lg active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[18px]">attach_file</span>
+          {{ selectedFile ? selectedFile.name : 'Choisir un fichier' }}
+        </label>
       </div>
     </div>
 
     <!-- TAB 3: Voir l'original -->
-    <div *ngIf="activeTab === 'original' && isDocx">
-      <div
-        class="min-h-[400px] max-h-[60vh] overflow-auto bg-slate-50 rounded-xl border border-blue-100 p-6 shadow-inner"
-        [innerHTML]="originalHtml"
-      ></div>
+    <div *ngIf="activeTab === 'original' && isDocx && !alreadySubmitted">
+      <div class="p-10 bg-slate-50 rounded-[2rem] border border-slate-200 prose prose-slate max-w-none shadow-inner" 
+           [innerHTML]="originalHtml">
+      </div>
     </div>
 
-    <!-- Submit Button -->
-    <div class="mt-6 flex items-center gap-4">
-      <button
-        (click)="submit()"
-        [disabled]="loading"
-        class="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow hover:scale-105 transition-all"
-      >
-        {{ loading ? 'Envoi...' : 'Soumettre' }}
-      </button>
-      <span *ngIf="submitSuccess" class="text-green-600 font-bold">Réponse envoyée !</span>
-      <span *ngIf="submitError" class="text-red-600 font-bold">{{ submitError }}</span>
+    <!-- Submit Button (Hidden if already submitted) -->
+    <div class="mt-6 flex flex-col gap-4">
+
+      <div class="flex items-center gap-4" *ngIf="!alreadySubmitted">
+        <button
+          (click)="submit()"
+          [disabled]="loading"
+          class="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black tracking-widest text-xs shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+        >
+          {{ loading ? 'ENVOI EN COURS...' : 'SOUMETTRE MA RÉPONSE' }}
+        </button>
+        <span *ngIf="submitError" class="text-rose-500 font-black text-[10px] uppercase tracking-widest animate-pulse">{{ submitError }}</span>
+      </div>
     </div>
   </div>
 </div>

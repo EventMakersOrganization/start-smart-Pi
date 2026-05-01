@@ -16,7 +16,7 @@ export class AiService {
         this.httpService.post(`${this.AI_SERVICE_URL}/brainrush/generate-session`, {
           subject,
           difficulty,
-          num_questions: numQuestions
+          num_questions: numQuestions                  
         })
       );
 

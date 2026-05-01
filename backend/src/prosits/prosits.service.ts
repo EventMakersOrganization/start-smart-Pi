@@ -33,7 +33,7 @@ export class PrositsService {
     dto: CreatePrositSubmissionDto,
     file?: Express.Multer.File,
   ): Promise<PrositSubmission> {
-    const dup = await this.prositSubmissionModel
+    const existing = await this.prositSubmissionModel
       .findOne({
         studentId: String(dto.studentId || "").trim(),
         prositTitle: String(dto.prositTitle || "").trim(),
@@ -41,10 +41,20 @@ export class PrositsService {
         subChapterTitle: String(dto.subChapterTitle || "").trim(),
       })
       .exec();
-    if (dup) {
-      throw new BadRequestException(
-        "Une remise existe déjà pour ce prosit.",
-      );
+
+    if (existing) {
+      // OVERWRITE MODE: Update existing instead of creating new
+      existing.reportText = dto.reportText;
+      existing.reportHtml = dto.reportHtml;
+      existing.wordCount = dto.wordCount;
+      existing.subjectTitle = dto.subjectTitle ? String(dto.subjectTitle).trim() : undefined;
+      if (file) {
+        existing.fileName = file.originalname;
+        existing.filePath = `/uploads/prosits/${file.filename}`;
+      }
+      existing.submittedAt = new Date();
+      existing.status = "submitted"; // Reset status if it was graded? Or keep it? Usually reset.
+      return existing.save();
     }
 
     const submission = new this.prositSubmissionModel({

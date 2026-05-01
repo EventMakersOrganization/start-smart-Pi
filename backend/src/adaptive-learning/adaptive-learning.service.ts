@@ -15,6 +15,10 @@ import {
   RecommendationDocument,
 } from "./schemas/recommendation.schema";
 import { LevelTest, LevelTestDocument } from "./schemas/level-test.schema";
+import {
+  PostEvaluationTest,
+  PostEvaluationTestDocument,
+} from "./schemas/post-evaluation-test.schema";
 import { Question, QuestionDocument } from "./schemas/question.schema";
 import { CreateStudentProfileDto } from "./dto/create-student-profile.dto";
 import { CreateStudentPerformanceDto } from "./dto/create-student-performance.dto";
@@ -52,6 +56,7 @@ import {
   PrositSubmission,
   PrositSubmissionDocument,
 } from "../prosits/schemas/prosit-submission.schema";
+import { Subject, SubjectDocument } from "../subjects/schemas/subject.schema";
 
 @Injectable()
 export class AdaptiveLearningService {
@@ -68,6 +73,8 @@ export class AdaptiveLearningService {
     private recommendationModel: Model<RecommendationDocument>,
     @InjectModel(LevelTest.name)
     private levelTestModel: Model<LevelTestDocument>,
+    @InjectModel(PostEvaluationTest.name)
+    private postEvaluationTestModel: Model<PostEvaluationTestDocument>,
     @InjectModel(Question.name)
     private questionModel: Model<QuestionDocument>,
     @InjectModel(ChatAi.name)
@@ -90,6 +97,8 @@ export class AdaptiveLearningService {
     private quizFileSubmissionModel: Model<QuizFileSubmissionDocument>,
     @InjectModel(PrositSubmission.name)
     private prositSubmissionModel: Model<PrositSubmissionDocument>,
+    @InjectModel(Subject.name)
+    private subjectModel: Model<SubjectDocument>,
   ) {}
 
   // ══════════════════════════════════
@@ -2660,9 +2669,25 @@ export class AdaptiveLearningService {
       .exec();
 
     if (!performances || performances.length < 5) {
-      throw new NotFoundException(
-        `Insufficient performance data for student ${studentId}. Need at least 5 exercises.`,
-      );
+      return {
+        primaryStyle: "learning_style_pending",
+        secondaryStyle: null,
+        confidence: 0,
+        styleDescription:
+          "More performance data is needed to detect a reliable learning style.",
+        learningTips: [
+          "Complete at least 5 graded exercises across different topics.",
+          "Mix easy and medium exercises to generate behavior signals.",
+          "Keep regular sessions so the system can detect your pace pattern.",
+        ],
+        indicators: {
+          averageTimePerExercise: 0,
+          scoreConsistency: 0,
+          preferredDifficulty: "beginner",
+          preferredTopics: [],
+          sessionsPerWeek: 0,
+        },
+      };
     }
 
     // ── Analyze performances ──
@@ -3196,7 +3221,9 @@ export class AdaptiveLearningService {
       throw new NotFoundException(`Profile not found for student ${studentId}`);
     }
 
-    const profileWeaknesses: string[] = profile.weaknesses || [];
+    const profileWeaknesses: string[] = Array.isArray(profile.weaknesses)
+      ? profile.weaknesses
+      : [];
 
     const latestLevelTest = await this.levelTestModel
       .findOne({ studentId, status: "completed" })
@@ -3208,6 +3235,15 @@ export class AdaptiveLearningService {
       .sort({ attemptDate: -1 })
       .limit(20)
       .exec();
+
+    // First-time / no-evidence learner: no weak areas should be shown yet.
+    if (!latestLevelTest && recentPerformances.length === 0) {
+      return {
+        weakAreas: [],
+        totalWeakAreas: 0,
+        mostUrgent: "",
+      };
+    }
 
     const topicScoresFromPerf: Record<
       string,
@@ -3237,6 +3273,17 @@ export class AdaptiveLearningService {
       score: typeof w.score === "number" ? w.score : 50,
     }));
 
+    const subjectTitles = await this.subjectModel
+      .find({})
+      .select("title")
+      .lean<any[]>()
+      .exec();
+    const subjectTitleSet = new Set(
+      (subjectTitles || [])
+        .map((row) => this.normalizeTopicLabel(row?.title))
+        .filter((label) => !!label),
+    );
+
     const mergedWeakAreas = new Map<
       string,
       {
@@ -3253,6 +3300,10 @@ export class AdaptiveLearningService {
     ) => {
       const normalizedTopic = (topic || "general").trim();
       if (!normalizedTopic) return;
+      if (subjectTitleSet.has(this.normalizeTopicLabel(normalizedTopic))) {
+        // Skip broad subject labels. Weak areas should stay at sub-skill/topic granularity.
+        return;
+      }
 
       const safeScore = Math.max(0, Math.min(100, Math.round(score)));
       const existing = mergedWeakAreas.get(normalizedTopic);
@@ -3274,9 +3325,34 @@ export class AdaptiveLearningService {
       upsertWeakArea(item.topic, item.score, "performance");
     });
 
+    const levelWeakTopicSet = new Set(
+      weakFromLevelTest.map((item) => String(item.topic || "").trim().toLowerCase()),
+    );
+    const perfTopicScoreMap = new Map<string, number>(
+      Object.entries(topicScoresFromPerf).map(([topic, stat]) => [
+        String(topic || "").trim().toLowerCase(),
+        Math.round(stat.total / stat.count),
+      ]),
+    );
+
     profileWeaknesses.forEach((topic) => {
-      // Fallback score for profile-only weakness when no numeric evidence exists.
-      upsertWeakArea(topic, 55, "profile");
+      const normalized = String(topic || "").trim();
+      if (!normalized) return;
+      const key = normalized.toLowerCase();
+
+      // Avoid profile-only weak topics when there is no concrete evidence.
+      // This prevents broad subject names from appearing as weak areas.
+      const scoreFromPerf = perfTopicScoreMap.get(key);
+      const inLevelWeak = levelWeakTopicSet.has(key);
+      if (!inLevelWeak && scoreFromPerf === undefined) {
+        return;
+      }
+
+      upsertWeakArea(
+        normalized,
+        scoreFromPerf !== undefined ? scoreFromPerf : 55,
+        "profile",
+      );
     });
 
     const weakAreas = Array.from(mergedWeakAreas.values())
@@ -3314,6 +3390,15 @@ export class AdaptiveLearningService {
       totalWeakAreas: weakAreas.length,
       mostUrgent: weakAreas[0]?.topic || "",
     };
+  }
+
+  private normalizeTopicLabel(value: unknown): string {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ");
   }
 
   async getExerciseCompletionTracking(studentId: string): Promise<{
@@ -4948,6 +5033,276 @@ export class AdaptiveLearningService {
       .exec();
 
     return test ? test.toObject() : null;
+  }
+
+  async syncProfileFromAiPostEvaluation(
+    studentId: string,
+    aiProfile: any,
+    sessionId?: string,
+    postEvaluationResult?: any,
+  ): Promise<{
+    status: string;
+    profile: StudentProfile;
+    postEvaluation?: PostEvaluationTest;
+  }> {
+    const userId = String(studentId || "").trim();
+    if (!userId) {
+      throw new NotFoundException("studentId is required");
+    }
+
+    const normalizedResult = this.normalizePostEvaluationResult(
+      postEvaluationResult || aiProfile,
+      userId,
+      sessionId,
+    );
+    const areaScores = this.computePostEvaluationAreaScores(normalizedResult);
+    const weakTopics = areaScores
+      .filter((item) => item.score < 60)
+      .map((item) => item.topic);
+    const strongTopics = areaScores
+      .filter((item) => item.score >= 70)
+      .map((item) => item.topic);
+    const recommendations = this.generatePostEvaluationRecommendations(areaScores);
+    const overallScore = this.resolvePostEvaluationOverallScore(
+      normalizedResult,
+      areaScores,
+      aiProfile,
+    );
+
+    const riskLevel = this.mapScoreToRiskLevel(overallScore);
+    const level = this.mapScoreToLevel(overallScore);
+
+    const profile = await this.profileModel
+      .findOneAndUpdate(
+        { userId },
+        {
+          $set: {
+            level,
+            levelTestCompleted: true,
+            levelTestScore: Math.round(overallScore),
+            progress: Math.round(overallScore),
+            strengths: strongTopics,
+            weaknesses: weakTopics,
+            risk_level: riskLevel,
+            postEvaluationScore: Math.round(overallScore),
+            postEvaluationCompletedAt: new Date(),
+            postEvaluationAreaScores: areaScores,
+            postEvaluationRecommendations: recommendations,
+          },
+          $setOnInsert: {
+            userId,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      )
+      .exec();
+
+    const persistedPostEval = await this.postEvaluationTestModel
+      .findOneAndUpdate(
+        {
+          studentId: userId,
+          ...(sessionId ? { sessionId } : {}),
+        },
+        {
+          $set: {
+            studentId: userId,
+            sessionId: sessionId || normalizedResult?.sessionId || undefined,
+            status: "completed",
+            questions: normalizedResult?.questions || [],
+            answers: normalizedResult?.answers || [],
+            totalScore: Math.round(overallScore),
+            areaScores,
+            recommendations,
+            completedAt: new Date(),
+          },
+          $setOnInsert: {
+            studentId: userId,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      )
+      .exec();
+
+    return {
+      status: "success",
+      profile: profile as StudentProfile,
+      postEvaluation: persistedPostEval as any,
+    };
+  }
+
+  async findLatestCompletedPostEvaluationByStudent(
+    studentId: string,
+  ): Promise<any> {
+    const test = await this.postEvaluationTestModel
+      .findOne({ studentId, status: "completed" })
+      .sort({ completedAt: -1, createdAt: -1, _id: -1 })
+      .exec();
+    if (!test) {
+      return null;
+    }
+    return this.sanitizePostEvaluationForResponse(test.toObject());
+  }
+
+  private normalizePostEvaluationResult(
+    payload: any,
+    studentId: string,
+    sessionId?: string,
+  ): any {
+    const normalizedQuestions = Array.isArray(payload?.questions)
+      ? payload.questions.map((q: any) => ({
+          questionText: String(q?.questionText || q?.question || "").trim(),
+          options: Array.isArray(q?.options) ? q.options : [],
+          topic: String(q?.topic || "General").trim() || "General",
+          chapter_title: String(q?.chapter_title || q?.chapter || "").trim(),
+          difficulty: String(q?.difficulty || "medium").trim(),
+        }))
+      : [];
+
+    const normalizedAnswers = Array.isArray(payload?.answers)
+      ? payload.answers.map((a: any, idx: number) => ({
+          questionIndex: Number.isFinite(Number(a?.questionIndex))
+            ? Number(a.questionIndex)
+            : idx,
+          selectedAnswer: String(a?.selectedAnswer || "").trim(),
+          isCorrect: Boolean(a?.isCorrect),
+          timeSpent: Number(a?.timeSpent || 0),
+        }))
+      : [];
+
+    return {
+      studentId,
+      sessionId: String(payload?.sessionId || payload?.session_id || sessionId || "").trim(),
+      totalScore: Number(payload?.totalScore ?? payload?.score ?? payload?.overall_mastery ?? 0),
+      questions: normalizedQuestions,
+      answers: normalizedAnswers,
+      areaScores: Array.isArray(payload?.areaScores) ? payload.areaScores : [],
+      recommendations: Array.isArray(payload?.recommendations)
+        ? payload.recommendations
+        : [],
+    };
+  }
+
+  private computePostEvaluationAreaScores(result: any): Array<{
+    topic: string;
+    score: number;
+    correct: number;
+    total: number;
+  }> {
+    if (Array.isArray(result?.areaScores) && result.areaScores.length > 0) {
+      return result.areaScores.map((area: any) => ({
+        topic: String(area?.topic || "General").trim() || "General",
+        score: Math.max(0, Math.min(100, Number(area?.score || 0))),
+        correct: Math.max(0, Number(area?.correct || 0)),
+        total: Math.max(0, Number(area?.total || 0)),
+      }));
+    }
+
+    const questions = Array.isArray(result?.questions) ? result.questions : [];
+    const answers = Array.isArray(result?.answers) ? result.answers : [];
+    const byTopic = new Map<string, { correct: number; total: number }>();
+
+    questions.forEach((question: any, idx: number) => {
+      const topic = String(question?.topic || "General").trim() || "General";
+      const answer = answers[idx];
+      const prev = byTopic.get(topic) || { correct: 0, total: 0 };
+      prev.total += 1;
+      if (answer?.isCorrect) {
+        prev.correct += 1;
+      }
+      byTopic.set(topic, prev);
+    });
+
+    return Array.from(byTopic.entries()).map(([topic, stat]) => ({
+      topic,
+      score: stat.total > 0 ? Math.round((stat.correct / stat.total) * 100) : 0,
+      correct: stat.correct,
+      total: stat.total,
+    }));
+  }
+
+  private resolvePostEvaluationOverallScore(
+    result: any,
+    areaScores: Array<{ score: number }>,
+    aiProfile?: any,
+  ): number {
+    const aiRaw = Number(
+      aiProfile?.overall_mastery ??
+        aiProfile?.totalScore ??
+        aiProfile?.score ??
+        0,
+    );
+    if (Number.isFinite(aiRaw) && aiRaw > 0) {
+      return Math.max(0, Math.min(100, aiRaw));
+    }
+
+    const raw = Number(result?.totalScore || 0);
+    if (Number.isFinite(raw) && raw > 0) {
+      return Math.max(0, Math.min(100, raw));
+    }
+    if (areaScores.length === 0) {
+      return 0;
+    }
+    const total = areaScores.reduce((sum, area) => sum + Number(area.score || 0), 0);
+    return Math.max(0, Math.min(100, total / areaScores.length));
+  }
+
+  private generatePostEvaluationRecommendations(
+    areaScores: Array<{ topic: string; score: number }>,
+  ): string[] {
+    const actions: string[] = [];
+    for (const area of areaScores) {
+      if (area.score < 40) {
+        actions.push(
+          `Priority remediation: revisit fundamentals of ${area.topic} and complete easy-to-medium MCQs.`,
+        );
+      } else if (area.score < 70) {
+        actions.push(
+          `Targeted practice: continue focused exercises on ${area.topic} to reach mastery.`,
+        );
+      } else {
+        actions.push(
+          `Maintenance: keep ${area.topic} fresh with spaced revision and challenge questions.`,
+        );
+      }
+    }
+    return actions.slice(0, 8);
+  }
+
+  private sanitizePostEvaluationForResponse(doc: any): any {
+    return {
+      _id: String(doc?._id || ""),
+      studentId: doc?.studentId || "",
+      sessionId: doc?.sessionId || "",
+      status: doc?.status || "completed",
+      totalScore: Number(doc?.totalScore || 0),
+      questions: Array.isArray(doc?.questions) ? doc.questions : [],
+      answers: Array.isArray(doc?.answers) ? doc.answers : [],
+      areaScores: Array.isArray(doc?.areaScores) ? doc.areaScores : [],
+      recommendations: Array.isArray(doc?.recommendations)
+        ? doc.recommendations
+        : [],
+      completedAt: doc?.completedAt || doc?.updatedAt || null,
+    };
+  }
+
+  private mapScoreToRiskLevel(score: number): "LOW" | "MEDIUM" | "HIGH" {
+    if (score >= 75) return "LOW";
+    if (score >= 45) return "MEDIUM";
+    return "HIGH";
+  }
+
+  private mapScoreToLevel(score: number): "beginner" | "intermediate" | "advanced" {
+    if (score >= 80) return "advanced";
+    if (score >= 50) return "intermediate";
+    return "beginner";
   }
 
   // ══════════════════════════════════════════════════════

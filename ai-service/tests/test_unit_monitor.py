@@ -100,14 +100,43 @@ class TestAIPerformanceMonitor:
         r = mon.purge_old_metrics(days=60)
         assert r == 10
 
-    def test_record_request_handles_insert_failure(self, monitor_env):
+    def test_record_request_db_failure(self, monitor_env):
         mon, col = monitor_env
-        col.insert_one.side_effect = RuntimeError("db down")
-        assert mon.record_request("/chat", 0.2, True) is None
+        col.insert_one.side_effect = Exception("DB Down")
+        # Should handle exception and return None
+        res = mon.record_request("/chat", 0.5, True)
+        assert res is None
 
-    def test_get_system_health_degrades_when_rag_is_unhealthy(self, monitor_env):
+    def test_get_endpoint_stats_db_failure(self, monitor_env):
         mon, col = monitor_env
-        mon.rag_service.health_check = lambda: {"status": "degraded"}
-        health = mon.get_system_health()
-        assert health["overall"] == "degraded"
-        assert health["checks"]["api_success_rate_ok"] is True
+        col.find.side_effect = Exception("Query Failed")
+        # Should handle exception and return empty stats
+        r = mon.get_endpoint_stats("/chat")
+        assert r["total_requests"] == 0
+
+    def test_get_endpoint_stats_p95_edge(self, monitor_env):
+        mon, col = monitor_env
+        FakeCursor = col._FakeCursor
+        # Only 1 request
+        col.find.return_value = FakeCursor([
+            {"endpoint": "/chat", "latency": 1.0, "success": True, "timestamp": "2026-01-01T00:00:00"},
+        ])
+        r = mon.get_endpoint_stats("/chat")
+        assert r["p95_latency"] == 1.0
+
+    def test_get_system_health_degraded(self, monitor_env):
+        mon, col = monitor_env
+        # Mock RAG service to be degraded
+        mon.rag_service.health_check.return_value = {"status": "degraded"}
+        r = mon.get_system_health()
+        assert r["overall"] == "degraded"
+
+    def test_get_system_health_slow(self, monitor_env):
+        mon, col = monitor_env
+        FakeCursor = col._FakeCursor
+        # High latency
+        col.find.return_value = FakeCursor([
+            {"endpoint": "/chat", "latency": 15.0, "success": True, "timestamp": "2026-01-01T00:00:00"},
+        ])
+        r = mon.get_system_health()
+        assert r["overall"] == "slow"

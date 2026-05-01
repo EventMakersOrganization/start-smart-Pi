@@ -103,7 +103,18 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     if (match && match[1]) {
       return `https://www.youtube.com/embed/${match[1]}`;
     }
+    // Vimeo
+    const vimeoRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/i;
+    match = url.match(vimeoRegex);
+    if (match && match[1]) {
+      return `https://player.vimeo.com/video/${match[1]}`;
+    }
     return url;
+  }
+
+  isVideoUrl(url: string): boolean {
+    if (!url) return false;
+    return this.toEmbedUrl(url) !== url || url.endsWith('.mp4') || url.includes('/uploads/');
   }
   // Used for *ngFor trackBy to prevent input focus loss
   trackByIndex(index: number, item: any): number {
@@ -120,7 +131,10 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   openContentId: string | null = null;
 
   async onOpenContent(content: any) {
-    this.selectedContentForView = { ...content };
+    this.selectedContentForView = {
+      ...content,
+      dueDate: this.getNormalizedPrositDueDate(content),
+    };
     this.showViewModal = true;
 
     const url = content.url || '';
@@ -160,6 +174,24 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   closeViewModal() {
     this.showViewModal = false;
     this.selectedContentForView = null;
+  }
+
+  private getNormalizedPrositDueDate(content: any): string {
+    const candidates = [
+      content?.dueDate,
+      content?.deadline,
+      content?.due_date,
+      content?.endDate,
+    ];
+    for (const raw of candidates) {
+      const value = String(raw ?? '').trim();
+      if (!value) continue;
+      const d = new Date(value);
+      if (!Number.isNaN(d.getTime())) {
+        return value;
+      }
+    }
+    return '';
   }
 
   startEditContent(chapterOrder: number, subChapterOrder: number, content: any) {
@@ -256,17 +288,30 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   quizFileGradeForms: Record<string, QuizFileGradeFormModel> = {};
   prositGradeForms: Record<string, PrositGradeFormModel> = {};
   expandedQuizSubmissionId: string | null = null;
+  expandedPrositSubmissionId: string | null = null;
   quizFilePreviews: Record<string, QuizFilePreviewState> = {};
 
   // Attendance state
   showAttendanceModal = false;
+  attendanceActiveTab: 'saisie' | 'historique' = 'saisie';
   classStudents: any[] = [];
   loadingStudents = false;
   submittingAttendance = false;
   attendanceDate: string = new Date().toISOString().split('T')[0];
+  attendanceSession: 'S1' | 'S2' = 'S1';
+  showSessionDropdown = false;
+  
+  // Custom Datepicker state
+  showCustomDatePicker = false;
+  currentPickerMonth = new Date();
+  calendarDays: { date: Date; isCurrentMonth: boolean; label: number }[] = [];
+  weekDays = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
+  
   attendanceRecords: Record<string, 'present' | 'absent' | 'late'> = {};
   attendanceSuccess = false;
   attendanceError = '';
+  attendanceHistory: any[] = [];
+  loadingAttendanceHistory = false;
 
   private subjectsApiUrl = 'http://localhost:3000/api/subjects';
 
@@ -367,9 +412,175 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
 
     if (!this.selectedClassId) return;
     this.showAttendanceModal = true;
+    this.attendanceActiveTab = 'saisie';
     this.attendanceSuccess = false;
     this.attendanceError = '';
+    this.attendanceDate = new Date().toISOString().split('T')[0];
     this.loadClassStudents();
+  }
+
+  onAttendanceParamsChange(): void {
+    if (!this.selectedClassId || !this.attendanceDate || !this.attendanceSession) return;
+    // Reset to default first by creating a new object reference to trigger change detection
+    const defaultRecords: { [key: string]: 'present' | 'absent' | 'late' } = {};
+    this.classStudents.forEach((s) => {
+      defaultRecords[s.id || s._id] = 'present';
+    });
+    this.attendanceRecords = defaultRecords;
+
+    this.http.get(`http://localhost:3000/api/admin/attendance/${this.selectedClassId}/${this.attendanceDate}/${this.attendanceSession}`).subscribe({
+      next: (res: any) => {
+        if (res && res.records) {
+          res.records.forEach((record: any) => {
+            this.attendanceRecords[record.studentId] = record.status;
+          });
+        }
+      },
+      error: (err) => {
+        console.error('Error fetching attendance for date and session:', err);
+      }
+    });
+  }
+
+  // --- CUSTOM DATE PICKER METHODS ---
+  toggleDatePicker(): void {
+    this.showCustomDatePicker = !this.showCustomDatePicker;
+    if (this.showCustomDatePicker) {
+      this.currentPickerMonth = new Date(this.attendanceDate);
+      this.generateCalendar();
+    }
+  }
+
+  generateCalendar(): void {
+    const year = this.currentPickerMonth.getFullYear();
+    const month = this.currentPickerMonth.getMonth();
+    
+    const firstDayOfMonth = new Date(year, month, 1);
+    let startingDay = firstDayOfMonth.getDay() - 1; // Mon = 0, Sun = 6
+    if (startingDay < 0) startingDay = 6;
+    
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    this.calendarDays = [];
+    
+    // Prev month padding
+    for (let i = 0; i < startingDay; i++) {
+      this.calendarDays.push({
+        date: new Date(year, month - 1, daysInPrevMonth - startingDay + i + 1),
+        isCurrentMonth: false,
+        label: daysInPrevMonth - startingDay + i + 1
+      });
+    }
+    
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      this.calendarDays.push({
+        date: new Date(year, month, i),
+        isCurrentMonth: true,
+        label: i
+      });
+    }
+    
+    // Next month padding (fill up to 42 cells)
+    const remainingCells = 42 - this.calendarDays.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      this.calendarDays.push({
+        date: new Date(year, month + 1, i),
+        isCurrentMonth: false,
+        label: i
+      });
+    }
+  }
+
+  prevMonth(event: Event): void {
+    event.stopPropagation();
+    this.currentPickerMonth = new Date(this.currentPickerMonth.getFullYear(), this.currentPickerMonth.getMonth() - 1, 1);
+    this.generateCalendar();
+  }
+
+  nextMonth(event: Event): void {
+    event.stopPropagation();
+    this.currentPickerMonth = new Date(this.currentPickerMonth.getFullYear(), this.currentPickerMonth.getMonth() + 1, 1);
+    this.generateCalendar();
+  }
+
+  selectDate(date: Date): void {
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    this.attendanceDate = d.toISOString().split('T')[0];
+    this.attendanceSession = 'S1';
+    this.showCustomDatePicker = false;
+    this.onAttendanceParamsChange();
+  }
+  
+  isSameDate(d1: Date | string, d2: Date | string): boolean {
+    const date1 = new Date(d1);
+    const date2 = new Date(d2);
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
+  }
+  // ------------------------------------
+
+  switchAttendanceTab(tab: 'saisie' | 'historique'): void {
+    this.attendanceActiveTab = tab;
+    if (tab === 'historique') {
+      this.loadAttendanceHistory();
+    }
+  }
+
+  dailyHistory: { date: string; s1: any; s2: any }[] = [];
+
+  loadAttendanceHistory(): void {
+    if (!this.selectedClassId) return;
+    this.loadingAttendanceHistory = true;
+    this.http.get(`http://localhost:3000/api/admin/attendance/${this.selectedClassId}`).subscribe({
+      next: (res: any) => {
+        this.attendanceHistory = res || [];
+        
+        // Group by date to ensure S1 and S2 always appear together for any day with records
+        const groupedMap = new Map<string, { date: string; s1: any; s2: any }>();
+        this.attendanceHistory.forEach(record => {
+          // Normalize date string (e.g., strip time component if any, though MongoDB dates might come as ISO strings)
+          const dateKey = new Date(record.date).toISOString().split('T')[0];
+          
+          if (!groupedMap.has(dateKey)) {
+            groupedMap.set(dateKey, { date: dateKey, s1: null, s2: null });
+          }
+          
+          const dayGroup = groupedMap.get(dateKey)!;
+          if (record.sessionType === 'S1') {
+            dayGroup.s1 = record;
+          } else if (record.sessionType === 'S2') {
+            dayGroup.s2 = record;
+          }
+        });
+        
+        // Convert map to array and sort descending by date
+        this.dailyHistory = Array.from(groupedMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        this.loadingAttendanceHistory = false;
+      },
+      error: (err) => {
+        console.error('Error loading attendance history:', err);
+        this.attendanceError = 'Failed to load attendance history.';
+        this.loadingAttendanceHistory = false;
+      }
+    });
+  }
+
+  getStudentStatusForHistory(historyRecord: any, studentId: string): string {
+    if (!historyRecord || !historyRecord.records) return '-';
+    const record = historyRecord.records.find((r: any) => r.studentId === studentId);
+    return record ? record.status : '-';
+  }
+
+  editPastAttendance(date: string, sessionType: 'S1' | 'S2'): void {
+    this.attendanceDate = new Date(date).toISOString().split('T')[0];
+    this.attendanceSession = sessionType;
+    this.attendanceActiveTab = 'saisie';
+    this.onAttendanceParamsChange();
   }
 
   closeAttendanceModal(): void {
@@ -383,12 +594,8 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         const cls = classes.find((c: any) => c.id === this.selectedClassId);
         if (cls && cls.students) {
           this.classStudents = cls.students;
-          // Initialize records with 'present' by default if not already set
-          this.classStudents.forEach(s => {
-            if (!this.attendanceRecords[s.id]) {
-              this.attendanceRecords[s.id] = 'present';
-            }
-          });
+          // After loading students, also load attendance for the selected date and session
+          this.onAttendanceParamsChange();
         }
         this.loadingStudents = false;
       },
@@ -411,10 +618,11 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     const payload = {
       schoolClassId: this.selectedClassId,
       date: this.attendanceDate,
-      records: Object.entries(this.attendanceRecords).map(([studentId, status]) => ({
+      sessionType: this.attendanceSession,
+      records: Object.keys(this.attendanceRecords).map((studentId) => ({
         studentId,
-        status
-      }))
+        status: this.attendanceRecords[studentId],
+      })),
     };
 
     this.http.post('http://localhost:3000/api/admin/attendance', payload).subscribe({
@@ -1480,7 +1688,8 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         this.error = "Date d'echeance requise pour le prosit.";
         return;
       }
-      if (!submissionInstructions && !this.selectedChapterFile) {
+      // Skip instructions/file validation if editing, as these fields are hidden/simplified
+      if (!this.editingContentId && !submissionInstructions && !this.selectedChapterFile) {
         this.error =
           "Ajoute un fichier d'instructions OU saisis les consignes du prosit.";
         return;

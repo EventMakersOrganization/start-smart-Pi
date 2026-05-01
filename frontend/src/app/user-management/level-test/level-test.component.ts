@@ -10,6 +10,7 @@ import { finalize } from 'rxjs/operators';
   styleUrls: ['./level-test.component.css'],
 })
 export class LevelTestComponent implements OnInit, OnDestroy {
+  testMode: 'level-test' | 'post-evaluation' = 'level-test';
   loading = true;
   submitting = false;
   submittingAnswer = false;
@@ -56,6 +57,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       'Student';
     
     this.route.queryParams.subscribe(params => {
+      this.testMode = params['mode'] === 'post-evaluation' ? 'post-evaluation' : 'level-test';
       const subject = params['subject'];
       const subjectId = params['subjectId'];
       this.initializeTest(subject ? [subject] : [], subjectId);
@@ -69,10 +71,20 @@ export class LevelTestComponent implements OnInit, OnDestroy {
   }
 
   initializeTest(subjects: string[] = [], subjectId?: string) {
-    this.adaptiveService.startLevelTestStage(subjects, subjectId).subscribe({
+    const starter$ =
+      this.testMode === 'post-evaluation'
+        ? this.adaptiveService.startPostEvaluationStage(this.adaptiveProfileWeakAreas())
+        : this.adaptiveService.startLevelTestStage(subjects, subjectId);
+    starter$.subscribe({
       next: (response) => this.setupTestFromSession(response),
       error: () => (this.loading = false),
     });
+  }
+
+  private adaptiveProfileWeakAreas(): string[] {
+    const nav = this.router.getCurrentNavigation?.()?.extras?.state as any;
+    const fromState = nav?.weakAreas || (history.state && history.state['weakAreas']) || [];
+    return Array.isArray(fromState) ? fromState : [];
   }
 
   setupTestFromSession(response: any) {
@@ -301,8 +313,11 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     const currentQuestion =
       this.testData?.questions?.[this.currentQuestionIndex];
 
-    this.adaptiveService
-      .submitLevelTestAnswer(this.sessionId, currentAnswer)
+    const submit$ =
+      this.testMode === 'post-evaluation'
+        ? this.adaptiveService.submitPostEvaluationAnswer(this.sessionId, currentAnswer)
+        : this.adaptiveService.submitLevelTestAnswer(this.sessionId, currentAnswer);
+    submit$
       .subscribe({
         next: (result) => {
           this.submittedQuestionIndexes.add(this.currentQuestionIndex);
@@ -446,7 +461,11 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       if (!this.isAssessmentComplete()) return;
 
       this.submitting = true;
-      this.adaptiveService.completeLevelTestStage(this.sessionId!).subscribe({
+      const complete$ =
+        this.testMode === 'post-evaluation'
+          ? this.adaptiveService.completePostEvaluationStage(this.sessionId!)
+          : this.adaptiveService.completeLevelTestStage(this.sessionId!);
+      complete$.subscribe({
         next: (completeRes) => {
           const profile = completeRes?.profile || {};
           const studentId =
@@ -465,7 +484,10 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
           const goToResult = () => {
             this.router.navigate(['/student-dashboard/level-test-result'], {
-              state: { result },
+              state: {
+                result,
+                resultType: this.testMode,
+              },
             });
           };
 
@@ -474,23 +496,31 @@ export class LevelTestComponent implements OnInit, OnDestroy {
             return;
           }
 
-          this.adaptiveService
-            .syncLevelTestProfileToBackend(
-              studentId,
-              profile,
-              this.sessionId!,
-              result,
-            )
-            .subscribe({
-              next: () => goToResult(),
-              error: (syncErr) => {
-                console.warn(
-                  'Profile sync failed after level test completion',
-                  syncErr,
+          const sync$ =
+            this.testMode === 'post-evaluation'
+              ? this.adaptiveService.syncPostEvaluationProfileToBackend(
+                  studentId,
+                  profile,
+                  this.sessionId!,
+                  result,
+                )
+              : this.adaptiveService.syncLevelTestProfileToBackend(
+                  studentId,
+                  profile,
+                  this.sessionId!,
+                  result,
                 );
-                goToResult();
-              },
-            });
+
+          sync$.subscribe({
+            next: () => goToResult(),
+            error: (syncErr) => {
+              console.warn(
+                'Profile sync failed after assessment completion',
+                syncErr,
+              );
+              goToResult();
+            },
+          });
         },
         error: (err) => {
           console.error('Error completing test', err);
@@ -554,6 +584,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     }));
 
     return {
+      assessmentType: this.testMode,
       studentId,
       totalScore,
       resultLevel,

@@ -1,44 +1,82 @@
 import { TestBed } from '@angular/core/testing';
 import { ChatSocketService } from './chat-socket.service';
+import * as ioClient from 'socket.io-client';
 
-describe('ChatSocketService (member5)', () => {
+describe('ChatSocketService', () => {
   let service: ChatSocketService;
+  let mockSocket: any;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [ChatSocketService] });
+    mockSocket = {
+      on: jasmine.createSpy('on'),
+      emit: jasmine.createSpy('emit'),
+      disconnect: jasmine.createSpy('disconnect'),
+      auth: {}
+    };
+
+    TestBed.configureTestingModule({
+      providers: [ChatSocketService]
+    });
     service = TestBed.inject(ChatSocketService);
+
+    // Spy on internal ioFunc
+    spyOn(service as any, 'ioFunc').and.returnValue(mockSocket);
   });
 
-  it('connect/disconnect are safe to call without socket implementation', () => {
-    // Should not throw even if socket.io-client is not actually connected during unit test
-    expect(() => service.connect()).not.toThrow();
-    expect(() => service.disconnect()).not.toThrow();
+  it('should be created', () => {
+    expect(service).toBeTruthy();
   });
 
-  it('emits join/send/delete events through the socket', () => {
-    const emitted: Array<{ event: string; payload: any }> = [];
-    (service as any).socket = {
-      emit: (event: string, payload: any) => emitted.push({ event, payload }),
-    };
-
-    service.joinRoom('ChatRoom', 'room-1');
-    service.sendMessage('ChatRoom', 'room-1', 'hello', []);
-    service.deleteMessage('msg-1', 'room-1');
-
-    expect(emitted).toEqual([
-      { event: 'joinRoom', payload: { sessionType: 'ChatRoom', sessionId: 'room-1' } },
-      { event: 'sendMessage', payload: { sessionType: 'ChatRoom', sessionId: 'room-1', content: 'hello', attachments: [] } },
-      { event: 'deleteMessage', payload: { messageId: 'msg-1', sessionId: 'room-1' } },
-    ]);
+  it('should connect and initialize socket', () => {
+    localStorage.setItem('authToken', 'test-token');
+    service.connect();
+    expect((service as any).ioFunc).toHaveBeenCalledWith('http://localhost:3000', {
+      auth: { token: 'test-token' }
+    });
   });
 
-  it('onNewMessage forwards socket events to subscribers', (done) => {
-    (service as any).socket = {
-      on: (_event: string, handler: (data: any) => void) => handler({ id: 'm1' }),
-    };
+  it('should not reconnect if already connected', () => {
+    service.connect();
+    service.connect();
+    expect((service as any).ioFunc).toHaveBeenCalledTimes(1);
+  });
 
-    service.onNewMessage().subscribe((msg) => {
-      expect(msg).toEqual({ id: 'm1' });
+  it('should disconnect and clear socket', () => {
+    service.connect();
+    service.disconnect();
+    expect(mockSocket.disconnect).toHaveBeenCalled();
+  });
+
+  it('should emit joinRoom', () => {
+    service.connect();
+    service.joinRoom('ChatRoom', '123');
+    expect(mockSocket.emit).toHaveBeenCalledWith('joinRoom', { sessionType: 'ChatRoom', sessionId: '123' });
+  });
+
+  it('should emit sendMessage', () => {
+    service.connect();
+    service.sendMessage('ChatRoom', '123', 'hello', []);
+    expect(mockSocket.emit).toHaveBeenCalledWith('sendMessage', {
+      sessionType: 'ChatRoom',
+      sessionId: '123',
+      content: 'hello',
+      attachments: []
+    });
+  });
+
+  it('should return observable for new messages', (done) => {
+    service.connect();
+    const mockMsg = { content: 'test' };
+    
+    // Simulate socket.on('newMessage', callback)
+    mockSocket.on.and.callFake((event: string, callback: Function) => {
+      if (event === 'newMessage') {
+        callback(mockMsg);
+      }
+    });
+
+    service.onNewMessage().subscribe(msg => {
+      expect(msg).toEqual(mockMsg);
       done();
     });
   });

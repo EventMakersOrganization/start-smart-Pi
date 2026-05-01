@@ -7,6 +7,9 @@ import {
   Param,
   Delete,
   UseGuards,
+  Request,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AlertService } from './alert.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -41,6 +44,12 @@ export class AlertController {
   @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
   findUnresolved() {
     return this.alertService.findUnresolved();
+  }
+
+  @Get('me')
+  @Roles(UserRole.STUDENT, UserRole.ADMIN, UserRole.INSTRUCTOR)
+  findMyAlerts(@Request() req, @Query('limit', new ParseIntPipe({ optional: true })) limit?: number) {
+    return this.alertService.findMyAlerts(req.user.id, limit || 20);
   }
 
   @Get(':id')

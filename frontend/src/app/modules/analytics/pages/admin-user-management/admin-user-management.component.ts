@@ -100,6 +100,16 @@ export class AdminUserManagementComponent implements OnInit {
     }
   }
 
+  getSessionBadgeClass(isOnline: boolean | undefined): string {
+    return isOnline
+      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+  }
+
+  getSessionLabel(isOnline: boolean | undefined): string {
+    return isOnline ? 'Online' : 'Offline';
+  }
+
   getStatusLabel(status: string): string {
     if (!status) return 'Unknown';
     return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
@@ -130,6 +140,10 @@ export class AdminUserManagementComponent implements OnInit {
 
   getAdminCount(): number {
     return this.users.filter(u => u.role.toLowerCase() === 'admin').length;
+  }
+
+  getOnlineCount(): number {
+    return this.users.filter((u) => Boolean(u.isOnline)).length;
   }
 
   trackByUserId(_: number, user: User): string {

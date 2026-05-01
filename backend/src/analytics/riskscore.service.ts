@@ -1,8 +1,18 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { RiskLevel, RiskScore, RiskScoreDocument } from './schemas/riskscore.schema';
-import { RiskAlgorithmService, ActivityData } from './services/risk-algorithm.service';
+import {
+  RiskInterventionType,
+  RiskLevel,
+  RiskScore,
+  RiskScoreDocument,
+} from './schemas/riskscore.schema';
+import {
+  ActivityData,
+  EnhancedRiskInput,
+  RiskAlgorithmService,
+  WeakAreaInput,
+} from './services/risk-algorithm.service';
 import { AlertThresholdService } from './services/alert-threshold.service';
 import { AlertService } from './alert.service';
 import { User, UserDocument, UserRole, UserStatus } from '../users/schemas/user.schema';
@@ -27,7 +37,7 @@ export interface AtRiskStudentInsight {
   name: string;
   email: string;
   riskScore: number;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
   weakAreas: WeakAreaInsight[];
   weakSubskills: string[];
   recommendedFocus: string[];
@@ -38,6 +48,7 @@ export interface RiskRecalculationSummary {
   processedStudents: number;
   updatedScores: number;
   highRiskCount: number;
+  criticalRiskCount: number;
   mediumRiskCount: number;
   generatedAt: string;
   errors: string[];
@@ -71,22 +82,47 @@ export class RiskScoreService {
   }
 
   async findAll(): Promise<RiskScore[]> {
-    const rows = await this.riskScoreModel.find().sort({ lastUpdated: -1, _id: -1 }).lean<any[]>().exec();
-    const userIds = rows
-      .map((r) => String(r?.user || '').trim())
-      .filter((id) => Types.ObjectId.isValid(id));
+    const rows = await this.riskScoreModel
+      .find()
+      .sort({ lastUpdated: -1, _id: -1 })
+      .lean<any[]>()
+      .exec();
+
+    // Keep only the latest risk row per user (dedupe historical entries).
+    const latestByUser = new Map<string, any>();
+    for (const row of rows) {
+      const userId = String(row?.user || '').trim();
+      if (!userId || latestByUser.has(userId)) {
+        continue;
+      }
+      latestByUser.set(userId, row);
+    }
+
+    const userIds = Array.from(latestByUser.keys()).filter((id) => Types.ObjectId.isValid(id));
     const users = userIds.length
       ? await this.userModel
-          .find({ _id: { $in: userIds.map((id) => new Types.ObjectId(id)) } })
-          .select('first_name last_name email')
+          .find({
+            _id: { $in: userIds.map((id) => new Types.ObjectId(id)) },
+            role: UserRole.STUDENT,
+            status: UserStatus.ACTIVE,
+          })
+          .select('first_name last_name email role status')
           .lean<UserDocument[]>()
           .exec()
       : [];
+
     const userMap = new Map(users.map((u: any) => [String(u._id), u]));
-    return rows.map((row: any) => ({
-      ...row,
-      user: userMap.get(String(row.user)) || row.user,
-    })) as any;
+
+    // Return only active students with populated user info.
+    return userIds
+      .filter((userId) => userMap.has(userId))
+      .map((userId) => {
+        const row = latestByUser.get(userId);
+        return {
+          ...row,
+          user: userMap.get(userId),
+        };
+      }) as any;
   }
 
   async findOne(id: string): Promise<RiskScore> {
@@ -167,6 +203,11 @@ export class RiskScoreService {
       savedScore = await this.update(latestScore._id.toString(), {
         score: result.score,
         riskLevel: result.level,
+        interventionType:
+          result.level === RiskLevel.CRITICAL || result.level === RiskLevel.HIGH
+            ? RiskInterventionType.INSTRUCTOR_ALERT
+            : RiskInterventionType.NONE,
+        requiresIntervention: result.level === RiskLevel.CRITICAL || result.level === RiskLevel.HIGH,
       });
     } else {
       // Create new risk score
@@ -174,6 +215,11 @@ export class RiskScoreService {
         user: result.userId,
         score: result.score,
         riskLevel: result.level,
+        interventionType:
+          result.level === RiskLevel.CRITICAL || result.level === RiskLevel.HIGH
+            ? RiskInterventionType.INSTRUCTOR_ALERT
+            : RiskInterventionType.NONE,
+        requiresIntervention: result.level === RiskLevel.CRITICAL || result.level === RiskLevel.HIGH,
       });
     }
 
@@ -196,7 +242,9 @@ export class RiskScoreService {
     }> = [
       {
         shouldTrigger:
-          riskScore >= thresholdConfig.HIGH_RISK_MIN || riskLevel === RiskLevel.HIGH,
+          riskScore >= thresholdConfig.HIGH_RISK_MIN ||
+          riskLevel === RiskLevel.HIGH ||
+          riskLevel === RiskLevel.CRITICAL,
         triggerType: 'high-risk-threshold',
         message: `High risk threshold reached. Score=${riskScore}, level=${riskLevel}.`,
       },
@@ -279,6 +327,7 @@ export class RiskScoreService {
       processedStudents: students.length,
       updatedScores: 0,
       highRiskCount: 0,
+      criticalRiskCount: 0,
       mediumRiskCount: 0,
       generatedAt: new Date().toISOString(),
       errors: [],
@@ -291,11 +340,13 @@ export class RiskScoreService {
           continue;
         }
 
-        const activityData = await this.buildActivityDataForStudent(studentId);
-        const saved = await this.calculateAndSaveRiskScore(activityData);
+        const enhancedInput = await this.buildEnhancedRiskInputForStudent(studentId);
+        const saved = await this.calculateAndSaveEnhancedRiskScore(enhancedInput);
         summary.updatedScores += 1;
 
-        if (saved.riskLevel === RiskLevel.HIGH) {
+        if (saved.riskLevel === RiskLevel.CRITICAL) {
+          summary.criticalRiskCount += 1;
+        } else if (saved.riskLevel === RiskLevel.HIGH) {
           summary.highRiskCount += 1;
         } else if (saved.riskLevel === RiskLevel.MEDIUM) {
           summary.mediumRiskCount += 1;
@@ -307,7 +358,7 @@ export class RiskScoreService {
     }
 
     this.logger.log(
-      `Risk scan completed: processed=${summary.processedStudents}, updated=${summary.updatedScores}, high=${summary.highRiskCount}, medium=${summary.mediumRiskCount}`,
+      `Risk scan completed: processed=${summary.processedStudents}, updated=${summary.updatedScores}, critical=${summary.criticalRiskCount}, high=${summary.highRiskCount}, medium=${summary.mediumRiskCount}`,
     );
 
     return summary;
@@ -321,17 +372,30 @@ export class RiskScoreService {
     const includeMedium = minimumLevel === 'medium';
 
     const acceptedLevels = includeMedium
-      ? [RiskLevel.HIGH, RiskLevel.MEDIUM]
-      : [RiskLevel.HIGH];
+      ? [RiskLevel.CRITICAL, RiskLevel.HIGH, RiskLevel.MEDIUM]
+      : [RiskLevel.CRITICAL, RiskLevel.HIGH];
 
     const rows = await this.riskScoreModel
       .find({ riskLevel: { $in: acceptedLevels } })
-      .sort({ score: -1, lastUpdated: -1, _id: -1 })
-      .limit(safeLimit)
+      .sort({ lastUpdated: -1, _id: -1 })
       .lean<any[]>()
       .exec();
 
-    const userIds = rows
+    // Keep only latest row per student; old historical rows can have outdated (e.g. 100) scores.
+    const latestByUser = new Map<string, any>();
+    for (const row of rows) {
+      const userId = String(row?.user || '').trim();
+      if (!userId || latestByUser.has(userId)) {
+        continue;
+      }
+      latestByUser.set(userId, row);
+    }
+
+    const dedupedRows = Array.from(latestByUser.values())
+      .sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0))
+      .slice(0, safeLimit);
+
+    const userIds = dedupedRows
       .map((r) => String(r?.user || '').trim())
       .filter((id) => Types.ObjectId.isValid(id));
     const users = userIds.length
@@ -345,7 +409,7 @@ export class RiskScoreService {
 
     const output: AtRiskStudentInsight[] = [];
 
-    for (const row of rows as any[]) {
+    for (const row of dedupedRows as any[]) {
       const userId = String(row.user || '').trim();
       if (!userId || !Types.ObjectId.isValid(userId)) {
         continue;
@@ -446,6 +510,168 @@ export class RiskScoreService {
       unusualLoginTime: recentActivityCount > 80 ? 2 : 0,
       rapidUserActions: recentActivityCount > 120 ? 3 : 0,
       suspiciousActivityFlag: 0,
+    };
+  }
+
+  private async calculateAndSaveEnhancedRiskScore(input: EnhancedRiskInput): Promise<RiskScore> {
+    const result = this.riskAlgorithmService.calculateEnhancedRisk(input);
+    const existing = await this.riskScoreModel
+      .find({ user: new Types.ObjectId(result.userId) })
+      .sort({ lastUpdated: -1, _id: -1 })
+      .exec();
+
+    const payload = {
+      score: result.overallRisk,
+      riskLevel: result.level,
+      dimensions: result.dimensions,
+      interventionType: result.intervention.type,
+      requiresIntervention: result.requiresIntervention,
+      weakAreas: (result.weakAreas || []).map((area) => ({
+        topic: area.topic,
+        currentScore: area.currentScore,
+        suggestedDifficulty:
+          area.currentScore < 30 ? 'easy' : area.currentScore <= 60 ? 'medium' : 'hard',
+        action: `Practice ${area.topic} with targeted exercises and validate using a short quiz.`,
+        source: area.source,
+      })),
+      reason: result.intervention.reason,
+    };
+
+    let saved: RiskScore;
+    if (existing.length > 0) {
+      saved = await this.update(existing[0]._id.toString(), payload);
+    } else {
+      saved = await this.create({
+        user: result.userId,
+        ...payload,
+      });
+    }
+
+    await this.triggerAlertsForRiskConditions(
+      {
+        userId: result.userId,
+        failedLoginAttempts: 0,
+        unusualLoginTime: 0,
+        rapidUserActions: 0,
+        suspiciousActivityFlag: 0,
+      },
+      result.overallRisk,
+      result.level,
+    );
+
+    return saved;
+  }
+
+  private async buildEnhancedRiskInputForStudent(userId: string): Promise<EnhancedRiskInput> {
+    if (!Types.ObjectId.isValid(userId)) {
+      return {
+        userId,
+        recentPerformanceScores: [],
+        recentPerformanceByTopic: [],
+        levelTestScore: null,
+        daysSinceLastActivity: 14,
+        sessionsLast7Days: 0,
+        avgMinutesPerSession: 0,
+        completionRate: 0,
+        expectedProgress: 0,
+        weakAreas: [],
+      };
+    }
+
+    const objectId = new Types.ObjectId(userId);
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [student, latestActivity, activities7d, performances, weakAreasResp] = await Promise.all([
+      this.userModel.findById(objectId).select('createdAt').lean<UserDocument | null>().exec(),
+      this.activityModel
+        .findOne({ userId: objectId })
+        .sort({ timestamp: -1, _id: -1 })
+        .select('timestamp')
+        .lean<ActivityDocument | null>()
+        .exec(),
+      this.activityModel
+        .find({ userId: objectId, timestamp: { $gte: sevenDaysAgo } })
+        .select('durationSec timestamp')
+        .lean<ActivityDocument[]>()
+        .exec(),
+      this.performanceModel
+        .find({ studentId: userId })
+        .sort({ attemptDate: -1, _id: -1 })
+        .limit(20)
+        .select('score topic')
+        .lean<StudentPerformanceDocument[]>()
+        .exec(),
+      this.adaptiveLearningService
+        .getWeakAreaRecommendations(userId)
+        .catch(() => ({ weakAreas: [] as WeakAreaInsight[] })),
+    ]);
+
+    const daysSinceLastActivity = latestActivity?.timestamp
+      ? Math.max(
+          0,
+          Math.floor((now.getTime() - new Date(latestActivity.timestamp).getTime()) / (1000 * 60 * 60 * 24)),
+        )
+      : 14;
+
+    const sessionsLast7Days = Number(activities7d.length || 0);
+    const avgMinutesPerSession =
+      sessionsLast7Days > 0
+        ? Number(
+            (
+              activities7d.reduce((sum, item: any) => sum + Number(item?.durationSec || 0), 0) /
+              sessionsLast7Days /
+              60
+            ).toFixed(2),
+          )
+        : 0;
+
+    const scores = (performances || []).map((p: any) => Number(p?.score || 0)).filter(Number.isFinite);
+    const completionRate = scores.length
+      ? Number(((scores.filter((s) => s >= 70).length / scores.length) * 100).toFixed(2))
+      : 0;
+
+    const accountAgeDays = student?.createdAt
+      ? Math.max(
+          1,
+          Math.floor((now.getTime() - new Date((student as any).createdAt).getTime()) / (1000 * 60 * 60 * 24)),
+        )
+      : 1;
+    const expectedProgress = Math.min(100, Number(((accountAgeDays / 90) * 100).toFixed(2)));
+
+    const weakAreas: WeakAreaInput[] = Array.isArray(weakAreasResp?.weakAreas)
+      ? weakAreasResp.weakAreas.map((area: WeakAreaInsight) => ({
+          topic: String(area.topic || 'general').trim() || 'general',
+          currentScore: Number(area.currentScore || 0),
+          source: area.source,
+          occurrences: 1,
+        }))
+      : [];
+
+    const levelTestScore =
+      weakAreas.length > 0
+        ? Number(
+            (
+              weakAreas.reduce((sum, area) => sum + Number(area.currentScore || 0), 0) /
+              weakAreas.length
+            ).toFixed(2),
+          )
+        : null;
+
+    return {
+      userId,
+      recentPerformanceScores: scores,
+      recentPerformanceByTopic: (performances || []).map((p: any) => ({
+        topic: String(p?.topic || 'general').trim() || 'general',
+        score: Number(p?.score || 0),
+      })),
+      levelTestScore,
+      daysSinceLastActivity,
+      sessionsLast7Days,
+      avgMinutesPerSession,
+      completionRate,
+      expectedProgress,
+      weakAreas,
     };
   }
 

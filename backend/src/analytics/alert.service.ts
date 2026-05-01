@@ -81,7 +81,7 @@ export class AlertService {
   }
 
   private mapRiskLevelToSeverity(riskLevel: RiskLevel): 'low' | 'medium' | 'high' {
-    if (riskLevel === RiskLevel.HIGH) {
+    if (riskLevel === RiskLevel.HIGH || riskLevel === RiskLevel.CRITICAL) {
       return 'high';
     }
     if (riskLevel === RiskLevel.MEDIUM) {
@@ -142,6 +142,20 @@ export class AlertService {
     }
     return this.alertModel
       .find({ student: studentId })
+      .sort({ createdAt: -1, _id: -1 })
+      .populate('student', 'first_name last_name email')
+      .populate('instructor', 'first_name last_name email')
+      .exec();
+  }
+
+  async findMyAlerts(studentId: string, limit = 20): Promise<Alert[]> {
+    if (!Types.ObjectId.isValid(studentId)) {
+      throw new NotFoundException(`Invalid Student ID: ${studentId}`);
+    }
+    return this.alertModel
+      .find({ student: studentId })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(Math.max(1, Math.min(100, Number(limit || 20))))
       .populate('student', 'first_name last_name email')
       .populate('instructor', 'first_name last_name email')
       .exec();

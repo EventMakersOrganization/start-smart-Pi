@@ -7,6 +7,7 @@ import {
   ActivityAction,
   ActivityChannel,
 } from "./schemas/activity.schema";
+import { SessionService } from "./session.service";
 
 export interface LogActivityOptions {
   channel?: ActivityChannel;
@@ -22,6 +23,7 @@ export interface LogActivityOptions {
 export class ActivityService {
   constructor(
     @InjectModel(Activity.name) private activityModel: Model<ActivityDocument>,
+    private readonly sessionService: SessionService,
   ) {}
 
   async logActivity(
@@ -41,6 +43,11 @@ export class ActivityService {
       metadata: options?.metadata || {},
     });
     await activity.save();
+    await this.sessionService.touchSession(userId, {
+      action,
+      channel: options?.channel ?? ActivityChannel.UNKNOWN,
+      at: new Date(),
+    });
   }
 
   async getAllActivities() {

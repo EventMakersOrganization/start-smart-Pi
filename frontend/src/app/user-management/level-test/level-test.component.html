@@ -8,7 +8,7 @@
     <div class="flex items-center gap-6">
       <div class="flex flex-col">
         <h1 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
-          Level Assessment
+          {{ testMode === "post-evaluation" ? "Post-Evaluation" : "Level Assessment" }}
         </h1>
         <p class="text-xs text-slate-500">Discover your skill level</p>
       </div>
@@ -45,8 +45,8 @@
       <span class="material-symbols-outlined text-primary text-6xl animate-spin"
         >refresh</span
       >
-      <p class="mt-4 text-slate-500 text-sm font-bold animate-pulse">
-        Generating your personalized test...
+        <p class="mt-4 text-slate-500 text-sm font-bold animate-pulse">
+          Generating your personalized {{ testMode === "post-evaluation" ? "post-evaluation" : "test" }}...
       </p>
     </div>
   </ng-container>

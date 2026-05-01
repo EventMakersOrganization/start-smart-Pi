@@ -66,6 +66,10 @@ OLLAMA_NUM_CTX = _int_env("OLLAMA_NUM_CTX", 3072)
 OLLAMA_NUM_PREDICT = _int_env("OLLAMA_NUM_PREDICT", 512)
 OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", str(OLLAMA_LEVEL_TEST_TEMPERATURE)).strip() or str(OLLAMA_LEVEL_TEST_TEMPERATURE))
 
+# Video Generation (D-ID)
+DID_API_KEY = os.getenv("DID_API_KEY", "").strip()
+DID_BASE_URL = os.getenv("DID_BASE_URL", "https://api.d-id.com").strip()
+
 # Redis (optional, used for API response caching in production)
 REDIS_URL = os.getenv("REDIS_URL", "")
 REDIS_CACHE_PREFIX = os.getenv("REDIS_CACHE_PREFIX", "startsmart:resp")
@@ -93,6 +97,7 @@ config = {
     "LEVEL_TEST_RETRIES_PER_TOPIC": str(LEVEL_TEST_RETRIES_PER_TOPIC),
     "REDIS_URL": REDIS_URL,
     "REDIS_CACHE_PREFIX": REDIS_CACHE_PREFIX,
+    "DID_API_KEY": DID_API_KEY,
 }
 
 
@@ -134,3 +139,4 @@ if __name__ != "__main__":
     print(f"  OLLAMA_BASE_URL: {OLLAMA_BASE_URL}")
     print(f"  REDIS_URL: {'(set)' if REDIS_URL else '(not set)'}")
     print(f"  REDIS_CACHE_PREFIX: {REDIS_CACHE_PREFIX}")
+    print(f"  DID_API_KEY: {'(set)' if DID_API_KEY else '(not set)'}")
