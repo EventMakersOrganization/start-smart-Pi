@@ -1,0 +1,80 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.0, pytest-9.0.2, pluggy-1.6.0 -- C:\Python311\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\oussa.LAPTOP-THCQB19P\OneDrive\Documents\GitHub\start-smart-Pi\ai-service
+configfile: pytest.ini
+plugins: anyio-4.13.0, langsmith-0.7.22, locust-2.43.3, cov-7.1.0
+collecting ... collected 6 items
+
+tests/test_unit_api_auth.py::test_unauthenticated_request FAILED         [ 16%]
+tests/test_unit_api_auth.py::test_invalid_token PASSED                   [ 33%]
+tests/test_unit_api_auth.py::test_expired_token PASSED                   [ 50%]
+tests/test_unit_api_auth.py::test_valid_authenticated_request PASSED     [ 66%]
+tests/test_unit_api_auth.py::test_permission_forbidden_edge_case PASSED  [ 83%]
+tests/test_unit_api_auth.py::test_valid_admin_request PASSED             [100%]
+
+================================== FAILURES ===================================
+________________________ test_unauthenticated_request _________________________
+tests\test_unit_api_auth.py:27: in test_unauthenticated_request
+    assert response.status_code == 403
+E   assert 401 == 403
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+============================== warnings summary ===============================
+tests/test_unit_api_auth.py::test_expired_token
+tests/test_unit_api_auth.py::test_valid_authenticated_request
+tests/test_unit_api_auth.py::test_permission_forbidden_edge_case
+tests/test_unit_api_auth.py::test_valid_admin_request
+  C:\Python311\Lib\site-packages\jwt\api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 20 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    return self._jws.encode(
+
+tests/test_unit_api_auth.py::test_expired_token
+tests/test_unit_api_auth.py::test_valid_authenticated_request
+tests/test_unit_api_auth.py::test_permission_forbidden_edge_case
+tests/test_unit_api_auth.py::test_valid_admin_request
+  C:\Python311\Lib\site-packages\jwt\api_jwt.py:365: InsecureKeyLengthWarning: The HMAC key is 20 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    decoded = self.decode_complete(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.11.0-final-0 _______________
+
+Name                                         Stmts   Miss  Cover   Missing
+--------------------------------------------------------------------------
+core\__init__.py                                 3      0   100%
+core\chroma_setup.py                            66     46    30%   24-26, 44-46, 53-61, 69-87, 95-103, 107-109
+core\config.py                                  84     16    81%   9-10, 16, 28-33, 35, 52-53, 111, 117-119
+core\db_connection.py                          163    128    21%   9-10, 17-23, 33-39, 45, 57-67, 76-97, 105-115, 122-137, 144-154, 164-181, 189-199, 210-211, 218-221, 226-228, 232-234
+core\paths.py                                   12      3    75%   24-26
+core\rag_service.py                            253    213    16%   37-38, 59-99, 112-169, 178-194, 198-207, 219-240, 249-273, 284-315, 329-353, 361-379, 386-403, 416, 425-434, 440, 447-461, 465-478
+generation\__init__.py                           8      0   100%
+generation\advanced_prompt_engineer.py         162    139    14%   16, 152-154, 166-178, 186, 195, 205-222, 230-231, 250-301, 312-353, 360-397, 413-481, 485
+generation\answer_evaluator.py                 220    184    16%   16, 39-41, 45, 87-116, 137-154, 173-181, 188-200, 210-216, 227-261, 274-296, 310-314, 328-357, 365-371, 382-394, 402-485, 489
+generation\brainrush_errors.py                   1      0   100%
+generation\brainrush_question_generator.py    1012    910    10%   35-36, 77-82, 86-94, 98-100, 104-106, 110-112, 117-124, 128-133, 138-147, 167-174, 183-204, 209-291, 299-323, 328-362, 367, 374-381, 386-390, 394-407, 411-416, 421-442, 450-461, 469-482, 486-527, 544-606, 611-622, 639-714, 718-719, 723-724, 732-756, 771-813, 822-864, 877-878, 891-916, 927-936, 985-991, 1026-1030, 1075-1188, 1200-1333, 1343-1397, 1412-1554, 1570-1591, 1610-1634, 1637-1656, 1659, 1662-1668, 1672-1704, 1714-1724, 1733-1734, 1749-1750, 1785-1805, 1819-1820
+generation\difficulty_classifier.py            222    178    20%   18, 88, 92, 97-103, 113-116, 124-138, 151-159, 202-234, 250-268, 281-302, 316-344, 356-363, 366-370, 373-376, 380-389, 392-396, 406-416, 427-442, 450-550, 554
+generation\level_test_quality.py               204    183    10%   17-19, 25-30, 51-54, 58-61, 78-103, 176-197, 243-252, 256-304, 312-349, 354-371, 379-405, 410-430, 440-529
+generation\prompt_templates.py                  37     23    38%   97-98, 119-130, 192-193, 205, 214-233
+generation\question_generator.py               443    410     7%   20-21, 35, 48-72, 80, 84-108, 116-148, 156-158, 164-208, 212-264, 273-393, 397-401, 410-421, 438-610, 619-643, 648-661, 671-692, 701-719, 727-751, 755-774
+generation\question_quality_validator.py       299    271     9%   18, 73-83, 90-124, 142-144, 155-157, 163-192, 200-231, 235-278, 282-312, 320-356, 364-411, 428-459, 467-502, 515-577, 581
+generation\question_validator.py               247    222    10%   36, 41, 46-52, 68-107, 115-145, 149-201, 208-218, 225-257, 264-297, 314-380
+generation\tutor_response_builder.py            22     17    23%   11-15, 18-33
+optimization\__init__.py                         3      0   100%
+optimization\ai_feedback_loop.py               190    147    23%   20, 61-62, 66, 105-120, 130-142, 150-152, 161-164, 172-174, 186-200, 212-233, 237-245, 260-357, 376-388, 396-447, 451
+optimization\ai_monitor.py                     127     95    25%   20, 36, 40, 69-80, 92-123, 137-155, 161-175, 192-195, 206-214, 222-273, 277
+optimization\async_refresh.py                   20     12    40%   15, 30-40
+optimization\eval_benchmark_store.py            76     62    18%   13, 21-26, 29-33, 37-45, 51-108
+optimization\hybrid_response_cache.py           53     32    40%   37-42, 46, 49, 52-68, 71-78
+optimization\intervention_effectiveness.py      53     41    23%   13, 30-44, 53-86, 96-117
+optimization\response_cache.py                  60     40    33%   25-26, 29-55, 58-65, 68-71
+rag\__init__.py                                  2      0   100%
+rag\context_relevance_scorer.py                243    204    16%   16-17, 48-51, 56-71, 76, 80-87, 92-103, 119-131, 135-152, 169-204, 208-223, 232-270, 274-300, 309-332, 341-397
+rag\document_chunker.py                        273    246    10%   13-18, 29-78, 86-98, 102-142, 147-163, 175-193, 198-207, 215-228, 236-320, 327-340, 365-388, 393-401, 411-417, 422-466, 470
+rag\hallucination_guard.py                     161    132    18%   78-98, 116-131, 139-149, 161-170, 187-233, 241-244, 262-271, 288-289, 297-376
+rag\rag_prompt_builder.py                      103     77    25%   50-62, 138-150, 185-198, 236-247, 270-273, 289-304, 312-356
+--------------------------------------------------------------------------
+TOTAL                                         4822   4031    16%
+Coverage XML written to file coverage.xml
+=========================== short test summary info ===========================
+FAILED tests/test_unit_api_auth.py::test_unauthenticated_request - assert 401 == 403
+ +  where 401 = <Response [401 Unauthorized]>.status_code
+=================== 1 failed, 5 passed, 8 warnings in 9.25s ===================

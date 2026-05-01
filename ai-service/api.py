@@ -79,10 +79,38 @@ logger = logging.getLogger("api")
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 
+# --- Auth Security (Sprint 8: Member 1) ---
+import jwt
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Security, Depends
+
+security_scheme = HTTPBearer()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security_scheme)):
+    """Validate JWT token from Authorization header."""
+    token = credentials.credentials
+    try:
+        from core.config import JWT_SECRET
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
+
+def check_admin_role(user: dict = Depends(get_current_user)):
+    """Validate that the authenticated user has an 'admin' role."""
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Insufficient permissions: admin role required")
+    return user
+
 app = FastAPI(
     title="StartSmart AI Service",
     description="API for course embeddings, semantic search, RAG, and AI question generation",
     version="1.0.0",
+    dependencies=[Depends(get_current_user)]
 )
 
 # RAG service singleton
@@ -3490,7 +3518,7 @@ async def chatbot_validate_answer(body: ValidateAnswerRequest):
 # --- Sprint 5: optimization, cache, advanced search ---
 
 
-@app.post("/embeddings/optimize")
+@app.post("/embeddings/optimize", dependencies=[Depends(check_admin_role)])
 def embeddings_optimize(body: BatchProcessRequest):
     """
     Process courses with EmbeddingOptimizer-backed batch pipeline.

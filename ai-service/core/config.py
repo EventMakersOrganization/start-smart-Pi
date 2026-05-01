@@ -74,6 +74,9 @@ DID_BASE_URL = os.getenv("DID_BASE_URL", "https://api.d-id.com").strip()
 REDIS_URL = os.getenv("REDIS_URL", "")
 REDIS_CACHE_PREFIX = os.getenv("REDIS_CACHE_PREFIX", "startsmart:resp")
 
+# JWT Security
+JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-here")
+
 # Config as dictionary for easy access
 config = {
     "MONGODB_URI": MONGODB_URI,
@@ -98,6 +101,7 @@ config = {
     "REDIS_URL": REDIS_URL,
     "REDIS_CACHE_PREFIX": REDIS_CACHE_PREFIX,
     "DID_API_KEY": DID_API_KEY,
+    "JWT_SECRET": JWT_SECRET,
 }
 
 
