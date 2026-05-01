@@ -26,6 +26,19 @@ import {
   SubjectsService,
 } from '../subjects.service';
 
+export interface GradeItem {
+  type: 'quiz' | 'quiz_file' | 'prosit' | 'attendance';
+  name: string;
+  dueDate?: string;
+  status: 'Noté' | 'Soumis' | 'En cours' | 'En retard';
+  gradeText: string;
+  subChapterTitle?: string;
+  chapterTitle?: string;
+  actionKey?: string;
+  isLate?: boolean;
+  syllabusItem?: SubjectChapterContent;
+}
+
 interface CourseModule {
   title: string;
   description: string;
@@ -130,6 +143,8 @@ interface QuizFileSubmissionViewModel {
   totalQuestionsCount?: number;
   teacherFeedback?: string;
   submittedAt: string;
+  fileUrl?: string;
+  fileName?: string;
   responseFileUrl?: string;
   responseFileName?: string;
 }
@@ -298,6 +313,9 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     | 'prosit'
     | 'quiz'
     | 'quiz-file' = 'subjects';
+  activeSubjectTab: 'content' | 'announcements' | 'discussions' | 'grades' = 'content';
+  subjectGradeItems: GradeItem[] = [];
+  attendancePercentage: number | null = null;
   profileDrawerOpen = false;
   darkMode = false;
   readonly folderKeys: FolderKey[] = [
@@ -315,6 +333,9 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   activeFolderBySubchapter: Record<string, FolderKey> = {};
   selectedProsit: PrositViewModel | null = null;
   selectedPrositSubmission: PrositSubmissionResponse | null = null;
+  allQuizSubmissions: any[] = [];
+  allQuizFileSubmissions: any[] = [];
+  allPrositSubmissions: any[] = [];
   prositSubmissionsByKey: Record<string, PrositSubmissionResponse | null> = {};
   prositEditMode: boolean = false;
   selectedPrositSubmissionFile: File | null = null;
@@ -411,7 +432,13 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     }
 
     if (item.type === 'quiz' && item.quizQuestions) {
-      this.modalQuizAnswers = Array(item.quizQuestions.length).fill(null);
+      const quizKey = item.contentId || item.quizId || item.title;
+      const existingAnswers = this.quizAnswersById[quizKey];
+      if (existingAnswers) {
+        this.modalQuizAnswers = [...existingAnswers];
+      } else {
+        this.modalQuizAnswers = Array(item.quizQuestions.length).fill(null);
+      }
     }
 
     const url = this.getItemUrl(item) || '';
@@ -500,6 +527,17 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.user = this.authService.getUser();
+    if (this.user && (this.user._id || this.user.id)) {
+      this.adaptiveService.getUnifiedStudentProfile(this.user._id || this.user.id).subscribe({
+        next: (res) => {
+          if (res && res.profile && res.profile.attendance_percentage !== undefined) {
+            this.attendancePercentage = res.profile.attendance_percentage;
+          }
+        },
+        error: () => console.warn('Could not fetch student profile for attendance'),
+      });
+    }
+
     this.checkLevelTestStatus();
     this.loadCourses();
     this.loadPreviousQuizSubmissions();
@@ -722,6 +760,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   private loadPreviousQuizSubmissions(): void {
     this.quizSubmissionService.getStudentQuizSubmissions().subscribe({
       next: (submissions) => {
+        this.allQuizSubmissions = submissions;
         submissions.forEach((submission) => {
           this.quizResultsById[submission.quizId] = {
             score: submission.scoreObtained,
@@ -741,6 +780,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   private loadPreviousQuizFileSubmissions(): void {
     this.quizSubmissionService.getStudentQuizFileSubmissions().subscribe({
       next: (submissions) => {
+        this.allQuizFileSubmissions = submissions;
         submissions.forEach((submission) => {
           this.quizFileSubmissionsById[submission.quizId] = {
             status: submission.status,
@@ -749,8 +789,8 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
             totalQuestionsCount: submission.totalQuestionsCount,
             teacherFeedback: submission.teacherFeedback,
             submittedAt: submission.submittedAt,
-            responseFileUrl: submission.responseFileUrl,
-            responseFileName: submission.responseFileName,
+            fileUrl: submission.responseFileUrl,
+            fileName: submission.responseFileName,
           };
         });
       },
@@ -771,6 +811,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           const rows = Array.isArray(res?.submissions) ? res.submissions : [];
+          this.allPrositSubmissions = rows;
           for (const submission of rows) {
             const key = this.buildPrositSubmissionKey(
               submission?.subjectTitle,
@@ -984,6 +1025,100 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
         // keep previous value on transient failures
       },
     });
+  }
+
+  loadSubjectGrades(): void {
+    if (!this.selectedSubject) return;
+
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+
+    const items: GradeItem[] = [];
+
+    // Iterate over all courses and their raw sub-chapters/contents
+    (this.selectedSubject.courses || []).forEach(course => {
+      (course.sourceSubChapters || []).forEach(subChapter => {
+        (subChapter.contents || []).forEach(content => {
+          if (content.type === 'quiz' || content.type === 'prosit') {
+            // Find submission status
+            let status: 'Noté' | 'Soumis' | 'En cours' | 'En retard' = 'En cours';
+            let gradeText = '';
+            let actionKey = content.contentId || content.title;
+
+            if (content.type === 'quiz') {
+              // Check MCQ Quizzes
+              const mcqSub = this.allQuizSubmissions.find(s => s.quizId === content.contentId);
+              if (mcqSub) {
+                status = 'Noté';
+                gradeText = `${mcqSub.scoreObtained}/${mcqSub.totalQuestions}`;
+              } else {
+                // Check File Quizzes
+                const fileSub = this.allQuizFileSubmissions.find(s => s.quizId === content.contentId);
+                if (fileSub) {
+                  const isGraded = fileSub.status === 'graded';
+                  status = isGraded ? 'Noté' : 'Soumis';
+                  gradeText = isGraded ? (fileSub.grade !== undefined ? `${fileSub.grade}/100` : 'Noté') : 'Non noté';
+                }
+              }
+            } else if (content.type === 'prosit') {
+              // Check Prosits
+              const key = this.buildPrositSubmissionKey(
+                course.subject,
+                course.title,
+                subChapter.title,
+                content.title
+              );
+              const prositSub = key ? this.prositSubmissionsByKey[key] : null;
+              if (prositSub) {
+                const isGraded = prositSub.status === 'graded' || !!prositSub.grade;
+                status = isGraded ? 'Noté' : 'Soumis';
+                gradeText = isGraded ? (prositSub.grade !== undefined ? `${prositSub.grade}/100` : 'Noté') : 'Non noté';
+              }
+            }
+
+            items.push({
+              type: content.type === 'quiz' ? 'quiz' : 'prosit',
+              name: content.type === 'quiz' ? `Évaluation : ${content.title}` : `Rendu : ${content.title}`,
+              subChapterTitle: subChapter.title,
+              chapterTitle: course.title,
+              dueDate: content.dueDate ? new Date(content.dueDate).toLocaleDateString() : undefined,
+              status,
+              gradeText,
+              actionKey,
+              syllabusItem: content
+            });
+          }
+        });
+      });
+    });
+
+    this.subjectGradeItems = items;
+  }
+
+  visualizeGradeItem(item: GradeItem): void {
+    if (!item.syllabusItem || !this.selectedSubject) return;
+
+    // Find the corresponding course/chapter for context
+    const course = this.selectedSubject.courses?.find(c => c.title === item.chapterTitle);
+    if (course) {
+      this.selectedCourse = course;
+    }
+
+    // Open the unified content viewer modal
+    const moduleMock = { title: item.subChapterTitle };
+    this.onOpenContent(moduleMock, 'exercices', item.syllabusItem);
+  }
+
+  setActiveSubjectTab(tab: 'content' | 'announcements' | 'discussions' | 'grades'): void {
+    this.activeSubjectTab = tab;
+    if (tab === 'grades') {
+      this.loadSubjectGrades();
+    }
   }
 
   private loadSubjectsFromCourseTitlesOrFallback(): void {
@@ -1471,6 +1606,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
         subjectCount: subject.count,
       },
     });
+    this.loadSubjectGrades();
     if (!subject.loaded) {
       this.loadSubjectCourses(subject);
     }
@@ -1654,8 +1790,14 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
 
   getModalQuizResult(): any {
     if (!this.selectedContentForView || this.selectedContentForView.type !== 'quiz') return null;
-    const quizId = this.selectedContentForView.quizId || this.selectedContentForView.title;
+    const quizId = this.selectedContentForView.quizId || this.selectedContentForView.contentId || this.selectedContentForView.title;
     return this.quizResultsById[quizId];
+  }
+
+  getModalStudentAnswers(): (number | null)[] | null {
+    if (!this.selectedContentForView || this.selectedContentForView.type !== 'quiz') return null;
+    const quizId = this.selectedContentForView.quizId || this.selectedContentForView.contentId || this.selectedContentForView.title;
+    return this.quizAnswersById[quizId] || null;
   }
 
   isModalFileQuiz(): boolean {
@@ -1677,7 +1819,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
 
   getSelectedQuizFileSubmission(): any {
     if (!this.selectedContentForView || this.selectedContentForView.type !== 'quiz') return null;
-    const quizId = this.selectedContentForView.quizId || this.selectedContentForView.title;
+    const quizId = this.selectedContentForView.quizId || this.selectedContentForView.contentId || this.selectedContentForView.title;
     return this.quizFileSubmissionsById[quizId];
   }
 

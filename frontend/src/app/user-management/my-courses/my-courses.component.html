@@ -326,49 +326,199 @@
     </section>
 
     <section *ngIf="viewMode === 'courses' && selectedSubject" class="space-y-6 pb-12">
-      <div class="flex items-center justify-between gap-4">
-        <div>
-          <p class="text-xs font-bold uppercase tracking-widest text-slate-400">
-            Subject
-          </p>
-          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
-            {{ selectedSubject.name }}
-          </h3>
-        </div>
-        <button (click)="backToSubjects()"
-          class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50">
-          Back to Subjects
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <div *ngIf="subjectCoursesLoading" class="col-span-full text-center py-12 text-slate-500">
-          Loading chapters...
-        </div>
-
-        <div *ngFor="let course of selectedSubject.courses"
-          class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-xl transition-shadow">
-          <h4 class="font-bold text-lg text-slate-900 dark:text-white mb-2">
-            {{ course.title }}
-          </h4>
-          <p class="text-sm text-slate-500 line-clamp-2 mb-4">
-            {{ course.description || "No chapter description." }}
-          </p>
-          <p class="text-xs font-semibold text-slate-500 mb-6">
-            {{ course.moduleCount }} module{{
-            course.moduleCount > 1 ? "s" : ""
-            }}
-          </p>
-          <button (click)="openCourse(course)"
-            class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors">
-            Open Chapter
+      <!-- Subject Header & Navigation Menu -->
+      <div class="border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between gap-4 mb-8">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
+              SUBJECT
+            </p>
+            <h3 class="text-3xl font-black text-slate-900 dark:text-white">
+              {{ selectedSubject.name }}
+            </h3>
+          </div>
+          <button (click)="backToSubjects()"
+            class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            Back to Subjects
           </button>
         </div>
+
+        <nav class="-mb-px flex space-x-8 overflow-x-auto custom-scrollbar">
+          <button (click)="setActiveSubjectTab('content')"
+            [class]="activeSubjectTab === 'content' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'"
+            class="whitespace-nowrap pb-4 px-1 border-b-[3px] text-[15px] font-black transition-colors uppercase tracking-wide">
+            Content
+          </button>
+ 
+          <button (click)="setActiveSubjectTab('announcements')"
+            [class]="activeSubjectTab === 'announcements' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'"
+            class="whitespace-nowrap pb-4 px-1 border-b-[3px] text-[15px] font-black transition-colors uppercase tracking-wide">
+            Announcements
+          </button>
+ 
+          <button (click)="setActiveSubjectTab('discussions')"
+            [class]="activeSubjectTab === 'discussions' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'"
+            class="whitespace-nowrap pb-4 px-1 border-b-[3px] text-[15px] font-black transition-colors uppercase tracking-wide">
+            Discussions
+          </button>
+ 
+          <button (click)="setActiveSubjectTab('grades')"
+            [class]="activeSubjectTab === 'grades' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'"
+            class="whitespace-nowrap pb-4 px-1 border-b-[3px] text-[15px] font-black transition-colors flex items-center gap-2 uppercase tracking-wide">
+            Grades
+            <span *ngIf="subjectGradeItems.length > 0" class="bg-rose-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-sm shadow-rose-500/30">{{ subjectGradeItems.length }}</span>
+          </button>
+        </nav>
       </div>
 
-      <p *ngIf="!subjectCoursesLoading && selectedSubject.courses.length === 0" class="text-sm text-slate-500">
-        No chapters found for this subject.
-      </p>
+      <!-- Tab Content: Content -->
+      <div *ngIf="activeSubjectTab === 'content'" class="animate-fade-in-up mt-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div *ngIf="subjectCoursesLoading" class="col-span-full text-center py-12 text-slate-500">
+            <span class="material-symbols-outlined text-4xl text-slate-300 animate-spin">refresh</span>
+            <p class="mt-2 font-medium">Loading chapters...</p>
+          </div>
+
+          <div *ngFor="let course of selectedSubject.courses"
+            class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group">
+            <h4 class="font-black text-xl text-slate-900 dark:text-white mb-2 group-hover:text-primary transition-colors">
+              {{ course.title }}
+            </h4>
+            <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-6">
+              {{ course.description || "No chapter description available." }}
+            </p>
+            <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
+              <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                {{ course.moduleCount }} module{{ course.moduleCount > 1 ? "s" : "" }}
+              </p>
+              <button (click)="openCourse(course)"
+                class="flex items-center gap-2 px-5 py-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all group-hover:shadow-lg group-hover:shadow-primary/30">
+                Open
+                <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!subjectCoursesLoading && selectedSubject.courses.length === 0" class="col-span-full text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+           <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">folder_open</span>
+           <p class="text-lg font-bold text-slate-600 dark:text-slate-400">No chapters found for this subject.</p>
+        </div>
+      </div>
+
+      <!-- Tab Content: Announcements Placeholder -->
+      <div *ngIf="activeSubjectTab === 'announcements'" class="animate-fade-in-up mt-8">
+         <div class="p-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] bg-slate-50/50 dark:bg-slate-900/50">
+           <span class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-4 block">campaign</span>
+           <h3 class="text-2xl font-black text-slate-700 dark:text-white mb-2">Announcements</h3>
+           <p class="text-slate-500 font-medium">No announcements at the moment.</p>
+         </div>
+      </div>
+
+      <!-- Tab Content: Discussions Placeholder -->
+      <div *ngIf="activeSubjectTab === 'discussions'" class="animate-fade-in-up mt-8">
+         <div class="p-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] bg-slate-50/50 dark:bg-slate-900/50">
+           <span class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-4 block">forum</span>
+           <h3 class="text-2xl font-black text-slate-700 dark:text-white mb-2">Discussions</h3>
+           <p class="text-slate-500 font-medium">The discussion space will be available soon.</p>
+         </div>
+      </div>
+
+      <!-- Tab Content: Grades -->
+      <div *ngIf="activeSubjectTab === 'grades'" class="animate-fade-in-up mt-8">
+        <div class="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+          <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+            <div>
+              <h3 class="text-xl font-black text-slate-900 dark:text-white">Academic Performance</h3>
+              <p class="text-sm text-slate-500 font-medium">Your grades and attendance for {{ selectedSubject.name }}</p>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="text-right">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Attendance</p>
+                <p class="text-2xl font-black text-primary">{{ attendancePercentage || 0 }}%</p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary text-2xl">event_available</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/30 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800">
+                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Item Name</th>
+                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Subchapter</th>
+                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Due Date / Submitted</th>
+                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Grade</th>
+                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
+                <tr *ngFor="let item of subjectGradeItems" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                  <td class="px-8 py-5">
+                    <div class="flex items-center gap-4">
+                      <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                        [ngClass]="item.type === 'attendance' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'">
+                        <span class="material-symbols-outlined text-xl">
+                          {{ item.type === 'attendance' ? 'calendar_month' : 'description' }}
+                        </span>
+                      </div>
+                      <span class="font-bold text-slate-700 dark:text-slate-200 text-sm">{{ item.name }}</span>
+                    </div>
+                  </td>
+                  <td class="px-8 py-5 text-center">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md" *ngIf="item.subChapterTitle">
+                      {{ item.subChapterTitle }}
+                    </span>
+                    <span class="text-slate-300 dark:text-slate-700" *ngIf="!item.subChapterTitle">---</span>
+                  </td>
+                  <td class="px-8 py-5 text-center">
+                    <span class="text-xs font-medium text-slate-500">{{ item.dueDate || '---' }}</span>
+                  </td>
+                  <td class="px-8 py-5 text-center">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+                      [ngClass]="{
+                        'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400': item.status === 'Noté',
+                        'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400': item.status === 'Soumis',
+                        'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400': item.status === 'En cours'
+                      }">
+                      <span class="w-1.5 h-1.5 rounded-full" [ngClass]="{
+                        'bg-emerald-500': item.status === 'Noté',
+                        'bg-blue-500': item.status === 'Soumis',
+                        'bg-slate-400': item.status === 'En cours'
+                      }"></span>
+                      {{ item.status }}
+                    </span>
+                  </td>
+                  <td class="px-8 py-5 text-center">
+                    <div *ngIf="item.gradeText" class="inline-block px-4 py-1.5 rounded-xl text-xs font-black"
+                      [ngClass]="item.gradeText.includes('100') || item.gradeText.includes('20/20') ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'">
+                      {{ item.gradeText }}
+                    </div>
+                    <span *ngIf="!item.gradeText" class="text-slate-400 font-black">--</span>
+                  </td>
+                  <td class="px-8 py-5 text-right">
+                    <button *ngIf="item.type !== 'attendance'"
+                      (click)="visualizeGradeItem(item)"
+                      class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 transition-all">
+                      Visualize
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div *ngIf="subjectGradeItems.length === 0" class="p-20 text-center">
+               <span class="material-symbols-outlined text-6xl text-slate-200 dark:text-slate-800 mb-4 block">assignment_late</span>
+               <h3 class="text-xl font-bold text-slate-400 mb-1">No results yet</h3>
+               <p class="text-slate-400 text-sm">Your grades will appear here once you complete evaluations.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section *ngIf="viewMode === 'content' && selectedCourse" class="space-y-6 pb-12">
@@ -621,7 +771,7 @@
                    </div>
 
                    <!-- Detailed Review below the card -->
-                   <div *ngIf="quizAnswersById[selectedContentForView.quizId || selectedContentForView.title] as studentAnswers" class="space-y-6">
+                   <div *ngIf="getModalStudentAnswers() as studentAnswers" class="space-y-6">
                       <h5 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] px-4">Correction détaillée</h5>
                       <div *ngFor="let q of selectedContentForView.quizQuestions; let qi = index" 
                         class="p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm animate-fade-in"

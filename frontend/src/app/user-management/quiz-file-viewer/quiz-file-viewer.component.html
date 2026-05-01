@@ -54,33 +54,65 @@
 
     <!-- TAB 1: Répondre dans le document (DOCX) -->
     <div *ngIf="activeTab === 'edit' && isDocx && !alreadySubmitted">
+      <div class="flex flex-wrap items-center gap-2 mb-4 p-3 bg-white/50 rounded-2xl border border-blue-100 shadow-sm">
+        <button (click)="execCommand('bold')" class="btn-toolbar" title="Gras">
+          <span class="material-symbols-outlined text-[18px]">format_bold</span>
+        </button>
+        <button (click)="execCommand('italic')" class="btn-toolbar" title="Italique">
+          <span class="material-symbols-outlined text-[18px]">format_italic</span>
+        </button>
+        <button (click)="execCommand('underline')" class="btn-toolbar" title="Souligné">
+          <span class="material-symbols-outlined text-[18px]">format_underlined</span>
+        </button>
+        <div class="w-px h-6 bg-blue-100 mx-1"></div>
+        <button (click)="highlightSelection()" class="btn-toolbar text-yellow-600" title="Surligner">
+          <span class="material-symbols-outlined text-[18px]">stylus</span>
+        </button>
+        <button (click)="addComment()" class="btn-toolbar text-blue-600" title="Ajouter un commentaire">
+          <span class="material-symbols-outlined text-[18px]">add_comment</span>
+        </button>
+        <button (click)="removeHighlights()" class="btn-toolbar text-rose-500" title="Effacer les annotations">
+          <span class="material-symbols-outlined text-[18px]">ink_eraser</span>
+        </button>
+      </div>
+
+      <div class="relative group">
+        <div *ngIf="loading" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-[2rem]">
+          <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p class="text-blue-600 font-black uppercase tracking-widest text-[10px]">Chargement du document...</p>
+        </div>
+        <div #quizEditor contenteditable="true" 
+          class="min-h-[500px] p-10 bg-white rounded-[2rem] border border-blue-100 shadow-inner focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all prose prose-slate max-w-none">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Soumettre un fichier -->
+    <div *ngIf="activeTab === 'upload' && !alreadySubmitted" class="py-10 text-center">
+      <div class="max-w-md mx-auto p-10 rounded-[3rem] border-2 border-dashed border-blue-200 bg-blue-50/30 hover:bg-blue-50 transition-all group">
+        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-blue-600 text-4xl">cloud_upload</span>
+        </div>
+        <h3 class="text-xl font-black text-slate-800 mb-2">Déposez votre fichier</h3>
+        <p class="text-sm text-slate-500 font-medium mb-8">Sélectionnez le document final de votre réponse.</p>
+        
+        <input type="file" (change)="onFileChange($event)" id="quiz-file-input" class="hidden">
+        <label for="quiz-file-input" class="inline-flex items-center gap-3 px-8 py-4 bg-white border border-blue-200 rounded-2xl text-blue-600 font-black tracking-widest text-[10px] uppercase cursor-pointer hover:shadow-lg active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[18px]">attach_file</span>
+          {{ selectedFile ? selectedFile.name : 'Choisir un fichier' }}
+        </label>
+      </div>
+    </div>
+
+    <!-- TAB 3: Voir l'original -->
+    <div *ngIf="activeTab === 'original' && isDocx && !alreadySubmitted">
+      <div class="p-10 bg-slate-50 rounded-[2rem] border border-slate-200 prose prose-slate max-w-none shadow-inner" 
+           [innerHTML]="originalHtml">
+      </div>
+    </div>
 
     <!-- Submit Button (Hidden if already submitted) -->
     <div class="mt-6 flex flex-col gap-4">
-      <div *ngIf="submitSuccess || alreadySubmitted" class="p-6 rounded-2xl bg-emerald-50 border border-emerald-100 animate-fade-in">
-        <div class="flex items-center gap-3 text-emerald-600 mb-2">
-          <span class="material-symbols-outlined font-black">check_circle</span>
-          <span class="font-black uppercase tracking-widest text-sm">Remise effectuée</span>
-        </div>
-        <p class="text-emerald-700/70 text-xs font-medium italic">
-          Vous avez déjà soumis votre réponse pour ce quiz. Toute modification est désormais bloquée.
-        </p>
-        <div *ngIf="existingSubmission" class="mt-4 pt-4 border-t border-emerald-100 flex items-center justify-between">
-           <div class="flex items-center gap-3">
-             <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-               <span class="material-symbols-outlined">description</span>
-             </div>
-             <div>
-               <p class="text-[10px] font-black text-emerald-800/50 uppercase tracking-widest">Fichier remis</p>
-               <p class="text-xs font-bold text-emerald-800">{{ existingSubmission.fileName }}</p>
-             </div>
-           </div>
-           <a [href]="existingSubmission.fileUrl" target="_blank" 
-             class="px-4 py-2 rounded-xl bg-white text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-200 hover:bg-emerald-50 transition-all">
-             Consulter
-           </a>
-        </div>
-      </div>
 
       <div class="flex items-center gap-4" *ngIf="!alreadySubmitted">
         <button
