@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RecommendationDisplayComponent } from './recommendation-display.component';
 
 describe('RecommendationDisplayComponent', () => {
@@ -8,6 +8,7 @@ describe('RecommendationDisplayComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
       declarations: [RecommendationDisplayComponent]
     });
     fixture = TestBed.createComponent(RecommendationDisplayComponent);

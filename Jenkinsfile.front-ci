@@ -30,5 +30,18 @@ pipeline {
         }
       }
     }
+
+    stage('Frontend MemberKmar Tests') {
+      steps {
+        dir('frontend') {
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/subjects.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/assignments.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/my-courses.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/recommendation-display.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/student-dashboard.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/instructor-classes.component.spec.ts'
+        }
+      }
+    }
   }
 }

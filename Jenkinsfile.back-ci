@@ -31,6 +31,19 @@ pipeline {
         }
       }
     }
+    
+    stage('Backend MemberKmar Tests') {
+      steps {
+        dir('backend') {
+          sh 'npm run test -- --runInBand --testPathPattern=courses.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=courses.controller.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=subjects.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=academic.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=exercises.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=kpi.service.spec'
+        }
+      }
+    }
 
     stage('AI Service Install') {
       steps {
@@ -45,6 +58,14 @@ pipeline {
       steps {
         dir('ai-service') {
           sh 'pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q'
+        }
+      }
+    }
+
+    stage('AI Service MemberKmar Tests') {
+      steps {
+        dir('ai-service') {
+          sh 'pytest tests/test_unit_learning_path_inputs.py tests/test_unit_level_progression.py -q'
         }
       }
     }
