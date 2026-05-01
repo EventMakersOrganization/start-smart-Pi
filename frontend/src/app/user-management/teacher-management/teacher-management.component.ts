@@ -11,6 +11,7 @@ interface UserRow {
   phone?: string;
   createdAt?: string;
   updatedAt?: string;
+  isOnline?: boolean;
   password?: string;
 }
 
@@ -39,18 +40,29 @@ export class TeacherManagementComponent implements OnInit {
   addUserError = '';
 
   get filteredTeachers(): UserRow[] {
+    const text = (this.filterText || '').trim().toLowerCase();
+    
     return this.teachers.filter(t => {
-      const text = this.filterText.toLowerCase();
       if (text) {
+        const firstName = (t.first_name || '').toLowerCase();
+        const lastName = (t.last_name || '').toLowerCase();
+        const fullName = `${firstName} ${lastName}`.trim();
+        const email = (t.email || '').toLowerCase();
+        
         const match =
-          t.first_name?.toLowerCase().includes(text) ||
-          t.last_name?.toLowerCase().includes(text) ||
-          t.email.toLowerCase().includes(text);
+          firstName.includes(text) ||
+          lastName.includes(text) ||
+          fullName.includes(text) ||
+          email.includes(text);
+          
         if (!match) return false;
       }
-      if (this.filterStatus !== 'Status: All') {
-        if (t.status.toLowerCase() !== this.filterStatus.toLowerCase()) return false;
+      
+      if (this.filterStatus && this.filterStatus !== 'Status: All') {
+        const status = t.status || 'active';
+        if (status.toLowerCase() !== this.filterStatus.toLowerCase()) return false;
       }
+      
       return true;
     });
   }

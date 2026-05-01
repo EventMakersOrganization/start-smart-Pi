@@ -1,0 +1,287 @@
+<div class="min-h-screen bg-slate-50 px-4 py-6 md:px-8">
+  <div class="mx-auto max-w-7xl">
+    <div
+      class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
+    >
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.3em] text-sky-600">
+          Parent / Guardian Report
+        </p>
+        <h1 class="mt-2 text-3xl font-black text-slate-900">
+          Unified Student Progress Report
+        </h1>
+        <p class="mt-2 max-w-2xl text-sm text-slate-600">
+          Exercises, game sessions, chat activity, and level-test evidence are
+          merged into one view.
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
+          (click)="goBack()"
+        >
+          Back to dashboard
+        </button>
+      </div>
+    </div>
+
+    <section
+      *ngIf="isInstructorView"
+      class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+    >
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Student Reports</h2>
+          <p class="text-sm text-slate-500">
+            Choose a student card to open their progress report.
+          </p>
+        </div>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+          {{ studentOptions.length }} students
+        </span>
+      </div>
+
+      <div
+        *ngIf="selectorLoading"
+        class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
+      >
+        Loading students...
+      </div>
+
+      <div
+        *ngIf="!selectorLoading && studentOptions.length === 0"
+        class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"
+      >
+        No students available for progress reports.
+      </div>
+
+      <div
+        *ngIf="!selectorLoading && studentOptions.length > 0"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        <button
+          type="button"
+          *ngFor="let student of studentOptions"
+          (click)="onStudentChange(student.id)"
+          class="group rounded-2xl border p-4 text-left transition-all"
+          [ngClass]="
+            student.id === studentId
+              ? 'border-sky-300 bg-sky-50 ring-2 ring-sky-100'
+              : 'border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40'
+          "
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-bold text-slate-900">
+                {{ student.fullName }}
+              </p>
+              <p class="truncate text-xs text-slate-500">
+                {{ student.email }}
+              </p>
+            </div>
+            <span
+              class="material-symbols-outlined text-slate-300 transition group-hover:text-sky-500"
+            >
+              arrow_forward
+            </span>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <div
+      *ngIf="loading"
+      class="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm"
+    >
+      Loading report...
+    </div>
+
+    <div
+      *ngIf="error && !loading"
+      class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+    >
+      {{ error }}
+    </div>
+
+    <ng-container *ngIf="report && !loading">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section
+          class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+          <p
+            class="text-xs font-semibold uppercase tracking-wider text-slate-500"
+          >
+            Current Level
+          </p>
+          <p class="mt-2 text-3xl font-black text-slate-900">
+            {{ report.summary.currentLevel }}
+          </p>
+          <p class="mt-1 text-sm text-slate-600">
+            Progress: {{ formatPercent(report.summary.progress) }}
+          </p>
+        </section>
+
+        <section
+          class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+          <p
+            class="text-xs font-semibold uppercase tracking-wider text-slate-500"
+          >
+            Exercises
+          </p>
+          <p class="mt-2 text-3xl font-black text-slate-900">
+            {{ report.sources.exercises.attempts }}
+          </p>
+          <p class="mt-1 text-sm text-slate-600">
+            Completed: {{ report.sources.exercises.completed }}
+          </p>
+        </section>
+
+        <section
+          class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+          <p
+            class="text-xs font-semibold uppercase tracking-wider text-slate-500"
+          >
+            Game
+          </p>
+          <p class="mt-2 text-3xl font-black text-slate-900">
+            {{ report.sources.game.sessions }}
+          </p>
+          <p class="mt-1 text-sm text-slate-600">
+            Avg score: {{ formatPercent(report.sources.game.averageScore) }}
+          </p>
+        </section>
+
+        <section
+          class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+          <p
+            class="text-xs font-semibold uppercase tracking-wider text-slate-500"
+          >
+            Chat
+          </p>
+          <p class="mt-2 text-3xl font-black text-slate-900">
+            {{ report.sources.chat.messages }}
+          </p>
+          <p class="mt-1 text-sm text-slate-600">
+            Sessions: {{ report.sources.chat.sessions }}
+          </p>
+        </section>
+      </div>
+
+      <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <section
+          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">
+                Adaptive Learning Path
+              </h2>
+              <p class="text-sm text-slate-500">
+                Prioritized from current interactions
+              </p>
+            </div>
+            <span
+              class="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700"
+            >
+              {{ report.summary.totalInteractions }} total interactions
+            </span>
+          </div>
+
+          <div class="mt-4 space-y-3">
+            <article
+              *ngFor="let item of report.adaptivePath"
+              class="rounded-xl bg-slate-50 p-4"
+            >
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="font-semibold text-slate-900">{{ item.topic }}</h3>
+                <span
+                  class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                  [ngClass]="
+                    item.priority === 'high'
+                      ? 'bg-red-100 text-red-700'
+                      : item.priority === 'medium'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                  "
+                >
+                  {{ item.priority }} priority
+                </span>
+              </div>
+              <p class="mt-2 text-sm text-slate-600">{{ item.reason }}</p>
+              <ul class="mt-3 space-y-1 text-sm text-slate-600">
+                <li *ngFor="let action of item.recommendedActions">
+                  • {{ action }}
+                </li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="space-y-6">
+          <div
+            class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+          >
+            <h2 class="text-lg font-bold text-slate-900">
+              Comparison Analytics
+            </h2>
+            <p class="mt-1 text-sm text-slate-500">
+              How this student compares with the cohort
+            </p>
+
+            <div *ngIf="comparison" class="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div class="rounded-xl bg-slate-50 p-3">
+                <p class="text-xs uppercase tracking-wide text-slate-500">
+                  Ranking
+                </p>
+                <p class="mt-1 text-2xl font-black text-slate-900">
+                  Top {{ comparison.rankingPercentile }}%
+                </p>
+              </div>
+              <div class="rounded-xl bg-slate-50 p-3">
+                <p class="text-xs uppercase tracking-wide text-slate-500">
+                  Class Avg
+                </p>
+                <p class="mt-1 text-2xl font-black text-slate-900">
+                  {{ formatPercent(comparison.classAverage.averageScore) }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+          >
+            <h2 class="text-lg font-bold text-slate-900">Evidence Snapshot</h2>
+            <div class="mt-4 space-y-3 text-sm text-slate-600">
+              <p>
+                <span class="font-semibold text-slate-900">Strengths:</span>
+                {{ report.summary.strengths.join(", ") || "None yet" }}
+              </p>
+              <p>
+                <span class="font-semibold text-slate-900">Weaknesses:</span>
+                {{ report.summary.weaknesses.join(", ") || "None yet" }}
+              </p>
+              <p>
+                <span class="font-semibold text-slate-900">Level test:</span>
+                {{
+                  report.sources.levelTest.completed
+                    ? report.sources.levelTest.resultLevel
+                    : "Not completed"
+                }}
+              </p>
+              <p>
+                <span class="font-semibold text-slate-900">Chat sessions:</span>
+                {{ report.sources.chat.sessions }}
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </ng-container>
+  </div>
+</div>

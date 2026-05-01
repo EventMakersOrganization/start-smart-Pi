@@ -3,22 +3,43 @@ Ingest teacher's "Programmation Procedurale 1" course folder into MongoDB + Chro
 
 Parses the fiche module for chapter metadata, extracts course content from
 PPTX/PDF files, parses quiz DOCX files into MCQ exercises, then:
-  1. Clears existing courses, exercises, and ChromaDB collections
-  2. Inserts 8 courses (one per chapter) with version-based modules
+  1. Removes **only** prior "Programmation Procédurale 1" rows (Mongo + matching
+     Chroma chunks), leaving other subjects untouched
+  2. Inserts 8 courses (one per chapter) with version-based subchapters
   3. Inserts all parsed MCQ exercises linked to their parent course
   4. Triggers the embedding pipeline for RAG
 
 Usage:
     cd ai-service
     python ingest_teacher_course.py
+
+Dangerous legacy options (full DB wipe — use only if you intend to erase everything):
+
+    python ingest_teacher_course.py --wipe-all-mongo --wipe-all-chroma
+
+Environment:
+    TEACHER_COURSE_ROOT — root folder (e.g. ``…\\Support_Cours_Préparation``). Each
+    ``chapter/X.Y/Cours/*.pptx|pdf`` is one Mongo module; files are copied to
+    ``backend/uploads/subjects/cours/`` and ``fileUrl`` is set so the student UI
+    shows separate files like other subjects. Text is still extracted for embeddings.
+
+    INGEST_DEFAULT_INSTRUCTOR_ID — optional MongoDB ObjectId (hex) of the User who
+    should own inserted courses. If unset, the first user with role instructor
+    (or teacher) in ``users`` is used. If none is found, courses are inserted
+    without ``instructorId`` (same as before).
 """
 from __future__ import annotations
 
+import argparse
 import glob
 import io
 import logging
+import os
 import re
+import shutil
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +58,175 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger("ingest")
 
-TEACHER_ROOT = Path(r"C:\Users\oussa.LAPTOP-THCQB19P\Downloads\Support_Cours_Préparation\Support_Cours_Préparation")
+_STARTSMART_ROOT = Path(__file__).resolve().parent.parent
+_UPLOADS_SUBJECTS_COURS = _STARTSMART_ROOT / "backend" / "uploads" / "subjects" / "cours"
+
+TEACHER_ROOT = Path(
+    os.getenv(
+        "TEACHER_COURSE_ROOT",
+        r"C:\Users\kmarb\Downloads\pi\Support_Cours_Préparation",
+    )
+)
+
+
+def _resolve_course_instructor_id(db: Any) -> ObjectId | None:
+    """Match Nest-created courses: set ``instructorId`` when possible."""
+    raw = os.getenv("INGEST_DEFAULT_INSTRUCTOR_ID", "").strip()
+    if raw:
+        if ObjectId.is_valid(raw):
+            oid = ObjectId(raw)
+            if db.users.find_one({"_id": oid}):
+                return oid
+            log.warning(
+                "INGEST_DEFAULT_INSTRUCTOR_ID=%s not found in users; trying first instructor",
+                raw,
+            )
+        else:
+            log.warning(
+                "INGEST_DEFAULT_INSTRUCTOR_ID is not a valid ObjectId; trying first instructor",
+            )
+    user = db.users.find_one(
+        {"role": {"$regex": r"^(instructor|teacher)$", "$options": "i"}}
+    )
+    if user:
+        return user["_id"]
+    log.warning(
+        "No instructor user in DB; courses will have no instructorId "
+        "(set INGEST_DEFAULT_INSTRUCTOR_ID to a valid User _id)",
+    )
+    return None
+
+
+def _course_document_base(
+    *,
+    instructor_id: ObjectId | None,
+    now: datetime,
+) -> dict[str, Any]:
+    """Fields aligned with Mongoose ``Course`` (timestamps + version key)."""
+    doc: dict[str, Any] = {
+        "createdAt": now,
+        "updatedAt": now,
+        "__v": 0,
+    }
+    if instructor_id is not None:
+        doc["instructorId"] = instructor_id
+    return doc
+
+
+def _programmation_subject_mongo_filter() -> dict[str, Any]:
+    """Matches ``subject`` on course/exercise docs for this ingest."""
+    return {
+        "subject": {"$regex": r"Programmation\s+Proc[ée]durale\s*1", "$options": "i"},
+    }
+
+
+def _delete_chroma_chunks_for_course_ids(course_ids: list[str]) -> None:
+    """Remove only vectors tied to these Mongo course ids (other subjects stay)."""
+    if not course_ids:
+        return
+    try:
+        from core.chroma_setup import get_or_create_collection
+    except ImportError:
+        log.warning("ChromaDB not available; skipping chunk delete.")
+        return
+    for col_name in ("course_embeddings", "course_chunks"):
+        try:
+            coll = get_or_create_collection(col_name)
+            try:
+                coll.delete(where={"course_id": {"$in": course_ids}})
+            except Exception:
+                for cid in course_ids:
+                    try:
+                        coll.delete(where={"course_id": cid})
+                    except Exception:
+                        pass
+            log.info(
+                "ChromaDB %s: removed chunks for %d course id(s).",
+                col_name,
+                len(course_ids),
+            )
+        except Exception as e:
+            log.warning("ChromaDB %s prune skipped: %s", col_name, e)
+
+
+def _remove_prior_programmation_data(
+    db: Any,
+    courses_coll: Any,
+    exercises_coll: Any,
+    *,
+    wipe_all_mongo: bool,
+    wipe_all_chroma: bool,
+) -> None:
+    """
+    Default: delete only Programmation Procédurale 1 courses/exercises and matching
+    Chroma chunks. Optional flags restore the old full-database wipe.
+    """
+    try:
+        from core.chroma_setup import delete_collection
+    except ImportError:
+        delete_collection = None  # type: ignore
+
+    if wipe_all_mongo:
+        del_c = courses_coll.delete_many({})
+        del_e = exercises_coll.delete_many({})
+        log.warning(
+            "Removed ALL MongoDB courses (%d) and exercises (%d).",
+            del_c.deleted_count,
+            del_e.deleted_count,
+        )
+        if wipe_all_chroma and delete_collection:
+            for col_name in ("course_embeddings", "course_chunks"):
+                try:
+                    delete_collection(col_name)
+                    log.warning("Cleared entire ChromaDB collection: %s", col_name)
+                except Exception as e:
+                    log.warning("ChromaDB full delete %s: %s", col_name, e)
+        elif wipe_all_chroma:
+            log.warning("--wipe-all-chroma ignored (chroma_setup unavailable).")
+        return
+
+    filt = _programmation_subject_mongo_filter()
+    old_docs = list(courses_coll.find(filt, {"_id": 1}))
+    old_ids = [str(d["_id"]) for d in old_docs]
+
+    if old_ids:
+        if wipe_all_chroma and delete_collection:
+            for col_name in ("course_embeddings", "course_chunks"):
+                try:
+                    delete_collection(col_name)
+                    log.warning("Cleared entire ChromaDB collection: %s", col_name)
+                except Exception as e:
+                    log.warning("ChromaDB full delete %s: %s", col_name, e)
+        else:
+            _delete_chroma_chunks_for_course_ids(old_ids)
+
+        obj_ids: list[ObjectId] = []
+        for x in old_ids:
+            if ObjectId.is_valid(x):
+                obj_ids.append(ObjectId(x))
+
+        if obj_ids:
+            ex_res = exercises_coll.delete_many(
+                {"$or": [filt, {"courseId": {"$in": obj_ids}}]}
+            )
+        else:
+            ex_res = exercises_coll.delete_many(filt)
+        c_res = courses_coll.delete_many(filt)
+        log.info(
+            "Replaced prior Programmation data: %d course(s), %d exercise(s) (Mongo).",
+            c_res.deleted_count,
+            ex_res.deleted_count,
+        )
+    else:
+        log.info("No existing Programmation courses in MongoDB to replace.")
+        if wipe_all_chroma and delete_collection:
+            for col_name in ("course_embeddings", "course_chunks"):
+                try:
+                    delete_collection(col_name)
+                    log.warning("Cleared entire ChromaDB collection: %s", col_name)
+                except Exception as e:
+                    log.warning("ChromaDB full delete %s: %s", col_name, e)
+
 
 # ── Chapter metadata extracted from fiche module ─────────────────────────
 # folder_num -> (title, description/objectives)
@@ -215,6 +404,45 @@ def extract_course_text(cours_dir: Path) -> str:
     return "\n\n".join(t for t in texts if t.strip())
 
 
+def _copy_module_file_to_uploads(
+    src: Path, chapter_num: int, version: str
+) -> tuple[str, str]:
+    """
+    Copy a PPTX/PDF from the teacher folder into backend/uploads/subjects/cours
+    so the student app can open it like other subjects. Returns (relativeUrl, storedFileName).
+    """
+    if not src.is_file():
+        return "", ""
+    _UPLOADS_SUBJECTS_COURS.mkdir(parents=True, exist_ok=True)
+    safe_stem = re.sub(r"[^\w\-\s]+", "_", src.stem, flags=re.UNICODE)[:80].strip().replace(" ", "_")
+    ext = (src.suffix or "").lower() or ".bin"
+    base_name = f"pp1_ch{chapter_num}_v{version.replace('.', '_')}_{safe_stem}{ext}"
+    dest = _UPLOADS_SUBJECTS_COURS / base_name
+    if dest.exists():
+        dest = _UPLOADS_SUBJECTS_COURS / f"{dest.stem}_{int(time.time())}{ext}"
+    shutil.copy2(src, dest)
+    return f"/uploads/subjects/cours/{dest.name}", dest.name
+
+
+def _list_module_files_with_text(cours_dir: Path) -> list[dict[str, Any]]:
+    """One entry per PPTX/PDF in Cours (same structure as on disk)."""
+    out: list[dict[str, Any]] = []
+    files = sorted(
+        list(cours_dir.glob("*.pptx")) + list(cours_dir.glob("*.pdf")),
+        key=lambda p: p.name.lower(),
+    )
+    for f in files:
+        try:
+            if f.suffix.lower() == ".pptx":
+                t = extract_pptx_text(f)
+            else:
+                t = extract_pdf_text(f)
+            out.append({"path": f, "text": t})
+        except Exception as e:
+            log.warning("  File extract failed %s: %s", f.name, e)
+    return out
+
+
 # ── Quiz DOCX parser ─────────────────────────────────────────────────────
 
 _OPTION_LINE = re.compile(r"^\s*([A-Da-d])\s*[.)]\s*(.+)", re.DOTALL)
@@ -318,7 +546,12 @@ def discover_versions(chapter_dir: Path) -> list[dict[str, Any]]:
                 cours_dir = d
                 break
         if cours_dir:
-            v["text"] = extract_course_text(cours_dir)
+            v["module_files"] = _list_module_files_with_text(cours_dir)
+            v["text"] = "\n\n".join(
+                (x.get("text") or "").strip() for x in v["module_files"] if x.get("text")
+            )
+            if not v["text"]:
+                v["text"] = extract_course_text(cours_dir)
 
         quiz_dir = None
         for candidate in ("Quizz", "Quiz", "quizz", "quiz"):
@@ -356,7 +589,11 @@ def discover_extra_quizzes(chapter_dir: Path) -> list[dict[str, Any]]:
 
 # ── Main ingestion ────────────────────────────────────────────────────────
 
-def run_ingest():
+def run_ingest(
+    *,
+    wipe_all_mongo: bool = False,
+    wipe_all_chroma: bool = False,
+) -> dict[str, Any]:
     log.info("=" * 60)
     log.info("  Teacher Course Ingestion")
     log.info("=" * 60)
@@ -373,21 +610,17 @@ def run_ingest():
     exercises_coll = db["exercises"]
     log.info("Connected to MongoDB: %s", config.MONGODB_DB_NAME)
 
-    # ── Clear existing data ───────────────────────────────────────────
-    del_c = courses_coll.delete_many({})
-    del_e = exercises_coll.delete_many({})
-    log.info("Cleared %d courses and %d exercises from MongoDB", del_c.deleted_count, del_e.deleted_count)
+    instructor_oid = _resolve_course_instructor_id(db)
+    if instructor_oid is not None:
+        log.info("Resolved course instructorId: %s", instructor_oid)
 
-    try:
-        from core.chroma_setup import delete_collection, get_or_create_collection
-        for col_name in ("course_embeddings", "course_chunks"):
-            try:
-                delete_collection(col_name)
-                log.info("Cleared ChromaDB collection: %s", col_name)
-            except Exception:
-                pass
-    except Exception as e:
-        log.warning("ChromaDB clear skipped: %s", e)
+    _remove_prior_programmation_data(
+        db,
+        courses_coll,
+        exercises_coll,
+        wipe_all_mongo=wipe_all_mongo,
+        wipe_all_chroma=wipe_all_chroma,
+    )
 
     # ── Process chapters 1-8 ──────────────────────────────────────────
     course_ids: list[str] = []
@@ -410,33 +643,81 @@ def run_ingest():
         versions = discover_versions(ch_dir)
         log.info("  Found %d versions", len(versions))
 
-        modules: list[dict[str, str]] = []
+        sub_chapters: list[dict[str, Any]] = []
         all_quizzes: list[dict[str, Any]] = []
+        mod_order = 0
 
         for v in versions:
             ver = v["version"]
             topic = VERSION_TITLES.get(ver, f"Section {ver}")
-            title = f"{ver} - {topic}"
-            text = v["text"]
-            if text:
-                log.info("  [%s] %d chars extracted", ver, len(text))
-            else:
-                log.info("  [%s] no course content", ver)
-
-            modules.append({"title": title, "description": text})
+            base_title = f"{ver} - {topic}"
+            mfiles = v.get("module_files") or []
             all_quizzes.extend(v["quizzes"])
+
+            if mfiles:
+                for mf in mfiles:
+                    p = mf.get("path")
+                    txt = (mf.get("text") or "").strip()
+                    rel_url, stored = ("", "")
+                    if isinstance(p, Path) and p.is_file():
+                        rel_url, stored = _copy_module_file_to_uploads(p, ch_num, ver)
+                        log.info(
+                            "  [%s] %s (%d chars) -> %s",
+                            ver,
+                            p.name,
+                            len(txt),
+                            rel_url or "(copy failed)",
+                        )
+                    else:
+                        log.info("  [%s] skip file (invalid path)", ver)
+
+                    title = (
+                        base_title
+                        if len(mfiles) == 1
+                        else f"{base_title} — {getattr(p, 'stem', 'fichier')}"
+                    )
+                    row: dict[str, Any] = {
+                        "title": title,
+                        "description": txt,
+                        "order": mod_order,
+                        "contents": [],
+                    }
+                    if rel_url:
+                        row["fileUrl"] = rel_url
+                        row["fileName"] = stored or (
+                            p.name if isinstance(p, Path) else "cours"
+                        )
+                    sub_chapters.append(row)
+                    mod_order += 1
+            else:
+                text = (v.get("text") or "").strip()
+                if text:
+                    log.info("  [%s] %d chars (combined)", ver, len(text))
+                else:
+                    log.info("  [%s] no course content", ver)
+                sub_chapters.append(
+                    {
+                        "title": base_title,
+                        "description": text,
+                        "order": mod_order,
+                        "contents": [],
+                    }
+                )
+                mod_order += 1
 
         extra_q = discover_extra_quizzes(ch_dir)
         all_quizzes.extend(extra_q)
         if extra_q:
             log.info("  +%d extra quizzes from subfolders", len(extra_q))
 
+        now = datetime.now(timezone.utc)
         course_doc = {
             "title": meta["title"],
             "description": meta["description"],
-            "modules": modules,
+            "subChapters": sub_chapters,
             "level": "Beginner",
             "subject": "Programmation Procédurale 1",
+            **_course_document_base(instructor_id=instructor_oid, now=now),
         }
         result = courses_coll.insert_one(course_doc)
         cid = str(result.inserted_id)
@@ -492,4 +773,18 @@ def run_ingest():
 
 
 if __name__ == "__main__":
-    run_ingest()
+    parser = argparse.ArgumentParser(
+        description="Ingest Programmation Procédurale 1 teacher folder into MongoDB + ChromaDB.",
+    )
+    parser.add_argument(
+        "--wipe-all-mongo",
+        action="store_true",
+        help="Delete ALL documents in courses and exercises collections (dangerous).",
+    )
+    parser.add_argument(
+        "--wipe-all-chroma",
+        action="store_true",
+        help="Delete entire course_embeddings and course_chunks Chroma collections.",
+    )
+    ns = parser.parse_args()
+    run_ingest(wipe_all_mongo=ns.wipe_all_mongo, wipe_all_chroma=ns.wipe_all_chroma)

@@ -1,0 +1,265 @@
+<div class="min-h-screen bg-gradient-to-br from-slate-100 via-cyan-50 to-emerald-50 text-slate-900" [class.min-h-full]="embedInParentShell">
+  <nav *ngIf="!embedInParentShell" class="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/85 px-6 backdrop-blur-lg">
+    <div class="flex items-center gap-3 min-w-0">
+      <app-brand-logo [link]="'/instructor/dashboard'" variant="compact" />
+      <div class="min-w-0">
+        <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">Sprint 7</p>
+        <p class="text-lg font-black tracking-tight truncate">Comprehensive Analytics</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button class="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-cyan-700">
+        <span class="material-symbols-outlined">notifications</span>
+      </button>
+      <button
+        (click)="navigateToProfile()"
+        class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:border-cyan-200 hover:text-cyan-700"
+        title="Open profile"
+      >
+        <span class="material-symbols-outlined text-base">account_circle</span>
+        {{ getDisplayName() }}
+      </button>
+    </div>
+  </nav>
+
+  <div [ngClass]="embedInParentShell ? 'flex' : 'flex pt-16'">
+    <aside *ngIf="!embedInParentShell" class="sticky top-16 hidden h-[calc(100vh-64px)] w-72 shrink-0 border-r border-slate-200 bg-white/80 p-5 lg:flex lg:flex-col">
+      <div class="mb-6 rounded-2xl bg-cyan-600/90 p-4 text-white shadow-lg shadow-cyan-300/30">
+        <p class="text-xs uppercase tracking-[0.2em] text-cyan-100">Connected As</p>
+        <p class="mt-1 text-lg font-black">{{ getDisplayName() }}</p>
+        <p class="text-xs font-semibold uppercase tracking-wide text-cyan-100">{{ userRole || 'viewer' }}</p>
+      </div>
+
+      <nav class="flex-1 space-y-1.5">
+        <a
+          routerLink="/instructor/dashboard"
+          routerLinkActive="bg-cyan-50 font-black text-cyan-800 ring-1 ring-cyan-100"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+        >
+          <span class="material-symbols-outlined">dashboard</span>
+          Dashboard
+        </a>
+        <a
+          routerLink="/instructor/deep-analytics"
+          routerLinkActive="bg-cyan-50 font-black text-cyan-800 ring-1 ring-cyan-100"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+        >
+          <span class="material-symbols-outlined">analytics</span>
+          Analytics
+        </a>
+        <a
+          routerLink="/instructor/comprehensive-analytics"
+          routerLinkActive="bg-cyan-50 font-black text-cyan-800 ring-1 ring-cyan-100"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+        >
+          <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">insights</span>
+          Comprehensive Analytics
+        </a>
+        <a
+          routerLink="/instructor/risk-detection"
+          routerLinkActive="bg-cyan-50 font-black text-cyan-800 ring-1 ring-cyan-100"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+        >
+          <span class="material-symbols-outlined">warning</span>
+          Risk Detection
+        </a>
+        <a
+          routerLink="/instructor/interventions"
+          routerLinkActive="bg-cyan-50 font-black text-cyan-800 ring-1 ring-cyan-100"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+        >
+          <span class="material-symbols-outlined">bolt</span>
+          Interventions
+        </a>
+      </nav>
+
+      <div class="mt-6 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+        <p class="font-bold text-slate-800">Realtime Insight Feed</p>
+        <p class="mt-1">{{ insights.length }} active rule-based insights generated from retention, cohorts, and interventions.</p>
+      </div>
+    </aside>
+
+    <main class="w-full p-4 md:p-8">
+      <div *ngIf="loading" class="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Loading comprehensive analytics...</div>
+      <div *ngIf="error && !loading" class="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-semibold text-red-700 flex items-center justify-between gap-3">
+        <span>{{ displayError }}</span>
+        <a routerLink="/login" class="text-xs font-bold underline">Login</a>
+      </div>
+
+      <ng-container *ngIf="!loading && !error">
+        <section class="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">Overview</p>
+          <h1 class="mt-2 text-3xl font-black tracking-tight">Comprehensive Analytics Dashboard</h1>
+          <p class="mt-2 max-w-3xl text-sm text-slate-600">
+            Unified view across retention, cohorts, interventions, and explainable insights. The page is isolated from existing dashboards and adds a dedicated navigation entry.
+          </p>
+
+          <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
+              <p class="text-xs font-bold uppercase tracking-wider text-cyan-700">Retention Rate</p>
+              <p class="mt-2 text-3xl font-black text-cyan-900">{{ retentionRate }}%</p>
+              <p class="mt-2 text-xs text-cyan-700">{{ retention.retainedUsers }} retained / {{ retention.totalUsers }} users</p>
+            </div>
+
+            <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <p class="text-xs font-bold uppercase tracking-wider text-emerald-700">Dropout Rate</p>
+              <p class="mt-2 text-3xl font-black text-emerald-900">{{ retention.dropoutRate }}%</p>
+              <p class="mt-2 text-xs text-emerald-700">Window: last {{ retentionWindowDays }} days</p>
+            </div>
+
+            <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+              <p class="text-xs font-bold uppercase tracking-wider text-amber-700">Cohorts Tracked</p>
+              <p class="mt-2 text-3xl font-black text-amber-900">{{ cohorts.length }}</p>
+              <p class="mt-2 text-xs text-amber-700">Average risk: {{ averageCohortRisk }}</p>
+            </div>
+
+            <div class="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+              <p class="text-xs font-bold uppercase tracking-wider text-violet-700">Interventions</p>
+              <p class="mt-2 text-3xl font-black text-violet-900">{{ totalInterventions }}</p>
+              <p class="mt-2 text-xs text-violet-700">{{ appliedInterventions }} applied / {{ pendingInterventions }} pending</p>
+            </div>
+          </div>
+        </section>
+
+        <section *ngIf="isAdmin" class="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-12">
+          <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-7">
+            <div class="mb-4 flex items-end justify-between">
+              <div>
+                <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">Admin Section</p>
+                <h2 class="text-xl font-black tracking-tight">Retention Trend</h2>
+              </div>
+              <p class="text-xs font-semibold text-slate-500">From /analytics/retention</p>
+            </div>
+
+            <div class="h-56 rounded-2xl bg-slate-50 p-4">
+              <div class="flex h-full items-end gap-2" *ngIf="trendWindow.length > 0">
+                <div class="group flex flex-1 flex-col items-center" *ngFor="let point of trendWindow; trackBy: trackByTrendPoint">
+                  <div class="relative w-full rounded-t-lg bg-cyan-100" [style.height.%]="getBarHeight(point.activeUsers)">
+                    <div class="absolute bottom-0 w-full rounded-t-lg bg-cyan-600/80" [style.height.%]="getReturningHeight(point.activeUsers, point.returningUsers)"></div>
+                  </div>
+                  <span class="mt-2 text-[10px] font-bold text-slate-500">{{ point.date.slice(5) }}</span>
+                </div>
+              </div>
+              <div *ngIf="trendWindow.length === 0" class="flex h-full items-center justify-center text-sm text-slate-500">No retention trend data</div>
+            </div>
+          </article>
+
+          <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-5">
+            <div class="mb-4 flex items-end justify-between">
+              <div>
+                <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">Admin Section</p>
+                <h2 class="text-xl font-black tracking-tight">Rule-Based Insights</h2>
+              </div>
+              <p class="text-xs font-semibold text-slate-500">From /analytics/insights</p>
+            </div>
+
+            <div class="space-y-3" *ngIf="insights.length > 0">
+              <div class="rounded-xl border border-cyan-100 bg-cyan-50 p-3 text-sm leading-relaxed text-slate-700" *ngFor="let insight of insights; trackBy: trackByInsight">
+                {{ insight }}
+              </div>
+            </div>
+            <div *ngIf="insights.length === 0" class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No critical insights detected in this cycle.</div>
+          </article>
+        </section>
+
+        <section *ngIf="isAdmin" class="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="mb-4 flex items-end justify-between">
+            <div>
+              <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">Admin Section</p>
+              <h2 class="text-xl font-black tracking-tight">Cohort Performance Matrix</h2>
+            </div>
+            <p class="text-xs font-semibold text-slate-500">From /analytics/cohorts</p>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <article class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 class="mb-3 text-sm font-black uppercase tracking-wider text-slate-700">Signup Cohorts</h3>
+              <div class="space-y-2" *ngIf="signupCohorts.length > 0">
+                <div class="rounded-lg bg-white p-3 text-sm" *ngFor="let cohort of signupCohorts; trackBy: trackByCohort">
+                  <p class="font-bold text-slate-800">{{ getCohortLabel(cohort.cohort) }}</p>
+                  <p class="text-xs text-slate-500">Score {{ cohort.averageScore }} | Risk {{ cohort.averageRisk }} | Engagement {{ cohort.engagementScore }}</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 class="mb-3 text-sm font-black uppercase tracking-wider text-slate-700">Course Cohorts</h3>
+              <div class="space-y-2" *ngIf="courseCohorts.length > 0">
+                <div class="rounded-lg bg-white p-3 text-sm" *ngFor="let cohort of courseCohorts; trackBy: trackByCohort">
+                  <p class="font-bold text-slate-800">{{ getCohortLabel(cohort.cohort) }}</p>
+                  <p class="text-xs text-slate-500">Score {{ cohort.averageScore }} | Risk {{ cohort.averageRisk }} | Engagement {{ cohort.engagementScore }}</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 class="mb-3 text-sm font-black uppercase tracking-wider text-slate-700">Performance Cohorts</h3>
+              <div class="space-y-2" *ngIf="performanceCohorts.length > 0">
+                <div class="rounded-lg bg-white p-3 text-sm" *ngFor="let cohort of performanceCohorts; trackBy: trackByCohort">
+                  <p class="font-bold text-slate-800">{{ getCohortLabel(cohort.cohort) }}</p>
+                  <p class="text-xs text-slate-500">Score {{ cohort.averageScore }} | Risk {{ cohort.averageRisk }} | Engagement {{ cohort.engagementScore }}</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section *ngIf="isInstructor" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p class="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">Instructor Section</p>
+              <h2 class="text-xl font-black tracking-tight">Student Intervention Intelligence</h2>
+            </div>
+            <p class="text-xs font-semibold text-slate-500">From /analytics/interventions + /analytics/unified/:userId</p>
+          </div>
+
+          <div *ngIf="loadingRows" class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Loading student unified analytics...</div>
+
+          <div class="overflow-x-auto rounded-2xl border border-slate-200">
+            <table class="w-full min-w-[900px] border-collapse text-left">
+              <thead class="bg-slate-100 text-xs uppercase tracking-wider text-slate-600">
+                <tr>
+                  <th class="px-4 py-3 font-bold">Student</th>
+                  <th class="px-4 py-3 font-bold">Risk</th>
+                  <th class="px-4 py-3 font-bold">Dropout Prob.</th>
+                  <th class="px-4 py-3 font-bold">Engagement Score (0-100)</th>
+                  <th class="px-4 py-3 font-bold">Weekly Activity (events/day)</th>
+                  <th class="px-4 py-3 font-bold">Completion</th>
+                  <th class="px-4 py-3 font-bold">Last Activity</th>
+                  <th class="px-4 py-3 font-bold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-t border-slate-100 transition-colors hover:bg-cyan-50/50" *ngFor="let row of instructorRows; trackBy: trackByStudent">
+                  <td class="px-4 py-3 text-sm font-semibold text-slate-800">{{ row.name }}</td>
+                  <td class="px-4 py-3 text-sm">
+                    <span class="rounded-full px-2.5 py-1 text-xs font-bold" [ngClass]="getRiskBadgeClass(row.riskLevel)">{{ row.riskLevel | titlecase }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-sm font-semibold">{{ row.dropoutProbability }}%</td>
+                  <td class="px-4 py-3 text-sm font-semibold">{{ row.engagementScore }}</td>
+                  <td class="px-4 py-3 text-sm">{{ row.activityFrequency }}</td>
+                  <td class="px-4 py-3 text-sm">{{ row.completionRate }}%</td>
+                  <td class="px-4 py-3 text-sm">{{ row.lastActivityAt }}</td>
+                  <td class="px-4 py-3 text-sm">
+                    <span class="rounded-full px-2.5 py-1 text-xs font-bold" [ngClass]="row.interventionStatus === 'applied' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
+                      {{ row.interventionStatus | titlecase }}
+                    </span>
+                  </td>
+                </tr>
+                <tr *ngIf="instructorRows.length === 0">
+                  <td class="px-4 py-6 text-center text-sm text-slate-500" colspan="8">No instructor intervention data available.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </ng-container>
+    </main>
+  </div>
+</div>

@@ -1,5 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import {
+  AdaptiveLearningService,
+  ChatMessage,
+} from '../adaptive-learning.service';
 
 interface Lesson {
   id: string;
@@ -8,7 +12,7 @@ interface Lesson {
   completed: boolean;
 }
 
-interface Module {
+interface SubChapterGroup {
   id: string;
   title: string;
   lessons: Lesson[];
@@ -32,7 +36,7 @@ export class ContinueLearningComponent implements OnInit {
   videoCurrentTime = '10:45';
   videoProgress = 45;
 
-  modules: Module[] = [
+  subChapters: SubChapterGroup[] = [
     {
       id: '1',
       title: 'Foundations of PyTorch',
@@ -86,10 +90,21 @@ export class ContinueLearningComponent implements OnInit {
   ];
 
   activeTab = 'overview';
+  tutorQuestion = '';
+  tutorLoading = false;
+  tutorError = '';
+  tutorMessages: ChatMessage[] = [
+    {
+      role: 'assistant',
+      content:
+        'Ask me anything about this lesson. I can explain concepts step by step or give an easier summary.',
+    },
+  ];
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private adaptiveService: AdaptiveLearningService,
   ) {}
 
   ngOnInit(): void {
@@ -100,8 +115,8 @@ export class ContinueLearningComponent implements OnInit {
     });
   }
 
-  toggleModule(moduleId: string): void {
-    const module = this.modules.find((m) => m.id === moduleId);
+  toggleSubChapter(subChapterId: string): void {
+    const module = this.subChapters.find((m) => m.id === subChapterId);
     if (module) {
       module.expanded = !module.expanded;
     }
@@ -125,6 +140,43 @@ export class ContinueLearningComponent implements OnInit {
 
   setActiveTab(tab: string): void {
     this.activeTab = tab;
+  }
+
+  sendTutorQuestion(): void {
+    const question = this.tutorQuestion.trim();
+    if (!question || this.tutorLoading) return;
+
+    this.tutorMessages = [
+      ...this.tutorMessages,
+      { role: 'user', content: question },
+    ];
+    this.tutorQuestion = '';
+    this.tutorLoading = true;
+    this.tutorError = '';
+
+    this.adaptiveService
+      .askChatbot({
+        question,
+        conversation_history: this.tutorMessages,
+      })
+      .subscribe({
+        next: (response) => {
+          this.tutorMessages = [
+            ...this.tutorMessages,
+            {
+              role: 'assistant',
+              content:
+                response?.answer ||
+                'I could not generate an answer right now. Please try again.',
+            },
+          ];
+          this.tutorLoading = false;
+        },
+        error: () => {
+          this.tutorError = 'Unable to load tutor answer.';
+          this.tutorLoading = false;
+        },
+      });
   }
 
   goBack(): void {

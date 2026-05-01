@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, from, of } from 'rxjs';
+import { Observable, Subject, from, of } from 'rxjs';
 import {
   catchError,
   concatMap,
@@ -10,6 +10,7 @@ import {
   tap,
   timeout,
 } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 
 export type TargetLevel = 'beginner' | 'intermediate' | 'advanced';
 
@@ -67,7 +68,112 @@ export interface SpacedRepetitionResponse {
   } | null;
 }
 
+export interface CollaborativeRecommendationItem {
+  topic: string;
+  reason: string;
+  similarStudentsCount: number;
+  averageSuccessRate: number;
+  suggestedDifficulty: string;
+}
+
+export interface CollaborativeRecommendationsResponse {
+  recommendations: CollaborativeRecommendationItem[];
+  similarStudentsFound: number;
+  basedOn: string;
+}
+
+export interface StudyGroupMember {
+  userId: string;
+  level: string;
+  commonWeaknesses: string[];
+}
+
+export interface StudyGroupSuggestion {
+  groupName: string;
+  groupType: 'remediation' | 'mixed' | 'advanced';
+  commonTopics: string[];
+  suggestedActivities: string[];
+  compatibilityScore: number;
+  members: StudyGroupMember[];
+}
+
+export interface StudyGroupSuggestionsResponse {
+  suggestedGroups: StudyGroupSuggestion[];
+  totalStudentsAnalyzed: number;
+  bestMatch: { userId: string; compatibilityScore: number } | null;
+}
+
+export interface LearningStyleIndicators {
+  averageTimePerExercise: number;
+  scoreConsistency: number;
+  preferredDifficulty: string;
+  preferredTopics: string[];
+  sessionsPerWeek: number;
+}
+
+export interface LearningStyleResponse {
+  primaryStyle: string;
+  secondaryStyle: string | null;
+  confidence: number;
+  styleDescription: string;
+  learningTips: string[];
+  indicators: LearningStyleIndicators;
+}
+
+export interface UnifiedStudentProfileResponse {
+  studentId: string;
+  profile: any;
+  summary: {
+    currentLevel: string;
+    progress: number;
+    strengths: string[];
+    weaknesses: string[];
+    riskLevel: string;
+    totalInteractions: number;
+  };
+  sources: {
+    exercises: any;
+    game: any;
+    chat: any;
+    levelTest: any;
+  };
+  analytics: {
+    learningVelocity: any;
+    spacedRepetition: any;
+    learningStyle: any;
+    learningPath: any;
+    achievementBadges: any;
+  };
+  adaptivePath: Array<{
+    topic: string;
+    priority: 'high' | 'medium' | 'low';
+    reason: string;
+    recommendedActions: string[];
+  }>;
+}
+
+export interface StudentComparisonAnalyticsResponse {
+  studentId: string;
+  rankingPercentile: number;
+  totalStudents: number;
+  student: {
+    averageScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    streak: number;
+  };
+  classAverage: {
+    averageScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    streak: number;
+  };
+  topStrengths: string[];
+  focusTopics: string[];
+}
+
 export interface LearningEventRequest {
+  student_id?: string;
   event_type: 'quiz' | 'exercise' | 'chat' | 'brainrush';
   score?: number;
   duration_sec?: number;
@@ -77,6 +183,59 @@ export interface LearningEventRequest {
     is_correct?: boolean;
     [key: string]: any;
   };
+}
+
+export type ActivityTraceAction =
+  | 'subject_open'
+  | 'page_view'
+  | 'page_leave'
+  | 'course_open'
+  | 'chapter_open'
+  | 'subchapter_open'
+  | 'content_open'
+  | 'video_start'
+  | 'video_pause'
+  | 'video_complete'
+  | 'quiz_start'
+  | 'quiz_submit'
+  | 'exercise_start'
+  | 'exercise_submit';
+
+export interface ActivityTraceRequest {
+  action: ActivityTraceAction;
+  page_path?: string;
+  resource_type?: string;
+  resource_id?: string;
+  resource_title?: string;
+  duration_sec?: number;
+  metadata?: Record<string, any>;
+}
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatbotAskRequest {
+  question: string;
+  conversation_history?: ChatMessage[];
+  mode?: string;
+  student_id?: string;
+}
+
+export interface ChatbotAskResponse {
+  status: string;
+  answer?: string;
+  sources?: Array<{
+    course_id?: string;
+    course_title?: string;
+    chunk_text?: string;
+    similarity?: number;
+  }>;
+  validation?: Record<string, any>;
+  pedagogical_response?: Record<string, any>;
+  pace_decision?: Record<string, any>;
+  intervention?: Record<string, any>;
+  continuous_recommendations?: any[];
 }
 
 export interface LearningAnalyticsItem {
@@ -152,6 +311,14 @@ export interface InterventionsEffectivenessGlobalResponse {
     by_type?: Record<string, number>;
   };
   message?: string;
+}
+
+export interface PersonalizedRecommendationsAiResponse {
+  status: string;
+  overall_level?: string;
+  overall_mastery?: number;
+  recommendations?: any[];
+  continuous_recommendations?: any[];
 }
 
 export interface EvaluateAnswerRequest {
@@ -338,13 +505,27 @@ export interface MonitorThroughputResponse {
   requests_per_minute?: number;
 }
 
+export interface PostEvaluationAreaScore {
+  topic: string;
+  score: number;
+  correct: number;
+  total: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
   private chatApiUrl = 'http://localhost:3000/api/chat/ai';
-  private goalsStorageKey = 'adaptive_learning_goals_v1';
+  private aiServiceUrl = 'http://localhost:8000';
+  private trackingApiUrl = 'http://localhost:3000/api';
+  private readonly learningRecommendationsSubject = new Subject<any[]>();
+  readonly learningRecommendations$ =
+    this.learningRecommendationsSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+  ) {}
 
   getProfile(userId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/profiles/${userId}`);
@@ -352,6 +533,26 @@ export class AdaptiveLearningService {
 
   getAllProfiles(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/profiles`);
+  }
+
+  getUnifiedStudentProfile(
+    studentId: string,
+  ): Observable<UnifiedStudentProfileResponse> {
+    return this.http.get<UnifiedStudentProfileResponse>(
+      `${this.apiUrl}/students/${studentId}/unified-profile`,
+    );
+  }
+
+  getStudentComparisonAnalytics(
+    studentId: string,
+  ): Observable<StudentComparisonAnalyticsResponse> {
+    return this.http.get<StudentComparisonAnalyticsResponse>(
+      `${this.apiUrl}/students/${studentId}/comparison`,
+    );
+  }
+
+  getAllPerformances(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/performances`);
   }
 
   createProfile(data: any): Observable<any> {
@@ -386,55 +587,70 @@ export class AdaptiveLearningService {
     );
   }
 
-  startLevelTest(studentId: string): Observable<any> {
-    // Call AI service to start level test (100% AI-generated questions)
-    return this.http.post<any>(`${this.chatApiUrl}/level-test/start`, {}).pipe(
-      map((aiResponse) => {
-        // Transform AI response to match component expectations
-        if (!aiResponse || !aiResponse.session_id) {
-          throw new Error('Invalid AI response');
-        }
-
-        const firstQuestion = aiResponse.first_question || {};
-        const totalQuestions = aiResponse.total_questions || 1;
-
-        // Build questions array with placeholders
-        // First question is real, rest are placeholders that will be fetched on demand
-        const questions = [firstQuestion];
-        for (let i = 1; i < totalQuestions; i++) {
-          questions.push({
-            questionIndex: i,
-            question: 'Loading next question...',
-            options: [],
-            difficulty: 'medium',
-            topic: 'Loading...',
-            subject: 'Loading...',
-            progress: { answered: i - 1, total: totalQuestions },
-          });
-        }
-
-        return {
-          _id: aiResponse.session_id, // Component expects _id for submit
-          session_id: aiResponse.session_id, // Keep for AI flow
-          questions,
-          total_questions: totalQuestions,
-          subjects: aiResponse.subjects || [],
-          status: 'in-progress',
-          answers: Array(totalQuestions)
-            .fill(null)
-            .map((_, i) => ({
-              questionIndex: i,
-              selectedAnswer: null,
-              timeSpent: 0,
-            })),
-          isAiGenerated: true,
-        };
-      }),
-      catchError((err) => {
-        console.error('Level test start error:', err);
-        throw err;
-      }),
+  getPersonalizedRecommendationsFromAi(
+    studentProfile: Record<string, any>,
+    nResults = 5,
+  ): Observable<PersonalizedRecommendationsAiResponse> {
+    return this.http.post<PersonalizedRecommendationsAiResponse>(
+      `${this.aiServiceUrl}/recommendations/personalized`,
+      {
+        student_profile: studentProfile || {},
+        n_results: nResults,
+      },
     );
+  }
+
+  getCollaborativeRecommendations(
+    studentId: string,
+  ): Observable<CollaborativeRecommendationsResponse> {
+    return this.http.get<CollaborativeRecommendationsResponse>(
+      `${this.apiUrl}/recommendations/collaborative/${studentId}`,
+    );
+  }
+
+  getStudyGroupSuggestions(
+    studentId: string,
+  ): Observable<StudyGroupSuggestionsResponse> {
+    return this.http.get<StudyGroupSuggestionsResponse>(
+      `${this.apiUrl}/study-groups/${studentId}`,
+    );
+  }
+
+  detectLearningStyle(studentId: string): Observable<LearningStyleResponse> {
+    return this.http.get<LearningStyleResponse>(
+      `${this.apiUrl}/learning-style/${studentId}`,
+    );
+  }
+
+  startLevelTest(studentId: string): Observable<any> {
+    return this.http
+      .post<any>(`${this.aiServiceUrl}/level-test/start`, {
+        student_id: studentId,
+        subjects: [],
+      })
+      .pipe(
+        map((aiResponse) => {
+          if (!aiResponse || !aiResponse.session_id) {
+            throw new Error('Invalid AI response');
+          }
+
+          return {
+            _id: aiResponse.session_id,
+            session_id: aiResponse.session_id,
+            first_question: aiResponse.first_question,
+            total_questions: aiResponse.total_questions,
+            subjects: aiResponse.subjects || [],
+            status: aiResponse.status || 'in-progress',
+            isAiGenerated: !!(
+              aiResponse?.isAiGenerated ?? aiResponse?.is_ai_generated
+            ),
+          };
+        }),
+        catchError((err) => {
+          console.error('Level test start error:', err);
+          throw err;
+        }),
+      );
   }
 
   submitLevelTest(testId: string, answers: any[]): Observable<any> {
@@ -443,28 +659,97 @@ export class AdaptiveLearningService {
     });
   }
 
-  startLevelTestStage(subjects?: string[]): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/ai/level-test/start`, {
+  startLevelTestStage(subjects?: string[], subjectId?: string): Observable<any> {
+    const studentId = this.resolveCurrentStudentId();
+    const body: any = {
+      student_id: studentId,
       subjects: subjects || [],
-    });
+    };
+    if (subjectId) {
+      body.subject_id = subjectId;
+    }
+    return this.http.post(`${this.aiServiceUrl}/level-test/start`, body);
   }
 
   submitLevelTestAnswer(sessionId: string, answer: string): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/ai/level-test/submit-answer`, {
+    return this.http.post(`${this.aiServiceUrl}/level-test/submit-answer`, {
       session_id: sessionId,
       answer,
     });
   }
 
   completeLevelTestStage(sessionId: string): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/ai/level-test/complete`, {
+    return this.http.post(`${this.aiServiceUrl}/level-test/complete`, {
       session_id: sessionId,
     });
   }
 
+  startPostEvaluationStage(weakAreas: string[] = []): Observable<any> {
+    const studentId = this.resolveCurrentStudentId();
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/start`, {
+      student_id: studentId,
+      weak_areas: weakAreas,
+    });
+  }
+
+  submitPostEvaluationAnswer(sessionId: string, answer: string): Observable<any> {
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/submit-answer`, {
+      session_id: sessionId,
+      answer,
+    });
+  }
+
+  completePostEvaluationStage(sessionId: string): Observable<any> {
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/complete`, {
+      session_id: sessionId,
+    });
+  }
+
+  getPostEvaluationSession(sessionId: string): Observable<any> {
+    return this.http.get(`${this.aiServiceUrl}/post-evaluation/session/${sessionId}`);
+  }
+
+  syncPostEvaluationProfileToBackend(
+    studentId: string,
+    profile: any,
+    sessionId?: string,
+    postEvaluationResult?: any,
+  ): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/post-evaluation/student/${studentId}/sync-profile`,
+      {
+        profile,
+        sessionId,
+        postEvaluationResult,
+      },
+    );
+  }
+
+  getLatestCompletedPostEvaluation(studentId: string): Observable<any> {
+    return this.http
+      .get(`${this.apiUrl}/post-evaluation/student/${studentId}/latest-completed`)
+      .pipe(catchError(() => of(null)));
+  }
+
+  syncLevelTestProfileToBackend(
+    studentId: string,
+    profile: any,
+    sessionId?: string,
+    levelTestResult?: any,
+  ): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/level-test/student/${studentId}/sync-profile`,
+      {
+        profile,
+        sessionId,
+        levelTestResult,
+      },
+    );
+  }
+
   getLevelTestSession(sessionId: string): Observable<any> {
     return this.http.get(
-      `${this.chatApiUrl}/ai/level-test/session/${sessionId}`,
+      `${this.aiServiceUrl}/level-test/session/${sessionId}`,
     );
   }
 
@@ -473,9 +758,9 @@ export class AdaptiveLearningService {
   }
 
   getLatestCompletedLevelTest(studentId: string): Observable<any> {
-    return this.http.get(
-      `${this.apiUrl}/level-test/student/${studentId}/latest-completed`,
-    );
+    return this.http
+      .get(`${this.apiUrl}/level-test/student/${studentId}/latest-completed`)
+      .pipe(catchError(() => of(null)));
   }
 
   markRecommendationViewed(id: string): Observable<any> {
@@ -527,11 +812,47 @@ export class AdaptiveLearningService {
   }
 
   recordLearningEvent(payload: LearningEventRequest): Observable<any> {
-    return this.http.post(`${this.chatApiUrl}/adaptive/event`, payload);
+    const studentId = payload.student_id || this.resolveCurrentStudentId();
+    return this.http
+      .post(`${this.aiServiceUrl}/learning-state/event`, {
+        ...payload,
+        student_id: studentId,
+      })
+      .pipe(
+        tap((response: any) => {
+          const recommendations = Array.isArray(
+            response?.continuous_recommendations,
+          )
+            ? response.continuous_recommendations
+            : [];
+          this.learningRecommendationsSubject.next(recommendations);
+        }),
+      );
+  }
+
+  recordActivity(payload: ActivityTraceRequest): Observable<any> {
+    return this.http.post(`${this.trackingApiUrl}/tracking/event`, payload);
+  }
+
+  askChatbot(payload: ChatbotAskRequest): Observable<ChatbotAskResponse> {
+    const studentId = payload.student_id || this.resolveCurrentStudentId();
+    return this.http.post<ChatbotAskResponse>(
+      `${this.aiServiceUrl}/chatbot/ask`,
+      {
+        question: payload.question,
+        conversation_history: payload.conversation_history || [],
+        mode: payload.mode || null,
+        student_id: studentId,
+      },
+    );
+  }
+
+  getLearningRecommendationsStream(): Observable<any[]> {
+    return this.learningRecommendations$;
   }
 
   getAdaptiveLearningState(studentId: string): Observable<any> {
-    return this.http.get(`${this.chatApiUrl}/learning-state/${studentId}`);
+    return this.http.get(`${this.aiServiceUrl}/learning-state/${studentId}`);
   }
 
   getLearningAnalytics(
@@ -542,7 +863,7 @@ export class AdaptiveLearningService {
       ? new HttpParams().set('refresh', 'true')
       : undefined;
     return this.http.get<LearningAnalyticsResponse>(
-      `${this.chatApiUrl}/analytics/learning/${studentId}`,
+      `${this.aiServiceUrl}/analytics/learning/${studentId}`,
       { params },
     );
   }
@@ -555,7 +876,7 @@ export class AdaptiveLearningService {
       ? new HttpParams().set('refresh', 'true')
       : undefined;
     return this.http.get<PaceAnalyticsResponse>(
-      `${this.chatApiUrl}/analytics/pace/${studentId}`,
+      `${this.aiServiceUrl}/analytics/pace/${studentId}`,
       { params },
     );
   }
@@ -568,7 +889,7 @@ export class AdaptiveLearningService {
       ? new HttpParams().set('refresh', 'true')
       : undefined;
     return this.http.get<ConceptsAnalyticsResponse>(
-      `${this.chatApiUrl}/analytics/concepts/${studentId}`,
+      `${this.aiServiceUrl}/analytics/concepts/${studentId}`,
       { params },
     );
   }
@@ -577,13 +898,13 @@ export class AdaptiveLearningService {
     studentId: string,
   ): Observable<InterventionsEffectivenessResponse> {
     return this.http.get<InterventionsEffectivenessResponse>(
-      `${this.chatApiUrl}/interventions/effectiveness/${studentId}`,
+      `${this.aiServiceUrl}/interventions/effectiveness/${studentId}`,
     );
   }
 
   getInterventionsEffectivenessGlobal(): Observable<InterventionsEffectivenessGlobalResponse> {
     return this.http.get<InterventionsEffectivenessGlobalResponse>(
-      `${this.chatApiUrl}/interventions/effectiveness`,
+      `${this.aiServiceUrl}/interventions/effectiveness`,
     );
   }
 
@@ -675,6 +996,11 @@ export class AdaptiveLearningService {
     );
   }
 
+  private resolveCurrentStudentId(): string | undefined {
+    const user = this.authService.getUser();
+    return user?.id || user?._id || undefined;
+  }
+
   getMonitorErrors(lastN = 50): Observable<MonitorErrorsResponse> {
     return this.http.get<MonitorErrorsResponse>(
       `${this.chatApiUrl}/monitor/errors?last_n=${lastN}`,
@@ -687,31 +1013,23 @@ export class AdaptiveLearningService {
     );
   }
 
-  getGoalSettings(studentId: string): GoalSettings | null {
-    const store = this.readGoalsStore();
-    return store[studentId] || null;
+  getGoalSettings(studentId: string): Observable<GoalSettings | null> {
+    return this.http
+      .get<GoalSettings | null>(`${this.apiUrl}/goals/${studentId}`)
+      .pipe(catchError(() => of(null)));
   }
 
-  saveGoalSettings(studentId: string, goals: GoalSettings): void {
-    const store = this.readGoalsStore();
-    store[studentId] = goals;
-    localStorage.setItem(this.goalsStorageKey, JSON.stringify(store));
+  saveGoalSettings(
+    studentId: string,
+    goals: GoalSettings,
+  ): Observable<GoalSettings> {
+    return this.http.put<GoalSettings>(
+      `${this.apiUrl}/goals/${studentId}`,
+      goals,
+    );
   }
 
-  resetGoalSettings(studentId: string): void {
-    const store = this.readGoalsStore();
-    delete store[studentId];
-    localStorage.setItem(this.goalsStorageKey, JSON.stringify(store));
-  }
-
-  private readGoalsStore(): Record<string, GoalSettings> {
-    try {
-      const raw = localStorage.getItem(this.goalsStorageKey);
-      if (!raw) return {};
-      const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch {
-      return {};
-    }
+  resetGoalSettings(studentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/goals/${studentId}`);
   }
 }

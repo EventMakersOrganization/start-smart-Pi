@@ -30,9 +30,39 @@ export class ChatApiService {
     return this.http.post(`${this.apiUrl}/room`, { name, participants });
   }
 
+  addMembersToRoom(roomId: string, participants: string[]): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/room/${roomId}/members`, { participants });
+  }
+
+  leaveRoom(roomId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/room/${roomId}/leave`, {});
+  }
+
+  renameRoom(roomId: string, name: string): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/room/${roomId}/rename`, { name });
+  }
+
+  uploadAvatar(roomId: string, file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return this.http.post(`${this.apiUrl}/room/${roomId}/avatar`, formData);
+  }
+
+  uploadAttachments(files: FileList): Observable<any[]> {
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+    return this.http.post<any[]>(`${this.apiUrl}/upload-attachments`, formData);
+  }
+
   getUsersByRole(role: string): Observable<any> {
     const t = new Date().getTime();
     return this.http.get(`http://localhost:3000/api/user?role=${role}&t=${t}`);
+  }
+
+  getAvailableInstructors(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/instructors/available`);
   }
 
   semanticSearch(query: string, nResults = 10): Observable<any> {
@@ -43,5 +73,17 @@ export class ChatApiService {
 
   aiHealthCheck(): Observable<any> {
     return this.http.get(`${this.apiUrl}/ai/health`);
+  }
+
+  deleteAiSession(sessionId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/ai/session/${sessionId}`);
+  }
+
+  deleteInstructorSession(sessionId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/instructor/session/${sessionId}`);
+  }
+
+  deleteRoom(roomId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/room/${roomId}`);
   }
 }

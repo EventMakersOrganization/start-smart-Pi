@@ -3,9 +3,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { BrainrushService } from '../../services/brainrush.service';
 import { ScoringService } from '../../services/scoring.service';
 import { SocketService } from '../../services/socket.service';
+import { AudioService } from '../../services/audio.service';
 
 // ─────────────────────────────────────────────
 // CIRCULAR TIMER
@@ -105,12 +107,17 @@ export class AnswerOptionComponent {
   @Input() isSelected = false;
   @Input() isCorrect = false;
   @Input() answered = false;
+  @Input() isLocked = false;
   @Output() select = new EventEmitter<void>();
 
-  onSelect() { if (!this.answered) this.select.emit(); }
+  onSelect() { if (!this.answered && !this.isLocked) this.select.emit(); }
 
   get buttonClass(): string {
-    if (!this.answered) return 'border-white/20 bg-white/5 text-white hover:border-blue-400 hover:bg-white/10 hover:scale-[1.01]';
+    if (!this.answered) {
+      if (this.isSelected) return 'border-blue-400 bg-blue-500/20 text-blue-300 scale-[1.01]';
+      if (this.isLocked) return 'border-white/5 bg-white/5 text-white/20 cursor-not-allowed grayscale-50 opacity-40';
+      return 'border-white/20 bg-white/5 text-white hover:border-blue-400 hover:bg-white/10 hover:scale-[1.01]';
+    }
     if (this.isCorrect) return 'border-green-400 bg-green-500/20 text-green-300';
     if (this.isSelected) return 'border-red-400 bg-red-500/20 text-red-300';
     return 'border-white/10 bg-white/5 text-white/40 cursor-not-allowed';
@@ -207,12 +214,27 @@ interface Question {
       <!-- ── MAIN CONTENT ── -->
       <div class="flex-1 flex flex-col items-center justify-center px-4 py-8 max-w-3xl w-full mx-auto">
 
-        <!-- Feedback Banner -->
-        <div *ngIf="feedbackState"
-          class="w-full mb-6 text-center py-4 px-6 rounded-2xl font-black text-2xl shadow-2xl border-2 fade-slide-in"
-          [ngClass]="feedbackState === 'correct' ? 'bg-green-500/30 border-green-400' : 'bg-red-500/30 border-red-400'">
-          <span *ngIf="feedbackState === 'correct'">🎉 Correct! +{{ lastPointsEarned }} pts</span>
-          <span *ngIf="feedbackState === 'wrong'">😔 Wrong! Answer: "{{ currentQuestion?.correctAnswer }}"</span>
+        <!-- ── FEEDBACK & STATUS CONTAINER (Fixed height to prevent layout shift) ── -->
+        <div class="w-full h-24 mb-6 relative flex items-center justify-center">
+          
+          <!-- Feedback Banner (Solo/Non-Overlay states) -->
+          <div *ngIf="feedbackState && !multiplayerLeaderboard"
+            class="absolute inset-0 text-center py-4 px-6 rounded-2xl font-black text-2xl shadow-2xl border-2 fade-slide-in flex items-center justify-center z-10"
+            [ngClass]="feedbackState === 'correct' ? 'bg-green-500/30 border-green-400' : 'bg-red-500/30 border-red-400'">
+            <span *ngIf="feedbackState === 'correct'">🎉 Correct! +{{ lastPointsEarned }} pts</span>
+            <span *ngIf="feedbackState === 'wrong'">😔 Wrong! Answer: "{{ currentQuestion?.correctAnswer }}"</span>
+          </div>
+  
+          <!-- Players Answered List (Multiplayer - only when no feedback yet) -->
+          <div *ngIf="isMultiplayer && !feedbackState" class="absolute inset-x-0 flex justify-center gap-2 flex-wrap fade-slide-in z-0">
+            <div *ngFor="let p of roomPlayers" 
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border"
+              [ngClass]="answeredPlayers.includes(p.socketId) ? 'bg-green-500/20 border-green-400 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-white/5 border-white/10 text-white/40'">
+              <span>{{ p.avatar }}</span>
+              <span>{{ p.username }}</span>
+              <span *ngIf="answeredPlayers.includes(p.socketId)" class="material-symbols-outlined text-[14px]">check_circle</span>
+            </div>
+          </div>
         </div>
 
         <!-- Question Card -->
@@ -234,6 +256,7 @@ interface Question {
               [isSelected]="selectedAnswer === opt"
               [isCorrect]="!!feedbackState && opt === currentQuestion.correctAnswer"
               [answered]="!!feedbackState"
+              [isLocked]="!!selectedAnswer"
               (select)="handleAnswer(opt)">
             </app-answer-option>
           </div>
@@ -262,6 +285,64 @@ interface Question {
           </div>
         </div>
       </div>
+      
+      <div *ngIf="multiplayerLeaderboard" 
+        class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 transition-all duration-500 overflow-y-auto">
+        <div class="bg-gray-900/90 border border-white/10 rounded-[2.5rem] p-10 max-w-xl w-full shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] fade-slide-in relative overflow-hidden">
+          
+          <!-- Background Glow Effect inside overlay -->
+          <div class="absolute -top-24 -right-24 w-64 h-64 bg-purple-600/20 blur-[100px] pointer-events-none rounded-full"></div>
+          <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-pink-600/20 blur-[100px] pointer-events-none rounded-full"></div>
+
+          <!-- Round Summary Status -->
+          <div class="text-center mb-8">
+            <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-[0.2em] mb-4"
+              [ngClass]="feedbackState === 'correct' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'">
+              {{ feedbackState === 'correct' ? 'Round Won! ✨' : 'Round Lost 💀' }}
+            </div>
+            <h3 class="text-4xl font-black text-white">Round Rankings</h3>
+          </div>
+
+          <!-- Rankings List -->
+          <div class="space-y-3 mb-10">
+            <div *ngFor="let p of multiplayerLeaderboard; let i = index" 
+              class="flex items-center gap-5 p-4 rounded-3xl transition-all border group"
+              [ngClass]="i === 0 ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-white/5 border-white/5 hover:bg-white/10'">
+              
+              <div class="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg"
+                 [ngClass]="i === 0 ? 'bg-yellow-400 text-yellow-950 shadow-lg shadow-yellow-400/20' : 'bg-white/10 text-white/40'">
+                {{ i + 1 }}
+              </div>
+
+              <div class="text-3xl grayscale-[0.3] group-hover:grayscale-0 transition-all">{{ p.avatar }}</div>
+
+              <div class="flex-1">
+                <div class="font-black text-lg flex items-center gap-2">
+                  {{ p.username }}
+                  <span *ngIf="p.socketId === socketService.socketId" class="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold">YOU</span>
+                </div>
+                <div class="text-xs font-bold text-white/40 uppercase tracking-widest">{{ p.score }} points</div>
+              </div>
+
+              <div class="flex items-center">
+                <span *ngIf="p.isCorrect" class="text-green-400 bg-green-400/20 p-1.5 rounded-full material-symbols-outlined text-[20px]">check</span>
+                <span *ngIf="!p.isCorrect" class="text-red-400 bg-red-400/20 p-1.5 rounded-full material-symbols-outlined text-[20px]">close</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col items-center gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-2 h-2 rounded-full bg-blue-400 animate-bounce"></div>
+              <div class="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style="animation-delay: 0.1s"></div>
+              <div class="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+            <div class="text-white/40 text-xs font-black uppercase tracking-[0.3em]">
+              Synchronizing next round...
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   `
 })
@@ -270,7 +351,10 @@ export class GamePlayComponent implements OnInit, OnDestroy {
 
   sessionId = '';
   roomCode = '';
+  username = 'Player';          // set from router state
+  avatar = '🎮';               // set from router state
   score = 0;
+
   combo = 1;
   timeLeft = 20;
   totalTime = 20;
@@ -286,10 +370,15 @@ export class GamePlayComponent implements OnInit, OnDestroy {
 
   powerUps = { doubler: 2, shield: 1, hint: 1, bonus: 3 };
 
+  multiplayerLeaderboard: any[] | null = null;
+  isMultiplayer = false;
+  private subs: Subscription[] = [];
   private timerInterval: any;
   private startTime = 0;
   private questions: any[] = [];
+  public roomPlayers: any[] = []; // for active status tracking
   private currentTopic = 'data_structures';
+  public answeredPlayers: string[] = []; // socketIds of players who chose an answer
 
   private demoQuestions: Question[] = [
     { questionId: 'q1', questionText: 'What is the time complexity of Binary Search?', options: ['O(n)', 'O(log n)', 'O(n²)', 'O(1)'], correctAnswer: 'O(log n)' },
@@ -299,7 +388,10 @@ export class GamePlayComponent implements OnInit, OnDestroy {
     { questionId: 'q5', questionText: 'Which SQL clause filters grouped results?', options: ['WHERE', 'HAVING', 'GROUP BY', 'ORDER BY'], correctAnswer: 'HAVING' }
   ];
 
-  get progressPct() { return Math.round((this.questionIndex / this.totalQuestions) * 100); }
+  get progressPct() {
+    if (this.isMultiplayer) return Math.round(((this.questionIndex + 1) / this.totalQuestions) * 100);
+    return Math.round((this.questionIndex / this.totalQuestions) * 100);
+  }
 
   get difficultyClass() {
     if (this.difficulty === 'easy') return 'bg-green-500/30 text-green-300';
@@ -311,8 +403,9 @@ export class GamePlayComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private service: BrainrushService,
-    private socketService: SocketService,
-    private scoringService: ScoringService
+    public socketService: SocketService,
+    private scoringService: ScoringService,
+    private audio: AudioService
   ) { }
 
   ngOnInit() {
@@ -321,42 +414,151 @@ export class GamePlayComponent implements OnInit, OnDestroy {
 
     this.sessionId = this.route.snapshot.paramMap.get('sessionId') || 'demo';
     this.roomCode = this.route.snapshot.paramMap.get('roomCode') || 'solo';
+    this.isMultiplayer = this.roomCode !== 'solo' && this.sessionId !== 'demo';
 
-    this.currentTopic = state?.topic || 'data_structures';
+    this.currentTopic = state?.topic || 'Programming';
     this.difficulty = state?.difficulty || 'medium';
+    this.username = state?.username || 'Player';
+    this.avatar = state?.avatar || '🎮';
+    this.roomPlayers = state?.players || [];
 
-    if (this.roomCode === 'solo' || this.sessionId === 'demo') {
-      this.fetchAiQuestions();
+    this.audio.startMusic('game');
+    this.audio.playSFX('start');
+
+    if (this.isMultiplayer) {
+      this.setupMultiplayerListeners(state);
     } else {
-      this.loadNextQuestion();
+      // solo, demo → use local AI session or fallback
+      this.fetchAiQuestions();
+    }
+  }
+
+  private setupMultiplayerListeners(state: any) {
+    this.totalQuestions = state?.totalQuestions || 5;
+    this.questionIndex = state?.initialIndex || 0;
+
+    // 1. Listen for next question
+    this.subs.push(
+      this.socketService.onNextQuestion().subscribe(({ question, index, total }) => {
+        this.multiplayerLeaderboard = null;
+        this.feedbackState = null;
+        this.selectedAnswer = null;
+        this.answeredPlayers = []; // Reset for the new round
+        this.questionIndex = index;
+        this.totalQuestions = total;
+        this.currentQuestion = {
+          questionId: question.id,
+          questionText: question.text,
+          options: question.options,
+          timeLimit: question.timeLimit
+        };
+        this.totalTime = question.timeLimit;
+        this.timeLeft = question.timeLimit;
+        this.startTime = Date.now();
+        this.audio.playSFX('start');
+      })
+    );
+
+    // 1b. Listen for answer activity
+    this.subs.push(
+      this.socketService.onPlayerAnswered().subscribe(({ socketId }) => {
+        if (!this.answeredPlayers.includes(socketId)) {
+          this.answeredPlayers.push(socketId);
+        }
+      })
+    );
+
+    // 2. Listen for timer sync
+    this.subs.push(
+      this.socketService.onTimerUpdate().subscribe(({ timeLeft }) => {
+        this.timeLeft = timeLeft;
+        if (timeLeft <= 3 && timeLeft > 0) this.audio.playSFX('click');
+      })
+    );
+
+    // 3. Listen for question results
+    this.subs.push(
+      this.socketService.onQuestionResults().subscribe(({ correctAnswer, explanation, leaderboard }) => {
+        if (this.currentQuestion) this.currentQuestion.correctAnswer = correctAnswer;
+        this.multiplayerLeaderboard = leaderboard;
+
+        // Find my score in leaderboard
+        const me = leaderboard.find(p => p.socketId === this.socketService.socketId);
+        if (me) {
+          this.score = me.score;
+          this.feedbackState = me.isCorrect ? 'correct' : 'wrong';
+          this.audio.playSFX(me.isCorrect ? 'correct' : 'wrong');
+        }
+      })
+    );
+
+    // 4. Listen for final results
+    this.subs.push(
+      this.socketService.onFinalResults().subscribe(({ ranking }) => {
+        this.router.navigate(['/brainrush/podium'], {
+          state: {
+            isMultiplayer: true,
+            roomCode: this.roomCode,
+            finalRanking: ranking
+          }
+        });
+      })
+    );
+
+    // If we arrived with firstQuestion in state, load it
+    if (state?.firstQuestion) {
+      this.currentQuestion = {
+        questionId: state.firstQuestion.id,
+        questionText: state.firstQuestion.text,
+        options: state.firstQuestion.options,
+        timeLimit: state.firstQuestion.timeLimit
+      };
+      this.totalTime = state.firstQuestion.timeLimit;
+      this.timeLeft = state.firstQuestion.timeLimit;
+      this.startTime = Date.now();
     }
   }
 
   fetchAiQuestions() {
-    this.service.generateAiSession(this.currentTopic, this.difficulty, 10).subscribe({
+    if (this.sessionId === 'demo') {
+      this.questions = [...this.demoQuestions];
+      this.totalQuestions = this.questions.length;
+      this.loadNextQuestion();
+      return;
+    }
+
+    this.service.initializeSoloSession(this.sessionId, this.currentTopic, this.difficulty).subscribe({
       next: (res: any) => {
         if (res.questions && res.questions.length > 0) {
           this.questions = res.questions.map((q: any) => ({
-            questionId: Math.random().toString(36).substr(2, 9),
+            questionId: q.questionId,
             questionText: q.question,
             options: q.options,
             correctAnswer: q.correct_answer,
-            points: q.points,
-            timeLimit: q.time_limit
+            points: q.points || 100,
+            timeLimit: q.time_limit || 20
           }));
           this.totalQuestions = this.questions.length;
           this.loadNextQuestion();
         } else {
-          this.loadNextQuestion(); // Fallback to demo
+          this.questions = [...this.demoQuestions];
+          this.totalQuestions = this.questions.length;
+          this.loadNextQuestion();
         }
       },
       error: () => {
-        this.loadNextQuestion(); // Fallback to demo
+        this.questions = [...this.demoQuestions];
+        this.totalQuestions = this.questions.length;
+        this.loadNextQuestion();
       }
     });
   }
 
-  ngOnDestroy() { this.stopTimer(); }
+  ngOnDestroy() {
+    this.stopTimer();
+    this.audio.stopMusic();
+    this.subs.forEach(s => s.unsubscribe());
+  }
 
   loadNextQuestion() {
     this.currentQuestion = null;
@@ -407,14 +609,32 @@ export class GamePlayComponent implements OnInit, OnDestroy {
   stopTimer() { clearInterval(this.timerInterval); }
 
   handleAnswer(answer: string) {
-    if (this.feedbackState || !this.currentQuestion) return;
-    this.stopTimer();
+    if (this.feedbackState || !this.currentQuestion || this.selectedAnswer) return;
     this.selectedAnswer = answer;
     const elapsed = Date.now() - this.startTime;
+
+    if (this.isMultiplayer) {
+      // Server-authoritative answer submission
+      this.socketService.submitAnswer(this.roomCode, answer, elapsed);
+      // Immediately track locally
+      if (!this.answeredPlayers.includes(this.socketService.socketId)) {
+        this.answeredPlayers.push(this.socketService.socketId);
+      }
+      return;
+    }
+
+    // Solo logic remains local
+    this.stopTimer();
     const isCorrect = answer === this.currentQuestion.correctAnswer;
 
+    // Log solo answer to backend for stats if not demo
+    if (this.sessionId !== 'demo') {
+      this.service.submitAnswer(this.sessionId, this.currentQuestion.questionId, answer, elapsed).subscribe({
+        error: (err) => console.error('[Solo] Submit Answer Error:', err)
+      });
+    }
+
     if (isCorrect) {
-      // Favor question-specific points if provided by AI service
       const base = this.currentQuestion.points || (this.difficulty === 'hard' ? 300 : this.difficulty === 'medium' ? 200 : 100);
       const bonus = Math.max(0, Math.floor((this.totalTime * 1000 - elapsed) / 500));
       const points = (base + bonus) * this.combo;
@@ -422,18 +642,14 @@ export class GamePlayComponent implements OnInit, OnDestroy {
       this.lastPointsEarned = points;
       this.combo++;
       this.feedbackState = 'correct';
+      this.audio.playSFX('correct');
       this.scorePopped = true;
       setTimeout(() => this.scorePopped = false, 600);
     } else {
       this.combo = 1;
       this.feedbackState = 'wrong';
+      this.audio.playSFX('wrong');
     }
-
-    // Adapt difficulty
-    if (isCorrect && this.difficulty === 'easy') this.difficulty = 'medium';
-    else if (isCorrect && this.difficulty === 'medium') this.difficulty = 'hard';
-    else if (!isCorrect && this.difficulty === 'hard') this.difficulty = 'medium';
-    else if (!isCorrect && this.difficulty === 'medium') this.difficulty = 'easy';
 
     this.scoringService.setScore(this.score);
 
@@ -446,6 +662,7 @@ export class GamePlayComponent implements OnInit, OnDestroy {
 
   usePowerUp(type: keyof typeof this.powerUps) {
     if (this.powerUps[type] <= 0) return;
+    this.audio.playSFX('powerup');
     this.powerUps[type]--;
     if (type === 'doubler') this.combo = Math.min(this.combo + 1, 6);
     if (type === 'bonus') { this.score += 150; this.scoringService.setScore(this.score); }
@@ -453,9 +670,50 @@ export class GamePlayComponent implements OnInit, OnDestroy {
 
   endGame() {
     this.finished = true;
-    if (this.sessionId !== 'demo') {
-      this.service.finishGame(this.sessionId).subscribe((res: any) => {
-        this.router.navigate(['/brainrush/podium'], { state: { result: res } });
+    this.stopTimer();
+
+    const isMultiplayer = this.sessionId === 'multiplayer';
+
+    if (isMultiplayer) {
+      // Emit final score to all room members
+      this.socketService.submitFinalScore(
+        this.roomCode,
+        this.username,
+        this.avatar,
+        this.score,
+        this.difficulty
+      );
+
+      // Navigate to podium — scores will be aggregated there via socket
+      this.router.navigate(['/brainrush/podium'], {
+        state: {
+          isMultiplayer: true,
+          roomCode: this.roomCode,
+          myScore: this.score,
+          myUsername: this.username,
+          myAvatar: this.avatar,
+          myDifficulty: this.difficulty,
+        }
+      });
+
+    } else if (this.sessionId !== 'demo') {
+      this.service.finishGame(this.sessionId).subscribe({
+        next: (res: any) => {
+          this.router.navigate(['/brainrush/podium'], { state: { result: res } });
+        },
+        error: (err: any) => {
+          console.error('[Solo] Finish Game Error:', err);
+          // Fallback redirect even on error so user isn't stuck
+          this.router.navigate(['/brainrush/podium'], {
+            state: {
+              result: {
+                score: this.score,
+                difficultyAchieved: this.difficulty,
+                aiFeedback: 'Practice makes perfect!'
+              }
+            }
+          });
+        }
       });
     } else {
       this.router.navigate(['/brainrush/podium'], {

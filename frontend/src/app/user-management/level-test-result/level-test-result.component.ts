@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-level-test-result',
@@ -9,6 +10,7 @@ import { AdaptiveLearningService } from '../adaptive-learning.service';
 })
 export class LevelTestResultComponent implements OnInit {
   result: any = null;
+  resultType: 'level-test' | 'post-evaluation' = 'level-test';
   totalTimeSeconds = 0;
   recommendations: any[] = [];
   loadingRecs = true;
@@ -17,6 +19,7 @@ export class LevelTestResultComponent implements OnInit {
   // Stats par topic calculées depuis les réponses
   topicStats: {
     topic: string;
+    chapter?: string;
     correct: number;
     total: number;
     percent: number;
@@ -28,35 +31,66 @@ export class LevelTestResultComponent implements OnInit {
   constructor(
     private router: Router,
     private adaptiveService: AdaptiveLearningService,
+    private authService: AuthService,
   ) {}
 
-  ngOnInit(): void {
-    const nav = this.router.getCurrentNavigation?.()?.extras?.state as any;
-    this.result =
-      nav?.['result'] || (history.state && history.state['result']) || null;
-    this.aiPersonalizedRecommendations =
-      nav?.['aiPersonalizedRecommendations'] ||
-      (history.state && history.state['aiPersonalizedRecommendations']) ||
-      [];
+  private buildProfileFallbackResult(profile: any, studentId: string): any {
+    const strengths = Array.isArray(profile?.strengths)
+      ? profile.strengths
+      : [];
+    const weaknesses = Array.isArray(profile?.weaknesses)
+      ? profile.weaknesses
+      : [];
+    const totalScore = Number(profile?.progress ?? 0) || 0;
 
+    return {
+      studentId,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      totalScore,
+      resultLevel: profile?.level || 'beginner',
+      questions: [],
+      answers: [],
+      detectedStrengths: strengths.map((topic: string) => ({
+        topic,
+        score: totalScore,
+      })),
+      detectedWeaknesses: weaknesses.map((topic: string) => ({
+        topic,
+        score: Math.max(0, 100 - totalScore),
+      })),
+    };
+  }
+
+  private normalizeResult(raw: any): any {
+    if (!raw) return null;
+    return {
+      ...raw,
+      studentId: raw.studentId || raw.student_id,
+      totalScore:
+        Number(raw.totalScore ?? raw.score ?? raw.overall_mastery ?? 0) || 0,
+      resultLevel:
+        raw.resultLevel || raw.level || raw.overall_level || 'beginner',
+      questions: Array.isArray(raw.questions) ? raw.questions : [],
+      answers: Array.isArray(raw.answers) ? raw.answers : [],
+    };
+  }
+
+  private initializeFromResult(result: any): void {
+    this.result = this.normalizeResult(result);
     if (!this.result) {
       this.router.navigate(['/student-dashboard']);
       return;
     }
 
-    // Calcul temps total
     this.totalTimeSeconds = (this.result.answers || []).reduce(
       (s: number, a: any) => s + (a.timeSpent || 0),
       0,
     );
 
-    // Calcul stats par topic
     this.calculateTopicStats();
-
-    // Génère explication AI
     this.generateAIExplanation();
 
-    // Prefer AI personalized recommendations if already available from level-test completion.
     if (
       Array.isArray(this.aiPersonalizedRecommendations) &&
       this.aiPersonalizedRecommendations.length > 0
@@ -64,31 +98,117 @@ export class LevelTestResultComponent implements OnInit {
       this.recommendations = this.aiPersonalizedRecommendations;
       this.loadingRecs = false;
     } else if (this.result.studentId) {
-      // Otherwise fallback to stored recommendations from backend.
       this.loadRecommendations(this.result.studentId);
     } else {
       this.loadingRecs = false;
     }
   }
 
+  ngOnInit(): void {
+    const nav = this.router.getCurrentNavigation?.()?.extras?.state as any;
+    const navResult =
+      nav?.['result'] || (history.state && history.state['result']) || null;
+    this.aiPersonalizedRecommendations =
+      nav?.['aiPersonalizedRecommendations'] ||
+      (history.state && history.state['aiPersonalizedRecommendations']) ||
+      [];
+    this.resultType =
+      (nav?.['resultType'] ||
+        (history.state && history.state['resultType']) ||
+        navResult?.assessmentType ||
+        'level-test') === 'post-evaluation'
+        ? 'post-evaluation'
+        : 'level-test';
+
+    if (navResult) {
+      this.initializeFromResult(navResult);
+
+      const navStudentId =
+        navResult?.studentId ||
+        navResult?.student_id ||
+        this.authService.getUser()?._id ||
+        this.authService.getUser()?.id;
+
+      if (navStudentId) {
+        // Canonicalize with backend data so this page always matches what is
+        // shown later from "Level Test Result" sidebar access.
+        this.adaptiveService
+          .getLatestCompletedLevelTest(navStudentId)
+          .subscribe({
+            next: (latest) => {
+              if (latest) {
+                this.initializeFromResult(latest);
+              }
+            },
+            error: () => {
+              // Keep current navigation-state result if backend fetch fails.
+            },
+          });
+      }
+
+      return;
+    }
+
+    const user = this.authService.getUser();
+    const studentId = user?._id || user?.id;
+    if (!studentId) {
+      this.router.navigate(['/student-dashboard']);
+      return;
+    }
+
+    const latest$ =
+      this.resultType === 'post-evaluation'
+        ? this.adaptiveService.getLatestCompletedPostEvaluation(studentId)
+        : this.adaptiveService.getLatestCompletedLevelTest(studentId);
+    latest$.subscribe({
+      next: (latest) => {
+        if (latest) {
+          this.initializeFromResult(latest);
+          return;
+        }
+
+        this.adaptiveService.getProfile(studentId).subscribe({
+          next: (profile) => {
+            if (!profile?.levelTestCompleted) {
+              this.router.navigate(['/student-dashboard']);
+              return;
+            }
+            this.initializeFromResult(
+              this.buildProfileFallbackResult(profile, studentId),
+            );
+          },
+          error: () => {
+            this.router.navigate(['/student-dashboard']);
+          },
+        });
+      },
+      error: () => {
+        this.router.navigate(['/student-dashboard']);
+      },
+    });
+  }
+
   calculateTopicStats(): void {
-    const topicMap: Record<string, { correct: number; total: number }> = {};
+    const topicMap: Record<string, { topic: string; chapter?: string; correct: number; total: number }> = {};
 
     (this.result.questions || []).forEach((q: any, index: number) => {
       const topic = q.topic || 'General';
-      if (!topicMap[topic]) {
-        topicMap[topic] = { correct: 0, total: 0 };
+      const chapter = q.chapter_title || q.chapter || '';
+      const key = `${chapter}__${topic}`;
+      if (!topicMap[key]) {
+        topicMap[key] = { topic, chapter, correct: 0, total: 0 };
       }
-      topicMap[topic].total++;
+      topicMap[key].total++;
 
       const answer = this.result.answers?.[index];
       if (answer?.isCorrect) {
-        topicMap[topic].correct++;
+        topicMap[key].correct++;
       }
     });
 
-    this.topicStats = Object.entries(topicMap).map(([topic, stat]) => ({
-      topic,
+    this.topicStats = Object.values(topicMap).map((stat) => ({
+      topic: stat.topic,
+      chapter: stat.chapter,
       correct: stat.correct,
       total: stat.total,
       percent: Math.round((stat.correct / stat.total) * 100),
@@ -175,6 +295,12 @@ export class LevelTestResultComponent implements OnInit {
   }
 
   retakeTest(): void {
+    if (this.resultType === 'post-evaluation') {
+      this.router.navigate(['/student-dashboard/level-test'], {
+        queryParams: { mode: 'post-evaluation' },
+      });
+      return;
+    }
     this.router.navigate(['/student-dashboard/level-test']);
   }
 

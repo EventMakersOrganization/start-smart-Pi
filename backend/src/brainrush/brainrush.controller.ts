@@ -16,21 +16,30 @@ export class BrainrushController {
   constructor(
     private readonly brainrushService: BrainrushService,
     private readonly leaderboardService: LeaderboardService,
-  ) {}
+  ) { }
 
   @Post('create-room')
   createRoom(@Body() dto: CreateRoomDto, @Req() req: any) {
-    return this.brainrushService.createRoom(dto, req.user._id);
+    return this.brainrushService.createRoom(dto, req.user.id || req.user._id);
   }
 
   @Post('join-room')
   joinRoom(@Body() dto: JoinRoomDto, @Req() req: any) {
-    return this.brainrushService.joinRoom(dto, req.user._id);
+    return this.brainrushService.joinRoom(dto, req.user.id || req.user._id);
+  }
+
+  @Post(':sessionId/initialize-solo')
+  initializeSolo(
+    @Param('sessionId') sessionId: string,
+    @Body() body: { topic: string; difficulty: string },
+    @Req() req: any
+  ) {
+    return this.brainrushService.generateSoloSession(sessionId, req.user.id || req.user._id, body.topic, body.difficulty);
   }
 
   @Get(':sessionId/next-question')
   getNextQuestion(@Param('sessionId') sessionId: string, @Req() req: any) {
-    return this.brainrushService.getNextQuestion(sessionId, req.user._id);
+    return this.brainrushService.getNextQuestion(sessionId, req.user.id || req.user._id);
   }
 
   @Post(':sessionId/submit-answer')
@@ -39,12 +48,17 @@ export class BrainrushController {
     @Body() dto: SubmitAnswerDto,
     @Req() req: any,
   ) {
-    return this.brainrushService.submitAnswer(sessionId, req.user._id, dto);
+    return this.brainrushService.submitAnswer(sessionId, req.user.id || req.user._id, dto);
   }
 
   @Post(':sessionId/finish')
   finishGame(@Param('sessionId') sessionId: string, @Req() req: any) {
-    return this.brainrushService.finishGame(sessionId, req.user._id);
+    return this.brainrushService.finishGame(sessionId, req.user.id || req.user._id);
+  }
+
+  @Get('stats/solo')
+  getSoloStats(@Req() req: any) {
+    return this.brainrushService.getSoloStats(req.user.id || req.user._id);
   }
 
   @Get(':sessionId/leaderboard')

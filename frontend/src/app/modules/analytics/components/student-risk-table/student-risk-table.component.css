@@ -1,0 +1,45 @@
+.risk-level {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.risk-level.low {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+.risk-level.medium {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.risk-level.high {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.alert-status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.alert-status.pending {
+  background-color: rgba(37, 99, 235, 0.14);
+  color: #1e3a8a;
+}
+
+.alert-status.reviewed {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
+.alert-status.resolved {
+  background-color: rgba(100, 116, 139, 0.14);
+  color: #334155;
+}

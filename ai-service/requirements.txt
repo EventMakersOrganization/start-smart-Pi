@@ -10,6 +10,8 @@ uvicorn
 PyPDF2
 python-docx
 python-pptx
+Pillow>=10.0
+requests>=2.31
 
 # Test & CI
 pytest>=7.4

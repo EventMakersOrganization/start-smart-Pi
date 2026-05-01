@@ -1,8 +1,10 @@
+// ...existing code...
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Subscription, filter } from 'rxjs';
+import { Subscription, filter, forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import {
   AdaptiveLearningService,
   ClassifyDifficultyBatchResponse,
@@ -18,8 +20,13 @@ import {
   FeedbackRecommendationsResponse,
   EvaluateBatchResponse,
   EvaluateAnswerResponse,
+  GoalSettings,
   LearningAnalyticsResponse,
 } from '../adaptive-learning.service';
+import {
+  SubjectItem as DbSubjectItem,
+  SubjectsService,
+} from '../subjects.service';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -27,6 +34,7 @@ import {
   styleUrls: ['./student-dashboard.component.css'],
 })
 export class StudentDashboardComponent implements OnInit, OnDestroy {
+  showAllRecommendations = false;
   user: any;
   profileData: any = null;
 
@@ -34,6 +42,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   adaptiveProfile: any = null;
   learningState: any = null;
   recommendations: any[] = [];
+  recommendationsLoading = false;
+  recommendationsError = '';
   performances: any[] = [];
   adaptiveLoading = true;
   adaptivePace = 'unknown';
@@ -181,55 +191,58 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   classifyBatchError = '';
   classifyBatchResult: ClassifyDifficultyBatchResponse | null = null;
 
-  // Stats
+  // Stats — `progress` = average score from real learning activities in the selected period (not level test)
   progress = 0;
+  /** Latest level test score from profile (shown separately from course progress). */
+  levelTestScore = 0;
   performance = 0;
   completedModules = 0;
   totalModules = 20;
   learningStreak = 0;
   studyHours = 0;
+  goalSettings: GoalSettings | null = null;
 
   goalTracking: any = {
     studyHoursCompleted: 0,
-    studyHoursGoal: 15,
+    studyHoursGoal: 0,
     quizSuccess: 0,
+    quizSuccessGoal: 0,
+    hasGoals: false,
+    targetTopic: 'general',
+    deadline: '',
   };
 
   alerts: any[] = [];
+  backendRiskAlerts: any[] = [];
+  postEvaluationInProgress = false;
   showProfileSidebar = false;
   activeNav = 'dashboard';
   private routerEventsSubscription?: Subscription;
+  private recommendationsSubscription?: Subscription;
+  collaborativeRecommendations: any[] = [];
+  collaborativeBasedOn = '';
+  collaborativeSimilarStudents = 0;
+  studyGroupSuggestions: any[] = [];
+  studyGroupBestMatch: any | null = null;
+  studyGroupsAnalyzed = 0;
+  learningStyleInsight: any | null = null;
+  adaptiveInsightsLoading = false;
+  adaptiveInsightsError = '';
 
   // Topic scores pour les progress rings
   topicRings: any[] = [];
+  subjectProgressRings: Array<{ name: string; score: number }> = [];
+  learningProgressPeriod: 'weekly' | 'monthly' = 'weekly';
 
-  suggestedCourses: any[] = [
-    {
-      title: 'Advanced Angular Patterns',
-      image: 'assets/img/angular.png',
-      level: 'Intermediate',
-      duration: '4h 30m',
-    },
-    {
-      title: 'Machine Learning Basics',
-      image: 'assets/img/ml.png',
-      level: 'Beginner',
-      duration: '6h 15m',
-    },
-    {
-      title: 'UI/UX Design Principles',
-      image: 'assets/img/design.png',
-      level: 'Beginner',
-      duration: '3h 45m',
-    },
-  ];
+  suggestedCourses: any[] = [];
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private http: HttpClient,
     private adaptiveService: AdaptiveLearningService,
-  ) {}
+    private subjectsService: SubjectsService,
+  ) { }
 
   private collectRoles(): string[] {
     const normalized = new Set<string>();
@@ -297,12 +310,22 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         ),
       )
       .subscribe((event) => this.syncActiveNavFromUrl(event.urlAfterRedirects));
+    this.recommendationsSubscription = this.adaptiveService
+      .getLearningRecommendationsStream()
+      .subscribe((recommendations) => {
+        if (Array.isArray(recommendations)) {
+          this.recommendations = recommendations;
+          this.suggestedCourses = this.mapRecommendationCards(recommendations);
+          this.updateAlerts();
+        }
+      });
     this.loadProfile();
     this.ensureInternalOpsDataLoaded();
     if (this.user) {
       const forceAnalyticsRefresh = this.consumeForceAnalyticsRefreshFlag();
       this.loadUserInfo();
       this.loadAdaptiveData(forceAnalyticsRefresh);
+      this.loadBackendInterventionAlerts();
     }
   }
 
@@ -312,6 +335,277 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       this.relativeClockHandle = null;
     }
     this.routerEventsSubscription?.unsubscribe();
+    this.recommendationsSubscription?.unsubscribe();
+  }
+
+  private mapRecommendationCards(recommendations: any[]): any[] {
+    return (recommendations || []).slice(0, 6).map((rec, index) => {
+      const subjectRaw = String(rec?.subject || '').trim();
+      const fromContent = String(rec?.recommendedContent || '').split(
+        /[—\-]/,
+      )[0];
+      const title = this.cleanRecommendationText(
+        rec?.title || subjectRaw || fromContent || rec?.topic || rec?.name,
+      );
+
+      const reason = this.cleanRecommendationText(
+        rec?.rationale ||
+        rec?.reason ||
+        rec?.description ||
+        rec?.relevant_material_preview ||
+        rec?.action,
+      );
+
+      const successProbability = this.normalizePercent(
+        rec?.predicted_success_probability ?? rec?.success_probability,
+      );
+      const effortHours = Number(rec?.estimated_effort_hours);
+
+      const subjectKey =
+        subjectRaw || String(rec?.topic || rec?.name || title || '').trim();
+
+      return {
+        id: rec?._id || rec?.id || `rec-${index}`,
+        title: title || `Recommendation ${index + 1}`,
+        subjectKey,
+        reason: reason || 'Updated from your latest progress.',
+        level: this.cleanRecommendationText(
+          rec?.priority ||
+          rec?.type ||
+          rec?.category ||
+          rec?.suggestedDifficulty,
+        ),
+        duration:
+          Number.isFinite(effortHours) && effortHours > 0
+            ? `${effortHours}h effort`
+            : `${successProbability}% success`,
+      };
+    });
+  }
+
+  navigateToRecommendedCourse(course: {
+    subjectKey?: string;
+    title?: string;
+  }): void {
+    const q = String(course?.subjectKey || course?.title || '').trim();
+    if (!q) {
+      this.router.navigate(['/student-dashboard/my-courses']);
+      return;
+    }
+    this.router.navigate(['/student-dashboard/my-courses'], {
+      queryParams: { subject: q },
+    });
+  }
+
+  navigateToMyCoursesRecommendations(): void {
+    this.showAllRecommendations = !this.showAllRecommendations;
+  }
+
+  private cleanRecommendationText(value: unknown): string {
+    const raw = String(value || '').trim();
+    if (!raw) {
+      return '';
+    }
+
+    let cleaned = raw
+      .replace(/undefined/gi, '')
+      .replace(/\(\s*\/\s*correct\s*\)/gi, '')
+      .replace(/\(\s*\/\s*\)/g, '')
+      .replace(/\(\s*correct\s*\)/gi, '')
+      .replace(/\(\s*\)/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    cleaned = cleaned.replace(/^[-:;,\s]+/, '').replace(/[-:;,\s]+$/, '');
+    return cleaned;
+  }
+
+  getLearningStyleConfidencePercent(): number {
+    return this.normalizePercent(this.learningStyleInsight?.confidence);
+  }
+
+  formatCompatibilityScore(score: unknown): string {
+    const value = Number(score);
+    if (!Number.isFinite(value)) {
+      return '0';
+    }
+    if (Math.abs(value - Math.round(value)) < 0.01) {
+      return String(Math.round(value));
+    }
+    return value.toFixed(2).replace(/\.00$/, '');
+  }
+
+  formatGroupTypeLabel(groupType: unknown): string {
+    const raw = String(groupType || '')
+      .trim()
+      .toLowerCase();
+    if (!raw) {
+      return 'unknown';
+    }
+    if (raw === 'mixed') {
+      return 'mixed';
+    }
+    if (raw === 'advanced') {
+      return 'advanced';
+    }
+    if (raw === 'remediation') {
+      return 'remediation';
+    }
+    return raw;
+  }
+
+  private normalizeCollaborativeRecommendations(items: any[]): any[] {
+    return (items || []).map((rec: any) => ({
+      topic: this.cleanRecommendationText(rec?.topic || rec?.name || 'General'),
+      reason: this.cleanRecommendationText(
+        rec?.reason || rec?.rationale || rec?.description,
+      ),
+      similarStudentsCount: Number(
+        rec?.similarStudentsCount ?? rec?.similar_students_count ?? 0,
+      ),
+      averageSuccessRate: this.normalizePercent(
+        rec?.averageSuccessRate ?? rec?.average_success_rate ?? 0,
+      ),
+      suggestedDifficulty: this.cleanRecommendationText(
+        rec?.suggestedDifficulty || rec?.suggested_difficulty || 'adaptive',
+      ),
+    }));
+  }
+
+  private normalizeStudyGroupSuggestions(groups: any[]): any[] {
+    return (groups || []).map((group: any) => ({
+      groupName: this.cleanRecommendationText(
+        group?.groupName || group?.group_name || 'Study Group',
+      ),
+      groupType: this.formatGroupTypeLabel(
+        group?.groupType || group?.group_type,
+      ),
+      commonTopics: Array.isArray(group?.commonTopics)
+        ? group.commonTopics
+        : Array.isArray(group?.common_topics)
+          ? group.common_topics
+          : [],
+      compatibilityScore: Number(
+        group?.compatibilityScore ?? group?.compatibility_score ?? 0,
+      ),
+    }));
+  }
+
+  private normalizeLearningStyleInsight(style: any): any | null {
+    if (!style || typeof style !== 'object') {
+      return null;
+    }
+
+    return {
+      ...style,
+      primaryStyle:
+        style?.primaryStyle || style?.primary_style || 'Learning style pending',
+      secondaryStyle: style?.secondaryStyle || style?.secondary_style || null,
+      styleDescription:
+        style?.styleDescription ||
+        style?.style_description ||
+        'More performance data is needed for detailed learning style insights.',
+      learningTips: Array.isArray(style?.learningTips)
+        ? style.learningTips
+        : Array.isArray(style?.learning_tips)
+          ? style.learning_tips
+          : [],
+      confidence: this.normalizePercent(
+        style?.confidence ?? style?.confidence_score,
+      ),
+    };
+  }
+
+  private buildAiRecommendationProfile(userId: string): Record<string, any> {
+    const profile = this.adaptiveProfile || {};
+
+    const weakFromProfile = Array.isArray(profile?.weaknesses)
+      ? profile.weaknesses
+      : [];
+    const weakFromConcepts = Array.isArray(this.conceptWeaknesses)
+      ? this.conceptWeaknesses
+        .map((item: any) => String(item?.concept || '').trim())
+        .filter((item: string) => !!item)
+      : [];
+
+    const weaknesses = Array.from(
+      new Set([...weakFromProfile, ...weakFromConcepts]),
+    );
+    const sourceRecommendations = Array.isArray(profile?.recommendations)
+      ? profile.recommendations
+      : [];
+
+    const recommendations =
+      sourceRecommendations.length > 0
+        ? sourceRecommendations
+        : weaknesses.slice(0, 6).map((topic) => ({
+          subject: topic,
+          focus_topics: [topic],
+          priority: 'high',
+          rationale: `Reinforce ${topic} through guided practice.`,
+        }));
+
+    return {
+      ...profile,
+      student_id: userId,
+      weaknesses,
+      recommendations,
+    };
+  }
+
+  private loadRecommendationCards(userId: string): void {
+    this.recommendationsLoading = true;
+    this.recommendationsError = '';
+
+    const aiProfile = this.buildAiRecommendationProfile(userId);
+
+    this.adaptiveService
+      .getPersonalizedRecommendationsFromAi(aiProfile, 6)
+      .subscribe({
+        next: (result) => {
+          const aiContinuous = Array.isArray(result?.continuous_recommendations)
+            ? result.continuous_recommendations
+            : [];
+          const aiPersonalized = Array.isArray(result?.recommendations)
+            ? result.recommendations
+            : [];
+          const merged =
+            aiContinuous.length > 0 ? aiContinuous : aiPersonalized;
+
+          if (merged.length > 0) {
+            this.recommendations = merged;
+            this.suggestedCourses = this.mapRecommendationCards(merged);
+            this.recommendationsLoading = false;
+            this.updateAlerts();
+            return;
+          }
+
+          this.loadBackendRecommendationCards(userId);
+        },
+        error: () => {
+          this.loadBackendRecommendationCards(userId);
+        },
+      });
+  }
+
+  private loadBackendRecommendationCards(userId: string): void {
+    this.adaptiveService.getRecommendations(userId).subscribe({
+      next: (data) => {
+        this.recommendations = Array.isArray(data) ? data : [];
+        this.suggestedCourses = this.mapRecommendationCards(
+          this.recommendations,
+        );
+        this.recommendationsLoading = false;
+        this.updateAlerts();
+      },
+      error: () => {
+        this.recommendations = [];
+        this.suggestedCourses = [];
+        this.recommendationsLoading = false;
+        this.recommendationsError =
+          'Unable to load personalized recommendations.';
+      },
+    });
   }
 
   loadUserInfo(): void {
@@ -336,22 +630,27 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
       next: (data) => {
         this.profileData = data;
-        if (this.user && data?.user?.phone) {
-          this.user.phone = data.user.phone;
-        }
-        this.ensureInternalOpsDataLoaded();
+        this.user = {
+          ...(this.user || {}),
+          ...(data?.user || {}),
+          class: data?.profile?.class ?? data?.profile?.academic_level,
+          risk_level: data?.profile?.risk_level,
+          points_gamification: data?.profile?.points_gamification,
+        };
       },
-      error: () => {},
+      error: () => { },
     });
   }
 
   loadAdaptiveData(forceAnalyticsRefresh = false): void {
     const userId = this.user._id || this.user.id;
 
-    this.loadLearningAnalytics('me', forceAnalyticsRefresh);
-    this.loadPaceAnalytics('me', forceAnalyticsRefresh);
-    this.loadConceptsAnalytics('me', forceAnalyticsRefresh);
+    this.loadSubjectProgressRings();
+    this.loadLearningAnalytics(userId, forceAnalyticsRefresh);
+    this.loadPaceAnalytics(userId, forceAnalyticsRefresh);
+    this.loadConceptsAnalytics(userId, forceAnalyticsRefresh);
     this.loadInterventionsEffectivenessGlobal();
+    this.loadGoalSettingsForDashboard(userId);
 
     // ── Charger état adaptatif courant (AI service) ──
     this.adaptiveService.getAdaptiveLearningState(userId).subscribe({
@@ -399,10 +698,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.adaptiveService.getProfile(userId).subscribe({
       next: (data) => {
         this.adaptiveProfile = data;
-        this.progress = data.progress || 0;
+        this.levelTestScore =
+          Number(data?.levelTestScore ?? data?.level_test_score ?? 0) || 0;
         this.adaptiveLoading = false;
+        this.refreshCourseProgressDisplay();
         this.buildTopicRings();
         this.updateAlerts();
+        this.loadAdaptiveInsights(userId);
       },
       error: () => {
         this.adaptiveService
@@ -418,6 +720,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
               this.adaptiveProfile = data;
               this.adaptiveLoading = false;
               this.updateAlerts();
+              this.loadAdaptiveInsights(userId);
             },
             error: () => {
               this.adaptiveLoading = false;
@@ -442,26 +745,132 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
           this.goalTracking = {
             studyHoursCompleted: this.studyHours,
-            studyHoursGoal: 15,
+            studyHoursGoal: this.goalSettings?.studyHoursPerWeek || 0,
             quizSuccess: this.performance,
+            quizSuccessGoal: this.goalSettings?.targetScorePerTopic || 0,
+            hasGoals: !!this.goalSettings,
+            targetTopic: this.goalSettings?.targetTopic || 'general',
+            deadline: this.goalSettings?.deadline || '',
           };
 
           this.completedModules = data.filter((p: any) => p.score >= 70).length;
           this.learningStreak = this.calculateStreak(data);
+          this.refreshCourseProgressDisplay();
+          this.buildTopicRings();
+        } else {
+          this.refreshCourseProgressDisplay();
           this.buildTopicRings();
         }
       },
-      error: () => {},
+      error: () => { },
     });
 
-    // ── Charger recommandations ──
-    this.adaptiveService.getRecommendations(userId).subscribe({
-      next: (data) => {
-        this.recommendations = data;
-        this.updateAlerts();
+    // ── Charger recommandations (AI service + fallback backend) ──
+    this.loadRecommendationCards(userId);
+  }
+
+  private loadGoalSettingsForDashboard(studentId: string): void {
+    this.adaptiveService.getGoalSettings(studentId).subscribe({
+      next: (goals) => {
+        this.goalSettings = goals;
+        this.goalTracking = {
+          ...this.goalTracking,
+          studyHoursGoal: goals?.studyHoursPerWeek || 0,
+          quizSuccessGoal: goals?.targetScorePerTopic || 0,
+          hasGoals: !!goals,
+          targetTopic: goals?.targetTopic || 'general',
+          deadline: goals?.deadline || '',
+        };
       },
       error: () => {
-        this.recommendations = [];
+        this.goalSettings = null;
+        this.goalTracking = {
+          ...this.goalTracking,
+          studyHoursGoal: 0,
+          quizSuccessGoal: 0,
+          hasGoals: false,
+          targetTopic: 'general',
+          deadline: '',
+        };
+      },
+    });
+  }
+
+  getStudyHoursGoalPercent(): number {
+    const goal = Number(this.goalTracking?.studyHoursGoal || 0);
+    if (goal <= 0) return 0;
+    const current = Number(this.goalTracking?.studyHoursCompleted || 0);
+    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  }
+
+  getQuizGoalPercent(): number {
+    const goal = Number(this.goalTracking?.quizSuccessGoal || 0);
+    if (goal <= 0) return 0;
+    const current = Number(this.goalTracking?.quizSuccess || 0);
+    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  }
+
+  private loadAdaptiveInsights(userId: string): void {
+    if (!userId) {
+      return;
+    }
+
+    this.adaptiveInsightsLoading = true;
+    this.adaptiveInsightsError = '';
+
+    forkJoin({
+      collaborative: this.adaptiveService
+        .getCollaborativeRecommendations(userId)
+        .pipe(
+          catchError(() =>
+            of({ recommendations: [], similarStudentsFound: 0, basedOn: '' }),
+          ),
+        ),
+      studyGroups: this.adaptiveService.getStudyGroupSuggestions(userId).pipe(
+        catchError(() =>
+          of({
+            suggestedGroups: [],
+            totalStudentsAnalyzed: 0,
+            bestMatch: null,
+          }),
+        ),
+      ),
+      learningStyle: this.adaptiveService
+        .detectLearningStyle(userId)
+        .pipe(catchError(() => of(null))),
+    }).subscribe({
+      next: ({ collaborative, studyGroups, learningStyle }) => {
+        this.collaborativeRecommendations =
+          this.normalizeCollaborativeRecommendations(
+            collaborative?.recommendations || [],
+          );
+        this.collaborativeBasedOn = collaborative?.basedOn || '';
+        this.collaborativeSimilarStudents =
+          collaborative?.similarStudentsFound || 0;
+
+        this.studyGroupSuggestions = this.normalizeStudyGroupSuggestions(
+          studyGroups?.suggestedGroups || [],
+        );
+        this.studyGroupBestMatch = studyGroups?.bestMatch || null;
+        this.studyGroupsAnalyzed = Number(
+          studyGroups?.totalStudentsAnalyzed || 0,
+        );
+
+        this.learningStyleInsight =
+          this.normalizeLearningStyleInsight(learningStyle);
+        this.adaptiveInsightsLoading = false;
+      },
+      error: () => {
+        this.collaborativeRecommendations = [];
+        this.collaborativeBasedOn = '';
+        this.collaborativeSimilarStudents = 0;
+        this.studyGroupSuggestions = [];
+        this.studyGroupBestMatch = null;
+        this.studyGroupsAnalyzed = 0;
+        this.learningStyleInsight = null;
+        this.adaptiveInsightsError =
+          'Unable to load collaborative, group, and learning style insights.';
+        this.adaptiveInsightsLoading = false;
       },
     });
   }
@@ -1194,6 +1603,100 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return Math.max(0, Math.min(100, Math.round(pct)));
   }
 
+  onLearningProgressPeriodChange(period: string): void {
+    const normalized = String(period || '').toLowerCase();
+    this.learningProgressPeriod =
+      normalized === 'monthly' ? 'monthly' : 'weekly';
+    this.refreshCourseProgressDisplay();
+    this.buildTopicRings();
+  }
+
+  /**
+   * Headline %: average score on course-learning performances in the selected period.
+   * Excludes level-test rows so the test does not count as course progress.
+   */
+  private refreshCourseProgressDisplay(): void {
+    if (this.subjectProgressRings.length > 0) {
+      const total = this.subjectProgressRings.reduce(
+        (sum, item) => sum + Number(item.score || 0),
+        0,
+      );
+      this.progress = Math.round(total / this.subjectProgressRings.length);
+      return;
+    }
+
+    const scoped = this.getCourseLearningPerformancesForPeriod();
+    if (scoped.length === 0) {
+      this.progress = 0;
+      return;
+    }
+    const total = scoped.reduce(
+      (sum: number, p: any) => sum + Number(p?.score ?? 0),
+      0,
+    );
+    this.progress = Math.round(total / scoped.length);
+  }
+
+  getRingDashoffset(score: unknown): number {
+    const circumference = 2 * Math.PI * 40;
+    const pct = this.normalizePercent(score);
+    const offset = circumference * (1 - pct / 100);
+    return Math.round(offset * 10) / 10;
+  }
+
+  formatTopicRingName(name: unknown): string {
+    const raw = String(name || '').trim();
+    if (!raw) {
+      return 'GENERAL';
+    }
+    return raw.replace(/[_-]+/g, ' ').toUpperCase();
+  }
+
+  private parsePerformanceDate(performance: any): Date | null {
+    const raw =
+      performance?.attemptDate ||
+      performance?.createdAt ||
+      performance?.updatedAt ||
+      performance?.date;
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  private getPerformancesForSelectedPeriod(): any[] {
+    const source = Array.isArray(this.performances) ? this.performances : [];
+    if (!source.length) {
+      return [];
+    }
+
+    const now = Date.now();
+    const lookbackDays = this.learningProgressPeriod === 'monthly' ? 30 : 7;
+    const cutoff = now - lookbackDays * 24 * 60 * 60 * 1000;
+
+    return source.filter((performance: any) => {
+      const dt = this.parsePerformanceDate(performance);
+      if (!dt) {
+        // Keep undated records visible rather than silently dropping them.
+        return true;
+      }
+      return dt.getTime() >= cutoff;
+    });
+  }
+
+  /** Performances for rings / progress: exclude level-test so UI reflects course work only. */
+  private getCourseLearningPerformancesForPeriod(): any[] {
+    return this.getPerformancesForSelectedPeriod().filter(
+      (p: any) => String(p?.source || '').toLowerCase() !== 'level-test',
+    );
+  }
+
   // ── Construit les anneaux par topic ──
   buildTopicRings(): void {
     const colors = [
@@ -1203,10 +1706,21 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       'text-purple-500',
     ];
 
-    if (this.performances.length > 0) {
+    if (this.subjectProgressRings.length > 0) {
+      this.topicRings = this.subjectProgressRings.map((item, i) => ({
+        name: item.name,
+        score: item.score,
+        color: colors[i % colors.length],
+      }));
+      return;
+    }
+
+    const scopedPerformances = this.getCourseLearningPerformancesForPeriod();
+
+    if (scopedPerformances.length > 0) {
       // Grouper par topic
       const topicMap: Record<string, { total: number; count: number }> = {};
-      this.performances.forEach((p: any) => {
+      scopedPerformances.forEach((p: any) => {
         const t = p.topic || 'general';
         if (!topicMap[t]) topicMap[t] = { total: 0, count: 0 };
         topicMap[t].total += p.score;
@@ -1221,15 +1735,15 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           color: colors[i % colors.length],
         }));
     } else if (this.adaptiveProfile) {
-      // Fallback : strengths/weaknesses du profil
+      // Topics from level test — show 0% until there is real course activity
       const allTopics = [
         ...(this.adaptiveProfile.strengths || []).map((t: string) => ({
           name: t,
-          score: 80,
+          score: 0,
         })),
         ...(this.adaptiveProfile.weaknesses || []).map((t: string) => ({
           name: t,
-          score: 35,
+          score: 0,
         })),
       ].slice(0, 4);
 
@@ -1237,17 +1751,68 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         ...t,
         color: colors[i % colors.length],
       }));
+    } else {
+      this.topicRings = [];
     }
+  }
 
-    // Fallback si vide
-    if (this.topicRings.length === 0) {
-      this.topicRings = [
-        { name: 'Mathematics', score: 0, color: colors[0] },
-        { name: 'Sciences', score: 0, color: colors[1] },
-        { name: 'Literature', score: 0, color: colors[2] },
-        { name: 'Economics', score: 0, color: colors[3] },
-      ];
-    }
+  private loadSubjectProgressRings(): void {
+    this.subjectsService
+      .getSubjects(undefined, false)
+      .pipe(catchError(() => of([] as DbSubjectItem[])))
+      .subscribe({
+        next: (subjects) => {
+          const rows = (Array.isArray(subjects) ? subjects : [])
+            .map((subject) => ({
+              id: String(subject?._id || subject?.id || '').trim(),
+              name: String(subject?.title || '').trim(),
+            }))
+            .filter((subject) => !!subject.id && !!subject.name);
+
+          if (rows.length === 0) {
+            this.subjectProgressRings = [];
+            this.buildTopicRings();
+            this.refreshCourseProgressDisplay();
+            return;
+          }
+
+          forkJoin(
+            rows.map((subject) =>
+              this.subjectsService.getSubjectLearningProgress(subject.id).pipe(
+                map((progress) => ({
+                  name: subject.name,
+                  score: Math.max(
+                    0,
+                    Math.min(100, Number(progress?.percent ?? 0)),
+                  ),
+                })),
+                catchError(() =>
+                  of({
+                    name: subject.name,
+                    score: 0,
+                  }),
+                ),
+              ),
+            ),
+          ).subscribe({
+            next: (ringRows: Array<{ name: string; score: number }>) => {
+              this.subjectProgressRings = ringRows;
+              this.buildTopicRings();
+              this.refreshCourseProgressDisplay();
+            },
+            error: () => {
+              this.subjectProgressRings = [];
+              this.buildTopicRings();
+              this.refreshCourseProgressDisplay();
+            },
+          });
+        },
+        error: () => {
+          this.subjectProgressRings = [];
+          this.buildTopicRings();
+          this.refreshCourseProgressDisplay();
+        },
+      });
   }
 
   updateAlerts(): void {
@@ -1279,6 +1844,58 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         message: `${this.recommendations.length} personalized recommendations ready for you!`,
       });
     }
+
+    // Backend intervention alerts (A/B automation) appear in student dashboard too.
+    this.alerts.push(...this.backendRiskAlerts);
+  }
+
+  get shouldShowPostEvaluationCta(): boolean {
+    const riskRaw = String(this.adaptiveProfile?.risk_level || '')
+      .trim()
+      .toLowerCase();
+    return riskRaw === 'high' || riskRaw === 'critical';
+  }
+
+  get postEvaluationWeakAreasPreview(): string {
+    const weaknesses = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+    return weaknesses.slice(0, 4).join(', ');
+  }
+
+  takePostEvaluationTest(): void {
+    if (this.postEvaluationInProgress) {
+      return;
+    }
+    this.postEvaluationInProgress = true;
+    const weakAreas = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+
+    this.router.navigate(['/student-dashboard/level-test'], {
+      queryParams: { mode: 'post-evaluation' },
+      state: { weakAreas },
+    });
+    this.postEvaluationInProgress = false;
+  }
+
+  private loadBackendInterventionAlerts(): void {
+    this.http
+      .get<any[]>('http://localhost:3000/api/alerts/me?limit=6')
+      .pipe(catchError(() => of([] as any[])))
+      .subscribe((rows) => {
+        const mapped = (Array.isArray(rows) ? rows : []).map((row) => {
+          const severity = String(row?.severity || '').toLowerCase();
+          const type = severity === 'high' ? 'warning' : severity === 'medium' ? 'info' : 'success';
+          return {
+            type,
+            icon: 'notifications',
+            message: String(row?.message || 'Intervention update available.'),
+          };
+        });
+        this.backendRiskAlerts = mapped;
+        this.updateAlerts();
+      });
   }
 
   calculateStreak(performances: any[]): number {
@@ -1303,43 +1920,69 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   // ── Navigation ──
   goToLevelTest(): void {
-    const userId = this.user._id || this.user.id;
-    this.adaptiveService.startLevelTest(userId).subscribe({
-      next: (test) => {
-        this.router.navigate(['/student-dashboard/level-test'], {
-          state: { testId: test._id, test },
-        });
-      },
-      error: () => alert('Error starting level test'),
-    });
+    this.activeNav = 'level-test';
+    this.router.navigate(['/student-dashboard/level-test']);
+  }
+
+  private normalizeLevelTestResult(test: any): any {
+    if (!test) return null;
+
+    const studentId =
+      test.studentId || test.student_id || this.user?._id || this.user?.id;
+    const totalScore =
+      Number(test.totalScore ?? test.score ?? test.overall_mastery ?? 0) || 0;
+    const resultLevel =
+      test.resultLevel || test.level || test.overall_level || 'beginner';
+
+    return {
+      ...test,
+      studentId,
+      totalScore,
+      resultLevel,
+      questions: Array.isArray(test.questions) ? test.questions : [],
+      answers: Array.isArray(test.answers) ? test.answers : [],
+    };
+  }
+
+  private buildProfileFallbackLevelTestResult(userId: string): any {
+    const profile = this.adaptiveProfile || {};
+    const totalScore =
+      Number(
+        profile?.levelTestScore ??
+        profile?.level_test_score ??
+        profile?.progress ??
+        0,
+      ) || 0;
+    const resultLevel = profile?.level || 'beginner';
+    const strengths = Array.isArray(profile?.strengths)
+      ? profile.strengths
+      : [];
+    const weaknesses = Array.isArray(profile?.weaknesses)
+      ? profile.weaknesses
+      : [];
+
+    return {
+      studentId: userId,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      totalScore,
+      resultLevel,
+      questions: [],
+      answers: [],
+      detectedStrengths: strengths.map((topic: string) => ({
+        topic,
+        score: totalScore,
+      })),
+      detectedWeaknesses: weaknesses.map((topic: string) => ({
+        topic,
+        score: Math.max(0, 100 - totalScore),
+      })),
+    };
   }
 
   openLevelTestFromSidebar(): void {
-    const userId = this.user?._id || this.user?.id;
-    if (!userId) {
-      this.activeNav = 'level-test';
-      this.router.navigate(['/student-dashboard/level-test']);
-      return;
-    }
-
-    this.adaptiveService.getLatestCompletedLevelTest(userId).subscribe({
-      next: (test) => {
-        if (test && test.status === 'completed') {
-          this.activeNav = 'level-test-result';
-          this.router.navigate(['/student-dashboard/level-test-result'], {
-            state: { result: test },
-          });
-          return;
-        }
-
-        this.activeNav = 'level-test';
-        this.router.navigate(['/student-dashboard/level-test']);
-      },
-      error: () => {
-        this.activeNav = 'level-test';
-        this.router.navigate(['/student-dashboard/level-test']);
-      },
-    });
+    // Moved to SidebarComponent, but keeping a stub if needed for direct calls from dashboard template
+    this.router.navigate(['/student-dashboard/level-test']);
   }
 
   getLevelColor(): string {
@@ -1392,31 +2035,34 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return 'Exercise';
   }
 
+  isLevelTestFullscreenView(): boolean {
+    return false; // The user requested the level test to be displayed with the sidebar and navbar
+  }
+
+  showDashboardShell(): boolean {
+    return !this.isLevelTestFullscreenView();
+  }
+
+  isChatRoute(): boolean {
+    return this.router.url.includes('/chat');
+  }
+
   isSubPageView(): boolean {
     return (
       this.router.url.includes('/student-dashboard/level-test') ||
       this.router.url.includes('/student-dashboard/level-test-result') ||
-      this.router.url.includes('/student-dashboard/goal-setting') ||
-      this.router.url.includes('/student-dashboard/badges') ||
       this.router.url.includes('/student-dashboard/my-courses') ||
       this.router.url.includes('/student-dashboard/performance') ||
       this.router.url.includes('/student-dashboard/learning-path') ||
-      this.router.url.includes('/student-dashboard/assignments') ||
-      this.router.url.includes('/student-dashboard/continue-learning')
+      this.router.url.includes('/student-dashboard/continue-learning') ||
+      this.router.url.includes('/student-dashboard/chat') ||
+      this.router.url.includes('/student-dashboard/profile') ||
+      this.router.url.includes('/student-dashboard/video-generator')
     );
   }
 
+
   private syncActiveNavFromUrl(url: string = this.router.url): void {
-    if (url.includes('/student-dashboard/goal-setting')) {
-      this.activeNav = 'goal-setting';
-      return;
-    }
-
-    if (url.includes('/student-dashboard/badges')) {
-      this.activeNav = 'badges';
-      return;
-    }
-
     if (url.includes('/student-dashboard/level-test-result')) {
       this.activeNav = 'level-test-result';
       return;
@@ -1442,8 +2088,18 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (url.includes('/student-dashboard/assignments')) {
-      this.activeNav = 'assignments';
+    if (url.includes('/student-dashboard/chat/instructor')) {
+      this.activeNav = 'conversations';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/chat/room')) {
+      this.activeNav = 'groups';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/profile')) {
+      this.activeNav = 'profile';
       return;
     }
 
@@ -1461,8 +2117,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
   manageAccount() {
     this.closeProfileSidebar();
-    this.router.navigate(['/profile']);
+    this.router.navigate(['/student-dashboard/profile']);
   }
+
 
   onRecommendationViewed(id: string): void {
     const rec = this.recommendations.find((r) => r._id === id);

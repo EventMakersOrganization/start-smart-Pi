@@ -3,12 +3,20 @@ import {
   Post,
   Get,
   Body,
+  Delete,
   Param,
   Query,
   UseGuards,
   Request,
   UnauthorizedException,
+  Patch,
+  UseInterceptors,
+  UploadedFile,
+  UploadedFiles,
 } from "@nestjs/common";
+import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
+import { diskStorage } from "multer";
+import { extname } from "path";
 import { ChatService } from "./chat.service";
 import { AiService } from "./ai.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -34,7 +42,13 @@ export class ChatController {
     return this.chatService.createInstructorSession(
       req.user.id,
       body.instructorId,
+      req.user.role,
     );
+  }
+
+  @Get('instructors/available')
+  async getAvailableInstructors(@Request() req) {
+    return this.chatService.getAvailableInstructors(req.user.id, req.user.role);
   }
 
   @Post("room")
@@ -45,10 +59,11 @@ export class ChatController {
     if (req.user.role !== "student") {
       throw new UnauthorizedException("Only students can create group chats.");
     }
-    return this.chatService.createRoom(body.name, [
+    return this.chatService.createRoomForStudent(
       req.user.id,
-      ...body.participants,
-    ]);
+      body.name,
+      body.participants,
+    );
   }
 
   @Get("sessions")
@@ -207,5 +222,93 @@ export class ChatController {
   @Get("ai/interventions/effectiveness")
   async interventionsEffectivenessGlobal() {
     return this.aiService.getInterventionsEffectivenessGlobal();
+  }
+
+  @Delete('message/:id')
+  async deleteMessage(@Request() req, @Param('id') messageId: string) {
+    return this.chatService.deleteMessage(messageId, req.user.id);
+  }
+
+  @Delete('ai/session/:id')
+  async deleteAiSession(@Request() req, @Param('id') sessionId: string) {
+    return this.chatService.deleteAiSession(sessionId, req.user.id);
+  }
+
+  @Delete('instructor/session/:id')
+  async deleteInstructorSession(@Request() req, @Param('id') sessionId: string) {
+    return this.chatService.deleteInstructorSession(sessionId, req.user.id);
+  }
+
+  @Delete('room/:id')
+  async deleteRoom(@Request() req, @Param('id') roomId: string) {
+    return this.chatService.deleteRoom(roomId, req.user.id);
+  }
+
+  @Patch("room/:id/members")
+  async addMembers(
+    @Request() req,
+    @Param("id") roomId: string,
+    @Body() body: { participants: string[] },
+  ) {
+    return this.chatService.addParticipantsToRoom(
+      req.user.id,
+      roomId,
+      body.participants,
+    );
+  }
+
+  @Post("room/:id/leave")
+  async leaveRoom(@Request() req, @Param("id") roomId: string) {
+    return this.chatService.leaveRoom(req.user.id, roomId);
+  }
+
+  @Patch("room/:id/rename")
+  async renameRoom(
+    @Request() req,
+    @Param("id") roomId: string,
+    @Body() body: { name: string },
+  ) {
+    return this.chatService.renameRoom(req.user.id, roomId, body.name);
+  }
+
+  @Post("room/:id/avatar")
+  @UseInterceptors(
+    FileInterceptor("avatar", {
+      storage: diskStorage({
+        destination: "./uploads/chat-avatars",
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async uploadAvatar(
+    @Request() req,
+    @Param("id") roomId: string,
+    @UploadedFile() file: any,
+  ) {
+    const avatarUrl = `http://localhost:3000/uploads/chat-avatars/${file.filename}`;
+    return this.chatService.updateAvatar(req.user.id, roomId, avatarUrl);
+  }
+
+  @Post("upload-attachments")
+  @UseInterceptors(
+    FilesInterceptor("files", 10, {
+      storage: diskStorage({
+        destination: "./uploads/chat-attachments",
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async uploadAttachments(@UploadedFiles() files: any[]) {
+    return files.map((file) => ({
+      url: `http://localhost:3000/uploads/chat-attachments/${file.filename}`,
+      filename: file.originalname,
+      fileType: file.mimetype,
+    }));
   }
 }

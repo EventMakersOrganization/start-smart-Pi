@@ -34,9 +34,9 @@ export class ChatSocketService {
     this.socket?.emit('leaveRoom', sessionId);
   }
 
-  sendMessage(sessionType: string, sessionId: string, content: string) {
+  sendMessage(sessionType: string, sessionId: string, content: string, attachments: any[] = []) {
     // sender is now derived from the authenticated socket on the backend
-    this.socket?.emit('sendMessage', { sessionType, sessionId, content });
+    this.socket?.emit('sendMessage', { sessionType, sessionId, content, attachments });
   }
 
   onNewMessage(): Observable<any> {
@@ -58,6 +58,16 @@ export class ChatSocketService {
   onUserStatus(): Observable<any> {
     return new Observable(observer => {
       this.socket?.on('userStatus', (data: any) => observer.next(data));
+    });
+  }
+
+  deleteMessage(messageId: string, sessionId: string) {
+    this.socket?.emit('deleteMessage', { messageId, sessionId });
+  }
+
+  onMessageDeleted(): Observable<any> {
+    return new Observable(observer => {
+      this.socket?.on('messageDeleted', (data) => observer.next(data));
     });
   }
 }

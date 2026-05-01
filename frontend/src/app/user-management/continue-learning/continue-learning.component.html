@@ -1,7 +1,8 @@
 <header
   class="h-16 border-b border-slate-200 bg-white sticky top-0 z-50 px-6 flex items-center justify-between shrink-0"
 >
-  <div class="flex items-center gap-4">
+  <div class="flex items-center gap-4 min-w-0">
+    <app-brand-logo class="shrink-0" [link]="'/student-dashboard'" variant="compact" />
     <button
       (click)="goBack()"
       class="p-2 hover:bg-slate-100 rounded-lg transition-colors"
@@ -59,13 +60,13 @@
     >
       <h2 class="font-bold text-slate-800">Course Content</h2>
       <span class="text-xs font-bold text-slate-400"
-        >{{ modules.length * 10 }} Lessons</span
+        >{{ subChapters.length * 10 }} Lessons</span
       >
     </div>
     <div class="flex-1 overflow-y-auto custom-scrollbar p-2">
-      <div *ngFor="let module of modules" class="mb-2">
+      <div *ngFor="let module of subChapters" class="mb-2">
         <button
-          (click)="toggleModule(module.id)"
+          (click)="toggleSubChapter(module.id)"
           class="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg group"
           [class.bg-slate-50]="module.expanded"
         >
@@ -357,14 +358,61 @@
         <p>Your notes will appear here</p>
       </div>
 
-      <div
-        *ngIf="activeTab === 'tutor'"
-        class="text-center text-slate-500 py-8"
-      >
-        <span class="material-symbols-outlined text-4xl mb-2 block"
-          >psychology</span
+      <div *ngIf="activeTab === 'tutor'" class="space-y-4">
+        <div
+          class="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 space-y-4"
         >
-        <p>AI Tutor Chat coming soon</p>
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-3xl"
+              >psychology</span
+            >
+            <div>
+              <h4 class="text-sm font-bold text-slate-900">AI Tutor Chat</h4>
+              <p class="text-xs text-slate-500">Powered by /chatbot/ask</p>
+            </div>
+          </div>
+
+          <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+            <div
+              *ngFor="let message of tutorMessages"
+              class="flex"
+              [class.justify-end]="message.role === 'user'"
+            >
+              <div
+                class="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
+                [class.bg-primary]="message.role === 'user'"
+                [class.text-white]="message.role === 'user'"
+                [class.bg-slate-100]="message.role === 'assistant'"
+                [class.text-slate-700]="message.role === 'assistant'"
+              >
+                {{ message.content }}
+              </div>
+            </div>
+            <div *ngIf="tutorLoading" class="text-xs text-slate-400">
+              Thinking...
+            </div>
+            <div *ngIf="tutorError" class="text-xs text-red-500">
+              {{ tutorError }}
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <input
+              [(ngModel)]="tutorQuestion"
+              (keydown.enter)="sendTutorQuestion()"
+              type="text"
+              class="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+              placeholder="Ask about this lesson..."
+            />
+            <button
+              (click)="sendTutorQuestion()"
+              [disabled]="tutorLoading"
+              class="px-5 py-3 rounded-xl bg-primary text-white text-sm font-bold disabled:opacity-60"
+            >
+              Send
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </main>

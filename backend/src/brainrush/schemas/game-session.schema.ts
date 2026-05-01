@@ -22,6 +22,9 @@ export class GameSession {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] })
   players: Types.ObjectId[];
 
+  @Prop({ default: 10 })
+  totalQuestions: number;
+
   @Prop({ default: true })
   isActive: boolean;
 }

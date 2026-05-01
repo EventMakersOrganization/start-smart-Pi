@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors }
 import { AuthService } from '../auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { AdaptiveLearningService } from '../adaptive-learning.service';
 
 interface ProfileData {
   user: {
@@ -15,7 +16,7 @@ interface ProfileData {
     status: string;
   };
   profile: {
-    academic_level: string;
+    class: string;
     risk_level: string;
     points_gamification: number;
   } | null;
@@ -33,6 +34,8 @@ function passwordMatch(control: AbstractControl): ValidationErrors | null {
   }
   return null;
 }
+
+export type ProfileTab = 'account' | 'goals' | 'badges' | 'security';
 
 @Component({
   selector: 'app-profile',
@@ -53,11 +56,24 @@ export class ProfileComponent implements OnInit {
   showNewPwd = false;
   showConfirmPwd = false;
 
+  activeTab: ProfileTab = 'account';
+  studentLevel = '—';
+
+  get isStudent(): boolean {
+    return String(this.authService.getUser()?.role || '').toLowerCase() === 'student';
+  }
+
+  get studentId(): string | null {
+    const user = this.authService.getUser();
+    return user?._id || user?.id || null;
+  }
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private adaptiveLearningService: AdaptiveLearningService
   ) {
     this.profileForm = this.fb.group({
       first_name: [''],
@@ -76,6 +92,10 @@ export class ProfileComponent implements OnInit {
     this.loadProfile();
   }
 
+  setTab(tab: ProfileTab): void {
+    this.activeTab = tab;
+  }
+
   loadProfile() {
     this.http.get<ProfileData>('http://localhost:3000/api/user/profile').subscribe({
       next: (data) => {
@@ -85,6 +105,18 @@ export class ProfileComponent implements OnInit {
           last_name: data.user.last_name || '',
           phone: (data.user as any).phone || '',
         });
+
+        const userId = this.studentId;
+        if (userId) {
+          this.adaptiveLearningService.getProfile(userId).subscribe({
+            next: (adaptiveProfile: any) => {
+              this.studentLevel = String(adaptiveProfile?.level || adaptiveProfile?.currentLevel || '—');
+            },
+            error: () => {
+              this.studentLevel = '—';
+            }
+          });
+        }
       },
       error: () => {
         this.errorMessage = 'Failed to load profile.';
@@ -129,6 +161,14 @@ export class ProfileComponent implements OnInit {
         }
       });
     }
+  }
+
+  /** Route for brand logo / home navigation in the profile header. */
+  homeDashboardLink(): string {
+    const user = this.authService.getUser();
+    if (user?.role === 'instructor') return '/instructor/dashboard';
+    if (user?.role === 'admin') return '/admin/students';
+    return '/student-dashboard';
   }
 
   navigateBack() {

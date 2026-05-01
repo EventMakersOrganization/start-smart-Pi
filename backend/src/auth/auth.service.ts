@@ -8,8 +8,10 @@ import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 import { User, UserDocument, UserRole } from '../users/schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ActivityService } from '../activity/activity.service';
+import { ActivityService, classifyChannelFromHeaders } from '../activity/activity.service';
+import { SessionService } from '../activity/session.service';
 import { ActivityAction } from '../activity/schemas/activity.schema';
+import type { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +19,7 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
     private activityService: ActivityService,
+    private sessionService: SessionService,
   ) {}
 
   async register(createUserDto: CreateUserDto): Promise<{ message: string }> {
@@ -114,7 +117,7 @@ export class AuthService {
       await user.save();
     }
 
-    return this.login(user.toObject ? user.toObject() : user);
+    return this.login(user.toObject ? user.toObject() : user, undefined);
   }
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -126,12 +129,19 @@ export class AuthService {
     return null;
   }
 
-  async login(user: any) {
+  async login(user: any, req?: Request) {
     const payload = { email: user.email, sub: user._id, role: user.role };
     const token = this.jwtService.sign(payload);
 
-    // Log activity
-    await this.activityService.logActivity(user._id, ActivityAction.LOGIN);
+    const channel = req
+      ? classifyChannelFromHeaders(
+          req.headers['user-agent'],
+          req.headers['x-client-channel'] as string | undefined,
+        )
+      : undefined;
+    await this.activityService.logActivity(user._id, ActivityAction.LOGIN, {
+      channel,
+    });
 
     return {
       token,
@@ -145,6 +155,14 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  async logout(user: { id?: string; _id?: string }) {
+    const userId = String(user?.id || user?._id || '').trim();
+    if (userId) {
+      await this.sessionService.markSessionEnded(userId);
+    }
+    return { message: 'Logged out successfully' };
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {

@@ -19,6 +19,7 @@ import {
     ApiQuery,
 } from '@nestjs/swagger';
 import { CoursesService } from './courses.service';
+import { CourseIndexingService } from './course-indexing.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -29,7 +30,10 @@ import { UserRole } from '../users/schemas/user.schema';
 @ApiTags('courses')
 @Controller('courses')
 export class CoursesController {
-    constructor(private readonly coursesService: CoursesService) { }
+    constructor(
+        private readonly coursesService: CoursesService,
+        private readonly courseIndexingService: CourseIndexingService,
+    ) { }
 
     @Post()
     @UseGuards(JwtAuthGuard, RolesGuard)
@@ -56,6 +60,36 @@ export class CoursesController {
         @Query('instructorId') instructorId?: string,
     ) {
         return this.coursesService.findAll(page, limit, level, instructorId);
+    }
+
+    @Get('subjects/list')
+    @ApiOperation({ summary: 'List logical subjects grouped from courses' })
+    @ApiQuery({ name: 'instructorId', required: false, type: String })
+    getSubjectsFromCourses(@Query('instructorId') instructorId?: string) {
+        return this.coursesService.findAllSubjects(instructorId);
+    }
+
+    @Get('subjects/by-title/:subjectTitle')
+    @ApiOperation({ summary: 'Get one logical subject grouped from courses' })
+    @ApiQuery({ name: 'instructorId', required: false, type: String })
+    getSubjectFromCourses(
+        @Param('subjectTitle') subjectTitle: string,
+        @Query('instructorId') instructorId?: string,
+    ) {
+        return this.coursesService.findSubjectByTitle(decodeURIComponent(subjectTitle), instructorId);
+    }
+
+    @Get('indexing-status')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary:
+            'Compare Mongo courses vs Chroma chunks (calls ai-service). Use after saves or before level test.',
+    })
+    @ApiResponse({ status: 200, description: 'Indexing coverage summary.' })
+    getIndexingStatus() {
+        return this.courseIndexingService.getIndexingStatus();
     }
 
     @Get(':id')

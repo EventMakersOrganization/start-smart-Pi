@@ -1,5 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { AuthService } from '../auth.service';
 
 interface AssignmentCard {
   id: number;
@@ -19,7 +22,30 @@ interface AssignmentCard {
   templateUrl: './assignments.component.html',
   styleUrls: ['./assignments.component.css'],
 })
-export class AssignmentsComponent {
+export class AssignmentsComponent implements OnInit {
+  private apiUrl = 'http://localhost:3000/api/courses';
+  private aiServiceUrl = 'http://localhost:8000';
+
+  isInstructor = false;
+  loadingCourses = false;
+  savingCourse = false;
+  message = '';
+  error = '';
+
+  instructorCourses: any[] = [];
+  editingCourseId: string | null = null;
+  showCourseForm = false;
+  selectedFiles: File[] = [];
+  uploadingFiles = false;
+
+  courseForm = {
+    title: '',
+    description: '',
+    level: '',
+    subject: '',
+    subChapters: [{ title: '', description: '' }],
+  };
+
   user = {
     first_name: 'Alex',
     last_name: 'Johnson',
@@ -78,7 +104,28 @@ export class AssignmentsComponent {
     },
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private http: HttpClient,
+    private authService: AuthService,
+  ) {}
+
+  ngOnInit(): void {
+    const currentUser = this.authService.getUser();
+    this.user = {
+      first_name: currentUser?.first_name || currentUser?.name || 'User',
+      last_name: currentUser?.last_name || '',
+      role: currentUser?.role || 'student',
+      email: currentUser?.email || '',
+      phone: currentUser?.phone || '',
+    };
+    this.isInstructor =
+      String(currentUser?.role || '').toLowerCase() === 'instructor';
+
+    if (this.isInstructor) {
+      this.loadInstructorCourses();
+    }
+  }
 
   selectTab(tab: string): void {
     this.activeTab = tab;
@@ -86,5 +133,249 @@ export class AssignmentsComponent {
 
   openSubmission(): void {
     this.router.navigate(['/student-dashboard/assignments/submission']);
+  }
+
+  loadInstructorCourses(): void {
+    const user = this.authService.getUser();
+    const instructorId = user?.id || user?._id;
+    if (!instructorId) {
+      this.error = 'Instructor ID not found.';
+      return;
+    }
+
+    this.loadingCourses = true;
+    this.error = '';
+    this.message = '';
+    this.http
+      .get<any>(
+        `${this.apiUrl}?page=1&limit=200&instructorId=${encodeURIComponent(String(instructorId))}`,
+      )
+      .subscribe({
+        next: (res) => {
+          this.instructorCourses = Array.isArray(res?.data) ? res.data : [];
+          this.loadingCourses = false;
+        },
+        error: () => {
+          this.error = 'Failed to load courses.';
+          this.loadingCourses = false;
+        },
+      });
+  }
+
+  openCreateCourse(): void {
+    this.editingCourseId = null;
+    this.showCourseForm = true;
+    this.message = '';
+    this.error = '';
+    this.selectedFiles = [];
+    this.courseForm = {
+      title: '',
+      description: '',
+      level: '',
+      subject: '',
+      subChapters: [{ title: '', description: '' }],
+    };
+  }
+
+  editCourse(course: any): void {
+    this.editingCourseId = course?._id || null;
+    this.showCourseForm = true;
+    this.message = '';
+    this.error = '';
+    this.selectedFiles = [];
+
+    const subChapters = Array.isArray(course?.subChapters)
+      ? course.subChapters.map((m: any) => ({
+          title: m?.title || '',
+          description: m?.description || '',
+        }))
+      : [];
+
+    this.courseForm = {
+      title: course?.title || '',
+      description: course?.description || '',
+      level: course?.level || '',
+      subject: course?.subject || '',
+      subChapters: subChapters.length ? subChapters : [{ title: '', description: '' }],
+    };
+  }
+
+  cancelCourseForm(): void {
+    this.showCourseForm = false;
+    this.editingCourseId = null;
+    this.selectedFiles = [];
+  }
+
+  onFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files || []);
+    this.selectedFiles = files;
+  }
+
+  addSubChapter(): void {
+    this.courseForm.subChapters.push({ title: '', description: '' });
+  }
+
+  removeSubChapter(index: number): void {
+    if (this.courseForm.subChapters.length <= 1) return;
+    this.courseForm.subChapters.splice(index, 1);
+  }
+
+  saveCourse(): void {
+    const user = this.authService.getUser();
+    const instructorId = user?.id || user?._id;
+    if (!instructorId) {
+      this.error = 'Instructor ID not found.';
+      return;
+    }
+
+    const title = this.courseForm.title.trim();
+    const description = this.courseForm.description.trim();
+    const level = this.courseForm.level.trim();
+    const subject = this.courseForm.subject.trim();
+
+    if (!title || !description || !level || !subject) {
+      this.error = 'Title, description, level and subject are required.';
+      return;
+    }
+
+    const subChapters = this.courseForm.subChapters
+      .map((m, idx) => ({
+        title: String(m.title || '').trim(),
+        description: String(m.description || '').trim(),
+        order: idx,
+        contents: [],
+      }))
+      .filter((m) => !!m.title);
+
+    const payload = {
+      title,
+      description,
+      level,
+      subject,
+      instructorId,
+      subChapters,
+    };
+
+    this.savingCourse = true;
+    this.error = '';
+    this.message = '';
+
+    const request$ = this.editingCourseId
+      ? this.http.put(`${this.apiUrl}/${this.editingCourseId}`, payload)
+      : this.http.post(this.apiUrl, payload);
+
+    request$.subscribe({
+      next: (response: any) => {
+        const courseId = response?._id || response?.id || this.editingCourseId;
+        const hasFiles = (this.selectedFiles || []).length > 0;
+
+        if (!courseId || !hasFiles) {
+          this.savingCourse = false;
+          this.showCourseForm = false;
+          this.message = this.editingCourseId
+            ? 'Course updated successfully.'
+            : 'Course created successfully.';
+          this.editingCourseId = null;
+          this.selectedFiles = [];
+          this.loadInstructorCourses();
+          return;
+        }
+
+        this.uploadingFiles = true;
+        this.uploadCourseFiles(String(courseId))
+          .then(() => {
+            this.savingCourse = false;
+            this.uploadingFiles = false;
+            this.showCourseForm = false;
+            this.message = this.editingCourseId
+              ? 'Course updated and files uploaded successfully.'
+              : 'Course created and files uploaded successfully.';
+            this.editingCourseId = null;
+            this.selectedFiles = [];
+            this.loadInstructorCourses();
+          })
+          .catch((err: any) => {
+            this.savingCourse = false;
+            this.uploadingFiles = false;
+            this.showCourseForm = false;
+            this.message = this.editingCourseId
+              ? 'Course updated successfully, but file upload failed.'
+              : 'Course created successfully, but file upload failed.';
+            this.error =
+              err?.error?.detail ||
+              err?.error?.message ||
+              'Some files could not be uploaded.';
+            this.editingCourseId = null;
+            this.selectedFiles = [];
+            this.loadInstructorCourses();
+          });
+      },
+      error: (err) => {
+        this.savingCourse = false;
+        this.error =
+          err?.error?.message || err?.error?.detail || 'Failed to save course.';
+      },
+    });
+  }
+
+  private async uploadCourseFiles(courseId: string): Promise<void> {
+    const files = (this.selectedFiles || []).filter((file) => !!file?.name);
+    if (!files.length) {
+      return;
+    }
+
+    const uploadRequests = files.map((file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('doc_type', 'course');
+      formData.append(
+        'metadata',
+        JSON.stringify({
+          doc_type: 'course',
+          course_id: courseId,
+          course_title: this.courseForm.title,
+          level: this.courseForm.level,
+        }),
+      );
+
+      return firstValueFrom(
+        this.http.post(`${this.aiServiceUrl}/upload-document`, formData),
+      );
+    });
+
+    await Promise.all(uploadRequests);
+  }
+
+  deleteCourse(courseId: string): void {
+    if (!courseId) return;
+    const ok = confirm('Delete this course?');
+    if (!ok) return;
+
+    this.error = '';
+    this.message = '';
+    this.http.delete(`${this.apiUrl}/${courseId}`).subscribe({
+      next: () => {
+        this.message = 'Course deleted successfully.';
+        this.loadInstructorCourses();
+      },
+      error: (err) => {
+        this.error =
+          err?.error?.message ||
+          err?.error?.detail ||
+          'Failed to delete course.';
+      },
+    });
+  }
+
+  get totalSubChaptersCount(): number {
+    return (this.instructorCourses || []).reduce(
+      (sum: number, course: any) => sum + (course?.subChapters?.length || 0),
+      0,
+    );
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 }

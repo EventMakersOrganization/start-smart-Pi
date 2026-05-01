@@ -15,9 +15,9 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async getUsers(@Query('role') role: string) {
+  async getUsers(@Request() req, @Query('role') role: string) {
     if (role) {
-      return this.usersService.getUsersByRole(role);
+      return this.usersService.getUsersByRole(role, req.user.id, req.user.role);
     }
     return [];
   }

@@ -28,6 +28,22 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
     });
+
+    // If a valid session already exists, keep user out of login page.
+    if (this.authService.isAuthenticated()) {
+      const role = String(this.authService.getUser()?.role || '')
+        .trim()
+        .toLowerCase();
+      if (role === 'admin') {
+        this.router.navigate(['/admin']);
+      } else if (role === 'instructor' || role === 'teacher') {
+        this.router.navigate(['/instructor/dashboard']);
+      } else if (role === 'student') {
+        this.router.navigate(['/student-dashboard']);
+      } else {
+        this.router.navigate(['/profile']);
+      }
+    }
   }
 
   togglePassword() {
@@ -83,20 +99,7 @@ export class LoginComponent {
       next: (res) => {
         const user = this.authService.getUser();
         if (user?.role === 'student') {
-          const userId = user._id || user.id;
-          this.adaptiveService.getProfile(userId).subscribe({
-            next: (profile) => {
-              if (!profile || !profile.level) {
-                this.router.navigate(['/level-test']);
-              } else {
-                this.router.navigate(['/student-dashboard']);
-              }
-            },
-            error: () => {
-              // If profile not found or error, redirect to level test
-              this.router.navigate(['/level-test']);
-            },
-          });
+          this.router.navigate(['/student-dashboard']);
         } else if (user?.role === 'instructor') {
           this.router.navigate(['/instructor/dashboard']);
         } else if (user?.role === 'admin') {
@@ -121,17 +124,7 @@ export class LoginComponent {
         next: (response) => {
           const user = this.authService.getUser();
           if (user.role === 'student') {
-            const userId = user._id || user.id;
-            this.adaptiveService.getProfile(userId).subscribe({
-              next: (profile) => {
-                if (!profile || !profile.level) {
-                  this.router.navigate(['/level-test']);
-                } else {
-                  this.router.navigate(['/student-dashboard']);
-                }
-              },
-              error: () => this.router.navigate(['/level-test']),
-            });
+            this.router.navigate(['/student-dashboard']);
           } else if (user.role === 'instructor') {
             this.router.navigate(['/instructor/dashboard']);
           } else if (user.role === 'admin') {

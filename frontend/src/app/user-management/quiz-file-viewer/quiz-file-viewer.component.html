@@ -1,0 +1,104 @@
+<div class="rounded-3xl bg-gradient-to-br from-blue-50 via-white to-indigo-100 shadow-xl p-0 mb-8">
+  <div class="flex items-center gap-4 px-8 pt-6 pb-2" *ngIf="!alreadySubmitted">
+    <button
+      class="px-4 py-2 rounded-xl font-bold text-blue-700 bg-white shadow border border-blue-100"
+      [class.bg-blue-100]="activeTab === 'edit'"
+      (click)="setTab('edit')"
+      *ngIf="isDocx"
+    >
+      Répondre dans le document
+    </button>
+    <button
+      class="px-4 py-2 rounded-xl font-bold text-blue-700 bg-white shadow border border-blue-100"
+      [class.bg-blue-100]="activeTab === 'upload'"
+      (click)="setTab('upload')"
+    >
+      Soumettre un fichier
+    </button>
+    <button
+      class="px-4 py-2 rounded-xl font-bold text-blue-700 bg-white shadow border border-blue-100"
+      [class.bg-blue-100]="activeTab === 'original'"
+      (click)="setTab('original')"
+      *ngIf="isDocx"
+    >
+      Voir l'original
+    </button>
+    <span class="ml-auto text-xs text-slate-400 font-bold">
+      {{ content.fileName }}
+    </span>
+  </div>
+
+  <div class="px-8 pb-8">
+    <!-- SUBMITTED VIEW: Only show the submission content -->
+    <div *ngIf="alreadySubmitted" class="py-4">
+      <div class="mb-6 p-6 rounded-2xl bg-slate-50 border border-slate-100">
+        <h4 class="text-slate-900 font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">visibility</span>
+          Aperçu de votre remise
+        </h4>
+        
+        <!-- Preview of submitted content -->
+        <div class="bg-white rounded-xl border border-slate-200 p-6 min-h-[300px] overflow-auto shadow-sm">
+           <iframe *ngIf="showIframeFallback && existingSubmission?.fileUrl" 
+             [src]="existingSubmission.fileUrl | safeUrl" 
+             class="w-full h-[500px] border-none"></iframe>
+           
+           <div *ngIf="!showIframeFallback"
+             id="submission-preview" class="prose prose-slate max-w-none"
+             [innerHTML]="submissionHtml">
+             <p *ngIf="!submissionHtml" class="text-slate-400 italic text-sm mb-4">Chargement de votre réponse...</p>
+           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: Répondre dans le document (DOCX) -->
+    <div *ngIf="activeTab === 'edit' && isDocx && !alreadySubmitted">
+
+    <!-- Submit Button (Hidden if already submitted) -->
+    <div class="mt-6 flex flex-col gap-4">
+      <div *ngIf="submitSuccess || alreadySubmitted" class="p-6 rounded-2xl bg-emerald-50 border border-emerald-100 animate-fade-in">
+        <div class="flex items-center gap-3 text-emerald-600 mb-2">
+          <span class="material-symbols-outlined font-black">check_circle</span>
+          <span class="font-black uppercase tracking-widest text-sm">Remise effectuée</span>
+        </div>
+        <p class="text-emerald-700/70 text-xs font-medium italic">
+          Vous avez déjà soumis votre réponse pour ce quiz. Toute modification est désormais bloquée.
+        </p>
+        <div *ngIf="existingSubmission" class="mt-4 pt-4 border-t border-emerald-100 flex items-center justify-between">
+           <div class="flex items-center gap-3">
+             <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+               <span class="material-symbols-outlined">description</span>
+             </div>
+             <div>
+               <p class="text-[10px] font-black text-emerald-800/50 uppercase tracking-widest">Fichier remis</p>
+               <p class="text-xs font-bold text-emerald-800">{{ existingSubmission.fileName }}</p>
+             </div>
+           </div>
+           <a [href]="existingSubmission.fileUrl" target="_blank" 
+             class="px-4 py-2 rounded-xl bg-white text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-200 hover:bg-emerald-50 transition-all">
+             Consulter
+           </a>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4" *ngIf="!alreadySubmitted">
+        <button
+          (click)="submit()"
+          [disabled]="loading"
+          class="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black tracking-widest text-xs shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+        >
+          {{ loading ? 'ENVOI EN COURS...' : 'SOUMETTRE MA RÉPONSE' }}
+        </button>
+        <span *ngIf="submitError" class="text-rose-500 font-black text-[10px] uppercase tracking-widest animate-pulse">{{ submitError }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toolbar button style -->
+<style>
+.btn-toolbar {
+  @apply px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold shadow border border-blue-100 transition-all;
+}
+</style>

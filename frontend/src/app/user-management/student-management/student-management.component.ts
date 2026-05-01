@@ -8,12 +8,13 @@ interface UserRow {
   email: string;
   role: string;
   status: string;
-  academic_level?: string;
+  class?: string;
   risk_level?: string;
   points_gamification?: number;
   phone?: string;
   createdAt?: string;
   updatedAt?: string;
+  isOnline?: boolean;
   // password is only used for admin-set resets, never read from backend
   password?: string;
 }
@@ -33,6 +34,7 @@ export class StudentManagementComponent implements OnInit {
   // filter inputs from template
   filterText = '';
   filterStatus = 'Status: All';
+  filterRisk = 'Risk: All';
 
   // add-user modal state
   showAddUserModal = false;
@@ -43,20 +45,39 @@ export class StudentManagementComponent implements OnInit {
   newUserRole: 'student' | 'instructor' | 'admin' = 'student';
   addUserLoading = false;
   addUserError = '';
+  newUserClassId = '';
+  classes: any[] = [];
 
   get filteredStudents(): UserRow[] {
+    const text = (this.filterText || '').trim().toLowerCase();
+    
     return this.students.filter(s => {
-      const text = this.filterText.toLowerCase();
       if (text) {
+        const firstName = (s.first_name || '').toLowerCase();
+        const lastName = (s.last_name || '').toLowerCase();
+        const fullName = `${firstName} ${lastName}`.trim();
+        const email = (s.email || '').toLowerCase();
+        
         const match =
-          s.first_name?.toLowerCase().includes(text) ||
-          s.last_name?.toLowerCase().includes(text) ||
-          s.email.toLowerCase().includes(text);
+          firstName.includes(text) ||
+          lastName.includes(text) ||
+          fullName.includes(text) ||
+          email.includes(text);
+          
         if (!match) return false;
       }
-      if (this.filterStatus !== 'Status: All') {
-        if (s.status.toLowerCase() !== this.filterStatus.toLowerCase()) return false;
+      
+      if (this.filterStatus && this.filterStatus !== 'Status: All') {
+        const status = s.status || 'active';
+        if (status.toLowerCase() !== this.filterStatus.toLowerCase()) return false;
       }
+      
+      if (this.filterRisk && this.filterRisk !== 'Risk: All') {
+        const risk = s.risk_level || 'LOW';
+        const targetRisk = this.filterRisk.replace(' Risk', '').toUpperCase();
+        if (risk !== targetRisk) return false;
+      }
+      
       return true;
     });
   }
@@ -65,11 +86,22 @@ export class StudentManagementComponent implements OnInit {
 
   ngOnInit() {
     this.loadStudents();
+    this.loadClasses();
+  }
+
+  loadClasses() {
+    this.http.get<any[]>('http://localhost:3000/api/admin/classes').subscribe({
+      next: data => this.classes = data,
+      error: () => console.error('Failed to load classes')
+    });
   }
 
   loadStudents() {
     this.http.get<UserRow[]>('http://localhost:3000/api/admin/students').subscribe({
-      next: data => this.students = data,
+      next: data => this.students = data.map((student: any) => ({
+        ...student,
+        class: student.class ?? student.academic_level ?? '',
+      })),
       error: () => this.error = 'Failed to load students'
     });
   }
@@ -81,7 +113,7 @@ export class StudentManagementComponent implements OnInit {
       last_name: s.last_name,
       email: s.email,
       phone: s.phone || '',
-      academic_level: s.academic_level || '',
+      class: s.class || '',
       risk_level: s.risk_level || 'LOW',
       points_gamification: s.points_gamification || 0,
       status: s.status,
@@ -107,6 +139,11 @@ export class StudentManagementComponent implements OnInit {
     this.http.put(`http://localhost:3000/api/admin/user/${id}`, body).subscribe({
       next: () => {
         this.success = 'Updated successfully';
+        this.students = this.students.map((student) =>
+          student.id === id
+            ? { ...student, ...body, class: body.class ?? student.class }
+            : student,
+        );
         this.cancelEdit(id);
         this.loadStudents();
         setTimeout(() => this.success = '', 3000);
@@ -133,6 +170,7 @@ export class StudentManagementComponent implements OnInit {
     this.newUserEmail = '';
     this.newUserPhone = '';
     this.newUserRole = 'student';
+    this.newUserClassId = '';
     this.showAddUserModal = true;
   }
 
@@ -163,6 +201,9 @@ export class StudentManagementComponent implements OnInit {
     };
     if (phone) {
       body.phone = phone;
+    }
+    if (this.newUserClassId) {
+      body.classId = this.newUserClassId;
     }
 
     this.http.post('http://localhost:3000/api/admin/user', body).subscribe({

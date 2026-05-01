@@ -15,11 +15,48 @@ import {
   RecommendationDocument,
 } from "./schemas/recommendation.schema";
 import { LevelTest, LevelTestDocument } from "./schemas/level-test.schema";
+import {
+  PostEvaluationTest,
+  PostEvaluationTestDocument,
+} from "./schemas/post-evaluation-test.schema";
 import { Question, QuestionDocument } from "./schemas/question.schema";
 import { CreateStudentProfileDto } from "./dto/create-student-profile.dto";
 import { CreateStudentPerformanceDto } from "./dto/create-student-performance.dto";
 import { CreateRecommendationDto } from "./dto/create-recommendation.dto";
 import { CreateQuestionDto } from "./dto/create-question.dto";
+import { ChatAi, ChatAiDocument } from "../chat/schemas/chat-ai.schema";
+import {
+  ChatInstructor,
+  ChatInstructorDocument,
+} from "../chat/schemas/chat-instructor.schema";
+import { ChatRoom, ChatRoomDocument } from "../chat/schemas/chat-room.schema";
+import {
+  ChatMessage,
+  ChatMessageDocument,
+} from "../chat/schemas/chat-message.schema";
+import { Score, ScoreDocument } from "../brainrush/schemas/score.schema";
+import {
+  PlayerSession,
+  PlayerSessionDocument,
+} from "../brainrush/schemas/player-session.schema";
+import {
+  GoalSettings,
+  GoalSettingsDocument,
+} from "./schemas/goal-settings.schema";
+import {
+  QuizSubmission,
+  QuizSubmissionDocument,
+} from "../subjects/schemas/quiz-submission.schema";
+import {
+  QuizFileSubmission,
+  QuizFileSubmissionDocument,
+  QuizFileSubmissionStatus,
+} from "../subjects/schemas/quiz-file-submission.schema";
+import {
+  PrositSubmission,
+  PrositSubmissionDocument,
+} from "../prosits/schemas/prosit-submission.schema";
+import { Subject, SubjectDocument } from "../subjects/schemas/subject.schema";
 
 @Injectable()
 export class AdaptiveLearningService {
@@ -36,8 +73,32 @@ export class AdaptiveLearningService {
     private recommendationModel: Model<RecommendationDocument>,
     @InjectModel(LevelTest.name)
     private levelTestModel: Model<LevelTestDocument>,
+    @InjectModel(PostEvaluationTest.name)
+    private postEvaluationTestModel: Model<PostEvaluationTestDocument>,
     @InjectModel(Question.name)
     private questionModel: Model<QuestionDocument>,
+    @InjectModel(ChatAi.name)
+    private chatAiModel: Model<ChatAiDocument>,
+    @InjectModel(ChatInstructor.name)
+    private chatInstructorModel: Model<ChatInstructorDocument>,
+    @InjectModel(ChatRoom.name)
+    private chatRoomModel: Model<ChatRoomDocument>,
+    @InjectModel(ChatMessage.name)
+    private chatMessageModel: Model<ChatMessageDocument>,
+    @InjectModel(Score.name)
+    private scoreModel: Model<ScoreDocument>,
+    @InjectModel(PlayerSession.name)
+    private playerSessionModel: Model<PlayerSessionDocument>,
+    @InjectModel(GoalSettings.name)
+    private goalSettingsModel: Model<GoalSettingsDocument>,
+    @InjectModel(QuizSubmission.name)
+    private quizSubmissionModel: Model<QuizSubmissionDocument>,
+    @InjectModel(QuizFileSubmission.name)
+    private quizFileSubmissionModel: Model<QuizFileSubmissionDocument>,
+    @InjectModel(PrositSubmission.name)
+    private prositSubmissionModel: Model<PrositSubmissionDocument>,
+    @InjectModel(Subject.name)
+    private subjectModel: Model<SubjectDocument>,
   ) {}
 
   // ══════════════════════════════════
@@ -89,6 +150,895 @@ export class AdaptiveLearningService {
     await this.profileModel.findOneAndDelete({ userId }).exec();
   }
 
+  async getGoalSettings(studentId: string): Promise<GoalSettings | null> {
+    const goal = await this.goalSettingsModel.findOne({ studentId }).lean();
+    return (goal as GoalSettings) || null;
+  }
+
+  async saveGoalSettings(
+    studentId: string,
+    goals: Partial<GoalSettings>,
+  ): Promise<GoalSettings> {
+    const updateDoc = {
+      studyHoursPerWeek: Number(goals?.studyHoursPerWeek ?? 8),
+      targetTopic: String(goals?.targetTopic || "general"),
+      targetScorePerTopic: Number(goals?.targetScorePerTopic ?? 75),
+      exercisesPerDay: Number(goals?.exercisesPerDay ?? 2),
+      targetLevel: String(goals?.targetLevel || "intermediate"),
+      deadline: String(goals?.deadline || ""),
+    };
+
+    const updated = await this.goalSettingsModel
+      .findOneAndUpdate(
+        { studentId },
+        {
+          $set: updateDoc,
+          $setOnInsert: {
+            studentId,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      )
+      .lean();
+
+    return updated as GoalSettings;
+  }
+
+  async resetGoalSettings(studentId: string): Promise<void> {
+    await this.goalSettingsModel.deleteOne({ studentId }).exec();
+  }
+
+  async getUnifiedStudentProfile(studentId: string): Promise<{
+    studentId: string;
+    profile: StudentProfile | null;
+    summary: {
+      currentLevel: string;
+      progress: number;
+      levelTestScore: number;
+      strengths: string[];
+      weaknesses: string[];
+      riskLevel: string;
+      totalInteractions: number;
+    };
+    sources: {
+      exercises: {
+        attempts: number;
+        completed: number;
+        averageScore: number;
+        byTopic: Array<{
+          topic: string;
+          attempts: number;
+          averageScore: number;
+        }>;
+      };
+      game: {
+        sessions: number;
+        averageScore: number;
+        totalTimeSpent: number;
+      };
+      chat: {
+        sessions: number;
+        messages: number;
+      };
+      levelTest: {
+        completed: boolean;
+        totalScore: number;
+        resultLevel: string;
+        completedAt: Date | null;
+      };
+    };
+    analytics: {
+      learningVelocity: any;
+      spacedRepetition: any;
+      learningStyle: any;
+      learningPath: any;
+      achievementBadges: any;
+    };
+    adaptivePath: Array<{
+      topic: string;
+      priority: "high" | "medium" | "low";
+      reason: string;
+      recommendedActions: string[];
+    }>;
+  }> {
+    const [
+      profile,
+      performances,
+      levelTest,
+      velocity,
+      spacedRepetition,
+      learningStyle,
+      learningPath,
+      achievementBadges,
+      gameScores,
+      playerSessions,
+      chatSessions,
+    ] = await Promise.all([
+      this.profileModel
+        .findOne({ userId: studentId })
+        .exec()
+        .catch(() => null),
+      this.performanceModel
+        .find({ studentId })
+        .sort({ attemptDate: -1 })
+        .exec()
+        .catch(() => []),
+      this.levelTestModel
+        .findOne({ studentId, status: "completed" })
+        .sort({ completedAt: -1, createdAt: -1 })
+        .exec()
+        .catch(() => null),
+      this.getLearningVelocity(studentId).catch(() => null),
+      this.getSpacedRepetitionSchedule(studentId).catch(() => null),
+      this.detectLearningStyle(studentId).catch(() => null),
+      this.getLearningPath(studentId).catch(() => []),
+      this.getAchievementBadges(studentId).catch(() => null),
+      this.scoreModel
+        .find({ userId: studentId })
+        .sort({ createdAt: -1 })
+        .exec()
+        .catch(() => []),
+      this.playerSessionModel
+        .find({ userId: studentId })
+        .sort({ createdAt: -1 })
+        .exec()
+        .catch(() => []),
+      Promise.all([
+        this.chatAiModel
+          .find({ student: studentId })
+          .select("_id")
+          .lean()
+          .exec()
+          .catch(() => []),
+        this.chatInstructorModel
+          .find({ participants: studentId })
+          .select("_id")
+          .lean()
+          .exec()
+          .catch(() => []),
+        this.chatRoomModel
+          .find({ participants: studentId })
+          .select("_id")
+          .lean()
+          .exec()
+          .catch(() => []),
+      ]).then(([ai, instructor, rooms]) => ({ ai, instructor, rooms })),
+    ]);
+
+    const chatSessionIds = [
+      ...(chatSessions.ai || []).map((session: any) => session._id),
+      ...(chatSessions.instructor || []).map((session: any) => session._id),
+      ...(chatSessions.rooms || []).map((session: any) => session._id),
+    ].filter(Boolean);
+
+    const chatMessages =
+      chatSessionIds.length > 0
+        ? await this.chatMessageModel
+            .find({
+              $or: [
+                { sessionType: "ChatAi", sessionId: { $in: chatSessionIds } },
+                {
+                  sessionType: "ChatInstructor",
+                  sessionId: { $in: chatSessionIds },
+                },
+                { sessionType: "ChatRoom", sessionId: { $in: chatSessionIds } },
+              ],
+            })
+            .sort({ createdAt: -1 })
+            .lean()
+            .exec()
+            .catch(() => [])
+        : [];
+
+    const exerciseSummary = this.summarizeExercisePerformance(
+      performances as any[],
+    );
+    const gameSummary = this.summarizeGameInteractions(
+      gameScores as any[],
+      playerSessions as any[],
+    );
+    const chatSummary = this.summarizeChatInteractions(
+      chatSessions,
+      chatMessages as any[],
+    );
+    const totalInteractions =
+      exerciseSummary.attempts +
+      gameSummary.sessions +
+      chatSummary.messages +
+      (levelTest ? 1 : 0);
+
+    return {
+      studentId,
+      profile,
+      summary: {
+        currentLevel: profile?.level || levelTest?.resultLevel || "beginner",
+        progress: Number(profile?.progress ?? 0) || 0,
+        levelTestScore:
+          Number(profile?.levelTestScore ?? levelTest?.totalScore ?? 0) || 0,
+        strengths: Array.isArray(profile?.strengths) ? profile.strengths : [],
+        weaknesses: Array.isArray(profile?.weaknesses)
+          ? profile.weaknesses
+          : [],
+        riskLevel: String(profile?.risk_level || "LOW"),
+        totalInteractions,
+      },
+      sources: {
+        exercises: exerciseSummary,
+        game: gameSummary,
+        chat: chatSummary,
+        levelTest: {
+          completed: !!levelTest,
+          totalScore: Number(levelTest?.totalScore ?? 0) || 0,
+          resultLevel: levelTest?.resultLevel || profile?.level || "beginner",
+          completedAt: levelTest?.completedAt || null,
+        },
+      },
+      analytics: {
+        learningVelocity: velocity,
+        spacedRepetition,
+        learningStyle,
+        learningPath,
+        achievementBadges,
+      },
+      adaptivePath: this.buildAdaptivePath(
+        performances as any[],
+        profile,
+        levelTest,
+        gameScores as any[],
+        chatSummary,
+      ),
+    };
+  }
+
+  async getStudentComparisonAnalytics(studentId: string): Promise<{
+    studentId: string;
+    rankingPercentile: number;
+    totalStudents: number;
+    student: {
+      averageScore: number;
+      completionRate: number;
+      totalTimeSpent: number;
+      streak: number;
+    };
+    classAverage: {
+      averageScore: number;
+      completionRate: number;
+      totalTimeSpent: number;
+      streak: number;
+    };
+    topStrengths: string[];
+    focusTopics: string[];
+  }> {
+    const [allProfiles, allPerformances, targetProfile] = await Promise.all([
+      this.profileModel
+        .find()
+        .exec()
+        .catch(() => []),
+      this.performanceModel
+        .find()
+        .exec()
+        .catch(() => []),
+      this.profileModel
+        .findOne({ userId: studentId })
+        .exec()
+        .catch(() => null),
+    ]);
+
+    const allStudents = this.buildComparisonMetrics(
+      allProfiles as any[],
+      allPerformances as any[],
+    );
+    const targetMetrics =
+      allStudents.find((student) => student.studentId === studentId) ||
+      this.buildComparisonMetrics(
+        [targetProfile as any],
+        allPerformances as any[],
+      ).find((student) => student.studentId === studentId);
+
+    const comparisonBase = targetMetrics || {
+      studentId,
+      averageScore: 0,
+      completionRate: 0,
+      totalTimeSpent: 0,
+      streak: 0,
+      topicScores: {},
+    };
+
+    const totalStudents = allStudents.length;
+    const betterOrEqual = allStudents.filter(
+      (student) => student.averageScore >= comparisonBase.averageScore,
+    ).length;
+    const rankingPercentile =
+      totalStudents > 0
+        ? Math.round(
+            ((totalStudents - betterOrEqual + 1) / totalStudents) * 100,
+          )
+        : 0;
+
+    const classAverage = this.calculateComparisonAverage(allStudents);
+
+    return {
+      studentId,
+      rankingPercentile,
+      totalStudents,
+      student: {
+        averageScore: comparisonBase.averageScore,
+        completionRate: comparisonBase.completionRate,
+        totalTimeSpent: comparisonBase.totalTimeSpent,
+        streak: comparisonBase.streak,
+      },
+      classAverage,
+      topStrengths: Object.entries(comparisonBase.topicScores || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([topic]) => topic),
+      focusTopics: (targetProfile?.weaknesses || []).slice(0, 3),
+    };
+  }
+
+  private summarizeExercisePerformance(performances: any[]): {
+    attempts: number;
+    completed: number;
+    averageScore: number;
+    byTopic: Array<{ topic: string; attempts: number; averageScore: number }>;
+  } {
+    const attempts = Array.isArray(performances) ? performances : [];
+    const completed = attempts.filter(
+      (item: any) => Number(item?.score) >= 70,
+    ).length;
+    const averageScore = attempts.length
+      ? Math.round(
+          (attempts.reduce(
+            (sum: number, item: any) => sum + (Number(item?.score) || 0),
+            0,
+          ) /
+            attempts.length) *
+            100,
+        ) / 100
+      : 0;
+
+    const topicMap = new Map<string, { attempts: number; total: number }>();
+    attempts.forEach((item: any) => {
+      const topic = String(item?.topic || "general").trim() || "general";
+      const entry = topicMap.get(topic) || { attempts: 0, total: 0 };
+      entry.attempts += 1;
+      entry.total += Number(item?.score) || 0;
+      topicMap.set(topic, entry);
+    });
+
+    return {
+      attempts: attempts.length,
+      completed,
+      averageScore,
+      byTopic: Array.from(topicMap.entries())
+        .map(([topic, stat]) => ({
+          topic,
+          attempts: stat.attempts,
+          averageScore:
+            stat.attempts > 0
+              ? Math.round((stat.total / stat.attempts) * 100) / 100
+              : 0,
+        }))
+        .sort((a, b) => b.attempts - a.attempts),
+    };
+  }
+
+  private summarizeGameInteractions(
+    gameScores: any[],
+    playerSessions: any[],
+  ): {
+    sessions: number;
+    averageScore: number;
+    totalTimeSpent: number;
+  } {
+    const scores = Array.isArray(gameScores) ? gameScores : [];
+    const sessions = Array.isArray(playerSessions) ? playerSessions : [];
+    const averageScore = scores.length
+      ? Math.round(
+          (scores.reduce(
+            (sum: number, item: any) => sum + (Number(item?.score) || 0),
+            0,
+          ) /
+            scores.length) *
+            100,
+        ) / 100
+      : 0;
+    const totalTimeSpent = scores.reduce(
+      (sum: number, item: any) => sum + (Number(item?.timeSpent) || 0),
+      0,
+    );
+    return {
+      sessions: Math.max(scores.length, sessions.length),
+      averageScore,
+      totalTimeSpent,
+    };
+  }
+
+  private summarizeChatInteractions(
+    chatSessions: { ai: any[]; instructor: any[]; rooms: any[] },
+    chatMessages: any[],
+  ): {
+    sessions: number;
+    messages: number;
+  } {
+    const sessionCount =
+      (chatSessions?.ai?.length || 0) +
+      (chatSessions?.instructor?.length || 0) +
+      (chatSessions?.rooms?.length || 0);
+    const messageCount = Array.isArray(chatMessages) ? chatMessages.length : 0;
+    return {
+      sessions: sessionCount,
+      messages: messageCount,
+    };
+  }
+
+  private buildAdaptivePath(
+    performances: any[],
+    profile: StudentProfile | null,
+    levelTest: any,
+    gameScores: any[],
+    chatSummary: { sessions: number; messages: number },
+  ): Array<{
+    topic: string;
+    priority: "high" | "medium" | "low";
+    reason: string;
+    recommendedActions: string[];
+  }> {
+    const topicMap = new Map<string, { score: number; attempts: number }>();
+
+    (performances || []).forEach((item: any) => {
+      const topic = String(item?.topic || "general").trim() || "general";
+      const entry = topicMap.get(topic) || { score: 0, attempts: 0 };
+      entry.score += Number(item?.score) || 0;
+      entry.attempts += 1;
+      topicMap.set(topic, entry);
+    });
+
+    const levelTopics = Array.isArray(levelTest?.detectedWeaknesses)
+      ? levelTest.detectedWeaknesses
+          .map((item: any) => String(item?.topic || "").trim())
+          .filter(Boolean)
+      : [];
+
+    const gamePressure = (gameScores || []).filter(
+      (item: any) => Number(item?.score) < 70,
+    ).length;
+    const chatEngagement = chatSummary.messages > 0;
+
+    const path = Array.from(topicMap.entries())
+      .map(([topic, stat]) => {
+        const averageScore = stat.attempts > 0 ? stat.score / stat.attempts : 0;
+        const levelWeak =
+          (profile?.weaknesses || []).includes(topic) ||
+          levelTopics.includes(topic);
+        const priority: "high" | "medium" | "low" =
+          levelWeak || averageScore < 60
+            ? "high"
+            : averageScore < 75
+              ? "medium"
+              : "low";
+
+        return {
+          topic,
+          priority,
+          reason: levelWeak
+            ? `Marked as a weakness in profile or level test.`
+            : `Based on exercise average of ${Math.round(averageScore)}%.`,
+          recommendedActions: [
+            `Complete 3 targeted exercises on ${topic}`,
+            chatEngagement
+              ? `Ask the AI tutor 1 focused question about ${topic}`
+              : `Review a short lesson on ${topic}`,
+            gamePressure > 0
+              ? `Use a game round to practice ${topic}`
+              : `Repeat one assessment for ${topic}`,
+          ],
+        };
+      })
+      .sort((a, b) => {
+        const order = { high: 0, medium: 1, low: 2 };
+        return order[a.priority] - order[b.priority];
+      });
+
+    if (path.length === 0) {
+      return [
+        {
+          topic: profile?.level || "general",
+          priority: "medium",
+          reason:
+            "Insufficient interaction data yet, using current level as guidance.",
+          recommendedActions: [
+            "Complete a few exercises",
+            "Review the level test results",
+            "Open a chat session if you need help",
+          ],
+        },
+      ];
+    }
+
+    return path.slice(0, 6);
+  }
+
+  private buildComparisonMetrics(
+    allProfiles: any[],
+    allPerformances: any[],
+  ): Array<{
+    studentId: string;
+    averageScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    streak: number;
+    topicScores: Record<string, number>;
+  }> {
+    const performancesByStudent = new Map<string, any[]>();
+    (allPerformances || []).forEach((performance: any) => {
+      const studentId = String(performance?.studentId || "").trim();
+      if (!studentId) return;
+      const list = performancesByStudent.get(studentId) || [];
+      list.push(performance);
+      performancesByStudent.set(studentId, list);
+    });
+
+    const metrics: Array<{
+      studentId: string;
+      averageScore: number;
+      completionRate: number;
+      totalTimeSpent: number;
+      streak: number;
+      topicScores: Record<string, number>;
+    }> = [];
+
+    (allProfiles || []).forEach((profile: any) => {
+      const studentId = String(profile?.userId || "").trim();
+      if (!studentId) return;
+      const studentPerformances = performancesByStudent.get(studentId) || [];
+      const summary = this.summarizeComparisonStudent(
+        studentId,
+        profile,
+        studentPerformances,
+      );
+      metrics.push(summary);
+      performancesByStudent.delete(studentId);
+    });
+
+    performancesByStudent.forEach((studentPerformances, studentId) => {
+      metrics.push(
+        this.summarizeComparisonStudent(studentId, null, studentPerformances),
+      );
+    });
+
+    return metrics;
+  }
+
+  private summarizeComparisonStudent(
+    studentId: string,
+    profile: any,
+    performances: any[],
+  ): {
+    studentId: string;
+    averageScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    streak: number;
+    topicScores: Record<string, number>;
+  } {
+    const scores = (performances || []).map(
+      (item: any) => Number(item?.score) || 0,
+    );
+    const averageScore = scores.length
+      ? Math.round(
+          (scores.reduce((sum: number, score: number) => sum + score, 0) /
+            scores.length) *
+            100,
+        ) / 100
+      : Number(profile?.progress ?? 0) || 0;
+    const completionRate = scores.length
+      ? Math.round(
+          (scores.filter((score: number) => score >= 70).length /
+            scores.length) *
+            10000,
+        ) / 100
+      : Number(profile?.progress ?? 0) || 0;
+    const totalTimeSpent = Math.round(
+      (performances || []).reduce(
+        (sum: number, item: any) => sum + (Number(item?.timeSpent) || 0),
+        0,
+      ),
+    );
+
+    const topicScores: Record<string, number> = {};
+    const topicMap = new Map<string, { total: number; count: number }>();
+    (performances || []).forEach((item: any) => {
+      const topic = String(item?.topic || "general").trim() || "general";
+      const entry = topicMap.get(topic) || { total: 0, count: 0 };
+      entry.total += Number(item?.score) || 0;
+      entry.count += 1;
+      topicMap.set(topic, entry);
+    });
+    topicMap.forEach((entry, topic) => {
+      topicScores[topic] =
+        entry.count > 0
+          ? Math.round((entry.total / entry.count) * 100) / 100
+          : 0;
+    });
+
+    return {
+      studentId,
+      averageScore,
+      completionRate,
+      totalTimeSpent,
+      streak: this.computeStreakFromPerformances(performances),
+      topicScores,
+    };
+  }
+
+  private calculateComparisonAverage(
+    allStudents: Array<{
+      averageScore: number;
+      completionRate: number;
+      totalTimeSpent: number;
+      streak: number;
+    }>,
+  ): {
+    averageScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    streak: number;
+  } {
+    if (!allStudents.length) {
+      return {
+        averageScore: 0,
+        completionRate: 0,
+        totalTimeSpent: 0,
+        streak: 0,
+      };
+    }
+
+    return {
+      averageScore:
+        Math.round(
+          (allStudents.reduce((sum, student) => sum + student.averageScore, 0) /
+            allStudents.length) *
+            100,
+        ) / 100,
+      completionRate:
+        Math.round(
+          (allStudents.reduce(
+            (sum, student) => sum + student.completionRate,
+            0,
+          ) /
+            allStudents.length) *
+            100,
+        ) / 100,
+      totalTimeSpent: Math.round(
+        allStudents.reduce((sum, student) => sum + student.totalTimeSpent, 0) /
+          allStudents.length,
+      ),
+      streak:
+        Math.round(
+          (allStudents.reduce((sum, student) => sum + student.streak, 0) /
+            allStudents.length) *
+            100,
+        ) / 100,
+    };
+  }
+
+  private computeStreakFromPerformances(performances: any[]): number {
+    if (!performances || performances.length === 0) {
+      return 0;
+    }
+
+    const uniqueDays = new Set<string>();
+    performances.forEach((performance: any) => {
+      if (!performance?.attemptDate) return;
+      const date = new Date(performance.attemptDate);
+      if (Number.isNaN(date.getTime())) return;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      uniqueDays.add(key);
+    });
+
+    if (!uniqueDays.size) {
+      return 0;
+    }
+
+    const sortedDays = Array.from(uniqueDays)
+      .map((day) => new Date(`${day}T00:00:00.000Z`))
+      .sort((a, b) => b.getTime() - a.getTime());
+
+    let streak = 1;
+    for (let i = 1; i < sortedDays.length; i++) {
+      const diffDays = Math.round(
+        (sortedDays[i - 1].getTime() - sortedDays[i].getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+      if (diffDays === 1) {
+        streak += 1;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  async syncProfileFromAiLevelTest(
+    studentId: string,
+    aiProfile: any,
+    sessionId?: string,
+    levelTestResult?: any,
+  ): Promise<StudentProfile> {
+    const userId = String(studentId || "").trim();
+    if (!userId) {
+      throw new NotFoundException("studentId is required");
+    }
+
+    const profile = aiProfile || {};
+    const level =
+      profile?.overall_level === "advanced" ||
+      profile?.overall_level === "intermediate" ||
+      profile?.overall_level === "beginner"
+        ? profile.overall_level
+        : "beginner";
+
+    const levelTestMastery = Math.max(
+      0,
+      Math.min(
+        100,
+        Number.isFinite(
+          Number(profile?.overall_mastery ?? profile?.totalScore ?? 0),
+        )
+          ? Number(profile?.overall_mastery ?? profile?.totalScore ?? 0)
+          : 0,
+      ),
+    );
+
+    const strengths = Array.isArray(profile?.strengths)
+      ? profile.strengths
+          .map((item: any) => item?.title || item?.topic || item)
+          .filter(
+            (value: any) =>
+              typeof value === "string" && value.trim().length > 0,
+          )
+      : [];
+
+    const weaknesses = Array.isArray(profile?.weaknesses)
+      ? profile.weaknesses
+          .map((item: any) => item?.title || item?.topic || item)
+          .filter(
+            (value: any) =>
+              typeof value === "string" && value.trim().length > 0,
+          )
+      : [];
+
+    const riskLevel =
+      levelTestMastery >= 70
+        ? "LOW"
+        : levelTestMastery >= 40
+          ? "MEDIUM"
+          : "HIGH";
+
+    const updated = await this.profileModel
+      .findOneAndUpdate(
+        { userId },
+        {
+          $set: {
+            level,
+            levelTestScore: levelTestMastery,
+            strengths,
+            weaknesses,
+            levelTestCompleted: true,
+            risk_level: riskLevel,
+          },
+          $setOnInsert: {
+            userId,
+            class: "N/A",
+            points_gamification: 0,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      )
+      .exec();
+
+    // Persist a completed level-test snapshot so latest-completed endpoint can
+    // reliably return the last done test from backend storage.
+    try {
+      const result = levelTestResult || {};
+      const questions = Array.isArray(result?.questions)
+        ? result.questions.map((q: any, idx: number) => ({
+            questionText: String(q?.questionText || `Question ${idx + 1}`),
+            options: Array.isArray(q?.options) ? q.options : [],
+            correctAnswer: String(q?.correctAnswer || ""),
+            topic: String(q?.topic || "General"),
+            difficulty: String(q?.difficulty || "beginner"),
+          }))
+        : [];
+
+      const answers = Array.isArray(result?.answers)
+        ? result.answers.map((a: any, idx: number) => ({
+            questionIndex: Number.isFinite(Number(a?.questionIndex))
+              ? Number(a.questionIndex)
+              : idx,
+            selectedAnswer: String(a?.selectedAnswer || ""),
+            isCorrect: !!a?.isCorrect,
+            timeSpent: Number.isFinite(Number(a?.timeSpent))
+              ? Number(a.timeSpent)
+              : 0,
+          }))
+        : [];
+
+      const detectedStrengths = Array.isArray(result?.detectedStrengths)
+        ? result.detectedStrengths
+        : [];
+      const detectedWeaknesses = Array.isArray(result?.detectedWeaknesses)
+        ? result.detectedWeaknesses
+        : [];
+
+      const totalScore = Math.max(
+        0,
+        Math.min(
+          100,
+          Number(
+            result?.totalScore ??
+              profile?.overall_mastery ??
+              profile?.progress ??
+              0,
+          ) || 0,
+        ),
+      );
+
+      const resultLevel =
+        result?.resultLevel || profile?.overall_level || level || "beginner";
+
+      const hasMeaningfulData =
+        questions.length > 0 ||
+        answers.length > 0 ||
+        totalScore > 0 ||
+        detectedStrengths.length > 0 ||
+        detectedWeaknesses.length > 0;
+
+      if (hasMeaningfulData) {
+        const levelTest = new this.levelTestModel({
+          studentId: userId,
+          questions,
+          answers,
+          totalScore,
+          resultLevel,
+          detectedStrengths,
+          detectedWeaknesses,
+          status: "completed",
+          completedAt: new Date(),
+        });
+        await levelTest.save();
+      }
+    } catch (error: any) {
+      this.logger.warn(
+        `Level-test result snapshot persistence skipped for ${userId}: ${error?.message || "unknown error"}`,
+      );
+    }
+
+    // Auto-generate initial recommendations right after level-test profile sync.
+    // This keeps Sprint 4 fully automatic even when level-test was completed via ai-service flow.
+    try {
+      await this.generateInitialRecommendationsFromLevelTest(userId, profile);
+    } catch (error: any) {
+      this.logger.warn(
+        `Initial recommendations auto-generation skipped for ${userId}${sessionId ? ` (session ${sessionId})` : ""}: ${
+          error?.message || "unknown error"
+        }`,
+      );
+    }
+
+    return updated as StudentProfile;
+  }
+
   // ══════════════════════════════════
   // STUDENT PERFORMANCE CRUD
   // ══════════════════════════════════
@@ -125,10 +1075,158 @@ export class AdaptiveLearningService {
   async findPerformanceByStudent(
     studentId: string,
   ): Promise<StudentPerformance[]> {
-    return this.performanceModel
-      .find({ studentId })
-      .sort({ attemptDate: -1 })
-      .exec();
+    const [adaptiveRows, quizRows, quizFileRows, prositRows] =
+      await Promise.all([
+        this.performanceModel.find({ studentId }).lean().exec(),
+        this.quizSubmissionModel
+          .find({ studentId })
+          .sort({ submittedAt: -1 })
+          .lean()
+          .exec(),
+        this.quizFileSubmissionModel
+          .find({
+            studentId,
+            status: QuizFileSubmissionStatus.GRADED,
+            grade: { $ne: null },
+          })
+          .sort({ gradedAt: -1, submittedAt: -1 })
+          .lean()
+          .exec(),
+        this.prositSubmissionModel
+          .find({
+            studentId,
+            status: { $in: ["graded", "reviewed"] },
+            grade: { $ne: null },
+          })
+          .sort({ gradedAt: -1, submittedAt: -1 })
+          .lean()
+          .exec(),
+      ]);
+
+    const normalizedAdaptive = (adaptiveRows || []).map((row: any) =>
+      this.normalizePerformanceRow(row),
+    );
+
+    const normalizedQuiz = (quizRows || []).map((row: any) => {
+      const score = Number(row?.scorePercentage ?? 0);
+      return this.normalizePerformanceRow({
+        studentId: String(row?.studentId || studentId),
+        exerciseId: String(row?.quizId || row?._id || "quiz"),
+        score,
+        timeSpent: 0,
+        attemptDate: row?.submittedAt || row?.createdAt,
+        source: "quiz",
+        topic:
+          String(
+            row?.subjectTitle ||
+              row?.chapterTitle ||
+              row?.subChapterTitle ||
+              "general",
+          ).trim() ||
+          "general",
+        difficulty: this.estimateDifficultyFromScore(score),
+      });
+    });
+
+    const normalizedQuizFiles = (quizFileRows || []).map((row: any) => {
+      const score = Math.max(0, Math.min(100, Number(row?.grade ?? 0)));
+      return this.normalizePerformanceRow({
+        studentId: String(row?.studentId || studentId),
+        exerciseId: String(row?.quizId || row?._id || "quiz-file"),
+        score,
+        timeSpent: 0,
+        attemptDate: row?.gradedAt || row?.submittedAt || row?.createdAt,
+        source: "quiz",
+        topic:
+          String(
+            row?.subjectTitle ||
+              row?.chapterTitle ||
+              row?.subChapterTitle ||
+              "general",
+          ).trim() ||
+          "general",
+        difficulty: this.estimateDifficultyFromScore(score),
+      });
+    });
+
+    const normalizedProsits = (prositRows || []).map((row: any) => {
+      const rawGrade = Number(row?.grade ?? 0);
+      const score = rawGrade <= 20 ? rawGrade * 5 : rawGrade;
+      return this.normalizePerformanceRow({
+        studentId: String(row?.studentId || studentId),
+        exerciseId: String(row?.prositTitle || row?._id || "prosit"),
+        score: Math.max(0, Math.min(100, score)),
+        timeSpent: 0,
+        attemptDate: row?.gradedAt || row?.submittedAt || row?.createdAt,
+        source: "exercise",
+        topic:
+          String(
+            row?.subjectTitle ||
+              row?.chapterTitle ||
+              row?.subChapterTitle ||
+              "general",
+          ).trim() ||
+          "general",
+        difficulty: this.estimateDifficultyFromScore(score),
+      });
+    });
+
+    const combined = [
+      ...normalizedAdaptive,
+      ...normalizedQuiz,
+      ...normalizedQuizFiles,
+      ...normalizedProsits,
+    ];
+
+    const deduped = new Map<string, any>();
+    combined.forEach((item) => {
+      const objectId = String(item?._id || "").trim();
+      const dateIso = new Date(item.attemptDate).toISOString();
+      const key = objectId
+        ? `id:${objectId}`
+        : `${item.source}:${item.exerciseId}:${dateIso}:${item.topic}:${item.score}`;
+      if (!deduped.has(key)) {
+        deduped.set(key, item);
+      }
+    });
+
+    return Array.from(deduped.values()).sort(
+      (a: any, b: any) =>
+        new Date(b.attemptDate).getTime() - new Date(a.attemptDate).getTime(),
+    ) as StudentPerformance[];
+  }
+
+  private estimateDifficultyFromScore(
+    score: number,
+  ): "beginner" | "intermediate" | "advanced" {
+    if (score >= 85) {
+      return "advanced";
+    }
+    if (score >= 60) {
+      return "intermediate";
+    }
+    return "beginner";
+  }
+
+  private normalizePerformanceRow(row: any): any {
+    return {
+      _id: row?._id,
+      studentId: String(row?.studentId || ""),
+      exerciseId: String(row?.exerciseId || "exercise"),
+      score: Math.max(0, Math.min(100, Number(row?.score ?? 0))),
+      timeSpent: Math.max(0, Number(row?.timeSpent ?? 0)),
+      attemptDate:
+        row?.attemptDate || row?.submittedAt || row?.gradedAt || row?.createdAt,
+      source: String(row?.source || "exercise"),
+      topic: String(
+        row?.subjectTitle ||
+          row?.topic ||
+          row?.chapterTitle ||
+          row?.subChapterTitle ||
+          "general",
+      ),
+      difficulty: String(row?.difficulty || "beginner"),
+    };
   }
 
   async updatePerformance(
@@ -1571,9 +2669,25 @@ export class AdaptiveLearningService {
       .exec();
 
     if (!performances || performances.length < 5) {
-      throw new NotFoundException(
-        `Insufficient performance data for student ${studentId}. Need at least 5 exercises.`,
-      );
+      return {
+        primaryStyle: "learning_style_pending",
+        secondaryStyle: null,
+        confidence: 0,
+        styleDescription:
+          "More performance data is needed to detect a reliable learning style.",
+        learningTips: [
+          "Complete at least 5 graded exercises across different topics.",
+          "Mix easy and medium exercises to generate behavior signals.",
+          "Keep regular sessions so the system can detect your pace pattern.",
+        ],
+        indicators: {
+          averageTimePerExercise: 0,
+          scoreConsistency: 0,
+          preferredDifficulty: "beginner",
+          preferredTopics: [],
+          sessionsPerWeek: 0,
+        },
+      };
     }
 
     // ── Analyze performances ──
@@ -2107,7 +3221,9 @@ export class AdaptiveLearningService {
       throw new NotFoundException(`Profile not found for student ${studentId}`);
     }
 
-    const profileWeaknesses: string[] = profile.weaknesses || [];
+    const profileWeaknesses: string[] = Array.isArray(profile.weaknesses)
+      ? profile.weaknesses
+      : [];
 
     const latestLevelTest = await this.levelTestModel
       .findOne({ studentId, status: "completed" })
@@ -2119,6 +3235,15 @@ export class AdaptiveLearningService {
       .sort({ attemptDate: -1 })
       .limit(20)
       .exec();
+
+    // First-time / no-evidence learner: no weak areas should be shown yet.
+    if (!latestLevelTest && recentPerformances.length === 0) {
+      return {
+        weakAreas: [],
+        totalWeakAreas: 0,
+        mostUrgent: "",
+      };
+    }
 
     const topicScoresFromPerf: Record<
       string,
@@ -2148,6 +3273,17 @@ export class AdaptiveLearningService {
       score: typeof w.score === "number" ? w.score : 50,
     }));
 
+    const subjectTitles = await this.subjectModel
+      .find({})
+      .select("title")
+      .lean<any[]>()
+      .exec();
+    const subjectTitleSet = new Set(
+      (subjectTitles || [])
+        .map((row) => this.normalizeTopicLabel(row?.title))
+        .filter((label) => !!label),
+    );
+
     const mergedWeakAreas = new Map<
       string,
       {
@@ -2164,6 +3300,10 @@ export class AdaptiveLearningService {
     ) => {
       const normalizedTopic = (topic || "general").trim();
       if (!normalizedTopic) return;
+      if (subjectTitleSet.has(this.normalizeTopicLabel(normalizedTopic))) {
+        // Skip broad subject labels. Weak areas should stay at sub-skill/topic granularity.
+        return;
+      }
 
       const safeScore = Math.max(0, Math.min(100, Math.round(score)));
       const existing = mergedWeakAreas.get(normalizedTopic);
@@ -2185,9 +3325,34 @@ export class AdaptiveLearningService {
       upsertWeakArea(item.topic, item.score, "performance");
     });
 
+    const levelWeakTopicSet = new Set(
+      weakFromLevelTest.map((item) => String(item.topic || "").trim().toLowerCase()),
+    );
+    const perfTopicScoreMap = new Map<string, number>(
+      Object.entries(topicScoresFromPerf).map(([topic, stat]) => [
+        String(topic || "").trim().toLowerCase(),
+        Math.round(stat.total / stat.count),
+      ]),
+    );
+
     profileWeaknesses.forEach((topic) => {
-      // Fallback score for profile-only weakness when no numeric evidence exists.
-      upsertWeakArea(topic, 55, "profile");
+      const normalized = String(topic || "").trim();
+      if (!normalized) return;
+      const key = normalized.toLowerCase();
+
+      // Avoid profile-only weak topics when there is no concrete evidence.
+      // This prevents broad subject names from appearing as weak areas.
+      const scoreFromPerf = perfTopicScoreMap.get(key);
+      const inLevelWeak = levelWeakTopicSet.has(key);
+      if (!inLevelWeak && scoreFromPerf === undefined) {
+        return;
+      }
+
+      upsertWeakArea(
+        normalized,
+        scoreFromPerf !== undefined ? scoreFromPerf : 55,
+        "profile",
+      );
     });
 
     const weakAreas = Array.from(mergedWeakAreas.values())
@@ -2225,6 +3390,15 @@ export class AdaptiveLearningService {
       totalWeakAreas: weakAreas.length,
       mostUrgent: weakAreas[0]?.topic || "",
     };
+  }
+
+  private normalizeTopicLabel(value: unknown): string {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ");
   }
 
   async getExerciseCompletionTracking(studentId: string): Promise<{
@@ -3801,13 +4975,13 @@ export class AdaptiveLearningService {
             strengths: detectedStrengths.map((s: any) => s.topic),
             weaknesses: detectedWeaknesses.map((w: any) => w.topic),
             levelTestCompleted: true,
-            progress: totalScore,
+            levelTestScore: totalScore,
             risk_level:
               totalScore >= 70 ? "LOW" : totalScore >= 40 ? "MEDIUM" : "HIGH",
           },
           $setOnInsert: {
             userId: test.studentId,
-            academic_level: "N/A",
+            class: "N/A",
             points_gamification: 0,
           },
         },
@@ -3861,12 +5035,283 @@ export class AdaptiveLearningService {
     return test ? test.toObject() : null;
   }
 
+  async syncProfileFromAiPostEvaluation(
+    studentId: string,
+    aiProfile: any,
+    sessionId?: string,
+    postEvaluationResult?: any,
+  ): Promise<{
+    status: string;
+    profile: StudentProfile;
+    postEvaluation?: PostEvaluationTest;
+  }> {
+    const userId = String(studentId || "").trim();
+    if (!userId) {
+      throw new NotFoundException("studentId is required");
+    }
+
+    const normalizedResult = this.normalizePostEvaluationResult(
+      postEvaluationResult || aiProfile,
+      userId,
+      sessionId,
+    );
+    const areaScores = this.computePostEvaluationAreaScores(normalizedResult);
+    const weakTopics = areaScores
+      .filter((item) => item.score < 60)
+      .map((item) => item.topic);
+    const strongTopics = areaScores
+      .filter((item) => item.score >= 70)
+      .map((item) => item.topic);
+    const recommendations = this.generatePostEvaluationRecommendations(areaScores);
+    const overallScore = this.resolvePostEvaluationOverallScore(
+      normalizedResult,
+      areaScores,
+      aiProfile,
+    );
+
+    const riskLevel = this.mapScoreToRiskLevel(overallScore);
+    const level = this.mapScoreToLevel(overallScore);
+
+    const profile = await this.profileModel
+      .findOneAndUpdate(
+        { userId },
+        {
+          $set: {
+            level,
+            levelTestCompleted: true,
+            levelTestScore: Math.round(overallScore),
+            progress: Math.round(overallScore),
+            strengths: strongTopics,
+            weaknesses: weakTopics,
+            risk_level: riskLevel,
+            postEvaluationScore: Math.round(overallScore),
+            postEvaluationCompletedAt: new Date(),
+            postEvaluationAreaScores: areaScores,
+            postEvaluationRecommendations: recommendations,
+          },
+          $setOnInsert: {
+            userId,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      )
+      .exec();
+
+    const persistedPostEval = await this.postEvaluationTestModel
+      .findOneAndUpdate(
+        {
+          studentId: userId,
+          ...(sessionId ? { sessionId } : {}),
+        },
+        {
+          $set: {
+            studentId: userId,
+            sessionId: sessionId || normalizedResult?.sessionId || undefined,
+            status: "completed",
+            questions: normalizedResult?.questions || [],
+            answers: normalizedResult?.answers || [],
+            totalScore: Math.round(overallScore),
+            areaScores,
+            recommendations,
+            completedAt: new Date(),
+          },
+          $setOnInsert: {
+            studentId: userId,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      )
+      .exec();
+
+    return {
+      status: "success",
+      profile: profile as StudentProfile,
+      postEvaluation: persistedPostEval as any,
+    };
+  }
+
+  async findLatestCompletedPostEvaluationByStudent(
+    studentId: string,
+  ): Promise<any> {
+    const test = await this.postEvaluationTestModel
+      .findOne({ studentId, status: "completed" })
+      .sort({ completedAt: -1, createdAt: -1, _id: -1 })
+      .exec();
+    if (!test) {
+      return null;
+    }
+    return this.sanitizePostEvaluationForResponse(test.toObject());
+  }
+
+  private normalizePostEvaluationResult(
+    payload: any,
+    studentId: string,
+    sessionId?: string,
+  ): any {
+    const normalizedQuestions = Array.isArray(payload?.questions)
+      ? payload.questions.map((q: any) => ({
+          questionText: String(q?.questionText || q?.question || "").trim(),
+          options: Array.isArray(q?.options) ? q.options : [],
+          topic: String(q?.topic || "General").trim() || "General",
+          chapter_title: String(q?.chapter_title || q?.chapter || "").trim(),
+          difficulty: String(q?.difficulty || "medium").trim(),
+        }))
+      : [];
+
+    const normalizedAnswers = Array.isArray(payload?.answers)
+      ? payload.answers.map((a: any, idx: number) => ({
+          questionIndex: Number.isFinite(Number(a?.questionIndex))
+            ? Number(a.questionIndex)
+            : idx,
+          selectedAnswer: String(a?.selectedAnswer || "").trim(),
+          isCorrect: Boolean(a?.isCorrect),
+          timeSpent: Number(a?.timeSpent || 0),
+        }))
+      : [];
+
+    return {
+      studentId,
+      sessionId: String(payload?.sessionId || payload?.session_id || sessionId || "").trim(),
+      totalScore: Number(payload?.totalScore ?? payload?.score ?? payload?.overall_mastery ?? 0),
+      questions: normalizedQuestions,
+      answers: normalizedAnswers,
+      areaScores: Array.isArray(payload?.areaScores) ? payload.areaScores : [],
+      recommendations: Array.isArray(payload?.recommendations)
+        ? payload.recommendations
+        : [],
+    };
+  }
+
+  private computePostEvaluationAreaScores(result: any): Array<{
+    topic: string;
+    score: number;
+    correct: number;
+    total: number;
+  }> {
+    if (Array.isArray(result?.areaScores) && result.areaScores.length > 0) {
+      return result.areaScores.map((area: any) => ({
+        topic: String(area?.topic || "General").trim() || "General",
+        score: Math.max(0, Math.min(100, Number(area?.score || 0))),
+        correct: Math.max(0, Number(area?.correct || 0)),
+        total: Math.max(0, Number(area?.total || 0)),
+      }));
+    }
+
+    const questions = Array.isArray(result?.questions) ? result.questions : [];
+    const answers = Array.isArray(result?.answers) ? result.answers : [];
+    const byTopic = new Map<string, { correct: number; total: number }>();
+
+    questions.forEach((question: any, idx: number) => {
+      const topic = String(question?.topic || "General").trim() || "General";
+      const answer = answers[idx];
+      const prev = byTopic.get(topic) || { correct: 0, total: 0 };
+      prev.total += 1;
+      if (answer?.isCorrect) {
+        prev.correct += 1;
+      }
+      byTopic.set(topic, prev);
+    });
+
+    return Array.from(byTopic.entries()).map(([topic, stat]) => ({
+      topic,
+      score: stat.total > 0 ? Math.round((stat.correct / stat.total) * 100) : 0,
+      correct: stat.correct,
+      total: stat.total,
+    }));
+  }
+
+  private resolvePostEvaluationOverallScore(
+    result: any,
+    areaScores: Array<{ score: number }>,
+    aiProfile?: any,
+  ): number {
+    const aiRaw = Number(
+      aiProfile?.overall_mastery ??
+        aiProfile?.totalScore ??
+        aiProfile?.score ??
+        0,
+    );
+    if (Number.isFinite(aiRaw) && aiRaw > 0) {
+      return Math.max(0, Math.min(100, aiRaw));
+    }
+
+    const raw = Number(result?.totalScore || 0);
+    if (Number.isFinite(raw) && raw > 0) {
+      return Math.max(0, Math.min(100, raw));
+    }
+    if (areaScores.length === 0) {
+      return 0;
+    }
+    const total = areaScores.reduce((sum, area) => sum + Number(area.score || 0), 0);
+    return Math.max(0, Math.min(100, total / areaScores.length));
+  }
+
+  private generatePostEvaluationRecommendations(
+    areaScores: Array<{ topic: string; score: number }>,
+  ): string[] {
+    const actions: string[] = [];
+    for (const area of areaScores) {
+      if (area.score < 40) {
+        actions.push(
+          `Priority remediation: revisit fundamentals of ${area.topic} and complete easy-to-medium MCQs.`,
+        );
+      } else if (area.score < 70) {
+        actions.push(
+          `Targeted practice: continue focused exercises on ${area.topic} to reach mastery.`,
+        );
+      } else {
+        actions.push(
+          `Maintenance: keep ${area.topic} fresh with spaced revision and challenge questions.`,
+        );
+      }
+    }
+    return actions.slice(0, 8);
+  }
+
+  private sanitizePostEvaluationForResponse(doc: any): any {
+    return {
+      _id: String(doc?._id || ""),
+      studentId: doc?.studentId || "",
+      sessionId: doc?.sessionId || "",
+      status: doc?.status || "completed",
+      totalScore: Number(doc?.totalScore || 0),
+      questions: Array.isArray(doc?.questions) ? doc.questions : [],
+      answers: Array.isArray(doc?.answers) ? doc.answers : [],
+      areaScores: Array.isArray(doc?.areaScores) ? doc.areaScores : [],
+      recommendations: Array.isArray(doc?.recommendations)
+        ? doc.recommendations
+        : [],
+      completedAt: doc?.completedAt || doc?.updatedAt || null,
+    };
+  }
+
+  private mapScoreToRiskLevel(score: number): "LOW" | "MEDIUM" | "HIGH" {
+    if (score >= 75) return "LOW";
+    if (score >= 45) return "MEDIUM";
+    return "HIGH";
+  }
+
+  private mapScoreToLevel(score: number): "beginner" | "intermediate" | "advanced" {
+    if (score >= 80) return "advanced";
+    if (score >= 50) return "intermediate";
+    return "beginner";
+  }
+
   // ══════════════════════════════════════════════════════
   // INITIAL RECOMMENDATIONS FROM LEVEL TEST API
   // ══════════════════════════════════════════════════════
 
   async generateInitialRecommendationsFromLevelTest(
     studentId: string,
+    levelTestProfile?: any,
   ): Promise<{
     recommendations: any[];
     source: string;
@@ -3882,30 +5327,83 @@ export class AdaptiveLearningService {
       .sort({ completedAt: -1, createdAt: -1 })
       .exec();
 
-    if (!levelTest) {
-      throw new NotFoundException(
-        `No completed level test found for student ${studentId}`,
-      );
-    }
-
     // ── 2. Récupère le profil étudiant ──
     const profile = await this.profileModel
       .findOne({ userId: studentId })
       .exec();
 
-    const currentLevel = levelTest.resultLevel || "beginner";
+    if (!levelTest && !levelTestProfile) {
+      throw new NotFoundException(
+        `No completed level test found for student ${studentId}`,
+      );
+    }
+
+    const aiProfile = levelTestProfile || {};
+
+    const mapTopicRows = (
+      rows: any[],
+      fallbackScore: number,
+    ): Array<{
+      topic: string;
+      score: number;
+      correct: number;
+      total: number;
+    }> =>
+      (Array.isArray(rows) ? rows : [])
+        .map((row: any) => {
+          const topic = String(row?.topic || row?.title || "").trim();
+          if (!topic) return null;
+
+          const rawScore = Number(row?.score ?? row?.mastery ?? fallbackScore);
+          const score = Math.max(
+            0,
+            Math.min(100, Number.isFinite(rawScore) ? rawScore : fallbackScore),
+          );
+
+          const correct = Number.isFinite(Number(row?.correct))
+            ? Number(row.correct)
+            : Math.round((score / 100) * 5);
+          const total = Number.isFinite(Number(row?.total))
+            ? Number(row.total)
+            : 5;
+
+          return {
+            topic,
+            score,
+            correct,
+            total: total > 0 ? total : 5,
+          };
+        })
+        .filter(Boolean) as Array<{
+        topic: string;
+        score: number;
+        correct: number;
+        total: number;
+      }>;
+
+    const currentLevel =
+      levelTest?.resultLevel ||
+      aiProfile?.overall_level ||
+      profile?.level ||
+      "beginner";
 
     // ── 3. Trie les weaknesses par score (ASC) ──
-    const sortedWeaknesses =
-      (levelTest as any).detectedWeaknesses?.sort(
-        (a: any, b: any) => a.score - b.score,
-      ) || [];
+    const weaknessesBase = levelTest
+      ? (levelTest as any).detectedWeaknesses || []
+      : mapTopicRows(aiProfile?.weaknesses || profile?.weaknesses || [], 45);
+
+    const sortedWeaknesses = [...weaknessesBase].sort(
+      (a: any, b: any) => Number(a?.score || 0) - Number(b?.score || 0),
+    );
 
     // ── 4. Trie les strengths par score (DESC) ──
-    const sortedStrengths =
-      (levelTest as any).detectedStrengths?.sort(
-        (a: any, b: any) => b.score - a.score,
-      ) || [];
+    const strengthsBase = levelTest
+      ? (levelTest as any).detectedStrengths || []
+      : mapTopicRows(aiProfile?.strengths || profile?.strengths || [], 80);
+
+    const sortedStrengths = [...strengthsBase].sort(
+      (a: any, b: any) => Number(b?.score || 0) - Number(a?.score || 0),
+    );
 
     // ── 5. Supprime les anciennes recommandations non vues ──
     await this.recommendationModel
@@ -3922,8 +5420,10 @@ export class AdaptiveLearningService {
 
     // 🔴 Priorité 1 : 3 exercices de remédiation (weaknesses)
     for (const weakness of sortedWeaknesses.slice(0, 3)) {
+      const topicLabel = String(weakness.topic || "").trim();
       const rec = await this.recommendationModel.create({
         studentId,
+        subject: topicLabel,
         recommendedContent: `${weakness.topic} — ${currentLevel} remediation exercises`,
         reason: `Based on your level test, you scored ${weakness.score}% in ${weakness.topic} (${weakness.correct}/${weakness.total} correct). Let's strengthen this area with targeted exercises.`,
         contentType: "exercise",
@@ -3945,8 +5445,10 @@ export class AdaptiveLearningService {
           : "advanced";
 
     for (const strength of sortedStrengths.slice(0, 2)) {
+      const topicLabel = String(strength.topic || "").trim();
       const rec = await this.recommendationModel.create({
         studentId,
+        subject: topicLabel,
         recommendedContent: `${strength.topic} — ${nextLevel} challenge exercises`,
         reason: `Excellent work in ${strength.topic}! You achieved ${strength.score}% on the level test (${strength.correct}/${strength.total} correct). Ready to level up with advanced challenges?`,
         contentType: "course",
@@ -3962,7 +5464,9 @@ export class AdaptiveLearningService {
     return {
       recommendations,
       source: "level-test",
-      levelTestScore: (levelTest as any).totalScore || 0,
+      levelTestScore: Number(
+        (levelTest as any)?.totalScore ?? aiProfile?.overall_mastery ?? 0,
+      ),
       resultLevel: currentLevel,
       weaknessesAddressed,
       strengthsChallenged,

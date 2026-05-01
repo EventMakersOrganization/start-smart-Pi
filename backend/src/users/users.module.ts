@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
 import { StudentProfile, StudentProfileSchema } from './schemas/student-profile.schema';
@@ -6,9 +6,13 @@ import { UsersController } from './users.controller';
 import { AdminController } from '../admin/admin.controller';
 import { UsersService } from './users.service';
 import { ActivityModule } from '../activity/activity.module';
+import { SubjectsModule } from '../subjects/subjects.module';
+import { AcademicModule } from '../academic/academic.module';
 
 @Module({
   imports: [
+    forwardRef(() => SubjectsModule),
+    forwardRef(() => AcademicModule),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: StudentProfile.name, schema: StudentProfileSchema },

@@ -10,8 +10,8 @@ import {
 } from '@angular/core';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { catchError, takeUntil } from 'rxjs/operators';
 
 Chart.register(...registerables);
 
@@ -93,33 +93,12 @@ export class PeerComparisonComponent implements OnInit, OnDestroy, OnChanges {
     this.loading = true;
     this.error = null;
 
-    this.adaptiveLearningService
-      .getExerciseCompletionTracking(this.studentId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (myTracking) => {
-          this.adaptiveLearningService
-            .getAllProfiles()
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-              next: (allProfiles) => {
-                this.calculateComparison(myTracking, allProfiles);
-                this.loading = false;
-              },
-              error: (err) => {
-                console.error('Error loading profiles:', err);
-                // Fallback: still render comparison with mock class baseline.
-                this.calculateComparison(myTracking, []);
-                this.error = null;
-                this.loading = false;
-              },
-            });
-        },
-        error: (err) => {
-          console.error('Error loading tracking data:', err);
-          // Fallback: render with empty own stats + mock class baseline.
-          this.calculateComparison(
-            {
+    forkJoin({
+      myTracking: this.adaptiveLearningService
+        .getExerciseCompletionTracking(this.studentId)
+        .pipe(
+          catchError(() =>
+            of({
               summary: {
                 averageScore: 0,
                 completionRate: 0,
@@ -127,21 +106,96 @@ export class PeerComparisonComponent implements OnInit, OnDestroy, OnChanges {
                 currentStreak: 0,
               },
               byTopic: [],
-            },
-            [],
+            }),
+          ),
+        ),
+      comparisonApi: this.adaptiveLearningService
+        .getStudentComparisonAnalytics(this.studentId)
+        .pipe(catchError(() => of(null))),
+      allProfiles: this.adaptiveLearningService
+        .getAllProfiles()
+        .pipe(catchError(() => of([]))),
+      allPerformances: this.adaptiveLearningService
+        .getAllPerformances()
+        .pipe(catchError(() => of([]))),
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ myTracking, comparisonApi, allProfiles, allPerformances }) => {
+          this.calculateComparison(
+            myTracking,
+            comparisonApi,
+            allProfiles || [],
+            allPerformances || [],
           );
-          this.error = null;
+          this.loading = false;
+        },
+        error: (err) => {
+          console.error('Error loading peer comparison data:', err);
+          this.error = 'Unable to load peer comparison data.';
           this.loading = false;
         },
       });
   }
 
-  private calculateComparison(myTracking: any, allProfiles: any[]): void {
+  private calculateComparison(
+    myTracking: any,
+    comparisonApi: any,
+    allProfiles: any[],
+    allPerformances: any[],
+  ): void {
     // Build my metrics
     const myMetrics = this.buildStudentMetrics(this.studentId, myTracking);
 
+    if (comparisonApi && typeof comparisonApi === 'object') {
+      const apiStudent = comparisonApi?.student || {};
+      const apiClass = comparisonApi?.classAverage || {};
+      const topicScores: Record<string, number> = {};
+      (myTracking?.byTopic || []).forEach((topic: any) => {
+        const name = String(topic?.topic || '').trim();
+        if (!name) return;
+        topicScores[name] = Number(topic?.averageScore || 0);
+      });
+
+      const myFromApi: StudentMetrics = {
+        studentId: this.studentId,
+        averageScore: Number(apiStudent?.averageScore ?? myMetrics.averageScore ?? 0),
+        completionRate: Number(apiStudent?.completionRate ?? myMetrics.completionRate ?? 0),
+        totalTimeSpent: Number(apiStudent?.totalTimeSpent ?? myMetrics.totalTimeSpent ?? 0),
+        streak: Number(apiStudent?.streak ?? myMetrics.streak ?? 0),
+        topicScores,
+      };
+
+      const classFromApi: StudentMetrics = {
+        studentId: 'class-average',
+        averageScore: Number(apiClass?.averageScore ?? 0),
+        completionRate: Number(apiClass?.completionRate ?? 0),
+        totalTimeSpent: Number(apiClass?.totalTimeSpent ?? 0),
+        streak: Number(apiClass?.streak ?? 0),
+        topicScores: Object.keys(topicScores).reduce((acc, key) => {
+          acc[key] = Number(apiClass?.averageScore ?? 0);
+          return acc;
+        }, {} as Record<string, number>),
+      };
+
+      this.comparisonData = {
+        myMetrics: myFromApi,
+        classAverage: classFromApi,
+        rankingPercentile: Number(comparisonApi?.rankingPercentile ?? 0),
+        totalStudents: Math.max(1, Number(comparisonApi?.totalStudents ?? 0)),
+        topicsToCompare: Object.keys(topicScores),
+      };
+
+      this.updateComparisons();
+      this.initCharts();
+      return;
+    }
+
     // Build class metrics (from all other students or mock data)
-    const allStudents = this.buildAllStudentMetrics(allProfiles);
+    const allStudents = this.buildAllStudentMetrics(
+      allProfiles,
+      allPerformances,
+    );
     const classMetrics = this.calculateClassAverage(allStudents);
 
     // Calculate ranking percentile
@@ -199,89 +253,201 @@ export class PeerComparisonComponent implements OnInit, OnDestroy, OnChanges {
     };
   }
 
-  private buildAllStudentMetrics(allProfiles: any[]): StudentMetrics[] {
-    // Try to load real data for all students
-    // For now, combine real data with mock data if not enough students
-    const realStudents = allProfiles.slice(0, 5);
+  private buildAllStudentMetrics(
+    allProfiles: any[],
+    allPerformances: any[],
+  ): StudentMetrics[] {
+    const profiles = Array.isArray(allProfiles) ? allProfiles : [];
+    const performances = Array.isArray(allPerformances) ? allPerformances : [];
 
-    // Generate mock data to simulate full class
-    const mockStudents = this.generateMockStudents(
-      Math.max(15, 20 - realStudents.length),
-    );
+    const performancesByStudent = new Map<string, any[]>();
+    performances.forEach((performance: any) => {
+      const studentId = String(
+        performance?.studentId || performance?.userId || '',
+      ).trim();
+      if (!studentId) return;
 
-    return [
-      ...realStudents.map((profile: any) => this.profileToMetrics(profile)),
-      ...mockStudents,
-    ];
+      if (!performancesByStudent.has(studentId)) {
+        performancesByStudent.set(studentId, []);
+      }
+      performancesByStudent.get(studentId)!.push(performance);
+    });
+
+    const metricsByStudent = new Map<string, StudentMetrics>();
+
+    profiles.forEach((profile: any) => {
+      const studentId = String(profile?.userId || profile?._id || '').trim();
+      if (!studentId) return;
+
+      const studentPerformances = performancesByStudent.get(studentId) || [];
+      metricsByStudent.set(
+        studentId,
+        this.profileToMetrics(profile, studentPerformances),
+      );
+      performancesByStudent.delete(studentId);
+    });
+
+    performancesByStudent.forEach((studentPerformances, studentId) => {
+      metricsByStudent.set(
+        studentId,
+        this.profileToMetrics(null, studentPerformances, studentId),
+      );
+    });
+
+    return Array.from(metricsByStudent.values());
   }
 
-  private profileToMetrics(profile: any): StudentMetrics {
-    // Convert profile to metrics
-    // For real students, these are estimates based on profile
-    const baseScore = profile.progress || 50;
+  private profileToMetrics(
+    profile: any,
+    performances: any[] = [],
+    fallbackStudentId = '',
+  ): StudentMetrics {
+    if (performances.length > 0) {
+      return this.performancesToMetrics(
+        fallbackStudentId || String(profile?._id || profile?.userId || ''),
+        performances,
+      );
+    }
+
+    const baseScore = this.normalizeScore(
+      profile?.progress ?? profile?.averageScore ?? 0,
+    );
     const topicScores: Record<string, number> = {};
 
-    if (profile.strengths) {
+    if (profile?.strengths) {
       profile.strengths.forEach((topic: string) => {
-        topicScores[topic] = 75 + Math.random() * 20;
+        topicScores[topic] = 85;
       });
     }
 
-    if (profile.weaknesses) {
+    if (profile?.weaknesses) {
       profile.weaknesses.forEach((topic: string) => {
-        topicScores[topic] = 40 + Math.random() * 30;
+        topicScores[topic] = 45;
       });
     }
 
     return {
-      studentId: String(profile._id || profile.userId || Math.random()),
-      averageScore: baseScore,
-      completionRate:
-        baseScore > 70 ? 75 + Math.random() * 15 : 50 + Math.random() * 30,
-      totalTimeSpent: Math.round(
-        (baseScore / 100) * 10000 + Math.random() * 5000,
+      studentId: String(
+        profile?._id || profile?.userId || fallbackStudentId || 'unknown',
       ),
-      streak: Math.floor(Math.random() * 15),
+      averageScore: baseScore,
+      completionRate: baseScore,
+      totalTimeSpent: Math.round((baseScore / 100) * 7200),
+      streak: Number(profile?.streak || profile?.currentStreak || 0),
       topicScores,
     };
   }
 
-  private generateMockStudents(count: number): StudentMetrics[] {
-    const mockTopics = [
-      'oop',
-      'web',
-      'databases',
-      'algorithms',
-      'security',
-      'networks',
-    ];
-    const mockStudents: StudentMetrics[] = [];
+  private performancesToMetrics(
+    studentId: string,
+    performances: any[],
+  ): StudentMetrics {
+    const normalizedPerformances = performances || [];
+    const scores = normalizedPerformances
+      .map((performance: any) => Number(performance?.score) || 0)
+      .filter((score: number) => Number.isFinite(score));
 
-    for (let i = 0; i < count; i++) {
-      const baseScore = 40 + Math.random() * 60;
-      const topicScores: Record<string, number> = {};
+    const averageScore =
+      scores.length > 0
+        ? Math.round(
+            (scores.reduce((sum: number, score: number) => sum + score, 0) /
+              scores.length) *
+              100,
+          ) / 100
+        : 0;
 
-      // Randomly assign topic scores
-      mockTopics.forEach((topic) => {
-        if (Math.random() > 0.3) {
-          topicScores[topic] = 40 + Math.random() * 60;
-        }
-      });
+    const completionRate =
+      scores.length > 0
+        ? Math.round(
+            (scores.filter((score: number) => score >= 70).length /
+              scores.length) *
+              10000,
+          ) / 100
+        : 0;
 
-      mockStudents.push({
-        studentId: `mock-student-${i}`,
-        averageScore: Math.round(baseScore * 100) / 100,
-        completionRate:
-          baseScore > 70 ? 75 + Math.random() * 15 : 50 + Math.random() * 30,
-        totalTimeSpent: Math.round(
-          (baseScore / 100) * 10000 + Math.random() * 5000,
-        ),
-        streak: Math.floor(Math.random() * 15),
-        topicScores,
-      });
+    const totalTimeSpent = Math.round(
+      normalizedPerformances.reduce(
+        (sum: number, performance: any) =>
+          sum + (Number(performance?.timeSpent) || 0),
+        0,
+      ),
+    );
+
+    const topicScores: Record<string, number> = {};
+    const topicBuckets = new Map<string, { total: number; count: number }>();
+
+    normalizedPerformances.forEach((performance: any) => {
+      const topic = String(performance?.topic || 'general').trim();
+      if (!topic) return;
+
+      if (!topicBuckets.has(topic)) {
+        topicBuckets.set(topic, { total: 0, count: 0 });
+      }
+
+      const bucket = topicBuckets.get(topic)!;
+      bucket.total += Number(performance?.score) || 0;
+      bucket.count += 1;
+    });
+
+    topicBuckets.forEach((bucket, topic) => {
+      topicScores[topic] =
+        Math.round((bucket.total / bucket.count) * 100) / 100;
+    });
+
+    return {
+      studentId,
+      averageScore,
+      completionRate,
+      totalTimeSpent,
+      streak: this.calculateStreakFromPerformances(normalizedPerformances),
+      topicScores,
+    };
+  }
+
+  private calculateStreakFromPerformances(performances: any[]): number {
+    if (!performances || performances.length === 0) {
+      return 0;
     }
 
-    return mockStudents;
+    const dates = performances
+      .map((performance: any) =>
+        new Date(
+          performance?.attemptDate || performance?.createdAt || new Date(),
+        ).toDateString(),
+      )
+      .filter((date) => date && date !== 'Invalid Date');
+
+    const uniqueDates = [...new Set(dates)].sort(
+      (a, b) => new Date(b).getTime() - new Date(a).getTime(),
+    );
+
+    if (uniqueDates.length === 0) {
+      return 0;
+    }
+
+    let streak = 1;
+    for (let i = 0; i < uniqueDates.length - 1; i++) {
+      const diff =
+        (new Date(uniqueDates[i]).getTime() -
+          new Date(uniqueDates[i + 1]).getTime()) /
+        (1000 * 60 * 60 * 24);
+      if (diff === 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  private normalizeScore(value: unknown): number {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(100, Math.round(numericValue)));
   }
 
   private calculateClassAverage(allStudents: StudentMetrics[]): StudentMetrics {

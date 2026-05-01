@@ -1,27 +1,16 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
-import {
-  User,
-  UserDocument,
-  UserRole,
-  UserStatus,
-} from "./schemas/user.schema";
-import {
-  StudentProfile,
-  StudentProfileDocument,
-} from "./schemas/student-profile.schema";
-import { UpdateProfileDto } from "./dto/update-profile.dto";
-import { ActivityService } from "../activity/activity.service";
-import { ActivityAction } from "../activity/schemas/activity.schema";
-import * as bcrypt from "bcrypt";
-import * as crypto from "crypto";
-import * as nodemailer from "nodemailer";
-import { AdminCreateUserDto } from "./dto/admin-create-user.dto";
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema';
+import { StudentProfile, StudentProfileDocument } from './schemas/student-profile.schema';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ActivityService } from '../activity/activity.service';
+import { SessionService } from '../activity/session.service';
+import { ActivityAction } from '../activity/schemas/activity.schema';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -30,7 +19,15 @@ export class UsersService {
     @InjectModel(StudentProfile.name)
     private profileModel: Model<StudentProfileDocument>,
     private activityService: ActivityService,
-  ) {}
+    private sessionService: SessionService,
+  ) { }
+
+  private profileLookupFilter(userId: string) {
+    if (Types.ObjectId.isValid(userId)) {
+      return { $or: [{ userId }, { userId: new Types.ObjectId(userId) }] } as any;
+    }
+    return { userId } as any;
+  }
 
   async getProfile(userId: string) {
     const user = await this.userModel.findById(userId).select("-password");
@@ -38,7 +35,7 @@ export class UsersService {
       throw new NotFoundException("User not found");
     }
 
-    const profile = await this.profileModel.findOne({ userId }).exec();
+    const profile = await this.profileModel.findOne(this.profileLookupFilter(userId)).exec();
     return {
       user: {
         id: user._id,
@@ -51,10 +48,10 @@ export class UsersService {
       },
       profile: profile
         ? {
-            academic_level: profile.academic_level,
-            risk_level: profile.risk_level,
-            points_gamification: profile.points_gamification,
-          }
+          class: (profile as any).class ?? (profile as any).academic_level,
+          risk_level: profile.risk_level,
+          points_gamification: profile.points_gamification,
+        }
         : null,
     };
   }
@@ -74,13 +71,13 @@ export class UsersService {
 
     if (
       user.role === UserRole.STUDENT &&
-      (updateProfileDto.academic_level ||
+      (updateProfileDto.class ||
         updateProfileDto.risk_level ||
         updateProfileDto.points_gamification !== undefined)
     ) {
       const updateData: any = {};
-      if (updateProfileDto.academic_level)
-        updateData.academic_level = updateProfileDto.academic_level;
+      if (updateProfileDto.class)
+        updateData.class = updateProfileDto.class;
       if (updateProfileDto.risk_level)
         updateData.risk_level = updateProfileDto.risk_level;
       if (updateProfileDto.points_gamification !== undefined)
@@ -88,7 +85,7 @@ export class UsersService {
 
       await this.profileModel
         .findOneAndUpdate(
-          { userId },
+          this.profileLookupFilter(userId),
           { $set: updateData, $setOnInsert: { userId } },
           { new: true, upsert: true, setDefaultsOnInsert: true },
         )
@@ -104,7 +101,7 @@ export class UsersService {
     return this.getProfile(userId);
   }
 
-  async getUsersByRole(role: string) {
+  async getUsersByRole(role: string, requesterId?: string, requesterRole?: string) {
     // ── Query compatible instructor/teacher ──
     let query: any;
     if (role.toLowerCase() === 'instructor') {
@@ -117,27 +114,43 @@ export class UsersService {
       };
     }
 
-    const users = await this.userModel
-      .find(query)
-      .select('-password')
-      .exec();
+    const users = await this.userModel.find(query).select('-password').exec();
+    const onlineUserIds = await this.sessionService.getOnlineUserIdSet('allUsers');
 
-    console.log(
-      `[DEBUG] getUsersByRole('${role}') found ${users.length} users`
-    );
-
-    // ── Include student profiles ──
+    // If requesting students, include their student profiles (match userId as ObjectId or string)
     if (role.toLowerCase() === 'student') {
+      let requesterClass: string | undefined;
+      if (requesterRole?.toLowerCase() === UserRole.STUDENT && requesterId) {
+        const requesterProfile = await this.profileModel
+          .findOne(this.profileLookupFilter(requesterId))
+          .lean();
+        requesterClass = ((requesterProfile as any)?.class ?? (requesterProfile as any)?.academic_level)?.toString();
+        if (!requesterClass) {
+          return [];
+        }
+      }
+
       const userIds = users.map((u) => u._id);
+      const userIdStrings = userIds.map((id) => String(id));
+      const objectIds = userIdStrings
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
       const profiles = await this.profileModel
-        .find({ userId: { $in: userIds } })
+        .find({
+          $or: [
+            { userId: { $in: objectIds } },
+            { userId: { $in: userIdStrings } },
+          ],
+        } as any)
         .exec();
 
       const profileMap = new Map<string, StudentProfileDocument>();
       profiles.forEach((p) => profileMap.set(String(p.userId), p));
 
-      return users.map((u) => {
+      return users
+        .map((u) => {
         const p = profileMap.get(String(u._id));
+        const userClass = p ? ((p as any).class ?? (p as any).academic_level) : undefined;
         return {
           id: u._id,
           first_name: u.first_name,
@@ -146,13 +159,20 @@ export class UsersService {
           phone: u.phone,
           role: u.role,
           status: u.status,
+          isOnline: onlineUserIds.has(String(u._id)),
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
-          academic_level: p ? p.academic_level : undefined,
+          class: userClass,
           risk_level: p ? p.risk_level : undefined,
           points_gamification: p ? p.points_gamification : undefined,
         } as any;
-      });
+      })
+        .filter((u: any) => {
+          if (!requesterClass) {
+            return true;
+          }
+          return u.class === requesterClass && String(u.id) !== String(requesterId);
+        });
     }
 
     return users.map((u) => ({
@@ -163,9 +183,47 @@ export class UsersService {
       phone: u.phone,
       role: u.role,
       status: u.status,
+      isOnline: onlineUserIds.has(String(u._id)),
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     }));
+  }
+
+  /** All users with student profile fields when applicable (admin analytics UI). */
+  async listAllUsersForAdmin() {
+    const users = await this.userModel.find().select('-password').sort({ createdAt: -1 }).exec();
+    const onlineUserIds = await this.sessionService.getOnlineUserIdSet('allUsers');
+    const userIds = users.map((u) => u._id);
+    const userIdStrings = userIds.map((id) => String(id));
+    const objectIds = userIdStrings
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+    const profiles = await this.profileModel
+      .find({
+        $or: [{ userId: { $in: objectIds } }, { userId: { $in: userIdStrings } }],
+      } as any)
+      .exec();
+    const profileMap = new Map<string, StudentProfileDocument>();
+    profiles.forEach((p) => profileMap.set(String(p.userId), p));
+
+    return users.map((u) => {
+      const p = profileMap.get(String(u._id));
+      return {
+        id: u._id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        status: u.status,
+        isOnline: onlineUserIds.has(String(u._id)),
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+        academic_level: p ? p.class : undefined,
+        risk_level: p ? p.risk_level : undefined,
+        points_gamification: p ? p.points_gamification : undefined,
+      } as any;
+    });
   }
 
   async updateUserById(id: string, dto: any) {
@@ -184,19 +242,19 @@ export class UsersService {
 
     if (
       user.role === UserRole.STUDENT &&
-      (dto.academic_level ||
+      (dto.class ||
         dto.risk_level ||
         dto.points_gamification !== undefined)
     ) {
       const updateData: any = {};
-      if (dto.academic_level) updateData.academic_level = dto.academic_level;
+      if (dto.class) updateData.class = dto.class;
       if (dto.risk_level) updateData.risk_level = dto.risk_level;
       if (dto.points_gamification !== undefined)
         updateData.points_gamification = dto.points_gamification;
 
       await this.profileModel
         .findOneAndUpdate(
-          { userId: id },
+          this.profileLookupFilter(id),
           { $set: updateData, $setOnInsert: { userId: id } },
           { new: true, upsert: true, setDefaultsOnInsert: true },
         )
@@ -246,6 +304,15 @@ export class UsersService {
 
     await user.save();
 
+    if (user.role === UserRole.STUDENT) {
+      const profile = new this.profileModel({
+        userId: user._id,
+        class: null,
+      });
+      await profile.save();
+    }
+
+    // Send credentials by email if SMTP is configured, otherwise log to console
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || "587", 10),

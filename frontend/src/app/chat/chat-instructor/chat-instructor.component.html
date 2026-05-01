@@ -1,131 +1,371 @@
-<div class="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
-  <div class="relative group absolute top-4 left-4 z-50">
-     <button [routerLink]="getDashboardRoute()" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
-         <span class="material-symbols-outlined">arrow_back</span> Back to Dashboard
-     </button>
+<div [class]="isInsideShell() ? 'chat-container relative flex h-full w-full flex-col overflow-hidden text-slate-900 dark:text-slate-100' : 'chat-container relative flex h-screen w-full flex-col overflow-hidden text-slate-900 dark:text-slate-100'">
+  
+  <!-- Standalone Header -->
+  <div *ngIf="!isInsideShell()" class="relative group absolute top-4 left-4 z-50 flex items-center gap-3 flex-wrap">
+      <app-brand-logo variant="compact" [link]="getDashboardRoute()" />
+      <button [routerLink]="getDashboardRoute()" class="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition-all shadow-sm">
+          <span class="material-symbols-outlined">arrow_back</span> Back to Dashboard
+      </button>
   </div>
+
   <main class="flex flex-1 overflow-hidden">
     <!-- Left Pane: Conversations -->
-    <aside class="w-80 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar">
-      <div class="p-6 mt-12 flex gap-2">
-        <button routerLink="/chat/instructor" class="flex-1 py-2 rounded-lg font-bold bg-primary text-white">Conversations</button>
-        <button *ngIf="userRole === 'student'" routerLink="/chat/room" class="flex-1 py-2 rounded-lg font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Groups</button>
-      </div>
-      <div class="px-4 mb-4">
-        <button (click)="showNewChatModal = true" class="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-xl font-semibold transition-all shadow-sm">
-          <span class="material-symbols-outlined text-sm">add</span>
-          New Chat
+    <aside class="sidebar-glass w-80 flex flex-col overflow-hidden">
+      <!-- New Chat Button -->
+      <div class="p-6" [class.mt-12]="!isInsideShell()">
+        <button (click)="showNewChatModal = true" class="group w-full relative overflow-hidden bg-primary text-white py-3 rounded-2xl font-bold transition-all shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2">
+          <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-shimmer"></div>
+          <span class="material-symbols-outlined text-xl">add_circle</span>
+          New Conversation
         </button>
       </div>
-      <div class="px-4 space-y-2">
-        <button *ngFor="let session of sessions" (click)="loadSession(session._id, getOtherParticipant(session))" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all" [class.bg-primary!]="currentSessionId === session._id" [class.text-white!]="currentSessionId === session._id">
-          <ng-container *ngIf="getOtherParticipantObj(session) as otherUser; else defaultUser">
-            <div class="size-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold" [class.text-slate-500!]="currentSessionId !== session._id" [class.text-primary!]="currentSessionId === session._id">
-              {{ (otherUser.first_name?.[0] || 'U') | uppercase }}{{ (otherUser.last_name?.[0] || '') | uppercase }}
+
+      <!-- Conversations List -->
+      <div class="flex-1 overflow-y-auto px-4 space-y-2 custom-scrollbar pb-6">
+        <div *ngIf="sessions.length === 0" class="py-10 text-center opacity-50">
+            <span class="material-symbols-outlined text-4xl mb-2">forum</span>
+            <p class="text-xs">No conversations yet</p>
+        </div>
+        
+        <div *ngFor="let session of sessions" class="relative group">
+          <button 
+            (click)="loadSession(session._id, getOtherParticipant(session))" 
+            class="nav-item w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all hover:bg-white/50 dark:hover:bg-slate-800/50 pr-12"
+            [class.active]="currentSessionId === session._id"
+          >
+            <!-- Avatar with dynamic initials -->
+            <div class="relative">
+                <div class="size-12 rounded-2xl bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900 dark:to-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold shadow-inner overflow-hidden">
+                    <img *ngIf="getOtherParticipantObj(session)?.avatar" [src]="getOtherParticipantObj(session).avatar" class="size-full object-cover">
+                    <span *ngIf="!getOtherParticipantObj(session)?.avatar">{{ getInitials(getOtherParticipant(session)) }}</span>
+                </div>
+                <div *ngIf="currentSessionId === session._id" class="absolute -bottom-1 -right-1 size-4 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"></div>
             </div>
-            <div class="text-left overflow-hidden flex-1">
-              <p class="text-sm font-semibold truncate">{{ otherUser.first_name }} {{ otherUser.last_name }}</p>
-              <p class="text-[11px] opacity-70">{{ otherUser.email }}</p>
+
+            <div class="flex-1 overflow-hidden">
+              <div class="flex justify-between items-start mb-0.5">
+                <p class="text-sm font-bold truncate transition-colors group-hover:text-primary">{{ getOtherParticipant(session) }}</p>
+                <span class="text-[10px] opacity-40 whitespace-nowrap">{{ session.updatedAt | date:'HH:mm' }}</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 truncate leading-relaxed">
+                {{ session.lastMessage || 'Start a new chat...' }}
+              </p>
             </div>
-          </ng-container>
-          <ng-template #defaultUser>
-            <div class="size-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold" [class.text-slate-500!]="currentSessionId !== session._id" [class.text-primary!]="currentSessionId === session._id">
-              U
-            </div>
-            <div class="text-left overflow-hidden flex-1">
-              <p class="text-sm font-semibold truncate">Unknown User</p>
-              <p class="text-[11px] opacity-70">Direct Message</p>
-            </div>
-          </ng-template>
-        </button>
+          </button>
+
+          <!-- Delete Session Button -->
+          <button 
+            (click)="deleteSession($event, session._id)"
+            class="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl opacity-0 group-hover:opacity-100 transition-all z-10"
+            title="Delete Conversation"
+          >
+            <span class="material-symbols-outlined text-sm">delete</span>
+          </button>
+        </div>
       </div>
     </aside>
 
     <!-- Right Pane: Active Chat Window -->
-    <section class="flex-1 flex flex-col relative">
-      <div *ngIf="currentSessionId" class="flex-1 flex flex-col h-full">
-        <!-- Chat Header -->
-        <div class="px-8 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-10">
-          <h1 class="text-lg font-bold">{{ currentSessionTitle }}</h1>
-        </div>
-
-        <!-- Messages Container -->
-        <div class="flex-1 overflow-y-auto px-8 py-6 space-y-8 custom-scrollbar" #scrollMe>
-          <ng-container *ngFor="let msg of messages">
-            
-            <!-- Other Person Message -->
-            <div *ngIf="msg.sender !== userId" class="flex gap-4 max-w-3xl">
-              <div class="size-8 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-500 text-xs">
-                <span class="material-symbols-outlined text-sm">person</span>
-              </div>
-              <div class="space-y-2">
-                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-700">
-                  <p class="text-sm leading-relaxed" [innerHTML]="msg.content"></p>
-                </div>
-                <span class="text-[10px] text-slate-400 font-medium ml-1">{{ currentSessionTitle }} • {{ msg.createdAt | date:'shortTime' }}</span>
-              </div>
+    <section class="flex-1 flex flex-col relative bg-transparent">
+      <!-- Chat Header -->
+      <header *ngIf="currentSessionId" class="px-8 py-5 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between sticky top-0 z-20">
+        <div class="flex items-center gap-4">
+          <div class="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary overflow-hidden">
+              <img *ngIf="getOtherParticipantObj(sessions[0])?.avatar" [src]="getOtherParticipantObj(sessions[0]).avatar" class="size-full object-cover">
+              <span *ngIf="!getOtherParticipantObj(sessions[0])?.avatar">{{ getInitials(currentSessionTitle) }}</span>
+          </div>
+          <div>
+            <h1 class="text-base font-bold tracking-tight">{{ currentSessionTitle }}</h1>
+            <div class="flex items-center gap-1.5">
+                <span class="size-1.5 bg-green-500 rounded-full"></span>
+                <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Active Now</span>
             </div>
-
-            <!-- User Message -->
-            <div *ngIf="msg.sender === userId" class="flex gap-4 max-w-3xl ml-auto flex-row-reverse">
-              <div class="size-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-xs overflow-hidden">
-                <span class="material-symbols-outlined text-sm">person</span>
-              </div>
-              <div class="space-y-2 text-right">
-                <div class="bg-primary p-5 rounded-2xl rounded-tr-none shadow-lg shadow-primary/20 text-white inline-block">
-                  <p class="text-sm leading-relaxed text-left" [innerHTML]="msg.content"></p>
-                </div>
-                <div class="flex justify-end items-center gap-1.5 mr-1">
-                  <span class="text-[10px] text-slate-400 font-medium">YOU • {{ msg.createdAt | date:'shortTime' }}</span>
-                  <span class="material-symbols-outlined text-xs text-primary">done_all</span>
-                </div>
-              </div>
-            </div>
-          </ng-container>
-        </div>
-
-        <!-- Input Bar -->
-        <div class="p-8 bg-gradient-to-t from-white dark:from-slate-900 via-white/95 dark:via-slate-900/95 to-transparent mt-auto">
-          <div class="relative flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary/20">
-            <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" class="flex-1 border-none bg-transparent py-4 px-6 text-sm focus:ring-0 outline-none" placeholder="Type a message..." type="text">
-            <button (click)="sendMessage()" class="bg-primary text-white rounded-full px-6 py-2 m-2 flex items-center justify-center hover:bg-blue-700 transition shadow-md">
-              Send
-            </button>
           </div>
         </div>
+        <div class="flex items-center gap-2 text-slate-400">
+            <button (click)="showSettings = !showSettings" [class.bg-slate-100]="showSettings" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+              <span class="material-symbols-outlined">settings</span>
+            </button>
+        </div>
+      </header>
+
+      <!-- Messages Container -->
+      <div class="flex-1 overflow-y-auto px-6 sm:px-10 py-8 space-y-6 custom-scrollbar" #scrollMe>
+        <div *ngIf="currentSessionId && messages.length === 0" class="flex flex-col items-center justify-center h-full opacity-40">
+            <div class="p-6 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
+                <span class="material-symbols-outlined text-4xl">waving_hand</span>
+            </div>
+            <p class="font-medium text-sm">Say hello to start the conversation!</p>
+        </div>
+
+        <ng-container *ngFor="let msg of messages">
+          <!-- Other Person Message -->
+          <div *ngIf="!isMyMessage(msg)" class="message-animation flex gap-4 max-w-2xl group">
+            <div class="size-8 mt-1 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center text-slate-500 text-[10px] font-black shadow-sm border border-slate-200/50 dark:border-slate-700">
+                {{ getInitials(currentSessionTitle) }}
+            </div>
+            <div class="space-y-1.5">
+              <div class="bubble-other p-4">
+                <p *ngIf="msg.content" class="text-sm leading-relaxed" [innerHTML]="msg.content"></p>
+                
+                <!-- Attachments Display -->
+                <div *ngIf="msg.attachments?.length > 0" class="mt-3 space-y-2">
+                    <div *ngFor="let att of msg.attachments">
+                        <a *ngIf="att.fileType?.startsWith('image/')" [href]="att.url" target="_blank" class="block rounded-xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow">
+                            <img [src]="att.url" class="w-full max-h-60 object-cover">
+                        </a>
+                        <a *ngIf="!att.fileType?.startsWith('image/')" [href]="att.url" target="_blank" class="flex items-center gap-3 p-3 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-slate-200/30 dark:border-slate-700/30 hover:bg-white dark:hover:bg-slate-900 transition-all group">
+                            <div class="size-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">
+                                <span class="material-symbols-outlined">description</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-[11px] font-bold truncate group-hover:text-primary transition-colors">{{ att.filename }}</p>
+                                <p class="text-[9px] text-slate-400 font-medium uppercase tracking-tighter">Click to download</p>
+                            </div>
+                            <span class="material-symbols-outlined text-slate-300 text-lg">download</span>
+                        </a>
+                    </div>
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-400 font-medium ml-2">{{ msg.createdAt | date:'HH:mm' }}</span>
+            </div>
+          </div>
+
+          <!-- User Message -->
+          <div *ngIf="isMyMessage(msg)" class="message-animation flex gap-4 max-w-2xl ml-auto flex-row-reverse group">
+            <div class="size-8 mt-1 rounded-lg bg-primary shrink-0 flex items-center justify-center text-white text-[10px] font-black overflow-hidden shadow-lg shadow-primary/20">
+                ME
+            </div>
+            <div class="space-y-1.5 text-right relative">
+              <div class="bubble-user p-4">
+                <p *ngIf="msg.content" class="text-sm leading-relaxed text-left" [innerHTML]="msg.content"></p>
+                
+                <!-- Attachments Display -->
+                <div *ngIf="msg.attachments?.length > 0" class="mt-3 space-y-2 text-left">
+                    <div *ngFor="let att of msg.attachments">
+                        <a *ngIf="att.fileType?.startsWith('image/')" [href]="att.url" target="_blank" class="block rounded-xl overflow-hidden border border-white/20 shadow-sm hover:shadow-md transition-shadow">
+                            <img [src]="att.url" class="w-full max-h-60 object-cover">
+                        </a>
+                        <a *ngIf="!att.fileType?.startsWith('image/')" [href]="att.url" target="_blank" class="flex items-center gap-3 p-3 bg-white/10 rounded-xl border border-white/10 hover:bg-white/20 transition-all group">
+                            <div class="size-10 rounded-lg bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                                <span class="material-symbols-outlined">description</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-[11px] font-bold truncate text-white">{{ att.filename }}</p>
+                                <p class="text-[9px] text-white/60 font-medium uppercase tracking-tighter">Click to download</p>
+                            </div>
+                            <span class="material-symbols-outlined text-white/40 text-lg">download</span>
+                        </a>
+                    </div>
+                </div>
+              </div>
+              
+              <!-- Actions -->
+              <div class="absolute -left-12 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-1">
+                  <button (click)="deleteMessage(msg._id)" class="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 shadow-sm" title="Delete">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                  </button>
+              </div>
+
+              <div class="flex justify-end items-center gap-1.5 mr-2">
+                <span class="text-[10px] text-slate-400 font-medium">{{ msg.createdAt | date:'HH:mm' }}</span>
+                <span class="material-symbols-outlined text-[14px] text-primary">done_all</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
       </div>
 
-      <!-- No Session State -->
-      <div *ngIf="!currentSessionId" class="flex-1 flex flex-col items-center justify-center text-slate-500">
-        <span class="material-symbols-outlined text-6xl mb-4 text-slate-300">forum</span>
-        <h2 class="text-xl font-bold text-slate-700">Select a Conversation</h2>
+      <!-- Pending Files Preview -->
+      <div *ngIf="pendingFiles.length > 0" class="px-8 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200/50 dark:border-slate-800/50 flex flex-wrap gap-3">
+          <div *ngFor="let file of pendingFiles; let i = index" class="group relative flex items-center gap-3 bg-white dark:bg-slate-800 p-2 pr-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 animate-in zoom-in-95 duration-200">
+              <div class="size-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500">
+                  <span class="material-symbols-outlined text-xl">{{ file.type.startsWith('image/') ? 'image' : 'description' }}</span>
+              </div>
+              <div class="max-w-[150px]">
+                  <p class="text-[11px] font-bold truncate">{{ file.name }}</p>
+                  <p class="text-[9px] text-slate-400 uppercase font-medium">{{ (file.size / 1024).toFixed(1) }} KB</p>
+              </div>
+              <button (click)="removePendingFile(i)" class="absolute -top-2 -right-2 size-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <span class="material-symbols-outlined text-[14px] font-bold">close</span>
+              </button>
+          </div>
+      </div>
+
+      <!-- Input Area -->
+      <footer *ngIf="currentSessionId" class="p-6 sm:p-8 sticky bottom-0">
+        <div class="input-glass max-w-4xl mx-auto rounded-3xl p-2 flex items-end gap-2 shadow-2xl shadow-slate-200/50 dark:shadow-none">
+          <label class="p-3 text-slate-400 hover:text-primary transition-colors rounded-2xl cursor-pointer group">
+            <span class="material-symbols-outlined group-hover:rotate-45 transition-transform" [class.animate-spin]="isUploading">
+                {{ isUploading ? 'sync' : 'attach_file' }}
+            </span>
+            <input type="file" (change)="onFilesSelected($event)" class="hidden" multiple [disabled]="isUploading">
+          </label>
+          
+          <textarea 
+            [(ngModel)]="newMessage" 
+            (keyup.enter)="sendMessage()" 
+            class="flex-1 bg-transparent border-none py-3 px-4 text-sm focus:ring-0 placeholder:text-slate-400 custom-scrollbar max-h-32 min-h-[44px] outline-none" 
+            placeholder="Type a message..."
+            rows="1"
+            [disabled]="isUploading"
+          ></textarea>
+
+          <button 
+            (click)="sendMessage()" 
+            [disabled]="isUploading || (!newMessage.trim() && pendingFiles.length === 0)"
+            class="bg-primary text-white size-12 rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/30 disabled:opacity-50 disabled:scale-100"
+          >
+            <span class="material-symbols-outlined">{{ isUploading ? 'sync' : 'send' }}</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-center text-slate-400 mt-4 tracking-tight">Messages are secure and private</p>
+      </footer>
+
+      <!-- Empty State -->
+      <div *ngIf="!currentSessionId" class="flex-1 flex flex-col items-center justify-center p-12 text-center">
+        <div class="empty-state-icon relative mb-8">
+            <div class="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150"></div>
+            <div class="relative size-32 bg-white dark:bg-slate-800 rounded-[40px] shadow-2xl flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                <span class="material-symbols-outlined text-6xl text-primary">chat_bubble</span>
+            </div>
+            <div class="absolute -top-4 -right-4 size-12 bg-orange-400 rounded-2xl shadow-lg flex items-center justify-center text-white rotate-12">
+                <span class="material-symbols-outlined text-2xl">favorite</span>
+            </div>
+        </div>
+        <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 mb-3 tracking-tight">Your Inbox is Ready</h2>
+        <p class="text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed text-sm">
+          Select a conversation or start a new one to connect with your instructors.
+        </p>
+        <button (click)="showNewChatModal = true" class="mt-8 px-8 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold hover:shadow-xl transition-all active:scale-95 text-sm">
+            Start New Chat
+        </button>
       </div>
     </section>
+
+    <!-- Settings Sidebar -->
+    <aside *ngIf="showSettings && currentSessionId" class="sidebar-glass w-72 flex flex-col overflow-hidden border-l border-slate-200 dark:border-slate-800 animate-in slide-in-from-right duration-300">
+      <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <h2 class="font-black text-lg tracking-tight">Conversation</h2>
+        <button (click)="showSettings = false" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto custom-scrollbar">
+        <!-- User Info -->
+        <div class="p-8 text-center border-b border-slate-100 dark:border-slate-800">
+          <div class="size-24 mx-auto mb-4 rounded-[32px] overflow-hidden bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white shadow-2xl shadow-primary/20">
+              <span class="text-3xl font-black">{{ getInitials(currentSessionTitle) }}</span>
+          </div>
+          <h3 class="font-black text-lg mb-1 tracking-tight px-4 truncate">{{ currentSessionTitle }}</h3>
+          <div class="flex items-center justify-center gap-2">
+              <span class="size-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Now</span>
+          </div>
+        </div>
+
+        <!-- Shared Content -->
+        <div class="p-6">
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">Shared Content</h4>
+            
+            <!-- Photos -->
+            <div *ngIf="sharedContent.photos.length > 0" class="mb-6">
+                <p class="text-[9px] font-bold text-slate-400 uppercase mb-3 px-2">Photos</p>
+                <div class="grid grid-cols-3 gap-2 px-1">
+                    <a *ngFor="let img of sharedContent.photos" [href]="img.url" target="_blank" class="aspect-square rounded-xl overflow-hidden border border-slate-100 dark:border-slate-700 hover:opacity-80 transition-all hover:scale-105 active:scale-95 shadow-sm">
+                        <img [src]="img.url" class="size-full object-cover">
+                    </a>
+                </div>
+            </div>
+
+            <!-- Files -->
+            <div *ngIf="sharedContent.files.length > 0" class="mb-6">
+                <p class="text-[9px] font-bold text-slate-400 uppercase mb-3 px-2">Documents</p>
+                <div class="space-y-2">
+                    <a *ngFor="let file of sharedContent.files" [href]="file.url" target="_blank" class="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group border border-transparent hover:border-primary/20">
+                        <div class="size-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                            <span class="material-symbols-outlined text-base">description</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[11px] font-bold truncate group-hover:text-primary transition-colors">{{ file.filename }}</p>
+                            <p class="text-[9px] text-slate-400 font-medium uppercase">File</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Links -->
+            <div *ngIf="sharedContent.links.length > 0">
+                <p class="text-[9px] font-bold text-slate-400 uppercase mb-3 px-2">Links</p>
+                <div class="space-y-2">
+                    <a *ngFor="let link of sharedContent.links" [href]="link.url" target="_blank" class="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group border border-transparent hover:border-blue-400/20">
+                        <div class="size-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 shadow-inner">
+                            <span class="material-symbols-outlined text-base">link</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[11px] font-bold truncate group-hover:text-primary transition-colors">{{ link.url }}</p>
+                            <p class="text-[9px] text-slate-400 font-medium uppercase">Shared URL</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="sharedContent.photos.length === 0 && sharedContent.files.length === 0 && sharedContent.links.length === 0" class="py-12 text-center">
+                <div class="size-16 bg-slate-50 dark:bg-slate-800 rounded-[24px] flex items-center justify-center mx-auto mb-4 text-slate-300 border border-slate-100 dark:border-slate-700 shadow-inner">
+                    <span class="material-symbols-outlined text-2xl">folder_off</span>
+                </div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No shared content</p>
+            </div>
+        </div>
+      </div>
+    </aside>
   </main>
 </div>
 
 <!-- New Chat Modal -->
-<div *ngIf="showNewChatModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800">
-    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-      <h2 class="font-bold text-lg">Start New Conversation</h2>
-      <button (click)="showNewChatModal = false" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+<div *ngIf="showNewChatModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <h2 class="font-black text-xl tracking-tight">New Conversation</h2>
+      <button (click)="showNewChatModal = false" class="size-10 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
         <span class="material-symbols-outlined text-slate-500">close</span>
       </button>
     </div>
-    <div class="max-h-96 overflow-y-auto custom-scrollbar p-2">
-      <button *ngFor="let inst of instructors" (click)="startNewChat(inst.id)" class="w-full text-left flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-        <div class="size-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-          {{ (inst.first_name?.[0] || 'U') }}{{ (inst.last_name?.[0] || '') }}
+    
+    <div class="p-4">
+        <div class="relative group">
+            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl transition-colors group-focus-within:text-primary">search</span>
+            <input type="text" placeholder="Search instructors..." class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all">
         </div>
-        <div>
-          <p class="text-sm font-bold">{{ inst.first_name }} {{ inst.last_name }}</p>
-          <p class="text-[11px] text-slate-500">{{ inst.email }}</p>
+    </div>
+
+    <div class="max-h-80 overflow-y-auto custom-scrollbar p-2">
+      <div *ngFor="let inst of availableInstructors" 
+           (click)="startNewChat(inst.id || inst._id)" 
+           class="group w-full text-left flex items-center gap-4 p-4 rounded-2xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer mb-1"
+      >
+        <div class="size-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold shadow-sm group-hover:scale-110 transition-transform">
+          {{ getInitials(inst.first_name + ' ' + inst.last_name) }}
         </div>
-      </button>
-      <div *ngIf="instructors?.length === 0" class="p-6 text-center text-slate-500 text-sm">
-        No instructors found.
+        <div class="flex-1 overflow-hidden">
+          <p class="text-sm font-bold group-hover:text-primary transition-colors">{{ inst.first_name }} {{ inst.last_name }}</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">{{ inst.role || 'Instructor' }}</p>
+        </div>
+        <span class="material-symbols-outlined text-slate-300 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">chevron_right</span>
       </div>
+      
+      <div *ngIf="availableInstructors.length === 0" class="p-10 text-center text-slate-500">
+        <span class="material-symbols-outlined text-4xl mb-2 opacity-20">person_search</span>
+        <p class="text-sm">No new instructors available</p>
+      </div>
+    </div>
+
+    <div class="p-6 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+      <button (click)="showNewChatModal = false" class="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">
+        Cancel
+      </button>
     </div>
   </div>
 </div>

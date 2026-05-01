@@ -3,15 +3,53 @@ import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import * as express from "express";
+import { existsSync, mkdirSync } from "fs";
+import { resolve } from "path";
 
 async function bootstrap() {
+  // Bypass self-signed certificate errors in development
+  if (process.env.NODE_ENV !== "production") {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  }
   const app = await NestFactory.create(AppModule);
 
-  // Security Middleware
-  app.use(helmet());
+  // Enable CORS for Angular frontend with credentials (no wildcard allowed)
+  app.enableCors({
+    origin: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    credentials: true,
+  });
 
-  // Enable CORS
-  app.enableCors();
+  // Allow cross-origin resource loading for uploaded documents (PDF/DOCX previews).
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "frame-ancestors": ["'self'", "http://localhost:4200"],
+        },
+      },
+    }),
+  );
+
+  const uploadsRoot = resolve(__dirname, "..", "uploads");
+  if (!existsSync(uploadsRoot)) {
+    mkdirSync(uploadsRoot, { recursive: true });
+  }
+
+  const chatAvatarsRoot = resolve(uploadsRoot, "chat-avatars");
+  if (!existsSync(chatAvatarsRoot)) {
+    mkdirSync(chatAvatarsRoot, { recursive: true });
+  }
+
+  const chatAttachmentsRoot = resolve(uploadsRoot, "chat-attachments");
+  if (!existsSync(chatAttachmentsRoot)) {
+    mkdirSync(chatAttachmentsRoot, { recursive: true });
+  }
+
+  app.use("/uploads", express.static(uploadsRoot));
 
   // Rate limiting - disabled in development, permissive in production
   if (process.env.NODE_ENV === "production") {
@@ -56,7 +94,21 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix("api");
 
-  await app.listen(3000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  const port = Number(process.env.PORT) || 3000;
+  try {
+    await app.listen(port);
+    console.log(`Application is running on: ${await app.getUrl()}`);
+  } catch (err: unknown) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? (err as NodeJS.ErrnoException).code
+        : undefined;
+    if (code === "EADDRINUSE") {
+      console.error(
+        `[Nest] Port ${port} is already in use. Stop the other server on this port, or start with a different port, e.g. set PORT=3001 in the environment.`,
+      );
+    }
+    throw err;
+  }
 }
 bootstrap();

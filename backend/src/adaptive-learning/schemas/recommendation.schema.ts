@@ -15,11 +15,18 @@ export class Recommendation {
   @Prop({ required: true })
   reason: string;
 
+  /** Subject / course title to open in My Courses (matched client-side). */
+  @Prop({ type: String, default: '' })
+  subject: string;
+
   @Prop({
     enum: ['course', 'exercise', 'topic'],
     default: 'course'
   })
   contentType: string;
+
+  @Prop({ type: String, default: 'medium' })
+  priority: string;
 
   @Prop({ default: 0, min: 0, max: 100 })
   confidenceScore: number;

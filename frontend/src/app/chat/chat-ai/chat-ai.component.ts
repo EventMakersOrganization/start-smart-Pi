@@ -10,6 +10,7 @@ import { ChatApiService } from '../services/chat-api.service';
 import { ChatSocketService } from '../services/chat-socket.service';
 import { SpeechToTextService } from '../services/speech-to-text.service';
 import { PdfExportService } from '../services/pdf-export.service';
+import { Router } from '@angular/router';
 
 /** Must match backend `ChatGateway.CHAT_SOURCES_DELIM` body (without leading newlines for index). */
 const CHAT_SOURCES_MARKER = '\n\n<<<CHAT_SOURCES>>>\n\n';
@@ -44,6 +45,7 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     private chatSocketService: ChatSocketService,
     private speechToText: SpeechToTextService,
     private pdfExport: PdfExportService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -79,6 +81,14 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.isAiTyping = payload.isTyping;
         }
       }),
+    );
+
+    this.subs.push(
+      this.chatSocketService.onMessageDeleted().subscribe((data: any) => {
+        if (this.currentSessionId) {
+          this.messages = this.messages.filter(m => m._id !== data.messageId);
+        }
+      })
     );
   }
 
@@ -276,9 +286,41 @@ export class ChatAiComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
+  deleteMessage(messageId: string) {
+    if (confirm('Are you sure you want to delete this message?')) {
+      this.chatSocketService.deleteMessage(messageId, this.currentSessionId!);
+    }
+  }
+
+  deleteSession(event: Event, sessionId: string) {
+    event.stopPropagation(); // Prevent loading the session when clicking delete
+    if (confirm('Are you sure you want to delete this Entire conversation? This action cannot be undone.')) {
+      this.chatApiService.deleteAiSession(sessionId).subscribe({
+        next: () => {
+          this.sessions = this.sessions.filter(s => s._id !== sessionId);
+          if (this.currentSessionId === sessionId) {
+            this.currentSessionId = null;
+            this.currentSessionTitle = '';
+            this.messages = [];
+            // Optionally load the next session if it exists
+            if (this.sessions.length > 0) {
+              this.loadSession(this.sessions[0]._id, this.sessions[0].title);
+            }
+          }
+        },
+        error: (err) => console.error('Error deleting session', err)
+      });
+    }
+  }
+
   getDashboardRoute(): string {
     if (this.userRole === 'admin') return '/admin';
     if (this.userRole === 'instructor') return '/instructor/dashboard';
     return '/student-dashboard';
+  }
+
+  isInsideShell(): boolean {
+    return this.router.url.includes('/student-dashboard') || 
+           this.router.url.includes('/instructor');
   }
 }

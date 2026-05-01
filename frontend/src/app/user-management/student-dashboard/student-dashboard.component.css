@@ -1,0 +1,21 @@
+/* Reduce bounce animation for buttons and icons */
+@keyframes bounce-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(-6%);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-bounce-soft {
+  animation: bounce-soft 1.2s infinite;
+}
+
+/* Optionally, reduce for icons as well */
+.material-symbols-outlined.animate-bounce-soft {
+  animation: bounce-soft 1.2s infinite;
+}
