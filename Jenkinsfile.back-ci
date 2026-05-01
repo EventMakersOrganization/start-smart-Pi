@@ -32,6 +32,14 @@ pipeline {
       }
     }
     
+    stage('Backend Member5 Tests') {
+      steps {
+        dir('backend') {
+          sh 'npm run test -- --runInBand --testPathPattern=chat.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=video-generator.service.spec'
+        }
+      }
+    }
     stage('Backend MemberKmar Tests') {
       steps {
         dir('backend') {
@@ -62,6 +70,13 @@ pipeline {
       }
     }
 
+    stage('AI Service Member5 Tests') {
+      steps {
+        dir('ai-service') {
+          sh 'pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py tests/test_unit_hybrid_response_cache.py -q'
+            }
+  }
+}
     stage('AI Service MemberKmar Tests') {
       steps {
         dir('ai-service') {

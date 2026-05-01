@@ -31,6 +31,13 @@ pipeline {
       }
     }
 
+    stage('Frontend Member5 Tests') {
+      steps {
+        dir('frontend') {
+          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/chat/**/*.spec.ts --include=src/app/video-generator/**/*.spec.ts'
+        }
+      }
+    }
     stage('Frontend MemberKmar Tests') {
       steps {
         dir('frontend') {
