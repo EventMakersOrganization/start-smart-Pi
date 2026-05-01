@@ -99,3 +99,15 @@ class TestAIPerformanceMonitor:
         mon, col = monitor_env
         r = mon.purge_old_metrics(days=60)
         assert r == 10
+
+    def test_record_request_handles_insert_failure(self, monitor_env):
+        mon, col = monitor_env
+        col.insert_one.side_effect = RuntimeError("db down")
+        assert mon.record_request("/chat", 0.2, True) is None
+
+    def test_get_system_health_degrades_when_rag_is_unhealthy(self, monitor_env):
+        mon, col = monitor_env
+        mon.rag_service.health_check = lambda: {"status": "degraded"}
+        health = mon.get_system_health()
+        assert health["overall"] == "degraded"
+        assert health["checks"]["api_success_rate_ok"] is True

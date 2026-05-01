@@ -1,0 +1,21 @@
+// Jenkinsfile fragment for backend CI (Member-5 additions)
+pipeline {
+  agent any
+  stages {
+    stage('Backend - Member5 tests') {
+      steps {
+        dir('backend') {
+          // run only the test files added/modified by Member 5
+          sh 'npx jest ../backend/src/chat/chat.service.spec.ts ../backend/src/activity/activity.service.spec.ts ../backend/src/monitoring/monitoring.service.spec.ts ../backend/src/prosits/prosits.service.spec.ts --colors --runInBand'
+        }
+      }
+    }
+    stage('AI-service - Member5 tests') {
+      steps {
+        dir('ai-service') {
+          sh 'pytest -q tests/test_unit_monitor.py tests/test_unit_hybrid_response_cache.py'
+        }
+      }
+    }
+  }
+}
