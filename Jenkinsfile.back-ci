@@ -32,6 +32,17 @@ pipeline {
       }
     }
 
+    stage('Backend Member1 Tests') {
+      steps {
+        dir('backend') {
+          sh 'npm run test -- --runInBand --testPathPattern=auth.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=auth.controller.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=users.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=users.controller.spec'
+        }
+      }
+    }
+
     stage('AI Service Install') {
       steps {
         dir('ai-service') {
@@ -45,6 +56,14 @@ pipeline {
       steps {
         dir('ai-service') {
           sh 'pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q'
+        }
+      }
+    }
+
+    stage('AI Service Member1 Tests') {
+      steps {
+        dir('ai-service') {
+          sh 'pytest tests/test_unit_api_auth.py -q'
         }
       }
     }
