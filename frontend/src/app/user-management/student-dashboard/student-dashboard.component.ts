@@ -1,9 +1,10 @@
+// ...existing code...
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Subscription, filter, forkJoin, of, interval } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Subscription, filter, forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import {
   AdaptiveLearningService,
   ClassifyDifficultyBatchResponse,
@@ -22,9 +23,10 @@ import {
   GoalSettings,
   LearningAnalyticsResponse,
 } from '../adaptive-learning.service';
-import { WebinarService } from '../../webinar/services/webinar.service';
-import { ToastService } from '../../shared/services/toast.service';
-import { Webinar } from '../../webinar/services/webinar.interface';
+import {
+  SubjectItem as DbSubjectItem,
+  SubjectsService,
+} from '../subjects.service';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -32,6 +34,7 @@ import { Webinar } from '../../webinar/services/webinar.interface';
   styleUrls: ['./student-dashboard.component.css'],
 })
 export class StudentDashboardComponent implements OnInit, OnDestroy {
+  showAllRecommendations = false;
   user: any;
   profileData: any = null;
 
@@ -188,8 +191,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   classifyBatchError = '';
   classifyBatchResult: ClassifyDifficultyBatchResponse | null = null;
 
-  // Stats
+  // Stats — `progress` = average score from real learning activities in the selected period (not level test)
   progress = 0;
+  /** Latest level test score from profile (shown separately from course progress). */
+  levelTestScore = 0;
   performance = 0;
   completedModules = 0;
   totalModules = 20;
@@ -208,6 +213,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   };
 
   alerts: any[] = [];
+  backendRiskAlerts: any[] = [];
+  postEvaluationInProgress = false;
   showProfileSidebar = false;
   activeNav = 'dashboard';
   private routerEventsSubscription?: Subscription;
@@ -224,6 +231,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   // Topic scores pour les progress rings
   topicRings: any[] = [];
+  subjectProgressRings: Array<{ name: string; score: number }> = [];
   learningProgressPeriod: 'weekly' | 'monthly' = 'weekly';
 
   suggestedCourses: any[] = [];
@@ -233,8 +241,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private http: HttpClient,
     private adaptiveService: AdaptiveLearningService,
-    private webinarService: WebinarService,
-    private toastService: ToastService,
+    private subjectsService: SubjectsService,
   ) { }
 
   private collectRoles(): string[] {
@@ -318,13 +325,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       const forceAnalyticsRefresh = this.consumeForceAnalyticsRefreshFlag();
       this.loadUserInfo();
       this.loadAdaptiveData(forceAnalyticsRefresh);
-      this.checkUpcomingWebinars();
-      // Periodically check every 5 minutes
-      this.refreshWebinarsSubscription = interval(300000).subscribe(() => this.checkUpcomingWebinars());
+      this.loadBackendInterventionAlerts();
     }
   }
-
-  private refreshWebinarsSubscription?: Subscription;
 
   ngOnDestroy(): void {
     if (this.relativeClockHandle) {
@@ -333,13 +336,16 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     }
     this.routerEventsSubscription?.unsubscribe();
     this.recommendationsSubscription?.unsubscribe();
-    this.refreshWebinarsSubscription?.unsubscribe();
   }
 
   private mapRecommendationCards(recommendations: any[]): any[] {
     return (recommendations || []).slice(0, 6).map((rec, index) => {
+      const subjectRaw = String(rec?.subject || '').trim();
+      const fromContent = String(rec?.recommendedContent || '').split(
+        /[—\-]/,
+      )[0];
       const title = this.cleanRecommendationText(
-        rec?.title || rec?.subject || rec?.topic || rec?.name,
+        rec?.title || subjectRaw || fromContent || rec?.topic || rec?.name,
       );
 
       const reason = this.cleanRecommendationText(
@@ -355,9 +361,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       );
       const effortHours = Number(rec?.estimated_effort_hours);
 
+      const subjectKey =
+        subjectRaw || String(rec?.topic || rec?.name || title || '').trim();
+
       return {
         id: rec?._id || rec?.id || `rec-${index}`,
         title: title || `Recommendation ${index + 1}`,
+        subjectKey,
         reason: reason || 'Updated from your latest progress.',
         level: this.cleanRecommendationText(
           rec?.priority ||
@@ -371,6 +381,24 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
             : `${successProbability}% success`,
       };
     });
+  }
+
+  navigateToRecommendedCourse(course: {
+    subjectKey?: string;
+    title?: string;
+  }): void {
+    const q = String(course?.subjectKey || course?.title || '').trim();
+    if (!q) {
+      this.router.navigate(['/student-dashboard/my-courses']);
+      return;
+    }
+    this.router.navigate(['/student-dashboard/my-courses'], {
+      queryParams: { subject: q },
+    });
+  }
+
+  navigateToMyCoursesRecommendations(): void {
+    this.showAllRecommendations = !this.showAllRecommendations;
   }
 
   private cleanRecommendationText(value: unknown): string {
@@ -617,6 +645,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   loadAdaptiveData(forceAnalyticsRefresh = false): void {
     const userId = this.user._id || this.user.id;
 
+    this.loadSubjectProgressRings();
     this.loadLearningAnalytics(userId, forceAnalyticsRefresh);
     this.loadPaceAnalytics(userId, forceAnalyticsRefresh);
     this.loadConceptsAnalytics(userId, forceAnalyticsRefresh);
@@ -669,8 +698,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     this.adaptiveService.getProfile(userId).subscribe({
       next: (data) => {
         this.adaptiveProfile = data;
-        this.progress = data.progress || 0;
+        this.levelTestScore =
+          Number(data?.levelTestScore ?? data?.level_test_score ?? 0) || 0;
         this.adaptiveLoading = false;
+        this.refreshCourseProgressDisplay();
         this.buildTopicRings();
         this.updateAlerts();
         this.loadAdaptiveInsights(userId);
@@ -724,6 +755,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
           this.completedModules = data.filter((p: any) => p.score >= 70).length;
           this.learningStreak = this.calculateStreak(data);
+          this.refreshCourseProgressDisplay();
+          this.buildTopicRings();
+        } else {
+          this.refreshCourseProgressDisplay();
           this.buildTopicRings();
         }
       },
@@ -1572,7 +1607,34 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     const normalized = String(period || '').toLowerCase();
     this.learningProgressPeriod =
       normalized === 'monthly' ? 'monthly' : 'weekly';
+    this.refreshCourseProgressDisplay();
     this.buildTopicRings();
+  }
+
+  /**
+   * Headline %: average score on course-learning performances in the selected period.
+   * Excludes level-test rows so the test does not count as course progress.
+   */
+  private refreshCourseProgressDisplay(): void {
+    if (this.subjectProgressRings.length > 0) {
+      const total = this.subjectProgressRings.reduce(
+        (sum, item) => sum + Number(item.score || 0),
+        0,
+      );
+      this.progress = Math.round(total / this.subjectProgressRings.length);
+      return;
+    }
+
+    const scoped = this.getCourseLearningPerformancesForPeriod();
+    if (scoped.length === 0) {
+      this.progress = 0;
+      return;
+    }
+    const total = scoped.reduce(
+      (sum: number, p: any) => sum + Number(p?.score ?? 0),
+      0,
+    );
+    this.progress = Math.round(total / scoped.length);
   }
 
   getRingDashoffset(score: unknown): number {
@@ -1628,6 +1690,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Performances for rings / progress: exclude level-test so UI reflects course work only. */
+  private getCourseLearningPerformancesForPeriod(): any[] {
+    return this.getPerformancesForSelectedPeriod().filter(
+      (p: any) => String(p?.source || '').toLowerCase() !== 'level-test',
+    );
+  }
+
   // ── Construit les anneaux par topic ──
   buildTopicRings(): void {
     const colors = [
@@ -1637,7 +1706,16 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       'text-purple-500',
     ];
 
-    const scopedPerformances = this.getPerformancesForSelectedPeriod();
+    if (this.subjectProgressRings.length > 0) {
+      this.topicRings = this.subjectProgressRings.map((item, i) => ({
+        name: item.name,
+        score: item.score,
+        color: colors[i % colors.length],
+      }));
+      return;
+    }
+
+    const scopedPerformances = this.getCourseLearningPerformancesForPeriod();
 
     if (scopedPerformances.length > 0) {
       // Grouper par topic
@@ -1657,15 +1735,15 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           color: colors[i % colors.length],
         }));
     } else if (this.adaptiveProfile) {
-      // Fallback : strengths/weaknesses du profil
+      // Topics from level test — show 0% until there is real course activity
       const allTopics = [
         ...(this.adaptiveProfile.strengths || []).map((t: string) => ({
           name: t,
-          score: 80,
+          score: 0,
         })),
         ...(this.adaptiveProfile.weaknesses || []).map((t: string) => ({
           name: t,
-          score: 35,
+          score: 0,
         })),
       ].slice(0, 4);
 
@@ -1673,17 +1751,68 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         ...t,
         color: colors[i % colors.length],
       }));
+    } else {
+      this.topicRings = [];
     }
+  }
 
-    // Fallback si vide
-    if (this.topicRings.length === 0) {
-      this.topicRings = [
-        { name: 'Mathematics', score: 0, color: colors[0] },
-        { name: 'Sciences', score: 0, color: colors[1] },
-        { name: 'Literature', score: 0, color: colors[2] },
-        { name: 'Economics', score: 0, color: colors[3] },
-      ];
-    }
+  private loadSubjectProgressRings(): void {
+    this.subjectsService
+      .getSubjects(undefined, false)
+      .pipe(catchError(() => of([] as DbSubjectItem[])))
+      .subscribe({
+        next: (subjects) => {
+          const rows = (Array.isArray(subjects) ? subjects : [])
+            .map((subject) => ({
+              id: String(subject?._id || subject?.id || '').trim(),
+              name: String(subject?.title || '').trim(),
+            }))
+            .filter((subject) => !!subject.id && !!subject.name);
+
+          if (rows.length === 0) {
+            this.subjectProgressRings = [];
+            this.buildTopicRings();
+            this.refreshCourseProgressDisplay();
+            return;
+          }
+
+          forkJoin(
+            rows.map((subject) =>
+              this.subjectsService.getSubjectLearningProgress(subject.id).pipe(
+                map((progress) => ({
+                  name: subject.name,
+                  score: Math.max(
+                    0,
+                    Math.min(100, Number(progress?.percent ?? 0)),
+                  ),
+                })),
+                catchError(() =>
+                  of({
+                    name: subject.name,
+                    score: 0,
+                  }),
+                ),
+              ),
+            ),
+          ).subscribe({
+            next: (ringRows: Array<{ name: string; score: number }>) => {
+              this.subjectProgressRings = ringRows;
+              this.buildTopicRings();
+              this.refreshCourseProgressDisplay();
+            },
+            error: () => {
+              this.subjectProgressRings = [];
+              this.buildTopicRings();
+              this.refreshCourseProgressDisplay();
+            },
+          });
+        },
+        error: () => {
+          this.subjectProgressRings = [];
+          this.buildTopicRings();
+          this.refreshCourseProgressDisplay();
+        },
+      });
   }
 
   updateAlerts(): void {
@@ -1715,6 +1844,58 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         message: `${this.recommendations.length} personalized recommendations ready for you!`,
       });
     }
+
+    // Backend intervention alerts (A/B automation) appear in student dashboard too.
+    this.alerts.push(...this.backendRiskAlerts);
+  }
+
+  get shouldShowPostEvaluationCta(): boolean {
+    const riskRaw = String(this.adaptiveProfile?.risk_level || '')
+      .trim()
+      .toLowerCase();
+    return riskRaw === 'high' || riskRaw === 'critical';
+  }
+
+  get postEvaluationWeakAreasPreview(): string {
+    const weaknesses = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+    return weaknesses.slice(0, 4).join(', ');
+  }
+
+  takePostEvaluationTest(): void {
+    if (this.postEvaluationInProgress) {
+      return;
+    }
+    this.postEvaluationInProgress = true;
+    const weakAreas = Array.isArray(this.adaptiveProfile?.weaknesses)
+      ? this.adaptiveProfile.weaknesses
+      : [];
+
+    this.router.navigate(['/student-dashboard/level-test'], {
+      queryParams: { mode: 'post-evaluation' },
+      state: { weakAreas },
+    });
+    this.postEvaluationInProgress = false;
+  }
+
+  private loadBackendInterventionAlerts(): void {
+    this.http
+      .get<any[]>('http://localhost:3000/api/alerts/me?limit=6')
+      .pipe(catchError(() => of([] as any[])))
+      .subscribe((rows) => {
+        const mapped = (Array.isArray(rows) ? rows : []).map((row) => {
+          const severity = String(row?.severity || '').toLowerCase();
+          const type = severity === 'high' ? 'warning' : severity === 'medium' ? 'info' : 'success';
+          return {
+            type,
+            icon: 'notifications',
+            message: String(row?.message || 'Intervention update available.'),
+          };
+        });
+        this.backendRiskAlerts = mapped;
+        this.updateAlerts();
+      });
   }
 
   calculateStreak(performances: any[]): number {
@@ -1765,7 +1946,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   private buildProfileFallbackLevelTestResult(userId: string): any {
     const profile = this.adaptiveProfile || {};
-    const totalScore = Number(profile?.progress ?? 0) || 0;
+    const totalScore =
+      Number(
+        profile?.levelTestScore ??
+        profile?.level_test_score ??
+        profile?.progress ??
+        0,
+      ) || 0;
     const resultLevel = profile?.level || 'beginner';
     const strengths = Array.isArray(profile?.strengths)
       ? profile.strengths
@@ -1794,49 +1981,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   openLevelTestFromSidebar(): void {
-    const userId = this.user?._id || this.user?.id;
-    if (!userId) {
-      this.activeNav = 'level-test';
-      this.router.navigate(['/student-dashboard/level-test']);
-      return;
-    }
-
-    this.adaptiveService.getLatestCompletedLevelTest(userId).subscribe({
-      next: (test) => {
-        const normalized = this.normalizeLevelTestResult(test);
-        const hasCompletedResult = !!(
-          normalized &&
-          (String(normalized.status || '').toLowerCase() === 'completed' ||
-            normalized.completedAt ||
-            normalized.totalScore > 0 ||
-            (Array.isArray(normalized.answers) &&
-              normalized.answers.length > 0))
-        );
-
-        if (hasCompletedResult) {
-          this.activeNav = 'level-test-result';
-          this.router.navigate(['/student-dashboard/level-test-result'], {
-            state: { result: normalized },
-          });
-          return;
-        }
-
-        if (this.adaptiveProfile?.levelTestCompleted) {
-          this.activeNav = 'level-test-result';
-          this.router.navigate(['/student-dashboard/level-test-result'], {
-            state: { result: this.buildProfileFallbackLevelTestResult(userId) },
-          });
-          return;
-        }
-
-        this.activeNav = 'level-test';
-        this.router.navigate(['/student-dashboard/level-test']);
-      },
-      error: () => {
-        this.activeNav = 'level-test';
-        this.router.navigate(['/student-dashboard/level-test']);
-      },
-    });
+    // Moved to SidebarComponent, but keeping a stub if needed for direct calls from dashboard template
+    this.router.navigate(['/student-dashboard/level-test']);
   }
 
   getLevelColor(): string {
@@ -1890,40 +2036,33 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   isLevelTestFullscreenView(): boolean {
-    return (
-      this.router.url.includes('/student-dashboard/level-test') &&
-      !this.router.url.includes('/student-dashboard/level-test-result')
-    );
+    return false; // The user requested the level test to be displayed with the sidebar and navbar
   }
 
   showDashboardShell(): boolean {
     return !this.isLevelTestFullscreenView();
   }
 
+  isChatRoute(): boolean {
+    return this.router.url.includes('/chat');
+  }
+
   isSubPageView(): boolean {
     return (
       this.router.url.includes('/student-dashboard/level-test') ||
       this.router.url.includes('/student-dashboard/level-test-result') ||
-      this.router.url.includes('/student-dashboard/goal-setting') ||
-      this.router.url.includes('/student-dashboard/badges') ||
       this.router.url.includes('/student-dashboard/my-courses') ||
       this.router.url.includes('/student-dashboard/performance') ||
       this.router.url.includes('/student-dashboard/learning-path') ||
-      this.router.url.includes('/student-dashboard/continue-learning')
+      this.router.url.includes('/student-dashboard/continue-learning') ||
+      this.router.url.includes('/student-dashboard/chat') ||
+      this.router.url.includes('/student-dashboard/profile') ||
+      this.router.url.includes('/student-dashboard/video-generator')
     );
   }
 
+
   private syncActiveNavFromUrl(url: string = this.router.url): void {
-    if (url.includes('/student-dashboard/goal-setting')) {
-      this.activeNav = 'goal-setting';
-      return;
-    }
-
-    if (url.includes('/student-dashboard/badges')) {
-      this.activeNav = 'badges';
-      return;
-    }
-
     if (url.includes('/student-dashboard/level-test-result')) {
       this.activeNav = 'level-test-result';
       return;
@@ -1949,6 +2088,21 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (url.includes('/student-dashboard/chat/instructor')) {
+      this.activeNav = 'conversations';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/chat/room')) {
+      this.activeNav = 'groups';
+      return;
+    }
+
+    if (url.includes('/student-dashboard/profile')) {
+      this.activeNav = 'profile';
+      return;
+    }
+
     this.activeNav = 'dashboard';
   }
 
@@ -1963,50 +2117,12 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
   manageAccount() {
     this.closeProfileSidebar();
-    this.router.navigate(['/profile']);
+    this.router.navigate(['/student-dashboard/profile']);
   }
+
 
   onRecommendationViewed(id: string): void {
     const rec = this.recommendations.find((r) => r._id === id);
     if (rec) rec.isViewed = true;
-  }
-
-  private checkUpcomingWebinars() {
-    this.webinarService.getWebinars().subscribe(webinars => {
-      const now = new Date();
-      webinars.forEach(w => {
-        const startTime = new Date(w.scheduledStartTime);
-        const diffMs = startTime.getTime() - now.getTime();
-        const diffMins = diffMs / (1000 * 60);
-
-        // Notify if starting in less than 15 mins but hasn't started yet
-        if (diffMins > 0 && diffMins <= 15) {
-          const msg = `Webinar "${w.title}" starts in ${Math.round(diffMins)} minutes!`;
-          this.toastService.show(msg, 'info', `/webinar/list`, 'Join Soon');
-          this.addAlert(msg, 'info', `/webinar/list`);
-        } else if (w.status === 'live') {
-          const msg = `Webinar "${w.title}" is LIVE now!`;
-          this.toastService.show(msg, 'success', `/webinar/live/${w._id}`, 'Join Now');
-          this.addAlert(msg, 'success', `/webinar/live/${w._id}`);
-        }
-      });
-    });
-  }
-
-  private addAlert(message: string, type: string, link: string) {
-    if (!this.alerts.find(a => a.message === message)) {
-      this.alerts.unshift({
-        message,
-        type,
-        link,
-        time: new Date(),
-        icon: type === 'success' ? 'live_tv' : 'schedule'
-      });
-    }
-  }
-
-  showNotifications = false;
-  toggleNotifications() {
-    this.showNotifications = !this.showNotifications;
   }
 }

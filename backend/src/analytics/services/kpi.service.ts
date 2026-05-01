@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserDocument } from '../../users/schemas/user.schema';
-import { Activity, ActivityDocument } from '../../activity/schemas/activity.schema';
+import { User, UserDocument, UserRole, UserStatus } from '../../users/schemas/user.schema';
+import { SessionService } from '../../activity/session.service';
 import { RiskScore, RiskScoreDocument, RiskLevel } from '../schemas/riskscore.schema';
 import { Alert, AlertDocument } from '../schemas/alert.schema';
 import {
@@ -20,9 +20,11 @@ export interface RiskDistribution {
   low: number;
   medium: number;
   high: number;
+  critical: number;
   lowPercentage: number;
   mediumPercentage: number;
   highPercentage: number;
+  criticalPercentage: number;
   total: number;
   timestamp: Date;
 }
@@ -31,21 +33,29 @@ export interface RiskDistribution {
 export class KpiService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Activity.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(RiskScore.name) private riskScoreModel: Model<RiskScoreDocument>,
     @InjectModel(Alert.name) private alertModel: Model<AlertDocument>,
     private readonly readCache: AnalyticsReadCacheService,
+    private readonly sessionService: SessionService,
   ) {}
 
   /**
    * Calculate total number of users in the system
    */
-  async getTotalUsers(): Promise<KpiResult> {
-    const total = await this.userModel.countDocuments().exec();
+  async getTotalUsers(scope: 'students' | 'allUsers' = 'students'): Promise<KpiResult> {
+    const total =
+      scope === 'students'
+        ? await this.userModel
+            .countDocuments({
+              role: UserRole.STUDENT,
+              status: UserStatus.ACTIVE,
+            })
+            .exec()
+        : await this.userModel.countDocuments().exec();
     
     return {
       value: total,
-      label: 'Total Users',
+      label: scope === 'students' ? 'Total Students' : 'Total Users',
       timestamp: new Date(),
     };
   }
@@ -53,19 +63,12 @@ export class KpiService {
   /**
    * Calculate number of active users (activity in last 24 hours)
    */
-  async getActiveUsers(): Promise<KpiResult> {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
-    // Get distinct user IDs with activity in last 24 hours
-    const activeUserIds = await this.activityModel
-      .distinct('userId', {
-        timestamp: { $gte: twentyFourHoursAgo },
-      })
-      .exec();
-    
+  async getActiveUsers(scope: 'students' | 'allUsers' = 'students'): Promise<KpiResult> {
+    const count = await this.sessionService.countOnlineUsers(scope);
+
     return {
-      value: activeUserIds.length,
-      label: 'Active Users (24h)',
+      value: count,
+      label: scope === 'students' ? 'Active Students (24h)' : 'Active Users (24h)',
       timestamp: new Date(),
     };
   }
@@ -74,11 +77,10 @@ export class KpiService {
    * Calculate number of high-risk users
    */
   async getHighRiskUsers(): Promise<KpiResult> {
-    const highRiskCount = await this.riskScoreModel
-      .countDocuments({
-        riskLevel: RiskLevel.HIGH,
-      })
-      .exec();
+    const latestByStudent = await this.getLatestRiskRowsForActiveStudents();
+    const highRiskCount = latestByStudent.filter(
+      (row) => row.riskLevel === RiskLevel.HIGH || row.riskLevel === RiskLevel.CRITICAL,
+    ).length;
     
     return {
       value: highRiskCount,
@@ -105,20 +107,13 @@ export class KpiService {
    * Returns counts and percentages for low, medium, and high risk levels
    */
   async getRiskDistribution(): Promise<RiskDistribution> {
-    // Use MongoDB aggregation to group by risk level
-    const distribution = await this.riskScoreModel.aggregate([
-      {
-        $group: {
-          _id: '$riskLevel',
-          count: { $sum: 1 },
-        },
-      },
-    ]).exec();
+    const distribution = await this.getLatestRiskDistributionForActiveStudents();
 
     // Initialize counts
     let lowCount = 0;
     let mediumCount = 0;
     let highCount = 0;
+    let criticalCount = 0;
 
     // Map aggregation results to counts
     distribution.forEach((item) => {
@@ -132,23 +127,29 @@ export class KpiService {
         case RiskLevel.HIGH:
           highCount = item.count;
           break;
+        case RiskLevel.CRITICAL:
+          criticalCount = item.count;
+          break;
       }
     });
 
-    const total = lowCount + mediumCount + highCount;
+    const total = lowCount + mediumCount + highCount + criticalCount;
 
     // Calculate percentages (avoid division by zero)
     const lowPercentage = total > 0 ? Math.round((lowCount / total) * 100) : 0;
     const mediumPercentage = total > 0 ? Math.round((mediumCount / total) * 100) : 0;
     const highPercentage = total > 0 ? Math.round((highCount / total) * 100) : 0;
+    const criticalPercentage = total > 0 ? Math.round((criticalCount / total) * 100) : 0;
 
     return {
       low: lowCount,
       medium: mediumCount,
       high: highCount,
+      critical: criticalCount,
       lowPercentage,
       mediumPercentage,
       highPercentage,
+      criticalPercentage,
       total,
       timestamp: new Date(),
     };
@@ -157,16 +158,16 @@ export class KpiService {
   /**
    * Get all KPIs at once for dashboard efficiency
    */
-  async getAllKpis() {
-    const key = `kpi:allKpis:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
-    return this.readCache.getOrSet(key, () => this.computeAllKpis());
+  async getAllKpis(scope: 'students' | 'allUsers' = 'students') {
+    const key = `kpi:allKpis:${scope}:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
+    return this.readCache.getOrSet(key, () => this.computeAllKpis(scope));
   }
 
-  private async computeAllKpis() {
+  private async computeAllKpis(scope: 'students' | 'allUsers') {
     const [totalUsers, activeUsers, highRiskUsers, totalAlerts, riskDistribution] =
       await Promise.all([
-        this.getTotalUsers(),
-        this.getActiveUsers(),
+        this.getTotalUsers(scope),
+        this.getActiveUsers(scope),
         this.getHighRiskUsers(),
         this.getTotalAlerts(),
         this.getRiskDistribution(),
@@ -189,17 +190,17 @@ export class KpiService {
    * - highRiskUsersDeltaPct: HIGH risk rows with lastUpdated in last 7d vs previous 7d.
    * - totalAlertsDeltaPct: alerts created in last 7d vs previous 7d.
    */
-  async getDashboardDeltas(): Promise<{
+  async getDashboardDeltas(scope: 'students' | 'allUsers' = 'students'): Promise<{
     totalUsersDeltaPct: number | null;
     activeUsersDeltaPct: number | null;
     highRiskUsersDeltaPct: number | null;
     totalAlertsDeltaPct: number | null;
   }> {
-    const key = `kpi:dashboardDeltas:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
-    return this.readCache.getOrSet(key, () => this.computeDashboardDeltas());
+    const key = `kpi:dashboardDeltas:${scope}:${ANALYTICS_CACHE_SCHEMA_VERSION}`;
+    return this.readCache.getOrSet(key, () => this.computeDashboardDeltas(scope));
   }
 
-  private async computeDashboardDeltas(): Promise<{
+  private async computeDashboardDeltas(scope: 'students' | 'allUsers'): Promise<{
     totalUsersDeltaPct: number | null;
     activeUsersDeltaPct: number | null;
     highRiskUsersDeltaPct: number | null;
@@ -219,12 +220,18 @@ export class KpiService {
       highRiskCurr,
       highRiskPrev,
     ] = await Promise.all([
-      this.countDistinctActiveUsers(new Date(now - ms24), new Date(now)),
-      this.countDistinctActiveUsers(new Date(now - 2 * ms24), new Date(now - ms24)),
+      this.countDistinctActiveUsers(new Date(now - ms24), new Date(now), scope),
+      this.countDistinctActiveUsers(new Date(now - 2 * ms24), new Date(now - ms24), scope),
       this.userModel.countDocuments({
+        ...(scope === 'students'
+          ? { role: UserRole.STUDENT, status: UserStatus.ACTIVE }
+          : {}),
         createdAt: { $gte: new Date(now - ms7), $lte: new Date(now) },
       }),
       this.userModel.countDocuments({
+        ...(scope === 'students'
+          ? { role: UserRole.STUDENT, status: UserStatus.ACTIVE }
+          : {}),
         createdAt: { $gte: new Date(now - 2 * ms7), $lt: new Date(now - ms7) },
       }),
       this.alertModel.countDocuments({ createdAt: { $gte: new Date(now - ms7) } }),
@@ -232,11 +239,11 @@ export class KpiService {
         createdAt: { $gte: new Date(now - 2 * ms7), $lt: new Date(now - ms7) },
       }),
       this.riskScoreModel.countDocuments({
-        riskLevel: RiskLevel.HIGH,
+        riskLevel: { $in: [RiskLevel.HIGH, RiskLevel.CRITICAL, 'HIGH', 'CRITICAL'] },
         lastUpdated: { $gte: new Date(now - ms7) },
       }),
       this.riskScoreModel.countDocuments({
-        riskLevel: RiskLevel.HIGH,
+        riskLevel: { $in: [RiskLevel.HIGH, RiskLevel.CRITICAL, 'HIGH', 'CRITICAL'] },
         lastUpdated: { $gte: new Date(now - 2 * ms7), $lt: new Date(now - ms7) },
       }),
     ]);
@@ -256,21 +263,20 @@ export class KpiService {
   }
 
   private async computeAverageRiskScorePercent(): Promise<number> {
-    const agg = await this.riskScoreModel
-      .aggregate([{ $group: { _id: null, avg: { $avg: '$score' } } }])
-      .exec();
-    const raw = agg[0]?.avg;
+    const latestByStudent = await this.getLatestRiskRowsForActiveStudents();
+    if (latestByStudent.length === 0) {
+      return 0;
+    }
+    const total = latestByStudent.reduce((sum, row) => sum + Number(row.score || 0), 0);
+    const raw = total / latestByStudent.length;
     if (raw == null || Number.isNaN(raw)) {
       return 0;
     }
     return Math.round(Number(raw));
   }
 
-  private async countDistinctActiveUsers(from: Date, to: Date): Promise<number> {
-    const ids = await this.activityModel.distinct('userId', {
-      timestamp: { $gte: from, $lte: to },
-    });
-    return ids.length;
+  private async countDistinctActiveUsers(from: Date, to: Date, scope: 'students' | 'allUsers'): Promise<number> {
+    return this.sessionService.countUsersSeenInWindow(from, to, scope);
   }
 
   private deltaPct(previous: number, current: number): number | null {
@@ -281,5 +287,72 @@ export class KpiService {
       return current > 0 ? 100 : null;
     }
     return Number((((current - previous) / previous) * 100).toFixed(1));
+  }
+
+  private async getLatestRiskRowsForActiveStudents(): Promise<Array<{ riskLevel: RiskLevel; score: number }>> {
+    const [activeStudents, latestRows] = await Promise.all([
+      this.userModel
+        .find({ role: UserRole.STUDENT, status: UserStatus.ACTIVE })
+        .select('_id')
+        .lean<UserDocument[]>()
+        .exec(),
+      this.riskScoreModel
+        .aggregate<{ userId: string; riskLevel: RiskLevel; score: number }>([
+          { $sort: { lastUpdated: -1, _id: -1 } },
+          {
+            $group: {
+              _id: '$user',
+              riskLevel: { $first: { $toLower: '$riskLevel' } },
+              score: { $first: '$score' },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              userId: { $toString: '$_id' },
+              riskLevel: 1,
+              score: 1,
+            },
+          },
+        ])
+        .exec(),
+    ]);
+
+    const activeStudentIds = new Set(activeStudents.map((student: any) => String(student._id)));
+    return latestRows
+      .filter((row) => activeStudentIds.has(String(row.userId)))
+      .map((row) => ({
+        riskLevel: row.riskLevel,
+        score: Number(row.score || 0),
+      }));
+  }
+
+  private async getLatestRiskDistributionForActiveStudents(): Promise<
+    Array<{
+      _id: RiskLevel;
+      count: number;
+    }>
+  > {
+    const latestRows = await this.getLatestRiskRowsForActiveStudents();
+    const bucket = new Map<RiskLevel, number>([
+      [RiskLevel.LOW, 0],
+      [RiskLevel.MEDIUM, 0],
+      [RiskLevel.HIGH, 0],
+      [RiskLevel.CRITICAL, 0],
+    ]);
+
+    for (const row of latestRows) {
+      const level = row.riskLevel;
+      if (bucket.has(level)) {
+        bucket.set(level, (bucket.get(level) || 0) + 1);
+      }
+    }
+
+    return [
+      { _id: RiskLevel.LOW, count: bucket.get(RiskLevel.LOW) || 0 },
+      { _id: RiskLevel.MEDIUM, count: bucket.get(RiskLevel.MEDIUM) || 0 },
+      { _id: RiskLevel.HIGH, count: bucket.get(RiskLevel.HIGH) || 0 },
+      { _id: RiskLevel.CRITICAL, count: bucket.get(RiskLevel.CRITICAL) || 0 },
+    ];
   }
 }

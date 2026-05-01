@@ -18,7 +18,9 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { CodebattleModule } from './codebattle/codebattle.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { ReportModule } from './report/report.module';
-import { WebinarModule } from './webinar/webinar.module';
+import { PrositsModule } from './prosits/prosits.module';
+import { VideoGeneratorModule } from './video-generator/video-generator.module';
+import { CoursesModule } from './courses/courses.module';
 
 @Module({
   imports: [
@@ -51,8 +53,10 @@ import { WebinarModule } from './webinar/webinar.module';
     ChatModule,
     BrainrushModule,
     SubjectsModule,
+    CoursesModule,
+    PrositsModule,
     CodebattleModule,
-    WebinarModule,
+    VideoGeneratorModule,
   ],
   controllers: [AppController],
   providers: [],

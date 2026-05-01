@@ -4,10 +4,11 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
   async register(@Body() createUserDto: CreateUserDto) {
@@ -35,13 +36,9 @@ export class AuthController {
     return this.authService.resetPassword(dto.token, dto.password);
   }
 
-  @Post('login/face')
-  async loginFace(@Body('descriptor') descriptor: number[], @Request() req) {
-    return this.authService.loginWithFace(descriptor, req);
-  }
-
-  @Post('register-face')
-  async registerFace(@Body('userId') userId: string, @Body('descriptor') descriptor: number[]) {
-    return this.authService.registerFace(userId, descriptor);
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Request() req) {
+    return this.authService.logout(req.user);
   }
 }

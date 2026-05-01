@@ -1,18 +1,14 @@
 <div
-  class="layout-container flex flex-col h-screen overflow-hidden bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-slate-100 font-display"
+  class="layout-container flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display"
 >
   <!-- Header -->
   <header
     class="flex items-center justify-between border-b border-primary/10 bg-white dark:bg-slate-900 px-8 py-4 z-10"
   >
     <div class="flex items-center gap-6">
-      <div class="flex items-center gap-3 min-w-0">
-        <app-brand-logo [link]="'/student-dashboard'" variant="compact" />
-      </div>
-      <div class="h-6 w-[1px] bg-primary/20"></div>
       <div class="flex flex-col">
         <h1 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
-          Level Assessment
+          {{ testMode === "post-evaluation" ? "Post-Evaluation" : "Level Assessment" }}
         </h1>
         <p class="text-xs text-slate-500">Discover your skill level</p>
       </div>
@@ -49,8 +45,8 @@
       <span class="material-symbols-outlined text-primary text-6xl animate-spin"
         >refresh</span
       >
-      <p class="mt-4 text-slate-500 text-sm font-bold animate-pulse">
-        Generating your personalized test...
+        <p class="mt-4 text-slate-500 text-sm font-bold animate-pulse">
+          Generating your personalized {{ testMode === "post-evaluation" ? "post-evaluation" : "test" }}...
       </p>
     </div>
   </ng-container>
@@ -225,6 +221,11 @@
         <div
           *ngFor="let q of testData?.questions; let i = index"
           (click)="goToQuestion(i)"
+          (keydown.enter)="goToQuestion(i)"
+          (keydown.space)="$event.preventDefault(); goToQuestion(i)"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="'Go to question ' + (i + 1)"
           [ngClass]="getNavigationItemClass(i)"
           class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
         >
@@ -305,12 +306,17 @@
     <div class="flex items-center gap-2 flex-wrap max-w-xs justify-center">
       <div
         *ngFor="let q of testData?.questions; let i = index"
+        role="button"
+        tabindex="0"
+        [attr.aria-label]="'Jump to question ' + (i + 1)"
         [class.bg-primary]="currentQuestionIndex === i"
         [class.bg-slate-200]="currentQuestionIndex !== i && !answers[i]"
         [class.dark:bg-slate-700]="currentQuestionIndex !== i && !answers[i]"
         [class.bg-green-400]="currentQuestionIndex !== i && answers[i]"
         class="h-1.5 w-6 rounded-full transition-colors cursor-pointer"
         (click)="goToQuestion(i)"
+        (keydown.enter)="goToQuestion(i)"
+        (keydown.space)="$event.preventDefault(); goToQuestion(i)"
       ></div>
     </div>
 

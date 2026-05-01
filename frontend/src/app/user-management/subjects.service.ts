@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 export interface SubjectQuizQuestion {
   question: string;
@@ -12,7 +12,7 @@ export interface SubjectQuizQuestion {
 export interface SubjectChapterContent {
   contentId?: string;
   folder?: 'cours' | 'exercices' | 'videos' | 'ressources';
-  type: 'file' | 'quiz' | 'video' | 'link' | 'prosit' | 'code';
+  type: 'file' | 'quiz' | 'video' | 'url' | 'link' | 'prosit' | 'code';
   title: string;
   url?: string;
   quizText?: string;
@@ -66,24 +66,61 @@ export function normalizeSubjectItem(raw: any): SubjectItem {
 @Injectable({ providedIn: 'root' })
 export class SubjectsService {
   private apiUrl = 'http://localhost:3000/api/subjects';
+  private coursesApiUrl = 'http://localhost:3000/api/courses';
 
   constructor(private http: HttpClient) {}
 
-  getSubjects(instructorId?: string): Observable<SubjectItem[]> {
+  getSubjects(
+    instructorId?: string,
+    preferCoursesView = true,
+  ): Observable<SubjectItem[]> {
     const query = instructorId
       ? `?instructorId=${encodeURIComponent(instructorId)}`
       : '';
-    return this.http.get<any[]>(`${this.apiUrl}${query}`).pipe(
-      map((rows) =>
-        Array.isArray(rows) ? rows.map(normalizeSubjectItem) : [],
-      ),
-    );
+    if (!preferCoursesView) {
+      return this.http
+        .get<any[]>(`${this.apiUrl}${query}`)
+        .pipe(
+          map((rows) =>
+            Array.isArray(rows) ? rows.map(normalizeSubjectItem) : [],
+          ),
+        );
+    }
+    return this.http
+      .get<any[]>(`${this.coursesApiUrl}/subjects/list${query}`)
+      .pipe(
+        map((rows) =>
+          Array.isArray(rows) ? rows.map(normalizeSubjectItem) : [],
+        ),
+      );
   }
 
-  getSubject(id: string): Observable<SubjectItem> {
+  getSubject(id: string, preferCoursesView = true): Observable<SubjectItem> {
+    // Compatibility: id may be `course-subject:<title>` from courses grouping endpoint.
+    if (preferCoursesView && String(id || '').startsWith('course-subject:')) {
+      const title = encodeURIComponent(String(id).replace(/^course-subject:/, ''));
+      return this.http
+        .get<any>(`${this.coursesApiUrl}/subjects/by-title/${title}`)
+        .pipe(map(normalizeSubjectItem));
+    }
     return this.http
       .get<any>(`${this.apiUrl}/${id}`)
       .pipe(map(normalizeSubjectItem));
+  }
+
+  /**
+   * Aggregate progress for the logged-in student (JWT): average module % (exercises, quizzes, content).
+   */
+  getSubjectLearningProgress(subjectId: string): Observable<{
+    percent: number;
+    moduleCount: number;
+  }> {
+    return this.http
+      .get<{
+        percent: number;
+        moduleCount: number;
+      }>(`${this.apiUrl}/${encodeURIComponent(subjectId)}/learning-progress`)
+      .pipe(catchError(() => of({ percent: 0, moduleCount: 0 })));
   }
 
   createSubject(payload: {
@@ -121,9 +158,7 @@ export class SubjectsService {
     chapterOrder: number,
   ): Observable<SubjectItem> {
     return this.http
-      .delete<any>(
-        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}`,
-      )
+      .delete<any>(`${this.apiUrl}/${subjectId}/chapters/${chapterOrder}`)
       .pipe(map(normalizeSubjectItem));
   }
 
@@ -211,7 +246,7 @@ export class SubjectsService {
     subChapterOrder: number,
     payload: {
       folder: 'cours' | 'exercices' | 'videos' | 'ressources';
-      type: 'file' | 'quiz' | 'video' | 'link' | 'prosit' | 'code';
+      type: 'file' | 'quiz' | 'video' | 'url' | 'link' | 'prosit' | 'code';
       title: string;
       url?: string;
       quizText?: string;
@@ -238,7 +273,7 @@ export class SubjectsService {
     contentId: string,
     payload: {
       folder?: 'cours' | 'exercices' | 'videos' | 'ressources';
-      type?: 'file' | 'quiz' | 'video' | 'link' | 'prosit' | 'code';
+      type?: 'file' | 'quiz' | 'video' | 'url' | 'link' | 'prosit' | 'code';
       title?: string;
       url?: string;
       quizText?: string;

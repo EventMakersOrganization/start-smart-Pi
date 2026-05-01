@@ -9,12 +9,14 @@ import { AdminCreateUserDto } from '../users/dto/admin-create-user.dto';
 import { SubjectsService } from '../subjects/subjects.service';
 import { CreateSubjectDto } from '../subjects/dto/create-subject.dto';
 import { UpdateSubjectDto } from '../subjects/dto/update-subject.dto';
+import { AcademicService } from '../academic/academic.service';
 
 @Controller('admin')
 export class AdminController {
   constructor(
     private readonly usersService: UsersService,
     private readonly subjectsService: SubjectsService,
+    private readonly academicService: AcademicService,
   ) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -101,7 +103,21 @@ export class AdminController {
   @Roles(UserRole.ADMIN)
   @Put('user/:id')
   async updateUser(@Param('id') id: string, @Body() dto: AdminUpdateUserDto) {
-    return this.usersService.updateUserById(id, dto);
+    const result = await this.usersService.updateUserById(id, dto);
+
+    // If class was updated, ensure enrollment is synced
+    if (dto.class) {
+      try {
+        const schoolClass = await this.academicService.findClassByName(dto.class);
+        if (schoolClass) {
+          await this.academicService.enrollStudent(schoolClass._id.toString(), { studentId: id });
+        }
+      } catch (err) {
+        console.error('Failed to sync enrollment during user update:', err);
+      }
+    }
+
+    return result;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -115,6 +131,19 @@ export class AdminController {
   @Roles(UserRole.ADMIN)
   @Post('user')
   async createUser(@Body() dto: AdminCreateUserDto) {
-    return this.usersService.createUserByAdmin(dto);
+    console.log('AdminController.createUser called with dto:', dto);
+    const result = await this.usersService.createUserByAdmin(dto);
+    
+    // If a classId was provided and it's a student, enroll them
+    if (dto.classId && (dto.role === UserRole.STUDENT || !dto.role)) {
+      try {
+        await this.academicService.enrollStudent(dto.classId, { studentId: result.user.id });
+      } catch (err) {
+        console.error('Failed to enroll student during creation:', err);
+        // We don't fail the whole user creation, but we could return a warning
+      }
+    }
+    
+    return result;
   }
 }

@@ -46,7 +46,7 @@
         </div>
         <div class="text-4xl font-black value-danger">{{ highRiskStudents }}</div>
         <p class="text-xs mt-2">
-          {{ totalStudents > 0 ? ((highRiskStudents / totalStudents) * 100 | number:'1.0-1') : 0 }}% of total
+          {{ totalStudents > 0 ? (((highRiskStudents + criticalRiskStudents) / totalStudents) * 100 | number:'1.0-1') : 0 }}% of total (high + critical)
         </p>
       </div>
 
@@ -71,7 +71,7 @@
           </div>
         </div>
         <div class="text-4xl font-black value-accent">{{ getAtRiskPercentage() }}%</div>
-        <p class="text-xs mt-2">Medium + High risk</p>
+        <p class="text-xs mt-2">Medium + High + Critical risk</p>
       </div>
     </div>
 
@@ -93,6 +93,7 @@
                 class="h-3 rounded-full transition-all duration-500"
                 [style.width.%]="risk.percentage"
                 [ngClass]="{
+                  'bg-red-700': risk.level === 'Critical Risk',
                   'bg-rose-500': risk.level === 'High Risk',
                   'bg-amber-500': risk.level === 'Medium Risk',
                   'bg-emerald-500': risk.level === 'Low Risk'
@@ -139,6 +140,10 @@
           Risk Breakdown
         </h3>
         <div class="space-y-3">
+          <div class="flex items-center justify-between py-2 border-b border-slate-100/80">
+            <span class="text-sm metric-row-key">Critical Risk:</span>
+            <span class="text-sm font-bold text-red-700">{{ criticalRiskStudents }}</span>
+          </div>
           <div class="flex items-center justify-between py-2 border-b border-slate-100/80">
             <span class="text-sm metric-row-key">High Risk:</span>
             <span class="text-sm font-bold text-rose-600">{{ highRiskStudents }}</span>

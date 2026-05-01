@@ -1,220 +1,235 @@
-<div class="p-8 pb-4">
-  <div class="flex items-end justify-between gap-4 mb-6">
-    <div>
-      <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Student Management</h1>
-      <p class="text-slate-500 mt-1">Monitor, manage and audit individual student learning trajectories.</p>
+<div class="h-[calc(100vh-64px)] flex flex-col bg-slate-50/50 dark:bg-slate-950/50 overflow-hidden">
+  <!-- Header Area -->
+  <div class="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">person_search</span>
+          Student Management
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">
+          Monitor and manage individual learning trajectories and performance.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="relative w-72">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+          <input
+            [(ngModel)]="filterText"
+            class="w-full pl-10 pr-10 py-2 bg-slate-100 dark:bg-slate-800 border-transparent rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+            placeholder="Search by name, email, or ID..."
+            type="text"
+          />
+          <button 
+            *ngIf="filterText"
+            (click)="filterText = ''"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+          >
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+        <button
+          (click)="openAddUserModal()"
+          class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95"
+        >
+          <span class="material-symbols-outlined text-sm">person_add</span> Add Student
+        </button>
+      </div>
     </div>
-    <button (click)="openAddUserModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary/90 transition-all">
-      <span class="material-symbols-outlined text-sm">person_add</span> Add User
-    </button>
-  </div>
-  <!-- Filters Bar -->
-  <div class="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-    <div class="flex-1 min-w-[300px] relative">
-      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-      <input [(ngModel)]="filterText" class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Filter by name, email, or student ID..." type="text"/>
-    </div>
-    <div class="flex items-center gap-2">
-      <select [(ngModel)]="filterStatus" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm py-2 px-3 focus:ring-primary/20">
-        <option>Status: All</option>
-        <option>Active</option>
-        <option>Suspended</option>
-      </select>
-      <button class="p-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500">
-        <span class="material-symbols-outlined">filter_list</span>
-      </button>
-    </div>
-  </div>
-</div>
 
-<div class="flex-1 px-8 pb-8 overflow-auto custom-scrollbar max-h-[calc(100vh-12rem)]">
-  <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto">
-    <table class="w-full text-left border-collapse">
-      <thead class="sticky top-0 z-30">
-        <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">First Name</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Last Name</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Email</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Role</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Phone</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Password</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Class</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Risk Level</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Points</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Created</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Updated</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap">Status</th>
-          <th class="px-6 py-4 text-sm font-semibold text-slate-700 uppercase tracking-wider bg-white dark:bg-slate-900 whitespace-nowrap text-right">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-        <tr *ngFor="let s of filteredStudents" class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
-          <!-- first name -->
-          <td class="px-6 py-4">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
-                {{ s.first_name?.[0] }}{{ s.last_name?.[0] }}
-              </div>
-              <div>
-                <span *ngIf="!editing[s.id]" class="text-sm font-bold text-slate-900 dark:text-white">{{ s.first_name }}</span>
-                <input *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].first_name" class="border-b" />
-              </div>
+    <!-- Filters Strip -->
+    <div class="flex items-center gap-4 mt-6">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filter by:</span>
+        <select [(ngModel)]="filterStatus" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold py-1.5 px-3 focus:ring-primary/20 outline-none">
+          <option>Status: All</option>
+          <option>Active</option>
+          <option>Suspended</option>
+        </select>
+        <select [(ngModel)]="filterRisk" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold py-1.5 px-3 focus:ring-primary/20 outline-none">
+          <option>Risk: All</option>
+          <option>High Risk</option>
+          <option>Medium Risk</option>
+          <option>Low Risk</option>
+        </select>
+      </div>
+      <div class="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
+      <div class="text-xs text-slate-500 font-medium">
+        Found <span class="text-slate-900 dark:text-white font-bold">{{ filteredStudents.length }}</span> students
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Area (Scrollable) -->
+  <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div
+        *ngFor="let s of filteredStudents; let i = index"
+        class="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 hover:shadow-xl hover:-translate-y-1 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500"
+        [style.animation-delay]="i * 50 + 'ms'"
+      >
+        <!-- Status Indicator -->
+        <div class="absolute top-4 right-4 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full"
+                [class.bg-emerald-500]="s.isOnline"
+                [class.bg-slate-400]="!s.isOnline"></span>
+          <span class="text-[10px] font-black uppercase text-slate-400">{{ s.isOnline ? 'online' : 'offline' }}</span>
+        </div>
+
+        <div class="flex flex-col items-center text-center">
+          <!-- Avatar -->
+          <div class="relative mb-4">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-xl font-black text-primary">
+              {{ s.first_name?.[0] }}{{ s.last_name?.[0] }}
             </div>
-          </td>
-          <!-- last name -->
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.last_name }}</span>
-            <input *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].last_name" class="border-b" />
-          </td>
-          <!-- email -->
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.email }}</span>
-            <input *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].email" class="border-b" />
-          </td>
-          <!-- phone / role -->
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.role }}</span>
-            <select *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].role" class="border-b">
-              <option value="student">student</option>
-              <option value="instructor">instructor</option>
-              <option value="admin">admin</option>
-            </select>
-          </td>
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.phone }}</span>
-            <input *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].phone" class="border-b" />
-          </td>
-          <!-- password (admin-set, never displayed) -->
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]" class="text-slate-400 text-xs italic">••••••••</span>
-            <input *ngIf="editing[s.id]" type="password" [(ngModel)]="editModels[s.id].password" class="border-b" placeholder="Set new password" />
-          </td>
-          <!-- class -->
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.class }}</span>
-            <input *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].class" class="border-b" />
-          </td>
-          <!-- risk level -->
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.risk_level }}</span>
-            <select *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].risk_level" class="border-b">
-              <option value="LOW">LOW</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="HIGH">HIGH</option>
-            </select>
-          </td>
-          <!-- gamification points -->
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.points_gamification }}</span>
-            <input *ngIf="editing[s.id]" type="number" [(ngModel)]="editModels[s.id].points_gamification" class="border-b" />
-          </td>
-          <!-- created at -->
-          <td class="px-6 py-4">{{ s.createdAt | date:'short' }}</td>
-          <!-- updated at -->
-          <td class="px-6 py-4">{{ s.updatedAt | date:'short' }}</td>
-          <!-- status -->
-          <td class="px-6 py-4">
-            <span *ngIf="!editing[s.id]">{{ s.status }}</span>
-            <input *ngIf="editing[s.id]" [(ngModel)]="editModels[s.id].status" class="border-b" />
-          </td>
-          <!-- actions -->
-          <td class="px-6 py-4 text-right align-middle">
-            <button *ngIf="!editing[s.id]" (click)="startEdit(s)" class="text-slate-400 hover:text-slate-900 dark:hover:text-white mr-2">
-              <span class="material-symbols-outlined">edit</span>
-            </button>
-            <button *ngIf="editing[s.id]" (click)="save(s.id)" class="text-green-500 mr-2">Save</button>
-            <button *ngIf="editing[s.id]" (click)="cancelEdit(s.id)" class="text-red-500 mr-2">Cancel</button>
-            <button (click)="deleteUser(s.id)" class="text-red-600">
-              <span class="material-symbols-outlined">delete</span>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <div *ngIf="s.risk_level === 'HIGH'" class="absolute -bottom-1 -right-1 w-6 h-6 bg-red-500 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center" title="High Risk">
+              <span class="material-symbols-outlined text-[12px] text-white font-black">priority_high</span>
+            </div>
+          </div>
+
+          <!-- Name & Email -->
+          <h3 class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+            {{ s.first_name }} {{ s.last_name }}
+          </h3>
+          <p class="text-xs text-slate-500 truncate w-full px-4 mb-4">{{ s.email }}</p>
+
+          <!-- Info Badges -->
+          <div class="w-full grid grid-cols-2 gap-2 mt-2">
+            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
+              <span class="block text-[9px] text-slate-400 font-bold uppercase">Class</span>
+              <span class="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate block">{{ s.class || 'Unassigned' }}</span>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
+              <span class="block text-[9px] text-slate-400 font-bold uppercase">Points</span>
+              <span class="text-[10px] font-bold text-primary">{{ s.points_gamification || 0 }} pts</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Overlay (visible on hover) -->
+        <div class="mt-6 flex items-center gap-2">
+          <button (click)="startEdit(s)" class="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-1">
+            <span class="material-symbols-outlined text-sm">edit</span> Edit
+          </button>
+          <button (click)="deleteUser(s.id)" class="p-2 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+            <span class="material-symbols-outlined text-sm">delete</span>
+          </button>
+        </div>
+        
+        <!-- Inline Editing Mode (Overlay) -->
+        <div *ngIf="editing[s.id]" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 z-20 p-5 rounded-2xl flex flex-col gap-3">
+          <h4 class="text-xs font-black uppercase text-slate-400 mb-1">Quick Edit</h4>
+          <input [(ngModel)]="editModels[s.id].first_name" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-1.5 px-3 text-xs" placeholder="First Name"/>
+          <input [(ngModel)]="editModels[s.id].last_name" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-1.5 px-3 text-xs" placeholder="Last Name"/>
+          <select [(ngModel)]="editModels[s.id].class" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-1.5 px-3 text-xs">
+            <option value="">No Class</option>
+            <option *ngFor="let cls of classes" [value]="cls.name">{{ cls.name }}</option>
+          </select>
+          <div class="flex items-center gap-2 mt-auto">
+            <button (click)="save(s.id)" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg text-[10px] font-bold">SAVE</button>
+            <button (click)="cancelEdit(s.id)" class="flex-1 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold">CANCEL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Empty State -->
+    <div *ngIf="!filteredStudents.length" class="flex flex-col items-center justify-center py-40 text-slate-400">
+      <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 opacity-40">
+        <span class="material-symbols-outlined text-5xl">person_off</span>
+      </div>
+      <p class="font-medium">No students found matching your search.</p>
+    </div>
   </div>
 </div>
 
 <!-- Add User Modal -->
-<div *ngIf="showAddUserModal" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-0">
-  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeAddUserModal()"></div>
-  <div class="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800">
-    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-          <span class="material-symbols-outlined">person_add</span>
+<!-- Add User Modal -->
+<div *ngIf="showAddUserModal" class="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6">
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md" (click)="closeAddUserModal()"></div>
+  <div class="relative w-full max-w-xl transform overflow-hidden rounded-[2rem] bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in duration-300">
+    <!-- Modal Header -->
+    <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
+      <div class="flex items-center gap-4">
+        <div class="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+          <span class="material-symbols-outlined text-2xl font-bold">person_add</span>
         </div>
-        <h3 class="text-xl font-bold text-slate-900 dark:text-white">Add New User</h3>
+        <div>
+          <h3 class="text-xl font-black text-slate-900 dark:text-white">Add New Student</h3>
+          <p class="text-xs text-slate-500 font-medium">Create a new student profile in the system</p>
+        </div>
       </div>
-      <button (click)="closeAddUserModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+      <button (click)="closeAddUserModal()" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all">
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
-    <form (ngSubmit)="createUser()" class="p-6 space-y-5">
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="first-name">First Name</label>
-          <input [(ngModel)]="newUserFirstName" name="firstName" id="first-name" type="text"
-                 class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400"
+
+    <!-- Modal Body -->
+    <form (ngSubmit)="createUser()" class="p-8 space-y-6">
+      <div class="grid grid-cols-2 gap-6">
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
+          <input [(ngModel)]="newUserFirstName" name="firstName" type="text"
+                 class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400"
                  placeholder="e.g. Alex" />
         </div>
-        <div>
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="last-name">Last Name</label>
-          <input [(ngModel)]="newUserLastName" name="lastName" id="last-name" type="text"
-                 class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400"
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
+          <input [(ngModel)]="newUserLastName" name="lastName" type="text"
+                 class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400"
                  placeholder="e.g. Johnson" />
         </div>
       </div>
-      <div>
-        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="email">Email Address</label>
-        <input [(ngModel)]="newUserEmail" name="email" id="email" type="email"
-               class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400"
+
+      <div class="space-y-1.5">
+        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+        <input [(ngModel)]="newUserEmail" name="email" type="email"
+               class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400"
                placeholder="user@example.com" />
       </div>
-      <div>
-        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="phone">Phone Number</label>
-        <input [(ngModel)]="newUserPhone" name="phone" id="phone" type="tel"
-               class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400"
-               placeholder="+216 ..." />
-      </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5" for="role">Role</label>
-          <select [(ngModel)]="newUserRole" name="role" id="role"
-                  class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
-            <option value="student">Student</option>
-            <option value="instructor">Instructor</option>
-            <option value="admin">Admin</option>
-          </select>
+
+      <div class="grid grid-cols-2 gap-6">
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Role</label>
+          <div class="w-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-2xl py-3 px-4 text-sm font-bold text-slate-500 flex items-center gap-2 cursor-not-allowed">
+            <span class="material-symbols-outlined text-sm">person</span>
+            Student
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Initial Learning Path</label>
-          <select class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all italic">
-            <option value="">Optional: Select Path</option>
-            <option value="neural">Neural Networks 101</option>
-            <option value="data">Data Science Fundamentals</option>
-            <option value="ethics">AI Ethics &amp; Governance</option>
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assign Class</label>
+          <select [(ngModel)]="newUserClassId" name="classId"
+                  class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none">
+            <option value="">No Class (Unassigned)</option>
+            <option *ngFor="let cls of classes" [value]="cls.id">{{ cls.name }}</option>
           </select>
         </div>
       </div>
-      <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800/50 mt-2">
+
+      <div class="flex items-center justify-between p-5 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
         <div class="flex flex-col">
-          <span class="text-sm font-bold text-slate-900 dark:text-white">Auto-generate password</span>
-          <span class="text-xs text-slate-500">Credentials will be emailed to user</span>
+          <span class="text-sm font-bold text-slate-900 dark:text-white">Security</span>
+          <span class="text-xs text-slate-500">Auto-generate and email credentials</span>
         </div>
-        <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full relative">
-          <div class="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full"></div>
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-5 bg-primary/20 rounded-full relative">
+            <div class="absolute top-1 left-1 h-3 w-3 bg-primary rounded-full translate-x-5"></div>
+          </div>
         </div>
       </div>
-      <p *ngIf="addUserError" class="text-sm text-red-500">{{ addUserError }}</p>
-      <div class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+
+      <p *ngIf="addUserError" class="text-xs text-red-500 font-bold text-center bg-red-50 dark:bg-red-950/20 py-2 rounded-lg">{{ addUserError }}</p>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center gap-4 pt-4">
         <button type="button" (click)="closeAddUserModal()"
-                class="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-          Cancel
+                class="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-black hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95">
+          CANCEL
         </button>
         <button type="submit"
                 [disabled]="addUserLoading || !newUserFirstName || !newUserLastName || !newUserEmail"
-                class="flex-1 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-          {{ addUserLoading ? 'Creating...' : 'Create User' }}
+                class="flex-1 py-3.5 bg-primary text-white rounded-2xl text-sm font-black hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95">
+          {{ addUserLoading ? 'CREATING...' : 'CREATE PROFILE' }}
         </button>
       </div>
     </form>

@@ -1,9 +1,9 @@
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { AuthService } from '../auth.service';
-import { FaceRecognitionService } from '../face-recognition.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Component, OnInit, ViewChild } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { AdaptiveLearningService } from '../adaptive-learning.service';
 
 interface ProfileData {
   user: {
@@ -35,6 +35,8 @@ function passwordMatch(control: AbstractControl): ValidationErrors | null {
   return null;
 }
 
+export type ProfileTab = 'account' | 'goals' | 'badges' | 'security';
+
 @Component({
   selector: 'app-profile',
   templateUrl: './profile.component.html',
@@ -54,12 +56,24 @@ export class ProfileComponent implements OnInit {
   showNewPwd = false;
   showConfirmPwd = false;
 
+  activeTab: ProfileTab = 'account';
+  studentLevel = '—';
+
+  get isStudent(): boolean {
+    return String(this.authService.getUser()?.role || '').toLowerCase() === 'student';
+  }
+
+  get studentId(): string | null {
+    const user = this.authService.getUser();
+    return user?._id || user?.id || null;
+  }
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private faceRecognitionService: FaceRecognitionService,
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private adaptiveLearningService: AdaptiveLearningService
   ) {
     this.profileForm = this.fb.group({
       first_name: [''],
@@ -74,121 +88,12 @@ export class ProfileComponent implements OnInit {
     }, { validators: passwordMatch });
   }
 
-  // Face Registration properties
-  isFaceRegActive = false;
-  isFaceLoading = false;
-  cameraError = '';
-  faceSuccess = '';
-  faceError = '';
-  @ViewChild('video') videoElement!: any;
-
-  async toggleFaceRegistration() {
-    this.isFaceRegActive = !this.isFaceRegActive;
-    if (this.isFaceRegActive) {
-      this.isFaceLoading = true;
-      this.cameraError = '';
-      try {
-        await this.faceRecognitionService.loadModels();
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        this.videoElement.nativeElement.srcObject = stream;
-        this.isFaceLoading = false;
-      } catch (err: any) {
-        if (err.name === 'NotAllowedError') {
-          this.cameraError = 'Camera access denied. Please allow camera permissions.';
-        } else if (err.name === 'NotFoundError') {
-          this.cameraError = 'No camera found on this device.';
-        } else {
-          this.cameraError = `Camera Error: ${err.message || err.name || 'Unknown error'}`;
-        }
-        this.isFaceLoading = false;
-      }
-    } else {
-      this.stopWebcam();
-    }
-  }
-
-  async captureFace() {
-    if (this.isFaceLoading || !this.videoElement) return;
-
-    this.isFaceLoading = true;
-    try {
-      const detection = await this.faceRecognitionService.detectFace(this.videoElement.nativeElement);
-      if (detection) {
-        const user = this.authService.getUser();
-        const userId = user.id || user._id;
-        this.authService.registerFace(userId, detection.descriptor).subscribe({
-          next: () => {
-            this.faceSuccess = 'Face registered successfully!';
-            this.stopWebcam();
-            setTimeout(() => this.faceSuccess = '', 3000);
-          },
-          error: (err) => {
-            this.faceError = `Server Error: ${err.error?.message || err.message || 'Failed to register face'}`;
-            this.isFaceLoading = false;
-          }
-        });
-      } else {
-        this.faceError = 'No face detected. Please try again.';
-        this.isFaceLoading = false;
-      }
-    } catch (err: any) {
-      this.faceError = `Detection Error: ${err.message || 'Error during face detection'}`;
-      this.isFaceLoading = false;
-    }
-  }
-
-  private stopWebcam() {
-    if (this.videoElement?.nativeElement?.srcObject) {
-      const tracks = this.videoElement.nativeElement.srcObject.getTracks();
-      tracks.forEach((track: any) => track.stop());
-    }
-    this.isFaceRegActive = false;
-    this.isFaceLoading = false;
-  }
-
-  async onFileSelected(event: any) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    this.isFaceLoading = true;
-    this.faceError = '';
-    this.faceSuccess = '';
-
-    try {
-      await this.faceRecognitionService.loadModels();
-
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-
-      img.onload = async () => {
-        const descriptor = await this.faceRecognitionService.getFaceDescriptorFromImage(img);
-        if (descriptor) {
-          const user = this.authService.getUser();
-          const userId = user.id || user._id;
-          this.authService.registerFace(userId, descriptor).subscribe({
-            next: () => {
-              this.faceSuccess = 'Face registration from image successful!';
-              this.isFaceLoading = false;
-              setTimeout(() => this.faceSuccess = '', 3000);
-            },
-            error: (err) => {
-              this.faceError = `Server Error: ${err.error?.message || err.message || 'Failed to register face'}`;
-              this.isFaceLoading = false;
-            }
-          });
-        } else {
-          this.faceError = 'No face detected in the uploaded image.';
-          this.isFaceLoading = false;
-        }
-      };
-    } catch (err) {
-      this.faceError = 'Error processing image.';
-      this.isFaceLoading = false;
-    }
-  }
-
   ngOnInit() {
     this.loadProfile();
+  }
+
+  setTab(tab: ProfileTab): void {
+    this.activeTab = tab;
   }
 
   loadProfile() {
@@ -200,6 +105,18 @@ export class ProfileComponent implements OnInit {
           last_name: data.user.last_name || '',
           phone: (data.user as any).phone || '',
         });
+
+        const userId = this.studentId;
+        if (userId) {
+          this.adaptiveLearningService.getProfile(userId).subscribe({
+            next: (adaptiveProfile: any) => {
+              this.studentLevel = String(adaptiveProfile?.level || adaptiveProfile?.currentLevel || '—');
+            },
+            error: () => {
+              this.studentLevel = '—';
+            }
+          });
+        }
       },
       error: () => {
         this.errorMessage = 'Failed to load profile.';

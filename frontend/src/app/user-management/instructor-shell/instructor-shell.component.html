@@ -1,232 +1,49 @@
-<div class="flex flex-col min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
-  <header
-    class="flex items-center justify-between border-b border-primary/10 bg-white dark:bg-slate-900 px-8 py-3 sticky top-0 z-30">
-    <div class="flex items-center gap-8">
-      <div class="flex items-center gap-3 text-primary">
-        <app-brand-logo [link]="'/instructor/dashboard'" variant="header" />
-      </div>
-      <nav class="hidden md:flex items-center gap-6">
-        <a routerLink="/instructor/dashboard" [ngClass]="
-            analyticsSectionActive
-              ? 'text-sm font-semibold text-primary border-b-2 border-primary pb-1'
-              : 'text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1'
-          ">Dashboard</a>
-        <a routerLink="/instructor/subjects" [ngClass]="
-            subjectsSectionActive
-              ? 'text-sm font-semibold text-primary border-b-2 border-primary pb-1'
-              : 'text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1'
-          ">Courses</a>
-        <a routerLink="/webinar/list"
-          class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1">Webinars</a>
-        <a routerLink="/instructor/risk-detection"
-          class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1">Students</a>
-        <a routerLink="/instructor/comprehensive-analytics"
-          class="text-sm font-medium text-slate-500 hover:text-primary transition-colors pb-1">Reports</a>
-      </nav>
-    </div>
-    <div class="flex flex-1 justify-end gap-6 items-center">
-      <div class="relative w-64">
-        <span
-          class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
-        <input
-          class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50"
-          placeholder="Search students or metrics..." type="text" />
-      </div>
-      <div class="flex gap-3">
-        <button type="button"
-          class="flex items-center justify-center rounded-lg size-10 bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-primary/10 hover:text-primary transition-colors">
-          <span class="material-symbols-outlined">notifications</span>
-        </button>
-      </div>
-      <div class="flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-6">
-        <div class="text-right">
-          <p class="text-sm font-bold leading-none">
-            {{ user?.first_name }} {{ user?.last_name }}
-          </p>
-          <p class="text-xs text-slate-500 mt-1 capitalize">
-            {{ user?.role || "instructor" }}
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <div
-            class="size-10 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold">
-            {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
-          </div>
-          <button type="button" (click)="openProfileSidebar()"
-            class="text-xs px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
-            Account
-          </button>
-          <button type="button" (click)="logout()"
-            class="text-xs px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600">
-            Logout
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+<div
+  class="flex flex-col h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100"
+>
+  <app-navbar
+    [user]="user"
+    homeLink="/instructor/dashboard"
+    searchPlaceholder="Search students or metrics..."
+    (logoutRequest)="logout()"
+    (profileSidebarRequest)="openProfileSidebar()"
+  />
+
 
   <div class="flex flex-1 overflow-hidden min-h-0">
-    <aside
-      class="w-64 border-r border-primary/10 bg-white dark:bg-slate-900 p-6 hidden lg:flex lg:flex-col gap-8 shrink-0 overflow-y-auto">
-      <div class="flex flex-col gap-2">
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
-          Main Menu
-        </p>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/instructor/dashboard" routerLinkActive="bg-primary text-white shadow-lg shadow-primary/20"
-          [routerLinkActiveOptions]="{ exact: true }">
-          <span class="material-symbols-outlined">dashboard</span>
-          <span class="text-sm font-medium">Risk &amp; KPI overview</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/instructor/deep-analytics" routerLinkActive="bg-primary/10 text-primary">
-          <span class="material-symbols-outlined">analytics</span>
-          <span class="text-sm font-medium">Deep Analytics</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/instructor/risk-detection" routerLinkActive="bg-primary/10 text-primary">
-          <span class="material-symbols-outlined">report_problem</span>
-          <span class="text-sm font-medium">Risk Detection</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/instructor/comprehensive-analytics" routerLinkActive="bg-primary/10 text-primary">
-          <span class="material-symbols-outlined">hub</span>
-          <span class="text-sm font-medium">Cross-module analytics</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/instructor/interventions" routerLinkActive="bg-primary/10 text-primary">
-          <span class="material-symbols-outlined">medical_services</span>
-          <span class="text-sm font-medium">Interventions</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/instructor/subjects" routerLinkActive="bg-primary/10 text-primary"
-          [routerLinkActiveOptions]="{ exact: false }">
-          <span class="material-symbols-outlined">menu_book</span>
-          <span class="text-sm font-medium">Subjects</span>
-        </a>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/webinar/list" routerLinkActive="bg-primary/10 text-primary">
-          <span class="material-symbols-outlined">video_camera_front</span>
-          <span class="text-sm font-medium">Webinars</span>
-        </a>
-      </div>
-      <div class="flex flex-col gap-2">
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
-          Messages
-        </p>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
-          routerLink="/chat/instructor">
-          <span class="material-symbols-outlined text-indigo-500">chat_bubble</span>
-          <span class="text-sm font-medium">Conversations</span>
-        </a>
-      </div>
-      <div class="flex flex-col gap-2">
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
-          My Courses
-        </p>
-        <div class="space-y-1">
-          <div class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400">
-            <span>CS101 Intro</span>
-            <span class="size-2 rounded-full bg-green-500"></span>
-          </div>
-          <div class="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-400">
-            <span>AI Ethics</span>
-            <span class="size-2 rounded-full bg-yellow-500"></span>
-          </div>
-        </div>
-      </div>
-      <div class="mt-auto bg-primary/5 rounded-xl p-4 border border-primary/10">
-        <p class="text-xs font-bold text-primary mb-1">New AI Insight</p>
-        <p class="text-[11px] text-slate-500">
-          3 students are struggling with Module 4 Quiz. Consider a review
-          session.
-        </p>
-      </div>
-    </aside>
+    <app-instructor-sidebar />
 
-    <main class="flex-1 overflow-y-auto min-w-0 bg-background-light dark:bg-background-dark">
+
+    <main
+      id="main-content"
+      tabindex="-1"
+      class="flex-1 overflow-y-auto min-w-0 bg-background-light dark:bg-background-dark"
+    >
       <router-outlet></router-outlet>
     </main>
   </div>
 
   <div class="fixed bottom-8 right-8 z-40">
-    <button type="button" routerLink="/chat/ai"
-      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative">
+    <button
+      type="button"
+      routerLink="/instructor/chat/ai"
+      class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 hover:bg-blue-700 transition-all group relative"
+    >
       <span class="material-symbols-outlined text-3xl">psychology</span>
       <div
-        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">
+        class="absolute bottom-full right-0 mb-4 bg-slate-900 text-white text-[10px] font-bold py-1 px-3 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity"
+      >
         ASK EDU AI
       </div>
     </button>
   </div>
 </div>
 
-<div *ngIf="showProfileSidebar">
-  <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" (click)="closeProfileSidebar()"></div>
-  <aside
-    class="fixed top-0 right-0 h-full w-96 bg-white dark:bg-slate-900 z-50 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
-    <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-      <h2 class="font-bold text-lg">Instructor Profile</h2>
-      <button type="button" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
-        (click)="closeProfileSidebar()">
-        <span class="material-symbols-outlined text-slate-500">close</span>
-      </button>
-    </div>
-    <div class="flex-1 overflow-y-auto">
-      <div class="p-8 flex flex-col items-center text-center">
-        <div class="relative mb-4">
-          <div
-            class="w-24 h-24 rounded-full border-4 border-primary/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
-            {{ user?.first_name?.[0] }}{{ user?.last_name?.[0] }}
-          </div>
-          <div
-            class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full">
-          </div>
-        </div>
-        <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight">
-          {{ user?.first_name }} {{ user?.last_name }}
-        </h3>
-        <p class="text-primary font-semibold text-sm capitalize">
-          {{ user?.role || "instructor" }}
-        </p>
-      </div>
-      <div class="px-6 mb-8">
-        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
-          Contact Info
-        </h4>
-        <div class="space-y-4">
-          <div class="flex items-center gap-4 px-2">
-            <span class="material-symbols-outlined text-slate-400">mail</span>
-            <div class="text-sm">
-              <p class="text-slate-500 text-[10px] font-bold uppercase">
-                Email Address
-              </p>
-              <p class="font-medium">{{ user?.email || "—" }}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-4 px-2">
-            <span class="material-symbols-outlined text-slate-400">call</span>
-            <div class="text-sm">
-              <p class="text-slate-500 text-[10px] font-bold uppercase">
-                Phone Number
-              </p>
-              <p class="font-medium">{{ user?.phone || "—" }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="p-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
-      <button type="button" (click)="manageAccount()"
-        class="w-full py-3 bg-primary/5 text-primary border border-primary/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors">
-        <span class="material-symbols-outlined">manage_accounts</span>
-        Manage Account
-      </button>
-      <button type="button" (click)="logout()"
-        class="w-full py-3 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
-        <span class="material-symbols-outlined">logout</span>
-        Sign Out
-      </button>
-    </div>
-  </aside>
-</div>
+<app-profile-sidebar
+  [show]="showProfileSidebar"
+  [user]="user"
+  (close)="closeProfileSidebar()"
+  (logout)="logout()"
+  (manageAccount)="manageAccount()"
+/>
+

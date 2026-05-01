@@ -11,13 +11,6 @@ const subjectSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    chapters: [
-      {
-        title: { type: String, required: true },
-        description: { type: String },
-        order: { type: Number, default: 0 },
-      },
-    ],
   },
   { timestamps: true },
 );
@@ -92,7 +85,6 @@ async function run() {
           title: subject.title,
           description: subject.description,
           instructorId: new mongoose.Types.ObjectId(instructorId),
-          chapters: [],
         },
       },
       upsert: true,

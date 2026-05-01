@@ -8,28 +8,18 @@ export interface HighRiskAlertEmailPayload {
   timestamp: Date;
 }
 
+export interface InterventionEmailPayload {
+  to: string;
+  subject: string;
+  headline: string;
+  lines: string[];
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
   async sendHighRiskAlertEmail(payload: HighRiskAlertEmailPayload): Promise<boolean> {
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
-
-    if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
-      this.logger.warn('SMTP is not fully configured; skipping high-risk email notification.');
-      return false;
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: parseInt(SMTP_PORT, 10),
-      secure: parseInt(SMTP_PORT, 10) === 465,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    });
-
     const subject = `High Risk Alert - ${payload.riskLevel.toUpperCase()}`;
     const isoTimestamp = payload.timestamp.toISOString();
 
@@ -49,10 +39,42 @@ export class EmailService {
       <p><strong>Timestamp:</strong> ${isoTimestamp}</p>
     `;
 
+    return this.sendMail(payload.to, subject, text, html);
+  }
+
+  async sendInterventionEmail(payload: InterventionEmailPayload): Promise<boolean> {
+    const text = [payload.headline, ...payload.lines].join('\n');
+    const html = `
+      <h3>${payload.headline}</h3>
+      <ul>
+        ${payload.lines.map((line) => `<li>${line}</li>`).join('')}
+      </ul>
+    `;
+
+    return this.sendMail(payload.to, payload.subject, text, html);
+  }
+
+  private async sendMail(to: string, subject: string, text: string, html: string): Promise<boolean> {
+    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+    if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
+      this.logger.warn('SMTP is not fully configured; skipping email notification.');
+      return false;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: parseInt(SMTP_PORT, 10),
+      secure: parseInt(SMTP_PORT, 10) === 465,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+
     try {
       await transporter.sendMail({
         from: SMTP_FROM || SMTP_USER,
-        to: payload.to,
+        to,
         subject,
         text,
         html,

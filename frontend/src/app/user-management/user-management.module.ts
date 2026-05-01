@@ -1,3 +1,4 @@
+import { SafeUrlPipe } from './safe-url.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -49,28 +50,47 @@ import { RiskDetectionManagementComponent } from '../modules/analytics/pages/ris
 import { InterventionDashboardComponent } from '../modules/analytics/pages/intervention-dashboard/intervention-dashboard.component';
 import { ReportBuilderComponent } from '../modules/analytics/pages/report-builder/report-builder.component';
 import { InstructorDashboardComponent } from './instructor-dashboard/instructor-dashboard.component';
+import { QuizFileViewerComponent } from './quiz-file-viewer/quiz-file-viewer.component';
+import { InstructorClassesComponent } from './instructor-classes/instructor-classes.component';
+import { ChatModule } from '../chat/chat.module';
+import { ChatInstructorComponent } from '../chat/chat-instructor/chat-instructor.component';
+import { ChatRoomComponent } from '../chat/chat-room/chat-room.component';
+import { ChatAiComponent } from '../chat/chat-ai/chat-ai.component';
+import { VideoGeneratorComponent } from '../video-generator/video-generator.component';
 
 const routes: Routes = [
   {
     path: 'progress-reports',
-    component: ProgressReportsComponent,
-    canActivate: [AuthGuard],
+    redirectTo: 'student-dashboard/progress-reports',
+    pathMatch: 'full',
   },
   {
     path: 'progress-reports/:studentId',
-    component: ProgressReportsComponent,
-    canActivate: [AuthGuard],
+    redirectTo: 'student-dashboard/progress-reports/:studentId',
+    pathMatch: 'full',
   },
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-  { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'reset-password', component: ResetPasswordComponent },
-  { path: 'profile', component: ProfileComponent, canActivate: [AuthGuard] },
+  { path: 'login', component: LoginComponent, data: { title: 'Login' } },
+  {
+    path: 'register',
+    component: RegisterComponent,
+    data: { title: 'Register' },
+  },
+  {
+    path: 'forgot-password',
+    component: ForgotPasswordComponent,
+    data: { title: 'Forgot Password' },
+  },
+  {
+    path: 'reset-password',
+    component: ResetPasswordComponent,
+    data: { title: 'Reset Password' },
+  },
+
   {
     path: 'admin',
     component: AdminDashboardComponent,
     canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['admin'] },
+    data: { roles: ['admin'], title: 'Admin' },
     children: [
       { path: '', redirectTo: 'students', pathMatch: 'full' },
       {
@@ -96,7 +116,6 @@ const routes: Routes = [
         component: ClassManagementComponent,
       },
       {
-
         path: 'system-metrics',
         component: AdminSystemMetricsDashboardComponent,
         canActivate: [AuthGuard, RoleGuard],
@@ -120,55 +139,50 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['admin'] },
       },
+      {
+        path: 'profile',
+        component: ProfileComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['admin'], title: 'My Profile' },
+      },
     ],
   },
+
   {
     path: 'student-dashboard',
     component: StudentDashboardComponent,
     canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['student'] },
+    data: { roles: ['student'], title: 'Student Dashboard' },
     children: [
       {
         path: 'level-test',
         component: LevelTestComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Level Test' },
       },
       {
         path: 'level-test-result',
         component: LevelTestResultComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
-      },
-      {
-        path: 'goal-setting',
-        component: GoalSettingComponent,
-        canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
-      },
-      {
-        path: 'badges',
-        component: BadgeDisplayComponent,
-        canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Level Test Result' },
       },
       {
         path: 'my-courses',
         component: MyCoursesComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'My Courses' },
       },
       {
         path: 'performance',
         component: PerformanceHistoryComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Performance' },
       },
       {
         path: 'learning-path',
         component: LearningPathComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Learning Path' },
       },
       {
         path: 'assignments',
@@ -184,7 +198,37 @@ const routes: Routes = [
         path: 'continue-learning/:courseId',
         component: ContinueLearningComponent,
         canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['student'] },
+        data: { roles: ['student'], title: 'Continue Learning' },
+      },
+      {
+        path: 'chat/instructor',
+        component: ChatInstructorComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'Conversations' },
+      },
+      {
+        path: 'chat/room',
+        component: ChatRoomComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'Groups' },
+      },
+      {
+        path: 'chat/ai',
+        component: ChatAiComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'AI Chat' },
+      },
+      {
+        path: 'profile',
+        component: ProfileComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'My Profile' },
+      },
+      {
+        path: 'video-generator',
+        component: VideoGeneratorComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['student'], title: 'Video Generator' },
       },
     ],
   },
@@ -211,7 +255,7 @@ const routes: Routes = [
     path: 'instructor',
     component: InstructorShellComponent,
     canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['instructor', 'admin'] },
+    data: { roles: ['instructor', 'admin'], title: 'Instructor' },
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
@@ -256,6 +300,48 @@ const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['instructor'] },
       },
+      {
+        path: 'classes',
+        component: InstructorClassesComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'] },
+      },
+      {
+        path: 'progress-reports',
+        component: ProgressReportsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'], title: 'Progress Reports' },
+      },
+      {
+        path: 'progress-reports/:studentId',
+        component: ProgressReportsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'], title: 'Progress Reports' },
+      },
+      {
+        path: 'chat/instructor',
+        component: ChatInstructorComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'], title: 'Conversations' },
+      },
+      {
+        path: 'chat/ai',
+        component: ChatAiComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'], title: 'AI Chat' },
+      },
+      {
+        path: 'profile',
+        component: ProfileComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor'], title: 'My Profile' },
+      },
+      {
+        path: 'video-generator',
+        component: VideoGeneratorComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['instructor', 'admin'], title: 'Video Generator' },
+      },
     ],
   },
   {
@@ -264,13 +350,33 @@ const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    path: 'student-dashboard/goal-setting',
+    redirectTo: 'profile',
+    pathMatch: 'full',
+  },
+  {
+    path: 'student-dashboard/progress-reports',
+    redirectTo: 'instructor/progress-reports',
+    pathMatch: 'full',
+  },
+  {
+    path: 'student-dashboard/progress-reports/:studentId',
+    redirectTo: 'instructor/progress-reports/:studentId',
+    pathMatch: 'full',
+  },
+  {
+    path: 'student-dashboard/badges',
+    redirectTo: 'profile',
+    pathMatch: 'full',
+  },
+  {
     path: 'goal-setting',
-    redirectTo: 'student-dashboard/goal-setting',
+    redirectTo: 'profile',
     pathMatch: 'full',
   },
   {
     path: 'badges',
-    redirectTo: 'student-dashboard/badges',
+    redirectTo: 'profile',
     pathMatch: 'full',
   },
   {
@@ -309,9 +415,13 @@ const routes: Routes = [
     AssignmentSubmissionComponent,
     ProgressReportsComponent,
     InstructorSubjectsComponent,
+    SafeUrlPipe,
     SubjectsManagementComponent,
     ClassManagementComponent,
-    InstructorDashboardComponent
+    InstructorDashboardComponent,
+    QuizFileViewerComponent,
+    InstructorClassesComponent,
+    VideoGeneratorComponent,
   ],
   imports: [
     CommonModule,
@@ -320,6 +430,7 @@ const routes: Routes = [
     HttpClientModule,
     AnalyticsSharedModule,
     SharedModule,
+    ChatModule,
     RouterModule.forChild(routes),
   ],
   providers: [
@@ -330,4 +441,4 @@ const routes: Routes = [
     AdaptiveLearningService,
   ],
 })
-export class UserManagementModule {}
+export class UserManagementModule { }

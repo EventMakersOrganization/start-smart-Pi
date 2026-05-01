@@ -3,8 +3,10 @@ Intelligent document chunking for RAG.
 Uses LangChain text splitters and custom logic for courses/exercises.
 """
 import logging
+import os
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 try:
     from langchain_text_splitters import RecursiveCharacterTextSplitter, CharacterTextSplitter
@@ -21,6 +23,144 @@ if not logger.handlers:
     _h = logging.StreamHandler()
     _h.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(_h)
+
+
+def _normalize_extracted_text(text: str) -> str:
+    if not isinstance(text, str):
+        return ""
+    # Common PDF ligatures and normalization artifacts.
+    text = (
+        text.replace("\ufb00", "ff")
+        .replace("\ufb01", "fi")
+        .replace("\ufb02", "fl")
+        .replace("\ufb03", "ffi")
+        .replace("\ufb04", "ffl")
+        .replace("\u00a0", " ")
+    )
+    # Many scanned/exported PDFs use U+00B4 (acute accent) separated from letters.
+    text = re.sub(r"\u00B4\s*e", "é", text)
+    text = re.sub(r"\u00B4\s*E", "É", text)
+    text = re.sub(r"\u00B4\s*a", "á", text)
+    text = re.sub(r"\u00B4\s*i", "í", text)
+    text = re.sub(r"\u00B4\s*o", "ó", text)
+    text = re.sub(r"\u00B4\s*u", "ú", text)
+    # Heuristic mojibake repair pass for mixed UTF-8/Latin artifacts.
+    # Some PDFs return strings where accented glyphs are split as "x� y".
+    text = re.sub(r"([A-Za-z])\s*�\s*([A-Za-z])", r"\1\2", text)
+    # Normalize common French grave/accent placeholders.
+    text = text.replace("` e", "è").replace("` a", "à").replace("` u", "ù")
+    text = text.replace("` E", "È").replace("` A", "À").replace("` U", "Ù")
+    # Target frequent OCR-ish noise around French words.
+    fixes = {
+        "securite": "sécurité",
+        "donnees": "données",
+        "privileges": "privilèges",
+        "proteger": "protéger",
+        "revoquer": "révoquer",
+        "necessaires": "nécessaires",
+        "administration": "administration",
+        "authentification": "authentification",
+        "execution": "exécution",
+        "operations": "opérations",
+        "acceder": "accéder",
+        "creer": "créer",
+        "etre": "être",
+    }
+    lowered = text.lower()
+    for raw, fixed in fixes.items():
+        # Replace whole words only, case-insensitive.
+        pattern = re.compile(rf"\b{re.escape(raw)}\b", re.IGNORECASE)
+        text = pattern.sub(lambda m: fixed if m.group(0).islower() else fixed.capitalize(), text)
+    # Remove unrecoverable replacement chars.
+    text = text.replace("�", "")
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def _resolve_local_upload_path(file_url: str) -> str:
+    """
+    Convert URL like http://localhost:3000/uploads/subjects/cours/x.pdf
+    to local backend path.
+    """
+    if not file_url:
+        return ""
+    parsed = urlparse(str(file_url))
+    path = parsed.path if parsed.scheme else str(file_url)
+    path = path.replace("\\", "/")
+    marker = "/uploads/"
+    if marker not in path:
+        return ""
+    rel = path.split(marker, 1)[1]
+    service_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # ai-service/
+    workspace_root = os.path.dirname(service_root)  # start-smart-Pi/
+    full = os.path.join(workspace_root, "backend", "uploads", rel)
+    return full
+
+
+def _extract_text_from_local_file(path: str) -> str:
+    p = str(path or "").strip()
+    if not p or not os.path.exists(p):
+        return ""
+    ext = os.path.splitext(p)[1].lower()
+    try:
+        if ext == ".pdf":
+            try:
+                from pypdf import PdfReader  # type: ignore
+            except Exception:
+                from PyPDF2 import PdfReader  # type: ignore
+            reader = PdfReader(p)
+            raw = "\n".join((pg.extract_text() or "") for pg in reader.pages)
+            return _normalize_extracted_text(raw)
+        if ext in {".ppt", ".pptx"}:
+            try:
+                from pptx import Presentation  # type: ignore
+            except Exception:
+                return ""
+            prs = Presentation(p)
+            parts: list[str] = []
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    txt = getattr(shape, "text", "")
+                    if txt:
+                        parts.append(str(txt))
+            return _normalize_extracted_text("\n".join(parts))
+        if ext == ".docx":
+            try:
+                from docx import Document  # type: ignore
+            except Exception:
+                return ""
+            doc = Document(p)
+            raw = "\n".join(par.text for par in doc.paragraphs if par.text)
+            return _normalize_extracted_text(raw)
+        if ext in {".txt", ".md"}:
+            with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                return _normalize_extracted_text(f.read())
+    except Exception as e:
+        logger.warning("file text extraction failed (%s): %s", p, e)
+        return ""
+    return ""
+
+
+def _extract_subchapter_real_text(subchapter: dict[str, Any]) -> str:
+    """Extract and combine text from linked content files under a subchapter."""
+    if not isinstance(subchapter, dict):
+        return ""
+    contents = subchapter.get("contents") or []
+    if not isinstance(contents, list):
+        return ""
+    texts: list[str] = []
+    for item in contents:
+        if not isinstance(item, dict):
+            continue
+        u = str(item.get("url") or "").strip()
+        if not u:
+            continue
+        local_path = _resolve_local_upload_path(u)
+        extracted = _extract_text_from_local_file(local_path)
+        if extracted:
+            texts.append(extracted[:12000])
+    return _normalize_extracted_text("\n\n".join(texts))
 
 
 def chunk_text_recursive(
@@ -91,7 +231,7 @@ def chunk_by_sentences(text: str, max_sentences: int = 5) -> list[str]:
 def chunk_course_content(course_dict: dict) -> list[dict]:
     """
     Creates intelligent chunks from a course document.
-    Chunk 1: title + description (overview). Chunk 2-N: modules (combined if small).
+    Chunk 1: title + description (overview). Chunk 2-N: subchapters.
     """
     if not course_dict or not isinstance(course_dict, dict):
         logger.warning("chunk_course_content: invalid input")
@@ -102,9 +242,9 @@ def chunk_course_content(course_dict: dict) -> list[dict]:
         return []
     title = course_dict.get("title") or "Untitled Course"
     description = course_dict.get("description") or ""
-    modules = course_dict.get("modules") or []
-    if not isinstance(modules, list):
-        modules = [modules]
+    sub_chapters = course_dict.get("subChapters") or course_dict.get("subchapters") or []
+    if not isinstance(sub_chapters, list):
+        sub_chapters = [sub_chapters]
 
     chunks_out = []
     # Overview chunk
@@ -122,25 +262,28 @@ def chunk_course_content(course_dict: dict) -> list[dict]:
             },
         })
 
-    # Module chunks: one per module if large; combine small consecutive modules
-    min_module_chars = 200
+    # One chunk per subchapter (prefer real extracted content from linked files).
+    min_module_chars = 0
     buffer = []
     buffer_names = []
     chunk_index = len(chunks_out)
 
-    for i, mod in enumerate(modules):
+    for i, mod in enumerate(sub_chapters):
         if isinstance(mod, dict):
             mod_text = mod.get("title", "") or ""
             if mod.get("description"):
                 mod_text += "\n" + str(mod["description"])
-            mod_name = mod.get("title") or f"Module {i + 1}"
+            real_text = _extract_subchapter_real_text(mod)
+            if real_text:
+                mod_text += "\n\n" + real_text
+            mod_name = mod.get("title") or f"Subchapter {i + 1}"
         else:
             mod_text = str(mod)
-            mod_name = f"Module {i + 1}"
+            mod_name = f"Subchapter {i + 1}"
         buffer.append(mod_text.strip())
         buffer_names.append(mod_name)
         combined = "\n\n".join(buffer)
-        if len(combined) >= min_module_chars or i == len(modules) - 1:
+        if len(combined) >= min_module_chars or i == len(sub_chapters) - 1:
             if combined.strip():
                 chunk_id = f"{course_id}_chunk_{chunk_index}"
                 chunks_out.append({
@@ -283,7 +426,7 @@ def test_chunking() -> None:
         "id": "course_test_001",
         "title": "Introduction to Python",
         "description": "Learn Python basics. Variables, loops, and functions.",
-        "modules": [
+        "subChapters": [
             {"title": "Variables", "description": "Assigning and using variables."},
             {"title": "Loops", "description": "For and while loops."},
             {"title": "Functions", "description": "Defining and calling functions."},

@@ -11,6 +11,10 @@ import { ManageClassSubjectDto } from './dto/manage-class-subject.dto';
 import { SchoolClass, SchoolClassDocument } from './schemas/school-class.schema';
 import { ClassEnrollment, ClassEnrollmentDocument } from './schemas/class-enrollment.schema';
 import { ClassSubject, ClassSubjectDocument } from './schemas/class-subject.schema';
+import { ClassInstructor, ClassInstructorDocument } from './schemas/class-instructor.schema';
+import { Attendance, AttendanceDocument } from './schemas/attendance.schema';
+import { ManageClassInstructorDto } from './dto/manage-class-instructor.dto';
+import { SubmitAttendanceDto } from './dto/submit-attendance.dto';
 
 type ClassStudentResponse = {
   id: string;
@@ -19,6 +23,7 @@ type ClassStudentResponse = {
   email: string;
   status?: string;
   class?: string;
+  attendance_percentage?: number;
 };
 
 type ClassSubjectResponse = {
@@ -44,6 +49,10 @@ export class AcademicService {
     private classEnrollmentModel: Model<ClassEnrollmentDocument>,
     @InjectModel(ClassSubject.name)
     private classSubjectModel: Model<ClassSubjectDocument>,
+    @InjectModel(ClassInstructor.name)
+    private classInstructorModel: Model<ClassInstructorDocument>,
+    @InjectModel(Attendance.name)
+    private attendanceModel: Model<AttendanceDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Subject.name) private subjectModel: Model<SubjectDocument>,
     @InjectModel(StudentProfile.name)
@@ -103,6 +112,10 @@ export class AcademicService {
     return schoolClass;
   }
 
+  async findClassByName(name: string) {
+    return this.schoolClassModel.findOne({ name: name.trim() }).exec();
+  }
+
   private async findSubjectById(subjectId: string) {
     const subject = await this.subjectModel
       .findById(subjectId)
@@ -142,17 +155,26 @@ export class AcademicService {
       .lean<any[]>()
       .exec();
 
-    return enrollments
-      .map((enrollment) => enrollment.studentId)
-      .filter(Boolean)
-      .map((student: any) => ({
+    const students = enrollments.map((enrollment) => enrollment.studentId).filter(Boolean);
+    const studentIds = students.map((s: any) => s._id);
+
+    // Fetch profiles to get attendance_percentage
+    const profiles = await this.studentProfileModel.find({
+      userId: { $in: studentIds }
+    }).lean().exec();
+
+    return students.map((student: any) => {
+      const profile = profiles.find(p => String(p.userId) === String(student._id));
+      return {
         id: String(student._id),
         first_name: student.first_name,
         last_name: student.last_name,
         email: student.email,
         status: student.status,
         class: student.class,
-      }));
+        attendance_percentage: profile ? profile.attendance_percentage : 100,
+      };
+    });
   }
 
   private async getClassSubjects(classId: string): Promise<ClassSubjectResponse[]> {
@@ -186,11 +208,32 @@ export class AcademicService {
       }));
   }
 
+  private async getClassInstructors(classId: string) {
+    const assignments = await this.classInstructorModel
+      .find({ schoolClassId: this.toObjectId(classId) })
+      .populate('instructorId', 'first_name last_name email role')
+      .sort({ createdAt: -1 })
+      .lean<any[]>()
+      .exec();
+
+    return assignments
+      .map((assignment) => assignment.instructorId)
+      .filter(Boolean)
+      .map((instructor: any) => ({
+        id: String(instructor._id),
+        first_name: instructor.first_name,
+        last_name: instructor.last_name,
+        email: instructor.email,
+        role: instructor.role,
+      }));
+  }
+
   private async toResponse(schoolClass: SchoolClassDocument) {
     const classId = String(schoolClass._id);
-    const [students, subjects] = await Promise.all([
+    const [students, subjects, instructors] = await Promise.all([
       this.getClassStudents(classId),
       this.getClassSubjects(classId),
+      this.getClassInstructors(classId),
     ]);
 
     return {
@@ -205,8 +248,10 @@ export class AcademicService {
       active: schoolClass.active,
       studentCount: students.length,
       subjectCount: subjects.length,
+      instructorCount: instructors.length,
       students,
       subjects,
+      instructors,
       createdAt: schoolClass.createdAt,
       updatedAt: schoolClass.updatedAt,
     };
@@ -409,5 +454,140 @@ export class AcademicService {
     }
 
     return this.toResponse(enrollment.schoolClassId as any);
+  }
+
+  async getClassesForInstructor(instructorId: string) {
+    const objectId = this.toObjectId(instructorId);
+    
+    // Find all subjects this instructor teaches
+    const subjects = await this.subjectModel.find({ instructors: objectId }).exec();
+    const subjectIds = subjects.map((s) => s._id);
+
+    // Find all ClassSubject links for these subjects
+    const classSubjects = await this.classSubjectModel.find({ subjectId: { $in: subjectIds } }).exec();
+    const classIdsFromSubjects = classSubjects.map((cs) => cs.schoolClassId);
+
+    // Find explicitly assigned classes
+    const explicitAssignments = await this.classInstructorModel.find({ instructorId: objectId }).exec();
+    const classIdsExplicit = explicitAssignments.map((ca) => ca.schoolClassId);
+
+    // Filter to unique class IDs
+    const uniqueClassIds = [...new Set([...classIdsFromSubjects, ...classIdsExplicit].map((id) => String(id)))];
+
+    if (!uniqueClassIds.length) {
+      return [];
+    }
+
+    // Fetch those classes
+    const classes = await this.schoolClassModel.find({ _id: { $in: uniqueClassIds } }).sort({ createdAt: -1 }).exec();
+
+    return Promise.all(classes.map((schoolClass) => this.toResponse(schoolClass)));
+  }
+
+  async submitAttendance(instructorId: string, dto: SubmitAttendanceDto) {
+    const schoolClassId = this.toObjectId(dto.schoolClassId);
+    const instId = this.toObjectId(instructorId);
+    const date = new Date(dto.date);
+    date.setHours(0, 0, 0, 0); // Normalize date to start of day
+
+    const records = dto.records.map((r) => ({
+      studentId: this.toObjectId(r.studentId),
+      status: r.status,
+    }));
+
+    // Update if exists for this class and date, otherwise create
+    const attendance = await this.attendanceModel.findOneAndUpdate(
+      { schoolClassId, date },
+      {
+        $set: {
+          instructorId: instId,
+          records,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+
+    // Trigger recalculation of percentages for all students in the class
+    await this.recalculateClassAttendance(dto.schoolClassId);
+
+    return attendance;
+  }
+
+  private async recalculateClassAttendance(classId: string) {
+    const schoolClassId = this.toObjectId(classId);
+    
+    // 1. Get all attendance sessions for this class
+    const allAttendance = await this.attendanceModel.find({ schoolClassId }).exec();
+    const totalSessions = allAttendance.length;
+    
+    if (totalSessions === 0) return;
+
+    // 2. Get all students enrolled in this class
+    const enrollments = await this.classEnrollmentModel.find({ schoolClassId }).exec();
+    const studentIds = enrollments.map(e => String(e.studentId));
+
+    // 3. For each student, calculate their attendance percentage
+    for (const studentId of studentIds) {
+      let absences = 0;
+      
+      for (const session of allAttendance) {
+        const record = session.records.find(r => String(r.studentId) === studentId);
+        // We assume that if no record exists for a student in a session, they were not expected or present?
+        // But usually every student in the class is in the records list.
+        if (record && record.status === 'absent') {
+          absences++;
+        }
+      }
+      
+      const percentage = Math.round(((totalSessions - absences) / totalSessions) * 100);
+      
+      await this.studentProfileModel.findOneAndUpdate(
+        this.profileLookupFilter(studentId),
+        { $set: { attendance_percentage: percentage }, $setOnInsert: { userId: studentId } },
+        { upsert: true }
+      ).exec();
+    }
+  }
+
+  async getAttendance(classId: string, date: string) {
+    const schoolClassId = this.toObjectId(classId);
+    const queryDate = new Date(date);
+    queryDate.setHours(0, 0, 0, 0);
+
+    return this.attendanceModel
+      .findOne({ schoolClassId, date: queryDate })
+      .exec();
+  }
+
+
+  async assignInstructor(classId: string, dto: ManageClassInstructorDto) {
+    const schoolClass = await this.findClassById(classId);
+    
+    const instructor = await this.userModel.findOne({
+      _id: dto.instructorId,
+      role: { $in: [UserRole.INSTRUCTOR, UserRole.ADMIN] },
+    });
+
+    if (!instructor) {
+      throw new NotFoundException('Instructor not found or invalid role');
+    }
+
+    await this.classInstructorModel.findOneAndUpdate(
+      { schoolClassId: schoolClass._id, instructorId: instructor._id },
+      { $setOnInsert: { schoolClassId: schoolClass._id, instructorId: instructor._id, assignedAt: new Date() } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+
+    return this.toResponse(schoolClass);
+  }
+
+  async removeInstructor(classId: string, instructorId: string) {
+    const schoolClass = await this.findClassById(classId);
+
+    await this.classInstructorModel
+      .deleteOne({ schoolClassId: schoolClass._id, instructorId: instructorId })
+      .exec();
+
+    return this.toResponse(schoolClass);
   }
 }

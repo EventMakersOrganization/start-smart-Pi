@@ -210,6 +210,70 @@ DELETE http://localhost:3000/api/riskscores/65b5678901234567890abcde
 Authorization: Bearer YOUR_TOKEN
 ```
 
+### 17.1 Recalculate Risk Scores (Continuous Scan Trigger)
+```http
+POST http://localhost:3000/api/riskscores/recalculate
+Authorization: Bearer YOUR_TOKEN
+Content-Type: application/json
+
+{
+  "limit": 1000
+}
+```
+
+**Expected response (example):**
+```json
+{
+  "processedStudents": 248,
+  "updatedScores": 248,
+  "highRiskCount": 19,
+  "mediumRiskCount": 74,
+  "generatedAt": "2026-04-23T14:10:00.000Z",
+  "errors": []
+}
+```
+
+### 17.2 Get At-Risk Insights (Weak Areas + Sous Acquis)
+```http
+GET http://localhost:3000/api/riskscores/at-risk-insights?level=medium&limit=25
+Authorization: Bearer YOUR_TOKEN
+```
+
+**Query params:**
+- `level=high|medium` (default: `high`)
+- `limit` (default: `25`, max: `200`)
+
+**Expected response item (example):**
+```json
+[
+  {
+    "userId": "65a1234567890abcdef01234",
+    "name": "John Smith",
+    "email": "john.smith@example.com",
+    "riskScore": 86,
+    "riskLevel": "high",
+    "weakAreas": [
+      {
+        "topic": "Pointers",
+        "currentScore": 42,
+        "suggestedDifficulty": "medium",
+        "action": "Complete a targeted medium remediation exercise in Pointers, then retry a short quiz to validate progress.",
+        "encouragement": "You are close to mastering Pointers. Focused practice will quickly move you forward.",
+        "source": "performance"
+      }
+    ],
+    "weakSubskills": [
+      "Pointers - intermediate",
+      "Memory Management - beginner"
+    ],
+    "recommendedFocus": [
+      "Complete a targeted medium remediation exercise in Pointers, then retry a short quiz to validate progress."
+    ],
+    "lastUpdated": "2026-04-23T14:09:55.000Z"
+  }
+]
+```
+
 ---
 
 ## 🚨 ALERT ENDPOINTS

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { Subject, SubjectDocument } from "./schemas/subject.schema";
+import { Course, CourseDocument } from "../courses/schemas/course.schema";
 import {
   QuizSubmission,
   QuizSubmissionDocument,
@@ -30,6 +31,7 @@ import { normalizePrositGradeToOutOf20 } from "../prosits/prosits.service";
 @Injectable()
 export class ModuleProgressService {
   constructor(
+    @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
     @InjectModel(Subject.name) private subjectModel: Model<SubjectDocument>,
     @InjectModel(QuizSubmission.name)
     private quizSubmissionModel: Model<QuizSubmissionDocument>,
@@ -40,6 +42,112 @@ export class ModuleProgressService {
     @InjectModel(PrositSubmission.name)
     private prositSubmissionModel: Model<PrositSubmissionDocument>,
   ) {}
+
+  /** Chapter / subchapter tree for progress lives on Course documents (see SubjectsService). */
+  private async resolveChapterSubchapterFromCourses(
+    subject: SubjectDocument,
+    chapterOrder: number,
+    subChapterOrder: number,
+  ): Promise<{
+    chapter: { title: string; order: number; subChapters?: unknown[] };
+    subChapter: Record<string, unknown>;
+  } | null> {
+    const rawInst = subject.instructors?.[0];
+    const instructorId =
+      rawInst instanceof Types.ObjectId
+        ? rawInst
+        : rawInst
+          ? new Types.ObjectId(String(rawInst))
+          : undefined;
+    const sid = String(subject._id);
+    const subjectTitle = String(subject.title || "").trim();
+
+    let course: CourseDocument | null = null;
+    if (instructorId) {
+      course = await this.courseModel
+        .findOne({
+          instructorId,
+          subjectId: sid,
+          chapterOrder: Number(chapterOrder),
+        })
+        .exec();
+    }
+    if (!course && instructorId && subjectTitle) {
+      course = await this.courseModel
+        .findOne({
+          instructorId,
+          subject: subjectTitle,
+          chapterOrder: Number(chapterOrder),
+        })
+        .exec();
+    }
+    if (!course && instructorId && subjectTitle) {
+      const legacy = await this.courseModel
+        .find({
+          instructorId,
+          subject: subjectTitle,
+          $or: [
+            { subjectId: { $exists: false } },
+            { subjectId: null },
+            { subjectId: "" },
+          ],
+        })
+        .sort({ createdAt: 1 })
+        .exec();
+      course = legacy[chapterOrder] ?? null;
+    }
+
+    if (!course) {
+      return null;
+    }
+
+    const subChapters = Array.isArray((course as any).subChapters)
+      ? (course as any).subChapters
+      : [];
+    const subChapter = subChapters.find(
+      (sc: any) => Number(sc.order) === Number(subChapterOrder),
+    );
+    if (!subChapter) {
+      return null;
+    }
+
+    const chapter = {
+      title: String((course as any).title || ""),
+      order: Number(chapterOrder),
+      subChapters,
+    };
+
+    return { chapter, subChapter: subChapter as Record<string, unknown> };
+  }
+
+  private async listCourseChaptersForSubject(
+    subject: SubjectDocument,
+  ): Promise<CourseDocument[]> {
+    const rawInst = subject.instructors?.[0];
+    const instructorId =
+      rawInst instanceof Types.ObjectId
+        ? rawInst
+        : rawInst
+          ? new Types.ObjectId(String(rawInst))
+          : undefined;
+    const sid = String(subject._id);
+    const subjectTitle = String(subject.title || "").trim();
+
+    let rows: CourseDocument[] = [];
+    if (instructorId) {
+      rows = await this.courseModel
+        .find({ subjectId: sid, instructorId })
+        .sort({ chapterOrder: 1, createdAt: 1 })
+        .exec();
+    }
+    if (rows.length === 0 && instructorId && subjectTitle) {
+      rows = await this.courseModel
+        .find({ subject: subjectTitle, instructorId })
+        .sort({ chapterOrder: 1, createdAt: 1 })
+        .exec();
+    }
+    return rows;
+  }
 
   async getModuleProgressForStudent(
     subjectId: string,
@@ -56,19 +164,16 @@ export class ModuleProgressService {
       throw new NotFoundException("Subject not found");
     }
 
-    const chapter = (subject.chapters || []).find(
-      (ch) => Number(ch.order) === Number(chapterOrder),
+    const resolved = await this.resolveChapterSubchapterFromCourses(
+      subject,
+      chapterOrder,
+      subChapterOrder,
     );
-    if (!chapter) {
-      throw new NotFoundException("Chapter not found");
+    if (!resolved) {
+      throw new NotFoundException("Chapter or subchapter not found");
     }
 
-    const subChapter = (chapter.subChapters || []).find(
-      (sc) => Number(sc.order) === Number(subChapterOrder),
-    );
-    if (!subChapter) {
-      throw new NotFoundException("Subchapter not found");
-    }
+    const { chapter, subChapter } = resolved;
 
     const contents = Array.isArray(subChapter.contents) ? subChapter.contents : [];
     const kinds = collectSubchapterContentKinds(contents as unknown[]);
@@ -325,5 +430,57 @@ export class ModuleProgressService {
 
   async countQuizAttempts(studentId: string, quizId: string): Promise<number> {
     return this.quizSubmissionModel.countDocuments({ studentId, quizId }).exec();
+  }
+
+  /**
+   * Average of per-module `finalProgressPercent` across all subchapters (70/25/5 formula).
+   */
+  async getSubjectAggregateProgressPercent(
+    studentId: string,
+    subjectId: string,
+  ): Promise<{ percent: number; moduleCount: number }> {
+    if (!Types.ObjectId.isValid(subjectId) || !Types.ObjectId.isValid(studentId)) {
+      throw new NotFoundException("Invalid id");
+    }
+
+    const subject = await this.subjectModel.findById(subjectId).exec();
+    if (!subject) {
+      throw new NotFoundException("Subject not found");
+    }
+
+    const courses = await this.listCourseChaptersForSubject(subject);
+    const percents: number[] = [];
+    for (const courseDoc of courses) {
+      const chapterOrder = Number(
+        (courseDoc as any).chapterOrder ??
+          courses.indexOf(courseDoc),
+      );
+      for (const sc of (courseDoc as any).subChapters || []) {
+        const subChapterOrder = Number((sc as any).order ?? 0);
+        try {
+          const mod = await this.getModuleProgressForStudent(
+            subjectId,
+            chapterOrder,
+            subChapterOrder,
+            studentId,
+          );
+          const p = Number(mod?.finalProgressPercent ?? 0);
+          if (Number.isFinite(p)) {
+            percents.push(Math.max(0, Math.min(100, p)));
+          }
+        } catch {
+          // skip malformed modules
+        }
+      }
+    }
+
+    if (percents.length === 0) {
+      return { percent: 0, moduleCount: 0 };
+    }
+    const sum = percents.reduce((a, b) => a + b, 0);
+    return {
+      percent: Math.round((sum / percents.length) * 100) / 100,
+      moduleCount: percents.length,
+    };
   }
 }

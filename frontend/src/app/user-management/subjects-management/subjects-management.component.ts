@@ -230,4 +230,43 @@ export class SubjectsManagementComponent implements OnInit {
     }
     return `Instructor ${String(instructor.id).slice(-6)}`;
   }
+
+  toggleInstructorSelection(id: string, isNew: boolean, subjectId?: string) {
+    let list: string[] = [];
+    if (isNew) {
+      list = this.newSubjectInstructorIds;
+    } else if (subjectId) {
+      list = this.editModels[subjectId].instructorIds;
+    }
+
+    const idx = list.indexOf(id);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+    } else {
+      list.push(id);
+    }
+  }
+
+  isInstructorSelected(id: string, isNew: boolean, subjectId?: string): boolean {
+    if (isNew) {
+      return this.newSubjectInstructorIds.includes(id);
+    } else if (subjectId) {
+      return this.editModels[subjectId].instructorIds.includes(id);
+    }
+    return false;
+  }
+
+  getSubjectIcon(name: string): string {
+    const n = name.toLowerCase();
+    if (n.includes('algo')) return 'code';
+    if (n.includes('graphe')) return 'account_tree';
+    if (n.includes('architecture') || n.includes('si')) return 'layers';
+    if (n.includes('data')) return 'database';
+    if (n.includes('math')) return 'calculate';
+    if (n.includes('ai') || n.includes('intelligence')) return 'psychology';
+    if (n.includes('web')) return 'language';
+    if (n.includes('mobile')) return 'phone_android';
+    if (n.includes('cloud')) return 'cloud';
+    return 'menu_book';
+  }
 }

@@ -29,11 +29,13 @@ try:
     _db = _client[config.MONGODB_DB_NAME]
     _courses = _db["courses"]
     _exercises = _db["exercises"]
+    _subjects = _db["subjects"]
 except PyMongoError as e:
     _client = None
     _db = None
     _courses = None
     _exercises = None
+    _subjects = None
     print(f"[db_connection] Warning: Could not connect to MongoDB: {e}")
 
 
@@ -50,7 +52,7 @@ def get_all_courses():
     Returns a list of dictionaries with ObjectId converted to string for JSON compatibility.
 
     Each course may include MongoDB fields such as:
-    title, description, level, modules, subject (logical subject / programme name), etc.
+    title, description, level, subChapters, subject (logical subject / programme name), etc.
     """
     try:
         if _courses is None:
@@ -95,10 +97,67 @@ def get_course_by_id(course_id):
         return None
 
 
+def get_all_subjects():
+    """
+    Returns all documents from the 'subjects' collection.
+    Each subject has: title, code, chapters[].subChapters[] hierarchy.
+    """
+    try:
+        if _subjects is None:
+            print("[db_connection] Error: Database not initialized (subjects).")
+            return []
+        cursor = _subjects.find({})
+        result = [_doc_to_dict(doc) for doc in cursor]
+        print(f"[db_connection] get_all_subjects: returned {len(result)} subject(s).")
+        return result
+    except PyMongoError as e:
+        print(f"[db_connection] get_all_subjects error: {e}")
+        return []
+
+
+def get_subject_by_id(subject_id):
+    """
+    Returns a single subject document by _id.
+    """
+    try:
+        if _subjects is None:
+            print("[db_connection] Error: Database not initialized (subjects).")
+            return None
+        if not subject_id:
+            return None
+        try:
+            oid = ObjectId(subject_id)
+        except Exception:
+            print(f"[db_connection] get_subject_by_id: invalid ObjectId '{subject_id}'.")
+            return None
+        doc = _subjects.find_one({"_id": oid})
+        return _doc_to_dict(doc)
+    except PyMongoError as e:
+        print(f"[db_connection] get_subject_by_id error: {e}")
+        return None
+
+
+def get_subject_by_title(title):
+    """
+    Returns a subject document matching the given title (case-insensitive).
+    """
+    try:
+        if _subjects is None:
+            return None
+        if not title:
+            return None
+        import re as _re
+        doc = _subjects.find_one({"title": _re.compile(f"^{_re.escape(title.strip())}$", _re.IGNORECASE)})
+        return _doc_to_dict(doc)
+    except PyMongoError as e:
+        print(f"[db_connection] get_subject_by_title error: {e}")
+        return None
+
+
 def insert_course(course_doc):
     """
     Inserts a course document into the 'courses' collection.
-    course_doc: dict with title, description, modules, level, etc.
+    course_doc: dict with title, description, subChapters, level, etc.
     If course_doc has 'course_id' or 'id', uses it as _id when valid ObjectId.
     Returns the inserted document id (string).
     """

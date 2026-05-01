@@ -16,14 +16,80 @@
         </p>
       </div>
 
-      <button
-        type="button"
-        class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
-        (click)="goBack()"
-      >
-        Back to dashboard
-      </button>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
+          (click)="goBack()"
+        >
+          Back to dashboard
+        </button>
+      </div>
     </div>
+
+    <section
+      *ngIf="isInstructorView"
+      class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+    >
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Student Reports</h2>
+          <p class="text-sm text-slate-500">
+            Choose a student card to open their progress report.
+          </p>
+        </div>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+          {{ studentOptions.length }} students
+        </span>
+      </div>
+
+      <div
+        *ngIf="selectorLoading"
+        class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
+      >
+        Loading students...
+      </div>
+
+      <div
+        *ngIf="!selectorLoading && studentOptions.length === 0"
+        class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"
+      >
+        No students available for progress reports.
+      </div>
+
+      <div
+        *ngIf="!selectorLoading && studentOptions.length > 0"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        <button
+          type="button"
+          *ngFor="let student of studentOptions"
+          (click)="onStudentChange(student.id)"
+          class="group rounded-2xl border p-4 text-left transition-all"
+          [ngClass]="
+            student.id === studentId
+              ? 'border-sky-300 bg-sky-50 ring-2 ring-sky-100'
+              : 'border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/40'
+          "
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-bold text-slate-900">
+                {{ student.fullName }}
+              </p>
+              <p class="truncate text-xs text-slate-500">
+                {{ student.email }}
+              </p>
+            </div>
+            <span
+              class="material-symbols-outlined text-slate-300 transition group-hover:text-sky-500"
+            >
+              arrow_forward
+            </span>
+          </div>
+        </button>
+      </div>
+    </section>
 
     <div
       *ngIf="loading"

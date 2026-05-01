@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
 import { AuthService } from '../auth.service';
 import { finalize } from 'rxjs/operators';
@@ -10,6 +10,7 @@ import { finalize } from 'rxjs/operators';
   styleUrls: ['./level-test.component.css'],
 })
 export class LevelTestComponent implements OnInit, OnDestroy {
+  testMode: 'level-test' | 'post-evaluation' = 'level-test';
   loading = true;
   submitting = false;
   submittingAnswer = false;
@@ -39,6 +40,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private adaptiveService: AdaptiveLearningService,
     private authService: AuthService,
   ) {}
@@ -53,7 +55,13 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     this.userFullName =
       `${this.user.first_name || ''} ${this.user.last_name || ''}`.trim() ||
       'Student';
-    this.initializeTest();
+    
+    this.route.queryParams.subscribe(params => {
+      this.testMode = params['mode'] === 'post-evaluation' ? 'post-evaluation' : 'level-test';
+      const subject = params['subject'];
+      const subjectId = params['subjectId'];
+      this.initializeTest(subject ? [subject] : [], subjectId);
+    });
   }
 
   ngOnDestroy() {
@@ -62,11 +70,21 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     }
   }
 
-  initializeTest() {
-    this.adaptiveService.startLevelTestStage().subscribe({
+  initializeTest(subjects: string[] = [], subjectId?: string) {
+    const starter$ =
+      this.testMode === 'post-evaluation'
+        ? this.adaptiveService.startPostEvaluationStage(this.adaptiveProfileWeakAreas())
+        : this.adaptiveService.startLevelTestStage(subjects, subjectId);
+    starter$.subscribe({
       next: (response) => this.setupTestFromSession(response),
       error: () => (this.loading = false),
     });
+  }
+
+  private adaptiveProfileWeakAreas(): string[] {
+    const nav = this.router.getCurrentNavigation?.()?.extras?.state as any;
+    const fromState = nav?.weakAreas || (history.state && history.state['weakAreas']) || [];
+    return Array.isArray(fromState) ? fromState : [];
   }
 
   setupTestFromSession(response: any) {
@@ -134,6 +152,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       options: question.options || [],
       difficulty: question.difficulty || 'medium',
       topic: question.topic || 'General',
+      chapter_title: question.chapter_title || '',
       subject: question.subject || '',
       pending: false,
     };
@@ -294,8 +313,11 @@ export class LevelTestComponent implements OnInit, OnDestroy {
     const currentQuestion =
       this.testData?.questions?.[this.currentQuestionIndex];
 
-    this.adaptiveService
-      .submitLevelTestAnswer(this.sessionId, currentAnswer)
+    const submit$ =
+      this.testMode === 'post-evaluation'
+        ? this.adaptiveService.submitPostEvaluationAnswer(this.sessionId, currentAnswer)
+        : this.adaptiveService.submitLevelTestAnswer(this.sessionId, currentAnswer);
+    submit$
       .subscribe({
         next: (result) => {
           this.submittedQuestionIndexes.add(this.currentQuestionIndex);
@@ -439,7 +461,11 @@ export class LevelTestComponent implements OnInit, OnDestroy {
       if (!this.isAssessmentComplete()) return;
 
       this.submitting = true;
-      this.adaptiveService.completeLevelTestStage(this.sessionId!).subscribe({
+      const complete$ =
+        this.testMode === 'post-evaluation'
+          ? this.adaptiveService.completePostEvaluationStage(this.sessionId!)
+          : this.adaptiveService.completeLevelTestStage(this.sessionId!);
+      complete$.subscribe({
         next: (completeRes) => {
           const profile = completeRes?.profile || {};
           const studentId =
@@ -458,7 +484,10 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
           const goToResult = () => {
             this.router.navigate(['/student-dashboard/level-test-result'], {
-              state: { result },
+              state: {
+                result,
+                resultType: this.testMode,
+              },
             });
           };
 
@@ -467,23 +496,31 @@ export class LevelTestComponent implements OnInit, OnDestroy {
             return;
           }
 
-          this.adaptiveService
-            .syncLevelTestProfileToBackend(
-              studentId,
-              profile,
-              this.sessionId!,
-              result,
-            )
-            .subscribe({
-              next: () => goToResult(),
-              error: (syncErr) => {
-                console.warn(
-                  'Profile sync failed after level test completion',
-                  syncErr,
+          const sync$ =
+            this.testMode === 'post-evaluation'
+              ? this.adaptiveService.syncPostEvaluationProfileToBackend(
+                  studentId,
+                  profile,
+                  this.sessionId!,
+                  result,
+                )
+              : this.adaptiveService.syncLevelTestProfileToBackend(
+                  studentId,
+                  profile,
+                  this.sessionId!,
+                  result,
                 );
-                goToResult();
-              },
-            });
+
+          sync$.subscribe({
+            next: () => goToResult(),
+            error: (syncErr) => {
+              console.warn(
+                'Profile sync failed after assessment completion',
+                syncErr,
+              );
+              goToResult();
+            },
+          });
         },
         error: (err) => {
           console.error('Error completing test', err);
@@ -515,6 +552,7 @@ export class LevelTestComponent implements OnInit, OnDestroy {
         questionText: q?.question || q?.questionText || `Question ${idx + 1}`,
         options: Array.isArray(q?.options) ? q.options : [],
         topic: q.topic || 'General',
+        chapter_title: q.chapter_title || '',
         difficulty: q?.difficulty || 'beginner',
       }));
 
@@ -529,15 +567,24 @@ export class LevelTestComponent implements OnInit, OnDestroy {
 
     const detectedStrengths = (profile?.strengths || []).map((s: any) => ({
       topic: s?.title || 'General',
+      chapter: s?.chapter || '',
+      subject: s?.subject || '',
       score: Math.round(s?.mastery || 0),
+      correct: s?.correct,
+      total: s?.total,
     }));
 
     const detectedWeaknesses = (profile?.weaknesses || []).map((w: any) => ({
       topic: w?.title || 'General',
+      chapter: w?.chapter || '',
+      subject: w?.subject || '',
       score: Math.round(w?.mastery || 0),
+      correct: w?.correct,
+      total: w?.total,
     }));
 
     return {
+      assessmentType: this.testMode,
       studentId,
       totalScore,
       resultLevel,

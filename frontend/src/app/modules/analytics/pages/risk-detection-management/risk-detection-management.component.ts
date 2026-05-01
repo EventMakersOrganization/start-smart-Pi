@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { RiskScoreService } from '../../services/riskscore.service';
+import {
+  AtRiskStudentInsight,
+  RiskRecalculationSummary,
+  RiskScoreService,
+} from '../../services/riskscore.service';
 import { RiskScore, RiskLevel } from '../../models/analytics.models';
 import { AuthService } from '../../../../user-management/auth.service';
 
@@ -17,6 +21,10 @@ export class RiskDetectionManagementComponent implements OnInit {
   loading = true;
   error: string | null = null;
   successMessage: string | null = null;
+  insightsLoading = false;
+  riskScanRunning = false;
+  lastScanAt: Date | null = null;
+  atRiskInsights: AtRiskStudentInsight[] = [];
   
   // Modal state
   showModal = false;
@@ -46,6 +54,7 @@ export class RiskDetectionManagementComponent implements OnInit {
   ngOnInit(): void {
     this.user = this.authService.getUser();
     this.loadRiskScores();
+    this.loadAtRiskInsights();
   }
 
   get displayError(): string {
@@ -85,6 +94,41 @@ export class RiskDetectionManagementComponent implements OnInit {
         console.error('Error loading risk scores:', err);
         this.error = 'Session expired or API unavailable. Please sign in again.';
         this.loading = false;
+      },
+    });
+  }
+
+  loadAtRiskInsights(): void {
+    this.insightsLoading = true;
+    this.riskScoreService.getAtRiskInsights('medium', 30).subscribe({
+      next: (rows) => {
+        this.atRiskInsights = Array.isArray(rows) ? rows : [];
+        this.insightsLoading = false;
+      },
+      error: () => {
+        this.atRiskInsights = [];
+        this.insightsLoading = false;
+      },
+    });
+  }
+
+  runContinuousRiskScanNow(): void {
+    this.riskScanRunning = true;
+    this.error = null;
+
+    this.riskScoreService.recalculateRiskScores(1000).subscribe({
+      next: (summary: RiskRecalculationSummary) => {
+        this.lastScanAt = summary?.generatedAt ? new Date(summary.generatedAt) : new Date();
+        this.successMessage =
+          `Risk scan complete: ${summary.updatedScores}/${summary.processedStudents} students updated, ` +
+          `${summary.highRiskCount} high risk and ${summary.mediumRiskCount} medium risk.`;
+        this.riskScanRunning = false;
+        this.loadRiskScores();
+        this.loadAtRiskInsights();
+      },
+      error: () => {
+        this.error = 'Failed to run continuous risk scan.';
+        this.riskScanRunning = false;
       },
     });
   }
@@ -186,6 +230,8 @@ export class RiskDetectionManagementComponent implements OnInit {
 
   getRiskBadgeClass(riskLevel: RiskLevel): string {
     switch (riskLevel) {
+      case RiskLevel.CRITICAL:
+        return 'bg-red-700 text-white';
       case RiskLevel.HIGH:
         return 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400';
       case RiskLevel.MEDIUM:
@@ -199,6 +245,8 @@ export class RiskDetectionManagementComponent implements OnInit {
 
   getRiskLabel(riskLevel: RiskLevel): string {
     switch (riskLevel) {
+      case RiskLevel.CRITICAL:
+        return 'Critical Risk';
       case RiskLevel.HIGH:
         return 'High Risk';
       case RiskLevel.MEDIUM:
@@ -227,6 +275,19 @@ export class RiskDetectionManagementComponent implements OnInit {
     return new Date(date).toLocaleDateString();
   }
 
+  formatRelative(date: Date | string | null | undefined): string {
+    if (!date) {
+      return 'N/A';
+    }
+
+    const value = new Date(date);
+    if (Number.isNaN(value.getTime())) {
+      return 'N/A';
+    }
+
+    return value.toLocaleString();
+  }
+
   clearMessages(): void {
     this.error = null;
     this.successMessage = null;
@@ -238,5 +299,9 @@ export class RiskDetectionManagementComponent implements OnInit {
 
   trackByRiskLevel(_: number, level: string): string {
     return level;
+  }
+
+  trackByAtRiskUser(_: number, item: AtRiskStudentInsight): string {
+    return item.userId;
   }
 }

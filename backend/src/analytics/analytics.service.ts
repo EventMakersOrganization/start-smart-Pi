@@ -4,9 +4,10 @@ import { Connection, Model, Types } from 'mongoose';
 import { RiskScore, RiskScoreDocument } from './schemas/riskscore.schema';
 import { Alert, AlertDocument } from './schemas/alert.schema';
 import { KpiService } from './services/kpi.service';
-import { User, UserDocument } from '../users/schemas/user.schema';
+import { User, UserDocument, UserRole } from '../users/schemas/user.schema';
 import { AbTesting, AbTestingDocument } from './schemas/ab-testing.schema';
 import { Activity, ActivityDocument } from '../activity/schemas/activity.schema';
+import { SessionService } from '../activity/session.service';
 import { PredictiveService } from './predictive.service';
 import { InterventionService } from './intervention.service';
 import { IntegrationService } from './integration.service';
@@ -70,6 +71,7 @@ export interface RiskTrendData {
   highRiskCount: number;
   mediumRiskCount: number;
   lowRiskCount: number;
+  criticalRiskCount?: number;
 }
 
 export interface RecentAlertData {
@@ -96,10 +98,11 @@ export interface RecentAlertData {
 export interface InterventionTrackingData {
   userId: string;
   name: string;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
   dropoutProbability: number;
   suggestions: string[];
   status: 'applied' | 'pending';
+  interventionType?: string;
 }
 
 /** One row for instructor/admin “student risk” tables (matches frontend `StudentRiskListItem`). */
@@ -110,6 +113,7 @@ export interface StudentRiskListRow {
   riskScore: number;
   riskLevel: string;
   alertStatus: 'Pending' | 'Reviewed' | 'Resolved';
+  isOnline?: boolean;
 }
 
 export interface StudentEngagementScore {
@@ -161,6 +165,7 @@ export class AnalyticsService {
     private predictiveService: PredictiveService,
     private interventionService: InterventionService,
     private integrationService: IntegrationService,
+    private readonly sessionService: SessionService,
   ) {}
 
   async getStudentEngagementScore(userId: string): Promise<StudentEngagementScore> {
@@ -525,10 +530,11 @@ export class AnalyticsService {
    * Get dashboard summary data
    * Aggregates key metrics for dashboard display
    */
-  async getDashboardData(): Promise<DashboardData> {
+  async getDashboardData(viewerRole: UserRole = UserRole.INSTRUCTOR): Promise<DashboardData> {
+    const scope = viewerRole === UserRole.ADMIN ? 'allUsers' : 'students';
     const [kpis, deltas, averageRiskScore, aiDecisionsToday] = await Promise.all([
-      this.kpiService.getAllKpis(),
-      this.kpiService.getDashboardDeltas(),
+      this.kpiService.getAllKpis(scope),
+      this.kpiService.getDashboardDeltas(scope),
       this.kpiService.getAverageRiskScorePercent(),
       this.readCache.getOrSet(
         `analytics:aiDecisionsToday:${ANALYTICS_CACHE_SCHEMA_VERSION}`,
@@ -777,10 +783,21 @@ export class AnalyticsService {
         .find()
         .sort({ lastUpdated: -1, _id: -1 })
         .limit(safe)
-        .populate('user', 'first_name last_name email')
         .lean()
         .exec(),
     ]);
+
+    const riskUserIds = (risks as any[])
+      .map((r) => String(r?.user || '').trim())
+      .filter((id) => Types.ObjectId.isValid(id));
+    const riskUsers = riskUserIds.length
+      ? await this.userModel
+          .find({ _id: { $in: riskUserIds.map((id) => new Types.ObjectId(id)) } })
+          .select('first_name last_name email')
+          .lean<UserDocument[]>()
+          .exec()
+      : [];
+    const riskUserMap = new Map(riskUsers.map((u: any) => [String(u._id), u]));
 
     const merged: AiEventFeedItem[] = [];
 
@@ -808,7 +825,7 @@ export class AnalyticsService {
     }
 
     for (const r of risks as any[]) {
-      const u = r.user;
+      const u: any = riskUserMap.get(String(r.user)) || null;
       const name = u
         ? `${u.first_name || ''} ${u.last_name || ''}`.trim()
         : String(r.user);
@@ -872,7 +889,16 @@ export class AnalyticsService {
               $filter: {
                 input: '$riskLevels',
                 as: 'level',
-                cond: { $eq: ['$$level', 'HIGH'] },
+                cond: { $eq: [{ $toLower: '$$level' }, 'high'] },
+              },
+            },
+          },
+          criticalRiskCount: {
+            $size: {
+              $filter: {
+                input: '$riskLevels',
+                as: 'level',
+                cond: { $eq: [{ $toLower: '$$level' }, 'critical'] },
               },
             },
           },
@@ -881,7 +907,7 @@ export class AnalyticsService {
               $filter: {
                 input: '$riskLevels',
                 as: 'level',
-                cond: { $eq: ['$$level', 'MEDIUM'] },
+                cond: { $eq: [{ $toLower: '$$level' }, 'medium'] },
               },
             },
           },
@@ -890,7 +916,7 @@ export class AnalyticsService {
               $filter: {
                 input: '$riskLevels',
                 as: 'level',
-                cond: { $eq: ['$$level', 'LOW'] },
+                cond: { $eq: [{ $toLower: '$$level' }, 'low'] },
               },
             },
           },
@@ -935,6 +961,7 @@ export class AnalyticsService {
    * Latest risk score per student + unresolved alert flag (for dashboards).
    */
   async getStudentRiskList(): Promise<StudentRiskListRow[]> {
+    const onlineUserIds = await this.sessionService.getOnlineUserIdSet('students');
     const riskScores = await this.riskScoreModel
       .find()
       .sort({ lastUpdated: -1, _id: -1 })
@@ -995,6 +1022,7 @@ export class AnalyticsService {
         riskScore: Number(risk.score ?? 0),
         riskLevel: String(risk.riskLevel ?? '').toLowerCase(),
         alertStatus: pendingByUser.has(userId) ? 'Pending' : 'Resolved',
+        isOnline: onlineUserIds.has(userId),
       };
     });
   }
@@ -1064,10 +1092,11 @@ export class AnalyticsService {
         const user = userMap.get(userId);
         const behaviorData = await this.buildBehaviorData(userId);
         const prediction = this.predictiveService.predictDropoutRisk(behaviorData);
-        const riskLevel = (risk?.riskLevel || prediction.level || 'medium') as 'low' | 'medium' | 'high';
+        const riskLevel = (String(risk?.riskLevel || prediction.level || 'medium').toLowerCase() ||
+          'medium') as 'low' | 'medium' | 'high' | 'critical';
         const suggestions = this.interventionService.generateInterventionSuggestions(
           behaviorData,
-          riskLevel,
+          riskLevel === 'critical' ? 'high' : (riskLevel as 'low' | 'medium' | 'high'),
           prediction,
         ).suggestions;
         const abRecord = abTestingMap.get(userId);
@@ -1079,8 +1108,11 @@ export class AnalyticsService {
             : 'Unknown Student',
           riskLevel,
           dropoutProbability: prediction.probability,
-          suggestions,
-          status: abRecord?.outcome?.trim() ? 'applied' : 'pending',
+          suggestions: this.mergeInterventionSuggestions(abRecord?.intervention, suggestions),
+          // Status is automated only: "applied" means intervention was actually delivered
+          // by automation (daily reminder or weekly plan) and/or tracked by checkpoints.
+          interventionType: String((risk as any)?.interventionType || '').trim() || undefined,
+          status: this.resolveAutomatedInterventionStatus(abRecord),
         } as InterventionTrackingData;
       }),
     );
@@ -1143,5 +1175,33 @@ export class AnalyticsService {
 
   private clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
+  }
+
+  private mergeInterventionSuggestions(primary: string | undefined, fallback: string[]): string[] {
+    const merged = new Set<string>();
+    const first = String(primary || '').trim();
+    if (first) {
+      merged.add(first);
+    }
+    for (const suggestion of fallback || []) {
+      const value = String(suggestion || '').trim();
+      if (value) {
+        merged.add(value);
+      }
+    }
+    return Array.from(merged);
+  }
+
+  private resolveAutomatedInterventionStatus(row: AbTestingDocument | undefined): 'applied' | 'pending' {
+    if (!row) {
+      return 'pending';
+    }
+
+    const anyRow = row as any;
+    const outcome = String(anyRow.outcome || '').toLowerCase();
+    const hasAutomatedDelivery = Boolean(anyRow.lastReminderAt || anyRow.lastPlanAt);
+    const hasTrackedCheckpoint = Array.isArray(anyRow.checkpoints) && anyRow.checkpoints.length > 0;
+    const hasOutcomeSignal = ['applied', 'improved', 'stable', 'worse'].includes(outcome);
+    return hasAutomatedDelivery || hasTrackedCheckpoint || hasOutcomeSignal ? 'applied' : 'pending';
   }
 }

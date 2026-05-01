@@ -185,6 +185,31 @@ export interface LearningEventRequest {
   };
 }
 
+export type ActivityTraceAction =
+  | 'subject_open'
+  | 'page_view'
+  | 'page_leave'
+  | 'course_open'
+  | 'chapter_open'
+  | 'subchapter_open'
+  | 'content_open'
+  | 'video_start'
+  | 'video_pause'
+  | 'video_complete'
+  | 'quiz_start'
+  | 'quiz_submit'
+  | 'exercise_start'
+  | 'exercise_submit';
+
+export interface ActivityTraceRequest {
+  action: ActivityTraceAction;
+  page_path?: string;
+  resource_type?: string;
+  resource_id?: string;
+  resource_title?: string;
+  duration_sec?: number;
+  metadata?: Record<string, any>;
+}
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -480,11 +505,19 @@ export interface MonitorThroughputResponse {
   requests_per_minute?: number;
 }
 
+export interface PostEvaluationAreaScore {
+  topic: string;
+  score: number;
+  correct: number;
+  total: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdaptiveLearningService {
   private apiUrl = 'http://localhost:3000/api/adaptive';
   private chatApiUrl = 'http://localhost:3000/api/chat/ai';
   private aiServiceUrl = 'http://localhost:8000';
+  private trackingApiUrl = 'http://localhost:3000/api';
   private readonly learningRecommendationsSubject = new Subject<any[]>();
   readonly learningRecommendations$ =
     this.learningRecommendationsSubject.asObservable();
@@ -626,12 +659,16 @@ export class AdaptiveLearningService {
     });
   }
 
-  startLevelTestStage(subjects?: string[]): Observable<any> {
+  startLevelTestStage(subjects?: string[], subjectId?: string): Observable<any> {
     const studentId = this.resolveCurrentStudentId();
-    return this.http.post(`${this.aiServiceUrl}/level-test/start`, {
+    const body: any = {
       student_id: studentId,
       subjects: subjects || [],
-    });
+    };
+    if (subjectId) {
+      body.subject_id = subjectId;
+    }
+    return this.http.post(`${this.aiServiceUrl}/level-test/start`, body);
   }
 
   submitLevelTestAnswer(sessionId: string, answer: string): Observable<any> {
@@ -645,6 +682,53 @@ export class AdaptiveLearningService {
     return this.http.post(`${this.aiServiceUrl}/level-test/complete`, {
       session_id: sessionId,
     });
+  }
+
+  startPostEvaluationStage(weakAreas: string[] = []): Observable<any> {
+    const studentId = this.resolveCurrentStudentId();
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/start`, {
+      student_id: studentId,
+      weak_areas: weakAreas,
+    });
+  }
+
+  submitPostEvaluationAnswer(sessionId: string, answer: string): Observable<any> {
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/submit-answer`, {
+      session_id: sessionId,
+      answer,
+    });
+  }
+
+  completePostEvaluationStage(sessionId: string): Observable<any> {
+    return this.http.post(`${this.aiServiceUrl}/post-evaluation/complete`, {
+      session_id: sessionId,
+    });
+  }
+
+  getPostEvaluationSession(sessionId: string): Observable<any> {
+    return this.http.get(`${this.aiServiceUrl}/post-evaluation/session/${sessionId}`);
+  }
+
+  syncPostEvaluationProfileToBackend(
+    studentId: string,
+    profile: any,
+    sessionId?: string,
+    postEvaluationResult?: any,
+  ): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/post-evaluation/student/${studentId}/sync-profile`,
+      {
+        profile,
+        sessionId,
+        postEvaluationResult,
+      },
+    );
+  }
+
+  getLatestCompletedPostEvaluation(studentId: string): Observable<any> {
+    return this.http
+      .get(`${this.apiUrl}/post-evaluation/student/${studentId}/latest-completed`)
+      .pipe(catchError(() => of(null)));
   }
 
   syncLevelTestProfileToBackend(
@@ -744,6 +828,10 @@ export class AdaptiveLearningService {
           this.learningRecommendationsSubject.next(recommendations);
         }),
       );
+  }
+
+  recordActivity(payload: ActivityTraceRequest): Observable<any> {
+    return this.http.post(`${this.trackingApiUrl}/tracking/event`, payload);
   }
 
   askChatbot(payload: ChatbotAskRequest): Observable<ChatbotAskResponse> {

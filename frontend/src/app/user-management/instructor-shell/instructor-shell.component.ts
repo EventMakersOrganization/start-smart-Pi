@@ -2,8 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth.service';
-import { WebinarService } from '../../webinar/services/webinar.service';
-import { Webinar } from '../../webinar/services/webinar.interface';
+import { AnalyticsService, InterventionTrackingItem } from '../../modules/analytics/services/analytics.service';
+import { SubjectItem, SubjectsService } from '../subjects.service';
+import { catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-instructor-shell',
@@ -14,26 +15,20 @@ export class InstructorShellComponent implements OnInit {
   user: any;
   profileData: any = null;
   showProfileSidebar = false;
+  assignedSubjects: SubjectItem[] = [];
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private http: HttpClient,
-    private webinarService: WebinarService,
-  ) { }
-
-  liveWebinar: Webinar | null = null;
+    private analyticsService: AnalyticsService,
+    private subjectsService: SubjectsService,
+  ) {}
 
   ngOnInit(): void {
     this.user = this.authService.getUser();
     this.loadProfile();
-    this.checkLiveWebinar();
-  }
-
-  checkLiveWebinar() {
-    this.webinarService.getWebinars().subscribe(webinars => {
-      this.liveWebinar = webinars.find(w => w.status === 'live') || null;
-    });
+    this.loadAssignedSubjects();
   }
 
   loadProfile(): void {
@@ -64,7 +59,7 @@ export class InstructorShellComponent implements OnInit {
 
   manageAccount(): void {
     this.closeProfileSidebar();
-    this.router.navigate(['/profile']);
+    this.router.navigate(['/instructor/profile']);
   }
 
   /** Highlights top nav when any instructor analytics route is active. */
@@ -81,5 +76,15 @@ export class InstructorShellComponent implements OnInit {
 
   get subjectsSectionActive(): boolean {
     return this.router.url.includes('/instructor/subjects');
+  }
+
+  private loadAssignedSubjects(): void {
+    const instructorId = String(this.user?._id || this.user?.id || '').trim();
+    this.subjectsService
+      .getSubjects(instructorId || undefined)
+      .pipe(catchError(() => of([] as SubjectItem[])))
+      .subscribe((subjects) => {
+        this.assignedSubjects = Array.isArray(subjects) ? subjects.slice(0, 4) : [];
+      });
   }
 }

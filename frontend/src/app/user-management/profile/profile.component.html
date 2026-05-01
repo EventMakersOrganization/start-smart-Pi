@@ -1,309 +1,532 @@
-<div class="min-h-screen bg-background-light dark:bg-background-dark">
-  <!-- Top bar -->
-  <header
-    class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10 px-8 flex items-center gap-4">
-    <app-brand-logo class="shrink-0 mr-1" [link]="homeDashboardLink()" variant="compact" />
-    <button (click)="navigateBack()"
-      class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-slate-600 dark:text-slate-300">
-      <span class="material-symbols-outlined">arrow_back</span>
-      <span class="text-sm font-semibold">Back to Dashboard</span>
-    </button>
-    <div class="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
-    <h1 class="text-lg font-bold text-slate-900 dark:text-slate-100">Account Settings</h1>
-  </header>
+<div class="animate-fade-in">
 
-  <div class="max-w-4xl mx-auto p-8 space-y-8">
 
-    <!-- Profile Card -->
+  <div class="max-w-5xl mx-auto px-4 sm:px-8 py-8">
+    <!-- Profile Header Card -->
     <div
-      class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-      <!-- Card Header -->
-      <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div
-            class="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-primary font-bold text-xl">
-            {{ profileData?.user?.first_name?.[0] }}{{ profileData?.user?.last_name?.[0] }}
-          </div>
-          <div>
-            <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">
-              {{ profileData?.user?.first_name }} {{ profileData?.user?.last_name }}
-            </h2>
-            <p class="text-sm text-primary font-semibold capitalize">{{ profileData?.user?.role }}</p>
-          </div>
-        </div>
-        <button *ngIf="!isEditing" (click)="toggleEdit()"
-          class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20">
-          <span class="material-symbols-outlined text-lg">edit</span>
-          Edit Profile
-        </button>
-      </div>
-
-      <!-- View Mode -->
-      <div *ngIf="!isEditing" class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="space-y-1">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">First Name</p>
-          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ profileData?.user?.first_name || '—' }}
-          </p>
-        </div>
-        <div class="space-y-1">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Last Name</p>
-          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ profileData?.user?.last_name || '—' }}
-          </p>
-        </div>
-        <div class="space-y-1">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Email Address</p>
-          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ profileData?.user?.email || '—' }}</p>
-        </div>
-        <div class="space-y-1">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone Number</p>
-          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ profileData?.user?.phone || '—' }}</p>
-        </div>
-        <div class="space-y-1">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Role</p>
-          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 capitalize">{{ profileData?.user?.role ||
-            '—' }}</p>
-        </div>
-        <div class="space-y-1">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</p>
-          <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            {{ profileData?.user?.status || 'Active' }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Edit Mode -->
-      <form *ngIf="isEditing" [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="p-8 space-y-5">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div class="space-y-1">
-            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="edit_first_name">First
-              Name</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span class="material-symbols-outlined text-slate-400 text-xl">person</span>
-              </div>
-              <input id="edit_first_name" formControlName="first_name" type="text"
-                class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
-            </div>
-          </div>
-          <div class="space-y-1">
-            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="edit_last_name">Last
-              Name</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span class="material-symbols-outlined text-slate-400 text-xl">person</span>
-              </div>
-              <input id="edit_last_name" formControlName="last_name" type="text"
-                class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
-            </div>
-          </div>
-        </div>
-        <div class="space-y-1">
-          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="edit_phone">Phone
-            Number</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span class="material-symbols-outlined text-slate-400 text-xl">phone</span>
-            </div>
-            <input id="edit_phone" formControlName="phone" type="text" placeholder="(+216)"
-              class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
-          </div>
-        </div>
-
-        <p *ngIf="successMessage" class="text-emerald-600 text-sm font-medium flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm">check_circle</span>{{ successMessage }}
-        </p>
-        <p *ngIf="errorMessage" class="text-red-500 text-sm font-medium flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm">error</span>{{ errorMessage }}
-        </p>
-
-        <div class="flex gap-3 pt-2">
-          <button type="submit"
-            class="px-6 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20">
-            Save Changes
-          </button>
-          <button type="button" (click)="toggleEdit()"
-            class="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Change Password Card -->
-    <div
-      class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-      <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">Change Password</h3>
-        <p class="text-sm text-slate-500 mt-0.5">Update your password to keep your account secure.</p>
-      </div>
-      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="p-8 space-y-5">
-        <div class="space-y-1">
-          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="current_password">Current
-            Password</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span class="material-symbols-outlined text-slate-400 text-xl">lock</span>
-            </div>
-            <input id="current_password" formControlName="current_password"
-              [type]="showCurrentPwd ? 'text' : 'password'" placeholder="••••••••"
-              class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
-              (click)="showCurrentPwd = !showCurrentPwd">
-              <span
-                class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors">{{
-                showCurrentPwd ? 'visibility_off' : 'visibility' }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="space-y-1">
-          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="new_password">New
-            Password</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span class="material-symbols-outlined text-slate-400 text-xl">lock_open</span>
-            </div>
-            <input id="new_password" formControlName="new_password" [type]="showNewPwd ? 'text' : 'password'"
-              placeholder="Min. 6 characters"
-              class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
-              (click)="showNewPwd = !showNewPwd">
-              <span
-                class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors">{{
-                showNewPwd ? 'visibility_off' : 'visibility' }}</span>
-            </div>
-          </div>
-          <p *ngIf="passwordForm.get('new_password')?.invalid && passwordForm.get('new_password')?.touched"
-            class="text-xs text-red-500 mt-1">Password must be at least 6 characters.</p>
-        </div>
-        <div class="space-y-1">
-          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="confirm_password">Confirm
-            New Password</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span class="material-symbols-outlined text-slate-400 text-xl">lock_clock</span>
-            </div>
-            <input id="confirm_password" formControlName="confirm_password"
-              [type]="showConfirmPwd ? 'text' : 'password'" placeholder="••••••••"
-              class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
-              (click)="showConfirmPwd = !showConfirmPwd">
-              <span
-                class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors">{{
-                showConfirmPwd ? 'visibility_off' : 'visibility' }}</span>
-            </div>
-          </div>
-          <p *ngIf="passwordForm.get('confirm_password')?.hasError('passwordMismatch') && passwordForm.get('confirm_password')?.touched"
-            class="text-xs text-red-500 mt-1">Passwords do not match.</p>
-        </div>
-
-        <p *ngIf="pwdSuccessMessage" class="text-emerald-600 text-sm font-medium flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm">check_circle</span>{{ pwdSuccessMessage }}
-        </p>
-        <p *ngIf="pwdErrorMessage" class="text-red-500 text-sm font-medium flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm">error</span>{{ pwdErrorMessage }}
-        </p>
-
-        <button type="submit" [disabled]="!passwordForm.valid"
-          class="px-6 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-primary/20">
-          Change Password
-        </button>
-      </form>
-    </div>
-
-    <!-- Face Authentication Card -->
-    <div
-      class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-      <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">Face Authentication</h3>
-        <p class="text-sm text-slate-500 mt-0.5">Use your face to quickly sign in to your account.</p>
-      </div>
-      <div class="p-8 space-y-6">
+      class="glass-effect bg-gradient-to-br from-blue-50/80 via-white/90 to-emerald-50/80 border border-blue-200 dark:border-blue-900 rounded-3xl overflow-hidden shadow-xl mb-10 animate-fade-in-up animate-delay-100"
+    >
+      <div
+        class="px-10 py-8 flex flex-col sm:flex-row items-start sm:items-center gap-6"
+      >
         <div
-          class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-          <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-primary text-2xl">face</span>
-            <div>
-              <p class="text-sm font-bold text-slate-900 dark:text-slate-100">Biometric Login</p>
-              <p class="text-xs text-slate-500">Configure facial recognition for easy access.</p>
-            </div>
-          </div>
-          <button (click)="toggleFaceRegistration()"
-            class="px-4 py-2 bg-primary/10 text-primary text-sm font-bold rounded-lg hover:bg-primary/20 transition-all">
-            {{ isFaceRegActive ? 'Cancel' : 'Setup Face Login' }}
-          </button>
+          class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-200/80 to-blue-400/80 flex items-center justify-center text-blue-700 font-black text-3xl shrink-0 shadow-glow"
+        >
+          {{ profileData?.user?.first_name?.[0]
+          }}{{ profileData?.user?.last_name?.[0] }}
         </div>
-
-        <div class="relative flex items-center gap-4 my-4">
-          <div class="flex-grow h-px bg-slate-200 dark:bg-slate-800"></div>
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Or Upload Image</span>
-          <div class="flex-grow h-px bg-slate-200 dark:bg-slate-800"></div>
-        </div>
-
-        <div class="grid grid-cols-1 gap-4">
-          <label
-            class="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl cursor-pointer hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
+        <div class="flex-1 min-w-0">
+          <h2
+            class="text-3xl font-extrabold text-slate-900 dark:text-white truncate"
+          >
+            {{ profileData?.user?.first_name }}
+            {{ profileData?.user?.last_name }}
+          </h2>
+          <p class="text-base text-blue-700 font-bold capitalize">
+            {{ profileData?.user?.role }}
+          </p>
+          <p class="text-sm text-slate-500 mt-0.5">
+            {{ profileData?.user?.email }}
+          </p>
+          <div class="flex flex-wrap items-center gap-3 mt-3" *ngIf="isStudent">
             <span
-              class="material-symbols-outlined text-3xl text-slate-400 group-hover:text-primary mb-2">upload_file</span>
-            <span class="text-sm font-semibold text-slate-600 dark:text-slate-400">Cliquez pour choisir une photo</span>
-            <input type="file" (change)="onFileSelected($event)" accept="image/*" class="hidden"
-              [disabled]="isFaceLoading">
-          </label>
-        </div>
-
-        <div *ngIf="isFaceRegActive" class="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <div
-            class="relative rounded-2xl overflow-hidden bg-black aspect-video flex items-center justify-center border-2 border-primary shadow-xl">
-            <video #video autoplay muted playsinline class="w-full h-full object-cover"></video>
-
-            <div *ngIf="isFaceLoading"
-              class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white gap-2">
-              <span class="material-symbols-outlined animate-spin text-4xl">refresh</span>
-              <p class="text-sm font-medium">Processing...</p>
-            </div>
-
-            <div *ngIf="cameraError && !isFaceLoading"
-              class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-red-400 p-4 text-center">
-              <span class="material-symbols-outlined text-4xl mb-2">videocam_off</span>
-              <p class="text-sm">{{ cameraError }}</p>
-            </div>
-          </div>
-
-          <div class="flex justify-center">
-            <button (click)="captureFace()" [disabled]="isFaceLoading"
-              class="flex items-center gap-2 px-8 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-all shadow-lg shadow-primary/20">
-              <span class="material-symbols-outlined">camera</span>
-              Enregistrer mon visage
-            </button>
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow"
+            >
+              <span class="material-symbols-outlined text-base">group</span>
+              Class: {{ profileData?.profile?.class || "—" }}
+            </span>
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-xs font-bold text-blue-700 shadow"
+            >
+              <span class="material-symbols-outlined text-base"
+                >leaderboard</span
+              >
+              Level: {{ studentLevel || "—" }}
+            </span>
           </div>
         </div>
-
-        <p *ngIf="faceSuccess"
-          class="text-emerald-600 text-sm font-medium flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
-          <span class="material-symbols-outlined text-sm">check_circle</span>{{ faceSuccess }}
-        </p>
-        <p *ngIf="faceError"
-          class="text-red-500 text-sm font-medium flex items-center gap-2 bg-red-50 dark:bg-red-500/10 p-4 rounded-xl border border-red-100 dark:border-red-500/20">
-          <span class="material-symbols-outlined text-sm">error</span>{{ faceError }}
-        </p>
-      </div>
-    </div>
-
-    <!-- Danger Zone -->
-    <div
-      class="bg-white dark:bg-slate-900 rounded-2xl border border-red-200 dark:border-red-900/30 overflow-hidden shadow-sm">
-      <div class="px-8 py-6 border-b border-red-100 dark:border-red-900/20">
-        <h3 class="text-lg font-bold text-red-600">Sign Out</h3>
-        <p class="text-sm text-slate-500 mt-0.5">Sign out of your account on this device.</p>
-      </div>
-      <div class="p-8">
-        <button (click)="logout()"
-          class="flex items-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold text-sm rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
-          <span class="material-symbols-outlined">logout</span>
+        <button
+          (click)="logout()"
+          class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-400 to-red-600 text-white font-bold text-base rounded-2xl hover:scale-105 hover:shadow-xl transition-all duration-200 shrink-0 animate-bounce-soft"
+        >
+          <span class="material-symbols-outlined text-xl">logout</span>
           Sign Out
         </button>
       </div>
     </div>
 
+    <!-- Tab Navigation -->
+    <div
+      class="flex gap-2 bg-gradient-to-r from-blue-50/80 to-emerald-50/80 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-2 mb-10 overflow-x-auto shadow animate-fade-in-up animate-delay-200"
+    >
+      <button
+        (click)="setTab('account')"
+        [class]="
+          activeTab === 'account'
+            ? 'flex-1 min-w-0 px-6 py-3 text-base font-bold rounded-xl bg-white dark:bg-slate-900 text-blue-700 dark:text-white shadow transition-all scale-105'
+            : 'flex-1 min-w-0 px-6 py-3 text-base font-medium rounded-xl text-slate-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors'
+        "
+      >
+        <span class="material-symbols-outlined text-base align-middle mr-1"
+          >person</span
+        >
+        Account
+      </button>
+      <button
+        *ngIf="isStudent"
+        (click)="setTab('goals')"
+        [class]="
+          activeTab === 'goals'
+            ? 'flex-1 min-w-0 px-6 py-3 text-base font-bold rounded-xl bg-white dark:bg-slate-900 text-blue-700 dark:text-white shadow transition-all scale-105'
+            : 'flex-1 min-w-0 px-6 py-3 text-base font-medium rounded-xl text-slate-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors'
+        "
+      >
+        <span class="material-symbols-outlined text-base align-middle mr-1"
+          >flag</span
+        >
+        Goal Setting
+      </button>
+      <button
+        *ngIf="isStudent"
+        (click)="setTab('badges')"
+        [class]="
+          activeTab === 'badges'
+            ? 'flex-1 min-w-0 px-6 py-3 text-base font-bold rounded-xl bg-white dark:bg-slate-900 text-blue-700 dark:text-white shadow transition-all scale-105'
+            : 'flex-1 min-w-0 px-6 py-3 text-base font-medium rounded-xl text-slate-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors'
+        "
+      >
+        <span class="material-symbols-outlined text-base align-middle mr-1"
+          >military_tech</span
+        >
+        Badges
+      </button>
+      <button
+        (click)="setTab('security')"
+        [class]="
+          activeTab === 'security'
+            ? 'flex-1 min-w-0 px-6 py-3 text-base font-bold rounded-xl bg-white dark:bg-slate-900 text-blue-700 dark:text-white shadow transition-all scale-105'
+            : 'flex-1 min-w-0 px-6 py-3 text-base font-medium rounded-xl text-slate-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors'
+        "
+      >
+        <span class="material-symbols-outlined text-base align-middle mr-1"
+          >lock</span
+        >
+        Security
+      </button>
+    </div>
+
+    <!-- ═══ ACCOUNT TAB ═══ -->
+    <div *ngIf="activeTab === 'account'" class="space-y-8">
+      <!-- Profile Info Card -->
+      <div
+        class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm"
+      >
+        <div
+          class="px-8 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"
+        >
+          <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">
+              Personal Information
+            </h3>
+            <p class="text-sm text-slate-500 mt-0.5">
+              Update your name and contact info.
+            </p>
+          </div>
+          <button
+            *ngIf="!isEditing"
+            (click)="toggleEdit()"
+            class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20"
+          >
+            <span class="material-symbols-outlined text-lg">edit</span>
+            Edit
+          </button>
+        </div>
+
+        <!-- View Mode -->
+        <div
+          *ngIf="!isEditing"
+          class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          <div class="space-y-1">
+            <p
+              class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+            >
+              First Name
+            </p>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {{ profileData?.user?.first_name || "—" }}
+            </p>
+          </div>
+          <div class="space-y-1">
+            <p
+              class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+            >
+              Last Name
+            </p>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {{ profileData?.user?.last_name || "—" }}
+            </p>
+          </div>
+          <div class="space-y-1">
+            <p
+              class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+            >
+              Email Address
+            </p>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {{ profileData?.user?.email || "—" }}
+            </p>
+          </div>
+          <div class="space-y-1">
+            <p
+              class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+            >
+              Phone Number
+            </p>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {{ profileData?.user?.phone || "—" }}
+            </p>
+          </div>
+          <div class="space-y-1">
+            <p
+              class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+            >
+              Role
+            </p>
+            <p
+              class="text-sm font-semibold text-slate-800 dark:text-slate-100 capitalize"
+            >
+              {{ profileData?.user?.role || "—" }}
+            </p>
+          </div>
+          <div class="space-y-1">
+            <p
+              class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+            >
+              Status
+            </p>
+            <span
+              class="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600"
+            >
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              {{ profileData?.user?.status || "Active" }}
+            </span>
+          </div>
+          <div class="space-y-1" *ngIf="isStudent">
+            <p
+              class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+            >
+              Class
+            </p>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {{ profileData?.profile?.class || "—" }}
+            </p>
+          </div>
+          <div class="space-y-1" *ngIf="isStudent">
+            <p
+              class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+            >
+              Level
+            </p>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {{ studentLevel || "—" }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Edit Mode -->
+        <form
+          *ngIf="isEditing"
+          [formGroup]="profileForm"
+          (ngSubmit)="onSubmit()"
+          class="p-8 space-y-5"
+        >
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="space-y-1">
+              <label
+                class="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                for="edit_first_name"
+                >First Name</label
+              >
+              <div class="relative">
+                <div
+                  class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                >
+                  <span class="material-symbols-outlined text-slate-400 text-xl"
+                    >person</span
+                  >
+                </div>
+                <input
+                  id="edit_first_name"
+                  formControlName="first_name"
+                  type="text"
+                  class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm"
+                />
+              </div>
+            </div>
+            <div class="space-y-1">
+              <label
+                class="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                for="edit_last_name"
+                >Last Name</label
+              >
+              <div class="relative">
+                <div
+                  class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                >
+                  <span class="material-symbols-outlined text-slate-400 text-xl"
+                    >person</span
+                  >
+                </div>
+                <input
+                  id="edit_last_name"
+                  formControlName="last_name"
+                  type="text"
+                  class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label
+              class="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+              for="edit_phone"
+              >Phone Number</label
+            >
+            <div class="relative">
+              <div
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <span class="material-symbols-outlined text-slate-400 text-xl"
+                  >phone</span
+                >
+              </div>
+              <input
+                id="edit_phone"
+                formControlName="phone"
+                type="text"
+                placeholder="(+216)"
+                class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm"
+              />
+            </div>
+          </div>
+
+          <p
+            *ngIf="successMessage"
+            class="text-emerald-600 text-sm font-medium flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-sm">check_circle</span
+            >{{ successMessage }}
+          </p>
+          <p
+            *ngIf="errorMessage"
+            class="text-red-500 text-sm font-medium flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-sm">error</span
+            >{{ errorMessage }}
+          </p>
+
+          <div class="flex gap-3 pt-2">
+            <button
+              type="submit"
+              class="px-6 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20"
+            >
+              Save Changes
+            </button>
+            <button
+              type="button"
+              (click)="toggleEdit()"
+              class="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ═══ GOAL SETTING TAB (Students only) ═══ -->
+    <div *ngIf="activeTab === 'goals' && isStudent">
+      <app-goal-setting [studentId]="studentId"></app-goal-setting>
+    </div>
+
+    <!-- ═══ BADGES TAB (Students only) ═══ -->
+    <div *ngIf="activeTab === 'badges' && isStudent">
+      <app-badge-display [studentId]="studentId"></app-badge-display>
+    </div>
+
+    <!-- ═══ SECURITY TAB ═══ -->
+    <div *ngIf="activeTab === 'security'" class="space-y-8">
+      <!-- Change Password Card -->
+      <div
+        class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm"
+      >
+        <div class="px-8 py-5 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">
+            Change Password
+          </h3>
+          <p class="text-sm text-slate-500 mt-0.5">
+            Update your password to keep your account secure.
+          </p>
+        </div>
+        <form
+          [formGroup]="passwordForm"
+          (ngSubmit)="changePassword()"
+          class="p-8 space-y-5"
+        >
+          <div class="space-y-1">
+            <label
+              class="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+              for="current_password"
+              >Current Password</label
+            >
+            <div class="relative">
+              <div
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <span class="material-symbols-outlined text-slate-400 text-xl"
+                  >lock</span
+                >
+              </div>
+              <input
+                id="current_password"
+                formControlName="current_password"
+                [type]="showCurrentPwd ? 'text' : 'password'"
+                placeholder="••••••••"
+                class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm"
+              />
+              <button
+                type="button"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center group"
+                [attr.aria-label]="
+                  showCurrentPwd ? 'Hide password' : 'Show password'
+                "
+                (click)="showCurrentPwd = !showCurrentPwd"
+              >
+                <span
+                  class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors"
+                  >{{ showCurrentPwd ? "visibility_off" : "visibility" }}</span
+                >
+              </button>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label
+              class="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+              for="new_password"
+              >New Password</label
+            >
+            <div class="relative">
+              <div
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <span class="material-symbols-outlined text-slate-400 text-xl"
+                  >lock_open</span
+                >
+              </div>
+              <input
+                id="new_password"
+                formControlName="new_password"
+                [type]="showNewPwd ? 'text' : 'password'"
+                placeholder="Min. 6 characters"
+                class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm"
+              />
+              <button
+                type="button"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center group"
+                [attr.aria-label]="
+                  showNewPwd ? 'Hide password' : 'Show password'
+                "
+                (click)="showNewPwd = !showNewPwd"
+              >
+                <span
+                  class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors"
+                  >{{ showNewPwd ? "visibility_off" : "visibility" }}</span
+                >
+              </button>
+            </div>
+            <p
+              *ngIf="
+                passwordForm.get('new_password')?.invalid &&
+                passwordForm.get('new_password')?.touched
+              "
+              class="text-xs text-red-500 mt-1"
+            >
+              Password must be at least 6 characters.
+            </p>
+          </div>
+          <div class="space-y-1">
+            <label
+              class="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+              for="confirm_password"
+              >Confirm New Password</label
+            >
+            <div class="relative">
+              <div
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <span class="material-symbols-outlined text-slate-400 text-xl"
+                  >lock_clock</span
+                >
+              </div>
+              <input
+                id="confirm_password"
+                formControlName="confirm_password"
+                [type]="showConfirmPwd ? 'text' : 'password'"
+                placeholder="••••••••"
+                class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm"
+              />
+              <button
+                type="button"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center group"
+                [attr.aria-label]="
+                  showConfirmPwd ? 'Hide password' : 'Show password'
+                "
+                (click)="showConfirmPwd = !showConfirmPwd"
+              >
+                <span
+                  class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors"
+                  >{{ showConfirmPwd ? "visibility_off" : "visibility" }}</span
+                >
+              </button>
+            </div>
+            <p
+              *ngIf="
+                passwordForm
+                  .get('confirm_password')
+                  ?.hasError('passwordMismatch') &&
+                passwordForm.get('confirm_password')?.touched
+              "
+              class="text-xs text-red-500 mt-1"
+            >
+              Passwords do not match.
+            </p>
+          </div>
+
+          <p
+            *ngIf="pwdSuccessMessage"
+            class="text-emerald-600 text-sm font-medium flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-sm">check_circle</span
+            >{{ pwdSuccessMessage }}
+          </p>
+          <p
+            *ngIf="pwdErrorMessage"
+            class="text-red-500 text-sm font-medium flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-sm">error</span
+            >{{ pwdErrorMessage }}
+          </p>
+
+          <button
+            type="submit"
+            [disabled]="!passwordForm.valid"
+            class="px-6 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-primary/20"
+          >
+            Change Password
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>

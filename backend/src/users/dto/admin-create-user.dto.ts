@@ -27,5 +27,9 @@ export class AdminCreateUserDto {
   @IsString()
   @MinLength(6)
   password?: string;
+
+  @IsOptional()
+  @IsString()
+  classId?: string;
 }
 

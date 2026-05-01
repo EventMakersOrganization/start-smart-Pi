@@ -1,0 +1,116 @@
+<aside
+  aria-label="Student sidebar"
+  class="w-64 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 overflow-y-auto"
+>
+  <div class="p-6 pb-4">
+    <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">
+      Adaptive Learning
+    </p>
+  </div>
+  <nav class="flex-1 px-4 py-4 space-y-1" aria-label="Student navigation">
+    <a
+      (click)="activeNav = 'dashboard'"
+      routerLink="/student-dashboard"
+      [class]="
+        activeNav === 'dashboard'
+          ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+          : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+      "
+    >
+      <span class="material-symbols-outlined">dashboard</span>
+      Dashboard
+    </a>
+    <a
+      (click)="activeNav = 'my-courses'"
+      routerLink="/student-dashboard/my-courses"
+      [class]="
+        activeNav === 'my-courses'
+          ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+          : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+      "
+    >
+      <span class="material-symbols-outlined">book_4</span> My Courses
+    </a>
+    <a
+      (click)="activeNav = 'level-test-result'; openLevelTestFromSidebar()"
+      [class]="
+        activeNav === 'level-test-result' || activeNav === 'level-test'
+          ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+          : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+      "
+    >
+      <span class="material-symbols-outlined">quiz</span> Level Test Result
+    </a>
+    <a
+      (click)="activeNav = 'performance'"
+      routerLink="/student-dashboard/performance"
+      [class]="
+        activeNav === 'performance'
+          ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+          : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+      "
+    >
+      <span class="material-symbols-outlined">analytics</span> Performance
+    </a>
+    <a
+      (click)="activeNav = 'learning-path'"
+      routerLink="/student-dashboard/learning-path"
+      [class]="
+        activeNav === 'learning-path'
+          ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+          : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+      "
+    >
+      <span class="material-symbols-outlined">route</span> Learning Path
+    </a>
+    <a
+      (click)="activeNav = 'codebattle'"
+      routerLink="/codebattle/lobby"
+      [class]="
+        activeNav === 'codebattle'
+          ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-blue-600 font-semibold border-r-4 border-blue-500'
+          : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+      "
+    >
+      <span class="material-symbols-outlined text-blue-500">terminal</span>
+      Code Battle
+    </a>
+
+    <div class="pt-4 mt-2">
+      <p
+        class="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2"
+      >
+        Messages
+      </p>
+      <a
+        (click)="activeNav = 'conversations'"
+        routerLink="/student-dashboard/chat/instructor"
+        [class]="
+          activeNav === 'conversations'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
+      >
+        <span class="material-symbols-outlined text-indigo-500"
+          >chat_bubble</span
+        >
+        Conversations
+      </a>
+      <a
+        (click)="activeNav = 'groups'"
+        routerLink="/student-dashboard/chat/room"
+        [class]="
+          activeNav === 'groups'
+            ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold'
+            : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer'
+        "
+      >
+        <span class="material-symbols-outlined text-orange-500"
+          >groups</span
+        >
+        Groups
+      </a>
+    </div>
+  </nav>
+
+</aside>

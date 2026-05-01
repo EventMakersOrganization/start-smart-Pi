@@ -265,4 +265,25 @@ export class AdaptiveLearningController {
       body?.levelTestResult,
     );
   }
+
+  @Post("post-evaluation/student/:studentId/sync-profile")
+  syncProfileFromAiPostEvaluation(
+    @Param("studentId") studentId: string,
+    @Body()
+    body: { profile: any; sessionId?: string; postEvaluationResult?: any },
+  ) {
+    return this.adaptiveService.syncProfileFromAiPostEvaluation(
+      studentId,
+      body?.profile,
+      body?.sessionId,
+      body?.postEvaluationResult,
+    );
+  }
+
+  @Get("post-evaluation/student/:studentId/latest-completed")
+  findLatestCompletedPostEvaluation(@Param("studentId") studentId: string) {
+    return this.adaptiveService.findLatestCompletedPostEvaluationByStudent(
+      studentId,
+    );
+  }
 }

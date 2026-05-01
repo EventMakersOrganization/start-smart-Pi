@@ -47,6 +47,10 @@ export class StudentProfile {
   @Prop({ default: 0, min: 0, max: 100 })
   progress: number;
 
+  /** Latest level-test score (0–100); separate from course-learning `progress`. */
+  @Prop({ default: 0, min: 0, max: 100 })
+  levelTestScore: number;
+
   @Prop({ type: [String], default: [] })
   strengths: string[];
 
@@ -55,6 +59,9 @@ export class StudentProfile {
 
   @Prop({ default: false })
   levelTestCompleted: boolean;
+
+  @Prop({ default: 100, min: 0, max: 100 })
+  attendance_percentage: number;
 }
 
 export const StudentProfileSchema =

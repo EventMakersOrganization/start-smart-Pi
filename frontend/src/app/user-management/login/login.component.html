@@ -1,19 +1,27 @@
 <div class="flex w-full min-h-screen">
   <!-- left side branding panel, hidden on small screens -->
   <div
-    class="hidden lg:flex lg:w-1/2 relative flex-col justify-center items-center p-12 bg-sidebar-dark overflow-hidden">
+    class="hidden lg:flex lg:w-1/2 relative flex-col justify-center items-center p-12 bg-sidebar-dark overflow-hidden"
+  >
     <div class="absolute inset-0 z-0 opacity-30">
-      <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary rounded-full blur-[120px]"></div>
-      <div class="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-600 rounded-full blur-[100px]"></div>
+      <div
+        class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary rounded-full blur-[120px]"
+      ></div>
+      <div
+        class="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-600 rounded-full blur-[100px]"
+      ></div>
     </div>
     <div class="relative z-10 max-w-lg text-center">
       <div class="mb-12 flex justify-center">
         <app-brand-logo variant="auth" [link]="null" />
       </div>
-      <div class="aspect-video w-full mb-12 bg-cover bg-center rounded-2xl shadow-2xl border border-white/10"
-        data-alt="Students collaborating on laptops" style="
+      <div
+        class="aspect-video w-full mb-12 bg-cover bg-center rounded-2xl shadow-2xl border border-white/10"
+        data-alt="Students collaborating on laptops"
+        style="
           background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuAUQ1Use5Jl6sBDEc4PdWHXZuahOgvUwYazmjv3HDsvQzwPAHJiVlViOUcihJbOV3YQ_A-Qv6Ur5q-xQf1Ap5tFZEibGIN2GbIpQXParBD_UNfw5j0RvSLFzL0_e_0-7c2DgtIoZMa_LnEpn8v6npqmWqaq5ycHpZ1p9HkX8-_30KVrecXXOgg0pMytqY6El4CaFE8Q0hcyOqTsJ7Gaj-7GYDc7iH1j91UC5-bNRG-scYIxTegIjrOmr94RlwJ394uIsX_VsZSC3K6o&quot;);
-        "></div>
+        "
+      ></div>
       <div class="space-y-6">
         <p class="text-2xl font-medium leading-relaxed italic text-slate-200">
           "The beautiful thing about learning is that nobody can take it away
@@ -29,20 +37,27 @@
       </div>
     </div>
     <div class="absolute bottom-8 left-12 flex gap-6 text-sm text-slate-500">
-      <a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
-      <a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+      <a class="hover:text-primary transition-colors" href="#"
+        >Privacy Policy</a
+      >
+      <a class="hover:text-primary transition-colors" href="#"
+        >Terms of Service</a
+      >
     </div>
   </div>
 
   <!-- right side login form -->
   <div
-    class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 md:p-20 bg-background-light dark:bg-background-dark overflow-y-auto">
+    class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 md:p-20 bg-background-light dark:bg-background-dark overflow-y-auto"
+  >
     <div class="w-full max-w-md space-y-8 py-8">
       <div class="flex justify-center lg:hidden mb-2">
         <app-brand-logo variant="compact" [link]="null" />
       </div>
       <div class="text-center lg:text-left">
-        <h2 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        <h2
+          class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
+        >
           Sign in to your account
         </h2>
         <p class="mt-2 text-slate-600 dark:text-slate-400 font-medium">
@@ -51,105 +66,124 @@
       </div>
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5">
         <div class="space-y-1">
-          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="email">Email
-            address</label>
+          <label
+            class="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+            for="email"
+            >Email address (required)</label
+          >
           <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span class="material-symbols-outlined text-slate-400 text-xl">mail</span>
+            <div
+              class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+            >
+              <span class="material-symbols-outlined text-slate-400 text-xl"
+                >mail</span
+              >
             </div>
-            <input autocomplete="email" formControlName="email" id="email" required type="email"
+            <input
+              autocomplete="email"
+              formControlName="email"
+              id="email"
+              required
+              aria-required="true"
+              type="email"
               class="block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm"
-              placeholder="name@esprit.tn" />
+              placeholder="name@esprit.tn"
+            />
           </div>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="password">Password</label>
+          <label
+            class="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+            for="password"
+            >Password (required)</label
+          >
           <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span class="material-symbols-outlined text-slate-400 text-xl">lock</span>
+            <div
+              class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+            >
+              <span class="material-symbols-outlined text-slate-400 text-xl"
+                >lock</span
+              >
             </div>
-            <input autocomplete="current-password" formControlName="password" id="password" required
+            <input
+              autocomplete="current-password"
+              formControlName="password"
+              id="password"
+              required
+              aria-required="true"
               [type]="showPassword ? 'text' : 'password'"
               class="block w-full pl-10 pr-10 py-3 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all sm:text-sm"
-              placeholder="••••••••" />
-            <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
-              (click)="togglePassword()">
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              [attr.aria-label]="
+                showPassword ? 'Hide password' : 'Show password'
+              "
+              class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer group"
+              (click)="togglePassword()"
+            >
               <span
-                class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors">{{
-                showPassword ? "visibility_off" : "visibility" }}</span>
-            </div>
+                class="material-symbols-outlined text-slate-400 text-xl group-hover:text-slate-600 transition-colors"
+                >{{ showPassword ? "visibility_off" : "visibility" }}</span
+              >
+            </button>
           </div>
         </div>
 
         <!-- forgot password link -->
         <div class="flex items-center justify-end text-sm">
-          <a routerLink="/forgot-password" class="font-semibold text-primary hover:text-primary/80 hover:underline">
+          <a
+            routerLink="/forgot-password"
+            class="font-semibold text-primary hover:text-primary/80 hover:underline"
+          >
             Forgot your password?
           </a>
         </div>
 
         <button
           class="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all shadow-lg shadow-primary/20"
-          type="submit" [disabled]="!loginForm.valid || isSubmitting">
+          type="submit"
+          [disabled]="!loginForm.valid || isSubmitting"
+        >
           Login
         </button>
       </form>
-      <p *ngIf="errorMessage" class="text-red-500 text-center">
+      <p
+        *ngIf="errorMessage"
+        class="text-red-500 text-center"
+        role="alert"
+        aria-live="assertive"
+      >
         {{ errorMessage }}
       </p>
 
-      <!-- Face Recognition Login -->
-      <div class="mt-6">
-        <button type="button" (click)="toggleFaceLogin()"
-          class="w-full flex items-center justify-center gap-2 py-3 px-4 border border-slate-300 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-          <span class="material-symbols-outlined">{{ isFaceLoginActive ? 'close' : 'face' }}</span>
-          {{ isFaceLoginActive ? 'Cancel Face Login' : 'Login with Face' }}
-        </button>
-
-        <div *ngIf="isFaceLoginActive"
-          class="mt-4 relative rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border-2 border-primary shadow-inner">
-          <video #video autoplay muted playsinline class="w-full h-full object-cover"></video>
-          <div *ngIf="isFaceLoading"
-            class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white gap-2">
-            <span class="material-symbols-outlined animate-spin text-4xl">refresh</span>
-            <p class="text-sm font-medium">Initialisation des modèles...</p>
-          </div>
-          <div *ngIf="cameraError"
-            class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-red-400 p-4 text-center">
-            <span class="material-symbols-outlined text-4xl mb-2">videocam_off</span>
-            <p class="text-sm">{{ cameraError }}</p>
-          </div>
-          <div *ngIf="!isFaceLoading && !cameraError && !isSubmitting"
-            class="absolute bottom-4 left-0 right-0 text-center">
-            <p class="text-white text-xs bg-primary/80 inline-block px-3 py-1 rounded-full backdrop-blur-sm">
-              Positionnez votre visage devant la caméra
-            </p>
-          </div>
-          <div *ngIf="isSubmitting && isFaceLoginActive"
-            class="absolute inset-0 flex flex-col items-center justify-center bg-primary/40 backdrop-blur-[2px] text-white">
-            <span class="material-symbols-outlined animate-pulse text-6xl">person_search</span>
-            <p class="font-bold mt-2">Authentification en cours...</p>
-          </div>
-        </div>
-      </div>
-
       <!-- social login divider -->
-      <div class="relative pt-4">
+      <div class="relative">
         <div aria-hidden="true" class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-slate-300 dark:border-slate-800"></div>
+          <div
+            class="w-full border-t border-slate-300 dark:border-slate-800"
+          ></div>
         </div>
         <div class="relative flex justify-center text-sm">
-          <span class="px-4 bg-background-light dark:bg-background-dark text-slate-500 font-medium">Or continue
-            with</span>
+          <span
+            class="px-4 bg-background-light dark:bg-background-dark text-slate-500 font-medium"
+            >Or continue with</span
+          >
         </div>
       </div>
       <div class="grid gap-4">
-        <div id="googleButton" class="flex w-full items-center justify-center"></div>
+        <div
+          id="googleButton"
+          class="flex w-full items-center justify-center"
+        ></div>
         <!-- placeholder for another provider if needed -->
       </div>
       <p class="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
         Don't have an account?
-        <a routerLink="/register" class="font-bold text-primary hover:underline">Sign up</a>
+        <a routerLink="/register" class="font-bold text-primary hover:underline"
+          >Sign up</a
+        >
       </p>
     </div>
   </div>

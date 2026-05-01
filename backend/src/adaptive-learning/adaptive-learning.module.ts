@@ -15,6 +15,10 @@ import {
   RecommendationSchema,
 } from "./schemas/recommendation.schema";
 import { LevelTest, LevelTestSchema } from "./schemas/level-test.schema";
+import {
+  PostEvaluationTest,
+  PostEvaluationTestSchema,
+} from "./schemas/post-evaluation-test.schema";
 import { Question, QuestionSchema } from "./schemas/question.schema";
 import { ChatAi, ChatAiSchema } from "../chat/schemas/chat-ai.schema";
 import {
@@ -35,6 +39,19 @@ import {
   GoalSettings,
   GoalSettingsSchema,
 } from "./schemas/goal-settings.schema";
+import {
+  QuizSubmission,
+  QuizSubmissionSchema,
+} from "../subjects/schemas/quiz-submission.schema";
+import {
+  QuizFileSubmission,
+  QuizFileSubmissionSchema,
+} from "../subjects/schemas/quiz-file-submission.schema";
+import { Subject, SubjectSchema } from "../subjects/schemas/subject.schema";
+import {
+  PrositSubmission,
+  PrositSubmissionSchema,
+} from "../prosits/schemas/prosit-submission.schema";
 
 @Module({
   imports: [
@@ -54,6 +71,10 @@ import {
       {
         name: LevelTest.name,
         schema: LevelTestSchema,
+      },
+      {
+        name: PostEvaluationTest.name,
+        schema: PostEvaluationTestSchema,
       },
       {
         name: Question.name,
@@ -86,6 +107,22 @@ import {
       {
         name: GoalSettings.name,
         schema: GoalSettingsSchema,
+      },
+      {
+        name: QuizSubmission.name,
+        schema: QuizSubmissionSchema,
+      },
+      {
+        name: QuizFileSubmission.name,
+        schema: QuizFileSubmissionSchema,
+      },
+      {
+        name: Subject.name,
+        schema: SubjectSchema,
+      },
+      {
+        name: PrositSubmission.name,
+        schema: PrositSubmissionSchema,
       },
     ]),
   ],

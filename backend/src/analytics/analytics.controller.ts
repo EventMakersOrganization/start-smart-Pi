@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+  ParseIntPipe,
+  Request,
+} from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -15,6 +25,7 @@ import {
 import { AbTestingService } from './ab-testing.service';
 import { IntegrationService } from './integration.service';
 import { InsightService } from './insight.service';
+import { AbInterventionAutomationService } from './ab-intervention-automation.service';
 
 interface InterventionRequest {
   userData: InterventionUserData;
@@ -45,6 +56,7 @@ export class AnalyticsController {
     private readonly predictiveService: PredictiveService,
     private readonly interventionService: InterventionService,
     private readonly abTestingService: AbTestingService,
+    private readonly abInterventionAutomationService: AbInterventionAutomationService,
     private readonly integrationService: IntegrationService,
     private readonly insightService: InsightService,
   ) {}
@@ -57,8 +69,9 @@ export class AnalyticsController {
    */
   @Get('dashboard')
   @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
-  async getDashboard() {
-    return this.analyticsService.getDashboardData();
+  async getDashboard(@Request() req: { user?: { role?: UserRole } }) {
+    const viewerRole = req?.user?.role ?? UserRole.INSTRUCTOR;
+    return this.analyticsService.getDashboardData(viewerRole);
   }
 
   @Get('health')
@@ -268,5 +281,23 @@ export class AnalyticsController {
   @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
   async listAbAssignments(@Query('limit', new ParseIntPipe({ optional: true })) limit?: number) {
     return this.abTestingService.listAssignments(limit || 100);
+  }
+
+  /**
+   * Trigger A/B intervention automation cycle immediately.
+   */
+  @Post('ab-testing/automation/run')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  async runAbAutomationNow() {
+    return this.abInterventionAutomationService.runNow();
+  }
+
+  /**
+   * Read A/B intervention experiment summary and winning strategy.
+   */
+  @Get('ab-testing/automation/summary')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  async getAbAutomationSummary() {
+    return this.abInterventionAutomationService.getExperimentSummary();
   }
 }

@@ -60,13 +60,13 @@
     >
       <h2 class="font-bold text-slate-800">Course Content</h2>
       <span class="text-xs font-bold text-slate-400"
-        >{{ modules.length * 10 }} Lessons</span
+        >{{ subChapters.length * 10 }} Lessons</span
       >
     </div>
     <div class="flex-1 overflow-y-auto custom-scrollbar p-2">
-      <div *ngFor="let module of modules" class="mb-2">
+      <div *ngFor="let module of subChapters" class="mb-2">
         <button
-          (click)="toggleModule(module.id)"
+          (click)="toggleSubChapter(module.id)"
           class="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg group"
           [class.bg-slate-50]="module.expanded"
         >

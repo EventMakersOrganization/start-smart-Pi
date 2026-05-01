@@ -24,6 +24,14 @@ interface SubjectOption {
   }>;
 }
 
+interface InstructorOption {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  email: string;
+  status?: string;
+}
+
 interface ClassStudent {
   id: string;
   first_name?: string;
@@ -58,8 +66,10 @@ interface SchoolClassRow {
   active?: boolean;
   studentCount?: number;
   subjectCount?: number;
+  instructorCount?: number;
   students?: ClassStudent[];
   subjects?: ClassSubject[];
+  instructors?: InstructorOption[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -73,10 +83,12 @@ export class ClassManagementComponent implements OnInit {
   classes: SchoolClassRow[] = [];
   students: StudentOption[] = [];
   subjects: SubjectOption[] = [];
+  instructors: InstructorOption[] = [];
 
   selectedClass: SchoolClassRow | null = null;
   selectedStudentIds: string[] = [];
   selectedSubjectIds: string[] = [];
+  selectedInstructorIds: string[] = [];
 
   showClassModal = false;
   editingClassId: string | null = null;
@@ -89,10 +101,12 @@ export class ClassManagementComponent implements OnInit {
   success = '';
 
   filterText = '';
+  activeTab: 'students' | 'subjects' | 'instructors' = 'students';
 
   private readonly classesApi = 'http://localhost:3000/api/admin/classes';
   private readonly studentsApi = 'http://localhost:3000/api/admin/students';
   private readonly subjectsApi = 'http://localhost:3000/api/admin/subjects';
+  private readonly instructorsApi = 'http://localhost:3000/api/admin/instructors';
 
   constructor(private http: HttpClient) {}
 
@@ -101,35 +115,31 @@ export class ClassManagementComponent implements OnInit {
   }
 
   get filteredClasses(): SchoolClassRow[] {
-    const text = this.filterText.trim().toLowerCase();
+    const text = (this.filterText || '').trim().toLowerCase();
     if (!text) {
       return this.classes;
     }
 
     return this.classes.filter((item) => {
-      const haystack = [
-        item.name,
-        item.code,
-        item.description,
-        item.academicYear,
-        item.level,
-        item.section,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
+      const name = (item.name || '').toLowerCase();
+      const code = (item.code || '').toLowerCase();
+      const level = (item.level || '').toLowerCase();
+      const academicYear = (item.academicYear || '').toLowerCase();
+      const section = (item.section || '').toLowerCase();
 
-      return haystack.includes(text);
+      return (
+        name.includes(text) ||
+        code.includes(text) ||
+        level.includes(text) ||
+        academicYear.includes(text) ||
+        section.includes(text)
+      );
     });
   }
 
   get availableStudents(): StudentOption[] {
-    if (!this.selectedClass) {
-      return this.students;
-    }
-
-    const enrolledIds = new Set((this.selectedClass.students || []).map((student) => student.id));
-    return this.students.filter((student) => !enrolledIds.has(student.id));
+    // Show only students who are NOT assigned to any class yet
+    return this.students.filter((student) => !student.class);
   }
 
   get availableSubjects(): SubjectOption[] {
@@ -139,6 +149,15 @@ export class ClassManagementComponent implements OnInit {
 
     const linkedIds = new Set((this.selectedClass.subjects || []).map((subject) => subject.id));
     return this.subjects.filter((subject) => !linkedIds.has(subject.id));
+  }
+
+  get availableInstructors(): InstructorOption[] {
+    if (!this.selectedClass) {
+      return this.instructors;
+    }
+
+    const assignedIds = new Set((this.selectedClass.instructors || []).map((inst) => inst.id));
+    return this.instructors.filter((inst) => !assignedIds.has(inst.id));
   }
 
   private createEmptyForm() {
@@ -161,11 +180,13 @@ export class ClassManagementComponent implements OnInit {
       classes: this.http.get<SchoolClassRow[]>(this.classesApi),
       students: this.http.get<StudentOption[]>(this.studentsApi),
       subjects: this.http.get<SubjectOption[]>(this.subjectsApi),
+      instructors: this.http.get<InstructorOption[]>(this.instructorsApi),
     }).subscribe({
-      next: ({ classes, students, subjects }) => {
+      next: ({ classes, students, subjects, instructors }) => {
         this.classes = classes || [];
         this.students = students || [];
         this.subjects = subjects || [];
+        this.instructors = instructors || [];
 
         if (this.selectedClass) {
           this.selectedClass = this.classes.find((item) => item.id === this.selectedClass?.id) || this.classes[0] || null;
@@ -307,6 +328,11 @@ export class ClassManagementComponent implements OnInit {
     this.selectedClass = row;
     this.selectedStudentIds = [];
     this.selectedSubjectIds = [];
+    this.selectedInstructorIds = [];
+  }
+
+  setActiveTab(tab: 'students' | 'subjects' | 'instructors') {
+    this.activeTab = tab;
   }
 
   enrollSelectedStudents() {
@@ -389,6 +415,46 @@ export class ClassManagementComponent implements OnInit {
     });
   }
 
+  assignSelectedInstructors() {
+    if (!this.selectedClass || !this.selectedInstructorIds.length || this.actionLoading) {
+      return;
+    }
+
+    this.actionLoading = true;
+    forkJoin(
+      this.selectedInstructorIds.map((instructorId) =>
+        this.http.post(`${this.classesApi}/${this.selectedClass?.id}/instructors`, { instructorId }),
+      ),
+    ).subscribe({
+      next: () => {
+        this.selectedInstructorIds = [];
+        this.loadData();
+        this.actionLoading = false;
+        this.success = 'Instructors assigned successfully';
+        setTimeout(() => (this.success = ''), 2500);
+      },
+      error: (err) => {
+        console.error('assign instructors error', err);
+        this.error = err.error?.message || 'Failed to assign instructors';
+        this.actionLoading = false;
+      },
+    });
+  }
+
+  removeInstructor(instructorId: string) {
+    if (!this.selectedClass) {
+      return;
+    }
+
+    this.http.delete(`${this.classesApi}/${this.selectedClass.id}/instructors/${instructorId}`).subscribe({
+      next: () => this.loadData(),
+      error: (err) => {
+        console.error('remove instructor error', err);
+        this.error = err.error?.message || 'Failed to remove instructor';
+      },
+    });
+  }
+
   labelStudent(student: StudentOption | ClassStudent) {
     const name = `${student.first_name || ''} ${student.last_name || ''}`.trim();
     return name ? `${name} (${student.email})` : student.email;
@@ -396,5 +462,10 @@ export class ClassManagementComponent implements OnInit {
 
   labelSubject(subject: SubjectOption | ClassSubject) {
     return `${subject.code} - ${subject.title}`;
+  }
+
+  labelInstructor(instructor: InstructorOption) {
+    const name = `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim();
+    return name ? `${name} (${instructor.email})` : instructor.email;
   }
 }
