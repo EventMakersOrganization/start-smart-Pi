@@ -86,6 +86,20 @@ class TestAdvancedPromptEngineer:
         assert r["quality_score"] < 80
         assert len(r["suggestions"]) > 0
 
+    def test_few_shot_empty_examples_returns_base(self):
+        base = "Generate one MCQ."
+        assert self.pe.use_few_shot_learning(base, []) == base
+
+    def test_constraint_empty_returns_base(self):
+        base = "Short prompt."
+        assert self.pe.use_constraint_specification(base, {}) == base
+
+    def test_output_structuring_nested_shape(self):
+        structure = {"answer": {"text": "str", "confidence": "float"}}
+        result = self.pe.use_output_structuring("Return JSON.", structure)
+        assert "answer" in result
+        assert "confidence" in result
+
 
 class TestExamples:
     def test_examples_exist(self):

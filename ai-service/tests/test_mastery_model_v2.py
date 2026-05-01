@@ -55,3 +55,38 @@ def test_prerequisite_unlock_logic_blocks_dependents():
     assert "operations" in status["unlocked"] or "operations" in status["locked"]
     assert "control_flow" in status["blocked_by"]
 
+
+def test_chat_low_confidence_yields_small_gain():
+    base = {}
+    out = update_concept_mastery(
+        base,
+        concept="arrays",
+        is_correct=True,
+        event_type="chat",
+        difficulty="easy",
+        confidence=0.15,
+        response_time_sec=45,
+    )
+    assert 0 < out["arrays"] < 6
+
+
+def test_repeated_wrong_answers_clamp_at_zero():
+    m = {"temp": 8.0}
+    for _ in range(40):
+        m = update_concept_mastery(
+            m,
+            concept="temp",
+            is_correct=False,
+            event_type="quiz",
+            difficulty="hard",
+            confidence=0.95,
+            response_time_sec=20,
+        )
+    assert m["temp"] == 0.0
+
+
+def test_root_concept_unlocked_when_mastery_above_threshold():
+    mastery = {"variables": 72.0}
+    status = get_unlock_status(mastery)
+    assert "variables" in status["unlocked"]
+
