@@ -1,0 +1,44 @@
+// CD: build & push Nest backend image to Docker Hub (requires Docker on agent + credential dockerhub-registry)
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+  }
+
+  environment {
+    TAG = "${BUILD_NUMBER}"
+    IMAGE_API = 'startsmart-api'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Docker login, build, push') {
+      steps {
+        script {
+          withCredentials([
+            usernamePassword(
+              credentialsId: 'dockerhub-registry',
+              usernameVariable: 'DH_USER',
+              passwordVariable: 'DH_PASS'
+            )
+          ]) {
+            sh '''#!/usr/bin/env bash
+              set -e
+              echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+              docker build -t "${DH_USER}/${IMAGE_API}:${TAG}" -f backend/Dockerfile backend
+              docker push "${DH_USER}/${IMAGE_API}:${TAG}"
+              docker tag "${DH_USER}/${IMAGE_API}:${TAG}" "${DH_USER}/${IMAGE_API}:latest"
+              docker push "${DH_USER}/${IMAGE_API}:latest"
+            '''
+          }
+        }
+      }
+    }
+  }
+}

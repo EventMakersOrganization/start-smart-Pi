@@ -1,0 +1,44 @@
+// CD: build & push Angular static image to Docker Hub (requires Docker on agent + credential dockerhub-registry)
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+  }
+
+  environment {
+    TAG = "${BUILD_NUMBER}"
+    IMAGE_WEB = 'startsmart-web'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Docker login, build, push') {
+      steps {
+        script {
+          withCredentials([
+            usernamePassword(
+              credentialsId: 'dockerhub-registry',
+              usernameVariable: 'DH_USER',
+              passwordVariable: 'DH_PASS'
+            )
+          ]) {
+            sh '''#!/usr/bin/env bash
+              set -e
+              echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+              docker build -t "${DH_USER}/${IMAGE_WEB}:${TAG}" -f frontend/Dockerfile frontend
+              docker push "${DH_USER}/${IMAGE_WEB}:${TAG}"
+              docker tag "${DH_USER}/${IMAGE_WEB}:${TAG}" "${DH_USER}/${IMAGE_WEB}:latest"
+              docker push "${DH_USER}/${IMAGE_WEB}:latest"
+            '''
+          }
+        }
+      }
+    }
+  }
+}
