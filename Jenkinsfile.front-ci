@@ -26,12 +26,43 @@ pipeline {
       }
     }
 
+    // Karma needs a Chromium/Chrome binary and CHROME_BIN on Linux CI. Optional apt when agent runs as root (common in Docker).
+    stage('Prepare Chromium for Karma') {
+      steps {
+        script {
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ "$(id -u)" = "0" ] && command -v apt-get >/dev/null 2>&1; then
+              if [ ! -x /usr/bin/chromium ] && [ ! -x /usr/bin/chromium-browser ] && [ ! -x /usr/bin/google-chrome-stable ]; then
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update -qq
+                apt-get install -y --no-install-recommends chromium fonts-liberation || true
+              fi
+            fi
+          '''
+          def chromeBin = sh(
+            script: '''#!/usr/bin/env bash
+              for c in /usr/bin/chromium /usr/bin/chromium-browser /usr/bin/google-chrome-stable; do
+                [ -x "$c" ] && echo "$c" && exit 0
+              done
+              exit 1
+            ''',
+            returnStdout: true
+          ).trim()
+          if (!chromeBin) {
+            error('No Chromium/Chrome found. Install chromium on the Jenkins agent, or run Jenkins from an image built with Dockerfile.jenkins (includes Chromium + CHROME_BIN).')
+          }
+          env.CHROME_BIN = chromeBin
+        }
+      }
+    }
+
     stage('Frontend Member3 Tests') {
       steps {
         dir('frontend') {
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/adaptive-learning.service.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/level-test.component.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/game-play.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/adaptive-learning.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/level-test.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/game-play.component.spec.ts'
         }
       }
     }
@@ -39,7 +70,7 @@ pipeline {
     stage('Frontend Member5 Tests') {
       steps {
         dir('frontend') {
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/chat/**/*.spec.ts --include=src/app/video-generator/**/*.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/chat/**/*.spec.ts --include=src/app/video-generator/**/*.spec.ts'
         }
       }
     }
@@ -47,12 +78,12 @@ pipeline {
     stage('Frontend MemberKmar Tests') {
       steps {
         dir('frontend') {
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/subjects.service.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/assignments.component.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/my-courses.component.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/recommendation-display.component.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/student-dashboard.component.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=**/instructor-classes.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/subjects.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/assignments.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/my-courses.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/recommendation-display.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/student-dashboard.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=**/instructor-classes.component.spec.ts'
         }
       }
     }
