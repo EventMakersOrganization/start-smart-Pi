@@ -87,10 +87,17 @@ def api_client():
          patch("core.db_connection.get_all_courses", return_value=[]), \
          patch("optimization.hybrid_response_cache.HybridResponseCache.get", return_value=(None, 0)), \
          patch("utils.langchain_ollama.generate_response", return_value="mocked answer"):
-        
-        from fastapi.testclient import TestClient
         import api
-        yield TestClient(api.app)
+        from fastapi.testclient import TestClient
+
+        def _fake_user():
+            return {"sub": "unit-test-user", "role": "student"}
+
+        api.app.dependency_overrides[api.get_current_user] = _fake_user
+        try:
+            yield TestClient(api.app)
+        finally:
+            api.app.dependency_overrides.clear()
 
 
 @pytest.mark.unit

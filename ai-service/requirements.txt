@@ -12,6 +12,7 @@ python-docx
 python-pptx
 Pillow>=10.0
 requests>=2.31
+PyJWT>=2.8.0
 
 # Test & CI
 pytest>=7.4
