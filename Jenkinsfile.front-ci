@@ -18,41 +18,57 @@ pipeline {
       }
     }
 
-    stage('Frontend Install') {
-      steps {
-        dir('frontend') {
-          sh 'npm ci'
-        }
-      }
-    }
-
-    // Karma needs a Chromium/Chrome binary and CHROME_BIN on Linux CI. Optional apt when agent runs as root (common in Docker).
+    // Karma needs Chromium/Chrome + CHROME_BIN. Try apt (root or passwordless sudo), then resolve binary.
+    // Runs before npm ci so missing-browser fails fast.
     stage('Prepare Chromium for Karma') {
       steps {
         script {
           sh '''#!/usr/bin/env bash
-            set -e
-            if [ "$(id -u)" = "0" ] && command -v apt-get >/dev/null 2>&1; then
-              if [ ! -x /usr/bin/chromium ] && [ ! -x /usr/bin/chromium-browser ] && [ ! -x /usr/bin/google-chrome-stable ]; then
-                export DEBIAN_FRONTEND=noninteractive
+            set +e
+            need_chromium() {
+              [ -x /usr/bin/chromium ] && return 1
+              [ -x /usr/bin/chromium-browser ] && return 1
+              [ -x /usr/bin/google-chrome-stable ] && return 1
+              command -v chromium >/dev/null 2>&1 && return 1
+              command -v chromium-browser >/dev/null 2>&1 && return 1
+              return 0
+            }
+            if need_chromium; then
+              export DEBIAN_FRONTEND=noninteractive
+              if [ "$(id -u)" = "0" ] && command -v apt-get >/dev/null 2>&1; then
                 apt-get update -qq
-                apt-get install -y --no-install-recommends chromium fonts-liberation || true
+                apt-get install -y --no-install-recommends chromium fonts-liberation
+              elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+                sudo -n apt-get update -qq
+                sudo -n apt-get install -y --no-install-recommends chromium fonts-liberation
               fi
             fi
           '''
+
           def chromeBin = sh(
             script: '''#!/usr/bin/env bash
-              for c in /usr/bin/chromium /usr/bin/chromium-browser /usr/bin/google-chrome-stable; do
-                [ -x "$c" ] && echo "$c" && exit 0
+              for c in /usr/bin/chromium /snap/bin/chromium /usr/bin/chromium-browser /usr/bin/google-chrome-stable; do
+                if [ -x "$c" ]; then echo "$c"; exit 0; fi
               done
-              exit 1
+              W=$(command -v chromium 2>/dev/null || command -v chromium-browser 2>/dev/null || command -v google-chrome-stable 2>/dev/null || true)
+              if [ -n "$W" ] && [ -x "$W" ]; then echo "$W"; fi
+              exit 0
             ''',
             returnStdout: true
           ).trim()
+
           if (!chromeBin) {
-            error('No Chromium/Chrome found. Install chromium on the Jenkins agent, or run Jenkins from an image built with Dockerfile.jenkins (includes Chromium + CHROME_BIN).')
+            error('No Chromium/Chrome found after apt. On the Jenkins host run: sudo apt-get install -y chromium fonts-liberation   OR rebuild/run Jenkins from Dockerfile.jenkins (includes Chromium).')
           }
           env.CHROME_BIN = chromeBin
+        }
+      }
+    }
+
+    stage('Frontend Install') {
+      steps {
+        dir('frontend') {
+          sh 'npm ci'
         }
       }
     }
