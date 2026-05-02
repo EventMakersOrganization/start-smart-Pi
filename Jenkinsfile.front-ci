@@ -107,10 +107,10 @@ pipeline {
     stage('Frontend Member1 Tests') {
       steps {
         dir('frontend') {
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/user-management/auth.service.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/user-management/jwt.interceptor.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/user-management/role.guard.spec.ts'
-          sh 'npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/user-management/login/login.component.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/auth.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/jwt.interceptor.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/role.guard.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/login/login.component.spec.ts'
         }
       }
     }
