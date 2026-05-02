@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { PerformanceHistoryComponent } from './performance-history.component';
 
 describe('PerformanceHistoryComponent', () => {
@@ -8,7 +9,9 @@ describe('PerformanceHistoryComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [PerformanceHistoryComponent]
+      imports: [HttpClientTestingModule],
+      declarations: [PerformanceHistoryComponent],
+      schemas: [NO_ERRORS_SCHEMA]
     });
     fixture = TestBed.createComponent(PerformanceHistoryComponent);
     component = fixture.componentInstance;

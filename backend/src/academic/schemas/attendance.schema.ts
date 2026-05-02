@@ -29,6 +29,9 @@ export class Attendance {
   @Prop({ type: Date, required: true, index: true })
   date: Date;
 
+  @Prop({ type: String, enum: ['S1', 'S2'], default: 'S1', required: true })
+  sessionType: string;
+
   @Prop({ type: [AttendanceRecordSchema], default: [] })
   records: AttendanceRecord[];
 
@@ -38,5 +41,5 @@ export class Attendance {
 
 export const AttendanceSchema = SchemaFactory.createForClass(Attendance);
 
-// Ensure uniqueness per class per day
-AttendanceSchema.index({ schoolClassId: 1, date: 1 }, { unique: true });
+// Ensure uniqueness per class per day per session
+AttendanceSchema.index({ schoolClassId: 1, date: 1, sessionType: 1 }, { unique: true });

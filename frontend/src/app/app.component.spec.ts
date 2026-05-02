@@ -20,10 +20,11 @@ describe('AppComponent', () => {
     expect(app.title).toEqual('frontend');
   });
 
-  it('should render title', () => {
+  it('should render shell with skip link and router outlet', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.content span')?.textContent).toContain('frontend app is running!');
+    expect(compiled.textContent).toContain('Skip to main content');
+    expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
 });

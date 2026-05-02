@@ -4,6 +4,7 @@
   "compilerOptions": {
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
+    "rootDir": "./src",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitOverride": true,
@@ -24,6 +25,11 @@
       "ES2022",
       "dom",
       "ESNext"
+    ]
+    ,
+    "types": [
+      "jasmine",
+      "node"
     ]
   },
   "angularCompilerOptions": {

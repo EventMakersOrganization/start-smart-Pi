@@ -35,9 +35,16 @@ export class AcademicController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
-  @Get('attendance/:classId/:date')
-  getAttendance(@Param('classId') classId: string, @Param('date') date: string) {
-    return this.academicService.getAttendance(classId, date);
+  @Get('attendance/:classId/:date/:sessionType')
+  getAttendance(@Param('classId') classId: string, @Param('date') date: string, @Param('sessionType') sessionType: string) {
+    return this.academicService.getAttendance(classId, date, sessionType);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @Get('attendance/:classId')
+  getAllAttendance(@Param('classId') classId: string) {
+    return this.academicService.getAllAttendance(classId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

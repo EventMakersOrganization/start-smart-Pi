@@ -1,9 +1,14 @@
+// Backend + ai-service CI (Nest/Jest + pytest)
 pipeline {
   agent any
 
   options {
     timestamps()
     disableConcurrentBuilds()
+  }
+
+  environment {
+    CI = 'true'
   }
 
   stages {
@@ -32,6 +37,7 @@ pipeline {
       }
     }
 
+
     stage('Backend Member1 Tests') {
       steps {
         dir('backend') {
@@ -42,12 +48,50 @@ pipeline {
         }
       }
     }
+    stage('Backend Member5 Tests') {
+      steps {
+        dir('backend') {
+          // Member 5: chat, activity, monitoring, prosits (explicit suite); video-generator
+          sh 'npm run test -- --runInBand --testPathPattern=chat.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=activity.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=monitoring.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=prosits.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=video-generator.service.spec'
+        
+        }
+      }
+    }
 
+    stage('Backend MemberKmar Tests') {
+      steps {
+        dir('backend') {
+          sh 'npm run test -- --runInBand --testPathPattern=courses.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=courses.controller.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=subjects.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=academic.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=exercises.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=kpi.service.spec'
+        }
+      }
+    }
+
+    // PEP 668: prefer a project venv; if ensurepip is missing (no python3-venv on agent), fall back to
+    // pip --break-system-packages (acceptable on ephemeral Jenkins agents).
     stage('AI Service Install') {
       steps {
         dir('ai-service') {
-          sh 'python3 -m pip install --upgrade pip'
-          sh 'pip3 install -r requirements.txt'
+          sh '''#!/usr/bin/env bash
+            set -e
+            rm -rf .venv
+            if python3 -m venv .venv 2>/dev/null; then
+              .venv/bin/python -m pip install --upgrade pip
+              .venv/bin/pip install -r requirements.txt
+            else
+              rm -rf .venv
+              python3 -m pip install --upgrade pip --break-system-packages
+              python3 -m pip install -r requirements.txt --break-system-packages
+            fi
+          '''
         }
       }
     }
@@ -55,7 +99,38 @@ pipeline {
     stage('AI Service Member3 Tests') {
       steps {
         dir('ai-service') {
-          sh 'pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q'
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q
+            else python3 -m pytest tests/test_mastery_model_v2.py tests/test_recommendation_v2.py tests/test_unit_prompt_engineer.py -q
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('AI Service Member5 Tests') {
+      steps {
+        dir('ai-service') {
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py::TestLatencyFastPathUnit tests/test_unit_hybrid_response_cache.py -q
+            else python3 -m pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py::TestLatencyFastPathUnit tests/test_unit_hybrid_response_cache.py -q
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('AI Service MemberKmar Tests') {
+      steps {
+        dir('ai-service') {
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_unit_learning_path_inputs.py tests/test_unit_level_progression.py -q
+            else python3 -m pytest tests/test_unit_learning_path_inputs.py tests/test_unit_level_progression.py -q
+            fi
+          '''
         }
       }
     }

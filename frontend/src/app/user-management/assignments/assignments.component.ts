@@ -145,7 +145,6 @@ export class AssignmentsComponent implements OnInit {
 
     this.loadingCourses = true;
     this.error = '';
-    this.message = '';
     this.http
       .get<any>(
         `${this.apiUrl}?page=1&limit=200&instructorId=${encodeURIComponent(String(instructorId))}`,

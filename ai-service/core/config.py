@@ -12,13 +12,10 @@ except ImportError:
 # Resolve .env path: ai-service root (parent of core/)
 _SERVICE_ROOT = Path(__file__).resolve().parent.parent
 _env_path = _SERVICE_ROOT / ".env"
-if not _env_path.exists():
-    raise FileNotFoundError(
-        f".env file not found at {_env_path}. "
-        "Please create a .env file with required variables (MONGODB_URI, etc.)."
-    )
-
-load_dotenv(_env_path)
+# Local dev: use ai-service/.env when present. CI (Jenkins, etc.) typically has no committed .env —
+# rely on process environment and the defaults below.
+if _env_path.is_file():
+    load_dotenv(_env_path)
 
 # MongoDB
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
@@ -119,8 +116,8 @@ def _mask_uri(uri: str) -> str:
         return "***"
 
 
-# Print loaded config (without sensitive data) when module is imported
-if __name__ != "__main__":
+# Print loaded config (without sensitive data) when module is imported (skip in CI to reduce noise)
+if __name__ != "__main__" and not os.getenv("CI"):
     print("[config] Loaded configuration:")
     print(f"  MONGODB_URI: {_mask_uri(MONGODB_URI)}")
     print(f"  MONGODB_DB_NAME: {MONGODB_DB_NAME}")
