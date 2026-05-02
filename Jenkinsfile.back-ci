@@ -138,7 +138,12 @@ pipeline {
     stage('AI Service Member1 Tests') {
       steps {
         dir('ai-service') {
-          sh 'pytest tests/test_unit_api_auth.py -q'
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_unit_api_auth.py -q
+            else python3 -m pytest tests/test_unit_api_auth.py -q
+            fi
+          '''
         }
       }
     }
