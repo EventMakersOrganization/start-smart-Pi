@@ -13,6 +13,7 @@ import { SocialLoginModule, SocialAuthServiceConfig, GoogleLoginProvider } from 
 import { environment } from '../environments/environment';
 
 import { SharedModule } from './shared/shared.module';
+import { ToastComponent } from './shared/components/toast.component';
 import { MarkdownModule, MarkedOptions } from 'ngx-markdown';
 import { chatMarkdownOptionsFactory } from './chat/markdown-options.factory';
 
@@ -25,6 +26,7 @@ import { chatMarkdownOptionsFactory } from './chat/markdown-options.factory';
     AppRoutingModule,
     HttpClientModule,
     BrowserAnimationsModule,
+    ToastComponent,
     SharedModule,
     SocialLoginModule,
     FormsModule,
