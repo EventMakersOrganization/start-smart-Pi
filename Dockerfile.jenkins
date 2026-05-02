@@ -20,7 +20,11 @@ RUN apt-get update && apt-get install -y \
     && python3 -m venv /tmp/venv-smoke-test \
     && /tmp/venv-smoke-test/bin/python -c "import sys; assert sys.prefix" \
     && rm -rf /tmp/venv-smoke-test \
+    && apt-get install -y --no-install-recommends chromium fonts-liberation \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Karma / Angular --browsers=ChromeHeadless looks for Chrome or CHROME_BIN.
+ENV CHROME_BIN=/usr/bin/chromium
 
 USER jenkins
