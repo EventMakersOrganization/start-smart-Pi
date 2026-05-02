@@ -54,18 +54,20 @@ def test_expired_token(client):
 
 def test_valid_authenticated_request(client):
     """
-    Scenario: Request with a valid student JWT token.
-    Expected: 200 OK for a general route like /health.
+    Scenario: Valid student JWT reaches /health with 200.
+    Aggregate status is healthy or degraded depending on Mongo/Chroma/Ollama (CI often degraded).
     """
     valid_payload = {
         "sub": "student_001",
         "role": "student"
     }
     token = jwt.encode(valid_payload, JWT_SECRET, algorithm="HS256")
-    
+
     response = client.get("/health", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+    data = response.json()
+    assert data["status"] in ("healthy", "degraded")
+    assert "mongodb" in data and "chromadb" in data and "ollama" in data
 
 def test_permission_forbidden_edge_case(client):
     """
