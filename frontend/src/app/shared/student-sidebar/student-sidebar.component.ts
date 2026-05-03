@@ -17,6 +17,7 @@ import { RouterModule } from '@angular/router';
 export class StudentSidebarComponent implements OnInit, OnDestroy {
   activeNav = 'dashboard';
   user: any;
+  studentLevel: string | null = null;
   private routerEventsSubscription?: Subscription;
 
   constructor(
@@ -27,6 +28,20 @@ export class StudentSidebarComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.user = this.authService.getUser();
+    
+    // Fetch student level
+    if (this.user && (this.user._id || this.user.id)) {
+      const userId = this.user._id || this.user.id;
+      this.adaptiveService.getProfile(userId).subscribe({
+        next: (profile: any) => {
+          this.studentLevel = profile?.level || 'Beginner';
+        },
+        error: () => {
+          this.studentLevel = 'Beginner';
+        }
+      });
+    }
+
     this.syncActiveNavFromUrl();
     this.routerEventsSubscription = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
@@ -68,6 +83,14 @@ export class StudentSidebarComponent implements OnInit, OnDestroy {
     }
     if (url.includes('/codebattle')) {
       this.activeNav = 'codebattle';
+      return;
+    }
+    if (url.includes('/brainrush')) {
+      this.activeNav = 'brainrush';
+      return;
+    }
+    if (url.includes('/student-dashboard/video-generator')) {
+      this.activeNav = 'generate-video';
       return;
     }
     this.activeNav = 'dashboard';

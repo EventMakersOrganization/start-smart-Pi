@@ -34,6 +34,7 @@ export interface GradeItem {
   gradeText: string;
   subChapterTitle?: string;
   chapterTitle?: string;
+  detailTypeLabel?: string;
   actionKey?: string;
   isLate?: boolean;
   syllabusItem?: SubjectChapterContent;
@@ -212,6 +213,8 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   openedPdfItems: Record<string, boolean> = {};
 
   openedVideoItems: Record<string, boolean> = {};
+  expandedCourseId: string | null = null;
+  courseContentsMap: Record<string, SubchapterContent[]> = {};
 
   togglePdfViewer(item: any) {
     const key = this.getItemKey(item);
@@ -288,6 +291,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     return this.dotColors[index % this.dotColors.length];
   }
   showSubjects = false;
+  justSubmittedInModal = false;
   @ViewChild('prositEditor') prositEditor?: ElementRef<HTMLDivElement>;
 
   private aiServiceUrl = 'http://localhost:8000';
@@ -325,10 +329,10 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     'ressources',
   ];
   readonly folderLabels: Record<FolderKey, string> = {
-    cours: 'Dossier Cours',
-    exercices: 'Dossier Exercices',
-    videos: 'Dossier Videos',
-    ressources: 'Dossier Ressources',
+    cours: 'Courses',
+    exercices: 'Exercices',
+    videos: 'Videos',
+    ressources: 'Additional Ressources',
   };
   activeFolderBySubchapter: Record<string, FolderKey> = {};
   selectedProsit: PrositViewModel | null = null;
@@ -373,12 +377,12 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   expandedCodeResources: Record<string, boolean> = {};
   expandedSubChapterKey: string | null = null;
 
-  toggleSubChapter(moduleIndex: number) {
-    const key = `${moduleIndex}`;
-    if (this.expandedSubChapterKey === key) {
+  toggleSubChapter(key: any) {
+    const sKey = String(key);
+    if (this.expandedSubChapterKey === sKey) {
       this.expandedSubChapterKey = null;
     } else {
-      this.expandedSubChapterKey = key;
+      this.expandedSubChapterKey = sKey;
     }
   }
   
@@ -386,6 +390,23 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   showViewModal = false;
   selectedContentForView: any = null;
   showFilePreview = true;
+  contentZoom = 100;
+
+  zoomInContent() {
+    if (this.contentZoom < 100) {
+      this.contentZoom += 10;
+    }
+  }
+
+  zoomOutContent() {
+    if (this.contentZoom > 50) {
+      this.contentZoom -= 10;
+    }
+  }
+
+  resetZoomContent() {
+    this.contentZoom = 100;
+  }
 
   async onOpenContent(module: any, folder: FolderKey, item: any) {
     // Construct a unified item object similar to what the modal expects
@@ -399,6 +420,18 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       previewError: null
     };
     
+    this.justSubmittedInModal = false;
+
+    const url = this.getItemUrl(item) || '';
+    const isPPT = url.toLowerCase().endsWith('.ppt') || url.toLowerCase().endsWith('.pptx');
+
+    if (isPPT && url) {
+      const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url}`;
+      const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullUrl)}&embedded=true`;
+      window.open(googleViewerUrl, '_blank');
+      return;
+    }
+
     this.showViewModal = true;
     this.showFilePreview = (item.type !== 'prosit'); // Collapse by default for Prosits
     
@@ -441,7 +474,6 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       }
     }
 
-    const url = this.getItemUrl(item) || '';
     const isDocx = url.toLowerCase().endsWith('.docx') || url.toLowerCase().endsWith('.doc');
     const isText = url.toLowerCase().endsWith('.txt') || url.toLowerCase().endsWith('.html') || url.toLowerCase().endsWith('.htm');
 
@@ -481,6 +513,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   closeViewModal() {
     this.showViewModal = false;
     this.selectedContentForView = null;
+    this.selectedQuiz = null;
   }
 
   getFolderLabel(folder: any): string {
@@ -1081,9 +1114,20 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
               }
             }
 
+            let detailTypeLabel = 'Activité';
+            if (content.type === 'prosit') {
+              detailTypeLabel = 'Prosit';
+            } else if (content.type === 'quiz') {
+              detailTypeLabel = (content.quizQuestions && content.quizQuestions.length > 0) 
+                ? 'Quiz QCM' 
+                : 'Quiz Fichier';
+            }
+
+            const displayTitle = content.fileName || content.title;
             items.push({
               type: content.type === 'quiz' ? 'quiz' : 'prosit',
-              name: content.type === 'quiz' ? `Évaluation : ${content.title}` : `Rendu : ${content.title}`,
+              name: content.type === 'quiz' ? `Évaluation : ${displayTitle}` : `Rendu : ${displayTitle}`,
+              detailTypeLabel,
               subChapterTitle: subChapter.title,
               chapterTitle: course.title,
               dueDate: content.dueDate ? new Date(content.dueDate).toLocaleDateString() : undefined,
@@ -1637,17 +1681,28 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   }
 
   openCourse(course: CourseItem): void {
+    if (this.expandedCourseId === course.id) {
+      this.expandedCourseId = null;
+      return;
+    }
+
+    this.expandedCourseId = course.id || null;
+    
     this.clearQuizTracking('switch-chapter');
     this.clearPrositTracking('switch-chapter');
     this.clearChapterTracking('switch-chapter');
+    
     const subjectId = this.selectedSubject?.subjectDbId;
+    
     if (subjectId && isCourseSubjectPseudoId(subjectId)) {
       this.startChapterTracking(course);
       this.selectedCourse = course;
-      this.viewMode = 'content';
-      this.loadCourseContent(course);
+      // Load content but don't change viewMode
+      const contents = this.buildSubchapterContents(course);
+      if (course.id) this.courseContentsMap[course.id] = contents;
       return;
     }
+
     this.trackActivity('chapter_open', {
       resource_type: 'chapter',
       resource_id: String(course.id || course.chapterOrder),
@@ -1657,6 +1712,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
         chapterOrder: course.chapterOrder,
       },
     });
+
     if (subjectId) {
       this.courseLoading = true;
       this.subjectsService.getSubject(subjectId).subscribe({
@@ -1664,22 +1720,25 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
           const merged = this.mergeCourseWithFreshSubject(course, fresh);
           this.startChapterTracking(merged);
           this.selectedCourse = merged;
-          this.viewMode = 'content';
-          this.loadCourseContent(merged);
+          const contents = this.buildSubchapterContents(merged);
+          if (course.id) this.courseContentsMap[course.id] = contents;
+          this.courseLoading = false;
         },
         error: () => {
           this.startChapterTracking(course);
           this.selectedCourse = course;
-          this.viewMode = 'content';
-          this.loadCourseContent(course);
+          const contents = this.buildSubchapterContents(course);
+          if (course.id) this.courseContentsMap[course.id] = contents;
+          this.courseLoading = false;
         },
       });
       return;
     }
+
     this.startChapterTracking(course);
     this.selectedCourse = course;
-    this.viewMode = 'content';
-    this.loadCourseContent(course);
+    const contents = this.buildSubchapterContents(course);
+    if (course.id) this.courseContentsMap[course.id] = contents;
   }
 
   /** List payload can be shallow; detail GET returns full subchapters + contents for student work. */
@@ -1779,13 +1838,10 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     
     this.selectedQuizAnswers = [...this.modalQuizAnswers];
     
-    // Call the existing submitQuiz method
-    this.submitQuiz();
+    this.justSubmittedInModal = true;
     
-    // Close modal after submission (it will show success message via submitQuiz and then we close)
-    setTimeout(() => {
-      this.closeViewModal();
-    }, 2000);
+    // Call the existing submitQuiz method with modal flag
+    this.submitQuiz(true);
   }
 
   getModalQuizResult(): any {
@@ -1829,10 +1885,6 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     if (quizId) {
       this.quizFileSubmissionsById[quizId] = submission;
     }
-    // Optional: add a small delay before closing or just let the viewer show the success state
-    setTimeout(() => {
-      this.closeViewModal();
-    }, 2000);
   }
 
   backToChapterContent(): void {
@@ -1929,13 +1981,13 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     this.courseLoading = false;
   }
 
-  getSubchapterKey(module: SubchapterContent, index: number): string {
+  getSubchapterKey(module: SubchapterContent, index: any): string {
     return `${this.selectedCourse?.id || 'course'}_${index}_${module.title}`;
   }
 
   getActiveFolderForSubchapter(
     module: SubchapterContent,
-    index: number,
+    index: any,
   ): FolderKey {
     const key = this.getSubchapterKey(module, index);
     return this.activeFolderBySubchapter[key] || 'cours';
@@ -1943,14 +1995,14 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
 
   setActiveFolderForSubchapter(
     module: SubchapterContent,
-    index: number,
+    index: any,
     folder: FolderKey,
   ): void {
     const key = this.getSubchapterKey(module, index);
     this.activeFolderBySubchapter[key] = folder;
     this.trackActivity('subchapter_open', {
-      resource_type: 'subchapter-folder',
       resource_id: key,
+      resource_type: 'subchapter-folder',
       resource_title: module.title,
       metadata: { folder },
     });
@@ -2347,7 +2399,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     );
   }
 
-  submitQuiz(): void {
+  submitQuiz(isModal: boolean = false): void {
     if (!this.selectedQuiz) {
       return;
     }
@@ -2423,7 +2475,10 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
         this.quizSubmitted = true;
         this.quizSubmitMessage = `Quiz ${this.selectedQuiz!.title} pret pour validation (${this.getQuizAnsweredCount()}/${this.selectedQuiz!.questions.length} reponses).`;
         this.refreshSelectedSubjectProgress();
-        this.backToChapterContentFromQuiz();
+        
+        if (!isModal) {
+          this.backToChapterContentFromQuiz();
+        }
       },
       error: (err) => {
         console.error('Quiz submission error:', err);
@@ -2461,7 +2516,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
 
     if (!this.selectedQuizResponseFile) {
       this.quizFileSubmitMessage =
-        'Veuillez selectionner un fichier de reponse (PDF/Word).';
+        'Veuillez selectionner un fichier de reponse (PDF, Word ou PowerPoint).';
       this.quizFileSubmitted = false;
       return;
     }
@@ -2512,7 +2567,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
         const errorMsg =
           err?.error?.message ||
           err?.message ||
-          'Erreur lors de la soumission du fichier.';
+          'Erreur lors de la soumission du fichier (PDF, Word ou PowerPoint).';
         this.quizFileSubmitMessage = `Erreur: ${errorMsg}`;
         this.quizFileSubmitted = false;
       },
@@ -2654,11 +2709,15 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     return !!(key && this.prositSubmissionsByKey[key]);
   }
 
-  getPrositSubmission(module: any, item: any): any {
+  isItemPrositSubmitted(course: any, module: any, item: any): boolean {
+    return !!this.getPrositSubmission(course, module, item);
+  }
+
+  getPrositSubmission(course: any, module: any, item: any): any {
     if (item.type !== 'prosit') return null;
     const key = this.buildPrositSubmissionKey(
-      this.selectedCourse?.subject || '',
-      this.selectedCourse?.title || 'Chapter',
+      course?.subject || this.selectedCourse?.subject || '',
+      course?.title || this.selectedCourse?.title || 'Chapter',
       module.title,
       item.title
     );

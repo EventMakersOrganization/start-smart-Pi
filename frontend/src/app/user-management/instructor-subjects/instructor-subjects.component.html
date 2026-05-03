@@ -171,7 +171,7 @@
                 <span class="text-[10px] font-black text-primary uppercase tracking-widest">View Subject Details</span>
                 <div
                   class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
-                  <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                  <span class="material-symbols-outlined text-sm">visibility</span>
                 </div>
               </div>
             </div>
@@ -422,10 +422,8 @@
                                       {{ content.type }}
                                     </span>
                                     <button (click)="onOpenContent(content)"
-                                      class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95"
-                                      type="button">
-                                      <span class="material-symbols-outlined text-[14px]">visibility</span>
-                                      VIEW
+                                      class="p-2 rounded-lg bg-white dark:bg-slate-700 text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+                                      <span class="material-symbols-outlined text-sm">visibility</span>
                                     </button>
                                     <button
                                       *ngIf="content.type === 'quiz' && content.quizQuestions && content.quizQuestions.length > 0"
@@ -472,12 +470,11 @@
 
                               </div>
 
-                              <p *ngIf="
-                                  !getContentsByFolder(subChapter, folder)
-                                    .length
-                                " class="text-[11px] text-slate-400">
-                                Aucun contenu dans ce dossier.
-                              </p>
+                              <div *ngIf="getContentsByFolder(subChapter, folder).length === 0" 
+                                class="p-6 text-center bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 animate-fade-in">
+                                <span class="material-symbols-outlined text-2xl text-slate-300 dark:text-slate-600 mb-1">folder_open</span>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">No Content Found</p>
+                              </div>
                             </div>
                           </article>
                         </ng-container>
@@ -1268,7 +1265,7 @@
                     </div>
                     <div>
                       <h4 class="text-sm font-bold text-slate-800 dark:text-white">Upload Subject File</h4>
-                      <p class="text-xs text-slate-500 mt-1">PDF or Word document for students</p>
+                      <p class="text-xs text-slate-500 mt-1">PDF, Word or PPT document for students</p>
 
                       <!-- Existing file indicator -->
                       <div *ngIf="chapterContentForm.url && !selectedChapterFile"
@@ -1284,7 +1281,7 @@
                         Selected: {{ selectedChapterFile.name }}
                       </p>
                     </div>
-                    <input type="file" accept=".pdf,.doc,.docx" (change)="onChapterFileSelected($event)"
+                    <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" (change)="onChapterFileSelected($event)"
                       class="block w-full max-w-xs text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700 cursor-pointer" />
                   </div>
                 </div>
@@ -1301,7 +1298,7 @@
                   </div>
                   <div>
                     <h4 class="text-sm font-bold text-slate-800 dark:text-white">Upload Course File</h4>
-                    <p class="text-xs text-slate-500">PDF, Word or Excel documents</p>
+                    <p class="text-xs text-slate-500">PDF, Word, Excel or PPT documents</p>
                   </div>
                 </div>
 
@@ -1313,7 +1310,7 @@
                     chapterContentForm.url.split('/').pop() }}</span>
                 </div>
 
-                <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" (change)="onChapterFileSelected($event)"
+                <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" (change)="onChapterFileSelected($event)"
                   class="block w-full text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700 cursor-pointer" />
 
                 <p *ngIf="selectedChapterFile" class="text-xs text-emerald-600 font-black flex items-center gap-1">
@@ -1461,7 +1458,7 @@
               <div class="w-full">
                 <h4 *ngIf="!isEditingQuizFileContent" class="text-sm font-bold text-slate-800 dark:text-white">Upload
                   Quiz File</h4>
-                <p *ngIf="!isEditingQuizFileContent" class="text-xs text-slate-500 mt-1">Accepts PDF, Word, or Excel
+                <p *ngIf="!isEditingQuizFileContent" class="text-xs text-slate-500 mt-1">Accepts PDF, Word, Excel, or PPT
                   documents</p>
 
                 <!-- Existing file indicator -->
@@ -1517,7 +1514,7 @@
                 </p>
               </div>
               <input *ngIf="!isEditingQuizFileContent && !editingContentId" type="file"
-                accept=".pdf,.doc,.docx,.xls,.xlsx" (change)="onChapterFileSelected($event)"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" (change)="onChapterFileSelected($event)"
                 class="block w-full max-w-xs text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700 cursor-pointer" />
             </div>
           </div>
@@ -1554,15 +1551,16 @@
 
   <!-- View Content Modal -->
   <div *ngIf="showViewModal && selectedContentForView"
-    class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-fade-in">
-    <div
-      class="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col animate-scale-in border border-white/10">
-      <!-- Modal Header -->
-      <div
-        class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-        <div class="flex items-center gap-4">
-          <div
-            class="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-600 animate-bounce-soft">
+    class="fixed inset-0 z-[120] flex items-center justify-center p-0 md:p-6 bg-slate-900/60 backdrop-blur-2xl animate-fade-in transition-all duration-500">
+    <!-- Close Backdrop -->
+    <div class="absolute inset-0 z-0" (click)="closeViewModal()"></div>
+
+    <div class="relative z-10 bg-white dark:bg-slate-900 w-full max-w-6xl h-full md:h-[95vh] md:rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col animate-scale-in border border-slate-200 dark:border-slate-800 ring-1 ring-black/5 dark:ring-white/10">
+      
+      <!-- Premium Floating Header -->
+      <header class="absolute top-0 inset-x-0 z-20 p-4 md:p-6 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-4 md:gap-6">
+          <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
             <span class="material-symbols-outlined text-2xl">
               {{
               selectedContentForView.type === 'quiz' ? 'quiz' :
@@ -1571,29 +1569,28 @@
               }}
             </span>
           </div>
-          <div>
-            <h2 class="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+          <div class="min-w-0">
+            <h3 class="text-sm md:text-lg font-black text-slate-900 dark:text-white leading-tight truncate pr-4">
               {{ selectedContentForView.title }}
-            </h2>
-            <div class="flex items-center gap-2 mt-0.5">
-              <span
-                class="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-500 tracking-widest">
-                {{ selectedContentForView.type }}
-              </span>
-              <span class="text-slate-300 dark:text-slate-600">•</span>
-              <span class="text-[10px] font-medium text-slate-400">Content Preview</span>
+            </h3>
+            <div class="flex items-center gap-2">
+              <span class="text-[9px] font-black text-primary/60 uppercase tracking-widest">{{ selectedContentForView.type }}</span>
+              <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+              <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">Content Preview</p>
             </div>
           </div>
         </div>
-        <button (click)="closeViewModal()"
-          class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-90 group">
-          <span
-            class="material-symbols-outlined text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">close</span>
-        </button>
-      </div>
+
+        <div class="flex items-center gap-3">
+          <button (click)="closeViewModal()"
+            class="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white dark:hover:bg-rose-600 rounded-full transition-all duration-300 hover:rotate-90 hover:scale-110 active:scale-95 group shadow-sm hover:shadow-rose-500/30">
+            <span class="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors">close</span>
+          </button>
+        </div>
+      </header>
 
       <!-- Modal Body -->
-      <div class="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/30 dark:bg-slate-900/30">
+      <main class="flex-1 overflow-y-auto pt-24 md:pt-28 pb-10 px-4 md:px-10 custom-scrollbar scroll-smooth">
         <!-- 1. Quiz Display -->
         <div *ngIf="selectedContentForView.type === 'quiz'" class="space-y-6">
           <!-- Real Quiz Content -->
@@ -1644,9 +1641,52 @@
         </div>
 
         <!-- 3. File Display (PDF/DOCX) -->
-        <div
-          *ngIf="selectedContentForView.url && (selectedContentForView.type === 'file' || (selectedContentForView.type === 'quiz' && !selectedContentForView.quizQuestions?.length))"
-          class="h-[75vh] rounded-[1.5rem] overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xl bg-white relative">
+        <div *ngIf="selectedContentForView.url && (selectedContentForView.type === 'file' || (selectedContentForView.type === 'quiz' && !selectedContentForView.quizQuestions?.length))"
+          class="h-full flex flex-col gap-4">
+
+          <!-- Modern Zoom & Action Toolbar -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white/20 shadow-2xl animate-fade-in-down z-[70] pointer-events-auto">
+             <div class="flex items-center gap-6">
+                <div class="flex items-center bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden shadow-inner">
+                   <button (click)="zoomOutContent(); $event.stopPropagation()" 
+                     class="w-14 h-14 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all active:scale-90">
+                      <span class="material-symbols-outlined text-2xl">remove</span>
+                   </button>
+                   <div class="px-8 text-sm font-black text-slate-800 dark:text-slate-200 border-x border-slate-200/30 min-w-[100px] text-center">
+                      {{ contentZoom }}%
+                   </div>
+                   <button (click)="zoomInContent(); $event.stopPropagation()" 
+                     class="w-14 h-14 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all active:scale-90"
+                     [disabled]="contentZoom >= 100">
+                      <span class="material-symbols-outlined text-2xl">add</span>
+                   </button>
+                </div>
+
+                <button (click)="resetZoomContent(); $event.stopPropagation()" 
+                  class="hidden md:flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary/30 transition-all">
+                  <span class="material-symbols-outlined text-base">restart_alt</span>
+                  Reset View
+                </button>
+             </div>
+
+             <div class="flex items-center gap-3">
+                <a [href]="selectedContentForView.url.startsWith('http') ? selectedContentForView.url : 'http://localhost:3000' + selectedContentForView.url"
+                  target="_blank"
+                  class="h-14 px-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10 dark:shadow-white/5">
+                  <span class="material-symbols-outlined text-xl">download</span>
+                  Download File
+                </a>
+             </div>
+          </div>
+
+          <div class="flex-1 min-h-[65vh] rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner bg-slate-50 dark:bg-slate-900 relative animate-fade-in-down group">
+            
+            <div class="w-full h-full overflow-auto custom-scrollbar bg-slate-50 dark:bg-slate-900/20">
+              <div [style.width.%]="contentZoom" [style.height.%]="contentZoom" class="relative min-w-full min-h-full transition-all duration-300">
+                <div class="absolute inset-0 origin-top-left transition-transform duration-300 flex justify-center"
+                     [style.transform]="'scale(' + contentZoom/100 + ')'"
+                     [style.width]="(10000 / contentZoom) + '%'"
+                     [style.height]="(10000 / contentZoom) + '%'">
 
           <!-- DOCX Preview (HTML converted from Mammoth) -->
           <div *ngIf="selectedContentForView.previewHtml"
@@ -1656,36 +1696,40 @@
           <!-- PDF Preview -->
           <iframe
             *ngIf="!selectedContentForView.previewHtml && selectedContentForView.url.toLowerCase().endsWith('.pdf')"
-            [src]="(selectedContentForView.url.startsWith('http') ? selectedContentForView.url : 'http://localhost:3000' + selectedContentForView.url) + '#toolbar=0&navpanes=0&view=FitH' | safeUrl"
+            [src]="(selectedContentForView.url.startsWith('http') ? selectedContentForView.url : 'http://localhost:3000' + selectedContentForView.url) + '#toolbar=0&navpanes=0' | safeUrl"
             class="w-full h-full border-none"></iframe>
 
-          <!-- Fallback link if nothing else works -->
-          <div
-            *ngIf="!selectedContentForView.previewHtml && !selectedContentForView.url.toLowerCase().endsWith('.pdf') && !selectedContentForView.loadingPreview"
-            class="flex flex-col items-center justify-center h-full p-10 text-center space-y-4">
-            <span class="material-symbols-outlined text-5xl text-slate-300">description</span>
-            <p class="text-slate-500 font-medium">L'aperçu n'est pas disponible pour ce type de fichier.</p>
-            <a [href]="selectedContentForView.url.startsWith('http') ? selectedContentForView.url : 'http://localhost:3000' + selectedContentForView.url"
-              target="_blank"
-              class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors">Télécharger
-              le fichier</a>
-          </div>
+                  <!-- Fallback link if nothing else works -->
+                  <div
+                    *ngIf="!selectedContentForView.previewHtml && !selectedContentForView.url.toLowerCase().endsWith('.pdf') && !selectedContentForView.loadingPreview"
+                    class="flex flex-col items-center justify-center w-full h-full p-20 text-center space-y-8 bg-white">
+                    <span class="material-symbols-outlined text-7xl text-slate-200">warning</span>
+                    <h3 class="text-2xl font-black text-slate-900 dark:text-white">Aperçu indisponible</h3>
+                    <a [href]="selectedContentForView.url.startsWith('http') ? selectedContentForView.url : 'http://localhost:3000' + selectedContentForView.url"
+                      target="_blank"
+                      class="px-12 py-5 bg-primary text-white rounded-2xl font-black tracking-widest text-xs hover:scale-105 transition-all">Télécharger
+                      le document</a>
+                  </div>
 
-          <!-- Loading Spinner -->
-          <div *ngIf="selectedContentForView.loadingPreview"
-            class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm z-10">
-            <div class="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
-            <p class="mt-4 text-sm font-black text-slate-600 dark:text-slate-300 tracking-widest uppercase">Génération
-              de l'aperçu...</p>
-          </div>
+                  <!-- Loading Spinner -->
+                  <div *ngIf="selectedContentForView.loadingPreview"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm z-10">
+                    <div class="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+                    <p class="mt-4 text-sm font-black text-slate-600 dark:text-slate-300 tracking-widest uppercase">Génération
+                      de l'aperçu...</p>
+                  </div>
 
-          <!-- Error Message -->
-          <div *ngIf="selectedContentForView.previewError"
-            class="absolute inset-0 flex flex-col items-center justify-center bg-red-50 p-10 text-center">
-            <span class="material-symbols-outlined text-red-400 text-5xl">error</span>
-            <p class="mt-4 text-red-700 font-bold">{{ selectedContentForView.previewError }}</p>
-            <button (click)="onOpenContent(selectedContentForView)"
-              class="mt-4 text-sm underline text-red-600">Réessayer</button>
+                  <!-- Error Message -->
+                  <div *ngIf="selectedContentForView.previewError"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-red-50 p-10 text-center">
+                    <span class="material-symbols-outlined text-red-400 text-5xl">error</span>
+                    <p class="mt-4 text-red-700 font-bold">{{ selectedContentForView.previewError }}</p>
+                    <button (click)="onOpenContent(selectedContentForView)"
+                      class="mt-4 text-sm underline text-red-600">Réessayer</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1774,16 +1818,8 @@
           </a>
           <p class="text-[10px] text-slate-400 font-mono break-all max-w-md">{{ selectedContentForView.url }}</p>
         </div>
-      </div>
+      </main>
 
-      <!-- Modal Footer -->
-      <div
-        class="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex justify-end">
-        <button (click)="closeViewModal()"
-          class="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-black hover:scale-105 active:scale-95 transition-all shadow-lg shadow-slate-900/20 dark:shadow-white/10">
-          CLOSE PREVIEW
-        </button>
-      </div>
     </div>
   </div>
 </div>

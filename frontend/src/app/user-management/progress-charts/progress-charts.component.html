@@ -120,7 +120,7 @@
     <div class="grid grid-cols-12 gap-6">
       <!-- Bar Chart : Score par Topic -->
       <div
-        class="col-span-12 lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6"
+        class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
       >
         <div class="flex items-center justify-between mb-4">
           <div>
@@ -137,28 +137,6 @@
         </div>
         <div class="chart-frame chart-frame--md">
           <canvas id="topicBarChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Doughnut : Difficulty -->
-      <div
-        class="col-span-12 lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6"
-      >
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-lg font-bold">Difficulty</h3>
-            <p class="text-xs text-slate-500">Distribution</p>
-          </div>
-          <div
-            class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center"
-          >
-            <span class="material-symbols-outlined text-orange-500 text-sm"
-              >donut_large</span
-            >
-          </div>
-        </div>
-        <div class="chart-frame chart-frame--sm">
-          <canvas id="difficultyDoughnut"></canvas>
         </div>
       </div>
     </div>
@@ -212,25 +190,6 @@
       </div>
     </div>
 
-    <!-- Radar Chart -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-6">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 class="text-lg font-bold">Topic Performance (Radar)</h3>
-          <p class="text-xs text-slate-500">Overall average per subject</p>
-        </div>
-        <div
-          class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"
-        >
-          <span class="material-symbols-outlined text-purple-600 text-sm"
-            >radar</span
-          >
-        </div>
-      </div>
-      <div class="chart-frame chart-frame--md">
-        <canvas id="radarChart"></canvas>
-      </div>
-    </div>
 
     <!-- Cumulative Line Chart -->
     <div class="bg-white rounded-2xl border border-slate-200 p-6">
