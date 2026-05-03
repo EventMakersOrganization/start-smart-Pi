@@ -271,47 +271,104 @@
           Loading subjects...
         </h3>
       </div>
-
       <div *ngFor="let subject of subjects; let i = index"
-        class="subject-card rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.035] transition-all duration-300 backdrop-blur-md animate-fade-in-up"
-        [ngStyle]="{ 'animation-delay': i * 120 + 'ms' }">
-        <div class="p-6">
-          <div class="flex items-center mb-4">
-            <span class="inline-block w-3 h-3 rounded-full mr-2" [ngStyle]="{ background: getDotColor(i) }"></span>
+        class="group relative flex flex-col bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-lg hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 overflow-hidden animate-fade-in-up"
+        [ngStyle]="{ 'animation-delay': i * 80 + 'ms' }">
+        
+        <!-- Smaller Card Header -->
+        <div class="h-24 w-full relative overflow-hidden">
+          <div class="absolute inset-0 opacity-90 group-hover:opacity-100 transition-opacity duration-500"
+            [ngClass]="[
+              'bg-gradient-to-br',
+              i % 6 === 0 ? 'from-blue-400 to-indigo-600' :
+              i % 6 === 1 ? 'from-emerald-400 to-teal-600' :
+              i % 6 === 2 ? 'from-orange-400 to-rose-500' :
+              i % 6 === 3 ? 'from-purple-500 to-indigo-700' :
+              i % 6 === 4 ? 'from-pink-500 to-rose-600' :
+              'from-amber-400 to-orange-500'
+            ]">
           </div>
-          <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+          
+          <div class="absolute inset-0 opacity-10 flex items-center justify-center pointer-events-none">
+            <span class="material-symbols-outlined text-[80px] scale-125 rotate-12">menu_book</span>
+          </div>
+
+          <div class="absolute top-4 left-5 px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[9px] font-black text-white uppercase tracking-widest">
+            {{ subject.count }} CHAPTER{{ subject.count > 1 ? "S" : "" }}
+          </div>
+        </div>
+
+        <!-- Compact Content Section -->
+        <div class="px-6 pb-6 pt-8 relative flex-grow flex flex-col">
+          <!-- Scaled Down Floating Icon -->
+          <div class="absolute -top-6 left-6 w-12 h-12 rounded-xl bg-white dark:bg-slate-800 shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-500 border-4 border-slate-50 dark:border-slate-950">
+            <span class="material-symbols-outlined text-xl" 
+              [ngClass]="[
+                i % 6 === 0 ? 'text-blue-500' :
+                i % 6 === 1 ? 'text-emerald-500' :
+                i % 6 === 2 ? 'text-orange-500' :
+                i % 6 === 3 ? 'text-purple-500' :
+                i % 6 === 4 ? 'text-pink-500' :
+                'text-amber-500'
+              ]">
+              {{ 
+                subject.name.toLowerCase().includes('base') ? 'database' :
+                subject.name.toLowerCase().includes('cloud') ? 'cloud' :
+                subject.name.toLowerCase().includes('si') ? 'account_tree' :
+                subject.name.toLowerCase().includes('projet') ? 'assignment' :
+                subject.name.toLowerCase().includes('programmation') ? 'code' :
+                'school'
+              }}
+            </span>
+          </div>
+
+          <h3 class="text-lg font-black text-slate-900 dark:text-white mb-1 line-clamp-1">
             {{ subject.name }}
           </h3>
-          <p class="text-sm text-slate-500 mb-4">
-            {{ subject.count }} chapter{{ subject.count > 1 ? "s" : "" }}
-            available
-          </p>
-          <div *ngIf="subject.subjectDbId" class="mb-6">
-            <div *ngIf="!subject.progressLoaded" class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse"
-              aria-hidden="true"></div>
+
+          <div *ngIf="subject.subjectDbId" class="mb-5">
+            <div *ngIf="!subject.progressLoaded" class="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+               <div class="h-full bg-slate-200 dark:bg-slate-700 w-1/3 animate-shimmer"></div>
+            </div>
             <div *ngIf="subject.progressLoaded" class="space-y-1.5">
-              <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                <span>Course progress</span>
-                <span class="font-bold text-slate-700 dark:text-slate-200">{{ subject.progressPercent ?? 0 | number:
-                  "1.0-2" }}%</span>
+              <div class="flex justify-between items-center">
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">PROGRESS</span>
               </div>
-              <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden" role="progressbar"
-                aria-label="Subject learning progress" [attr.aria-valuenow]="subject.progressPercent ?? 0"
-                aria-valuemin="0" aria-valuemax="100">
+              <div class="h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner relative flex items-center">
                 <div
-                  class="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-[width] duration-300"
-                  [style.width.%]="subject.progressPercent ?? 0"></div>
+                  class="h-full rounded-full bg-gradient-to-r transition-all duration-1000 ease-out flex items-center justify-center min-w-[20px]"
+                  [ngClass]="[
+                    i % 6 === 0 ? 'from-blue-400 to-indigo-500' :
+                    i % 6 === 1 ? 'from-emerald-400 to-teal-500' :
+                    i % 6 === 2 ? 'from-orange-400 to-rose-400' :
+                    i % 6 === 3 ? 'from-purple-400 to-indigo-500' :
+                    i % 6 === 4 ? 'from-pink-400 to-rose-500' :
+                    'from-amber-400 to-orange-400'
+                  ]"
+                  [style.width.%]="subject.progressPercent ?? 0">
+                  <span *ngIf="(subject.progressPercent ?? 0) > 25" class="text-[9px] font-black text-white px-2 animate-fade-in">
+                    {{ subject.progressPercent ?? 0 | number: "1.0-0" }}%
+                  </span>
+                </div>
+                <span *ngIf="(subject.progressPercent ?? 0) <= 25" class="absolute left-2 text-[9px] font-black text-slate-500 dark:text-slate-400 animate-fade-in">
+                  {{ subject.progressPercent ?? 0 | number: "1.0-0" }}%
+                </span>
               </div>
             </div>
           </div>
-          <button *ngIf="!hasTakenLevelTest(subject)" (click)="takeLevelTest(subject)"
-            class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors">
-            Take the level test
-          </button>
-          <button *ngIf="hasTakenLevelTest(subject)" (click)="openSubject(subject)"
-            class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors">
-            Open Subject
-          </button>
+
+          <div class="mt-auto space-y-2">
+            <button *ngIf="!hasTakenLevelTest(subject)" (click)="takeLevelTest(subject)"
+              class="w-full py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black text-[10px] uppercase tracking-widest hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+              TAKE TEST
+              <span class="material-symbols-outlined text-sm">bolt</span>
+            </button>
+            <button *ngIf="hasTakenLevelTest(subject)" (click)="openSubject(subject)"
+              class="w-full py-3 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group/btn">
+              OPEN
+              <span class="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+            </button>
+          </div>
         </div>
       </div>
       <div *ngIf="!subjectsLoading && subjects.length === 0" class="col-span-full text-center py-16 text-slate-500">
@@ -351,17 +408,7 @@
             Content
           </button>
  
-          <button (click)="setActiveSubjectTab('announcements')"
-            [class]="activeSubjectTab === 'announcements' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'"
-            class="whitespace-nowrap pb-4 px-1 border-b-[3px] text-[15px] font-black transition-colors uppercase tracking-wide">
-            Announcements
-          </button>
- 
-          <button (click)="setActiveSubjectTab('discussions')"
-            [class]="activeSubjectTab === 'discussions' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'"
-            class="whitespace-nowrap pb-4 px-1 border-b-[3px] text-[15px] font-black transition-colors uppercase tracking-wide">
-            Discussions
-          </button>
+
  
           <button (click)="setActiveSubjectTab('grades')"
             [class]="activeSubjectTab === 'grades' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'"
@@ -372,31 +419,157 @@
         </nav>
       </div>
 
-      <!-- Tab Content: Content -->
-      <div *ngIf="activeSubjectTab === 'content'" class="animate-fade-in-up mt-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <div *ngIf="subjectCoursesLoading" class="col-span-full text-center py-12 text-slate-500">
-            <span class="material-symbols-outlined text-4xl text-slate-300 animate-spin">refresh</span>
-            <p class="mt-2 font-medium">Loading chapters...</p>
+      <!-- Tab Content: Content (Horizontal List) -->
+      <div *ngIf="activeSubjectTab === 'content'" class="animate-fade-in mt-8">
+        <div class="flex flex-col gap-4 pb-12">
+          <!-- Loading State -->
+          <div *ngIf="subjectCoursesLoading" class="text-center py-20 bg-white/50 dark:bg-slate-900/50 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
+            <span class="material-symbols-outlined text-5xl text-primary animate-spin mb-4">refresh</span>
+            <h3 class="text-xl font-black text-slate-700 dark:text-white">Loading chapters...</h3>
+            <p class="text-slate-400 text-sm">Organizing your learning path...</p>
           </div>
 
-          <div *ngFor="let course of selectedSubject.courses"
-            class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group">
-            <h4 class="font-black text-xl text-slate-900 dark:text-white mb-2 group-hover:text-primary transition-colors">
-              {{ course.title }}
-            </h4>
-            <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-6">
-              {{ course.description || "No chapter description available." }}
-            </p>
-            <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
-              <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                {{ course.moduleCount }} module{{ course.moduleCount > 1 ? "s" : "" }}
-              </p>
-              <button (click)="openCourse(course)"
-                class="flex items-center gap-2 px-5 py-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all group-hover:shadow-lg group-hover:shadow-primary/30">
-                Open
-                <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
-              </button>
+          <!-- Empty State -->
+          <div *ngIf="!subjectCoursesLoading && selectedSubject.courses.length === 0" class="text-center py-16 bg-white dark:bg-slate-900 rounded-[3rem] border border-dashed border-slate-300 dark:border-slate-700">
+             <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">folder_open</span>
+             <p class="text-lg font-bold text-slate-600 dark:text-slate-400">No chapters found for this subject.</p>
+          </div>
+
+          <!-- Chapter Rows -->
+          <div *ngFor="let course of selectedSubject.courses; let ci = index" class="flex flex-col animate-fade-in-up" [ngStyle]="{ 'animation-delay': ci * 80 + 'ms' }">
+            <div 
+              class="group relative flex flex-col md:flex-row items-center gap-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 pr-8 transition-all duration-500"
+              [ngClass]="expandedCourseId === course.id ? 'rounded-t-3xl border-b-0 shadow-sm' : 'rounded-3xl hover:shadow-xl hover:-translate-y-1'">
+              
+              <!-- Icon Section with Gradient Side Bar -->
+              <div class="flex items-center gap-5 w-full md:w-auto">
+                <div class="w-1.5 h-12 rounded-full"
+                  [ngClass]="[
+                    ci % 4 === 0 ? 'bg-gradient-to-b from-blue-400 to-indigo-600' :
+                    ci % 4 === 1 ? 'bg-gradient-to-b from-purple-500 to-pink-600' :
+                    ci % 4 === 2 ? 'bg-gradient-to-b from-emerald-400 to-teal-600' :
+                    'bg-gradient-to-b from-orange-400 to-red-500'
+                  ]">
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:scale-110 transition-all duration-500 shadow-inner">
+                  <span class="material-symbols-outlined text-2xl"
+                    [ngClass]="[
+                      ci % 4 === 0 ? 'text-blue-500' :
+                      ci % 4 === 1 ? 'text-purple-500' :
+                      ci % 4 === 2 ? 'text-emerald-500' :
+                      'text-orange-500'
+                    ]">
+                    import_contacts
+                  </span>
+                </div>
+              </div>
+
+              <!-- Content Section -->
+              <div class="flex-grow min-w-0 text-center md:text-left">
+                <h4 class="text-lg font-black text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-colors truncate">
+                  {{ course.title }}
+                </h4>
+                <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 font-medium">
+                  {{ course.description || "Explore this chapter to master its concepts and challenges." }}
+                </p>
+              </div>
+
+              <!-- Action Section -->
+              <div class="w-full md:w-auto">
+                <button (click)="openCourse(course)"
+                  class="whitespace-nowrap px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn border"
+                  [ngClass]="expandedCourseId === course.id ? 'bg-primary text-white border-transparent shadow-lg shadow-primary/20' : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white hover:border-transparent'">
+                  {{ expandedCourseId === course.id ? 'Close Chapter' : 'Open Chapter' }}
+                  <span class="material-symbols-outlined text-sm transition-transform duration-300"
+                    [ngClass]="expandedCourseId === course.id ? 'rotate-180' : 'group-hover/btn:translate-y-1'">expand_more</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Expanded Subchapters Area -->
+            <div *ngIf="expandedCourseId === course.id" 
+              class="bg-slate-50/50 dark:bg-slate-800/20 border-x border-b border-slate-100 dark:border-slate-800 rounded-b-3xl p-6 pt-0 animate-fade-in">
+              
+              <div class="h-px w-full bg-slate-100 dark:bg-slate-800 mb-6"></div>
+              
+              <div class="space-y-4">
+                <div *ngIf="courseLoading" class="text-center py-8">
+                  <span class="material-symbols-outlined animate-spin text-primary">refresh</span>
+                  <p class="text-xs font-bold text-slate-400 mt-2">Loading modules...</p>
+                </div>
+
+                <div *ngIf="!courseLoading && courseContentsMap[course.id]?.length" class="space-y-3">
+                  <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 px-2">Subchapters</p>
+                  
+                  <div *ngFor="let module of courseContentsMap[course.id]; let mi = index" 
+                    class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 transition-all duration-300"
+                    [ngClass]="expandedSubChapterKey === (ci + '_' + mi) ? 'rounded-2xl shadow-xl border-primary/20 mb-4' : 'rounded-xl hover:border-primary/20 mb-2'">
+                    
+                    <div class="flex items-center justify-between p-3 cursor-pointer" (click)="toggleSubChapter(ci + '_' + mi)">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary text-[10px] font-black">
+                          {{ mi + 1 }}
+                        </div>
+                        <h5 class="text-xs font-black text-slate-800 dark:text-white">{{ module.title }}</h5>
+                      </div>
+                      <span class="material-symbols-outlined text-lg text-slate-300 transition-transform duration-300"
+                        [style.transform]="expandedSubChapterKey === (ci + '_' + mi) ? 'rotate(180deg)' : 'rotate(0deg)'">
+                        expand_more
+                      </span>
+                    </div>
+
+                    <!-- Module Folders -->
+                    <div *ngIf="expandedSubChapterKey === (ci + '_' + mi)" class="p-4 pt-0 space-y-4 animate-fade-in">
+                      <p class="text-[10px] text-slate-500 font-medium px-1 break-words whitespace-pre-wrap">{{ module.description }}</p>
+                      
+                      <div class="flex flex-wrap gap-1.5">
+                        <button *ngFor="let folder of folderKeys" 
+                          (click)="setActiveFolderForSubchapter(module, ci + '_' + mi, folder)"
+                          class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border"
+                          [ngClass]="getActiveFolderForSubchapter(module, ci + '_' + mi) === folder
+                            ? 'bg-primary text-white border-primary shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-100 dark:border-slate-700 hover:border-slate-300'">
+                          {{ folderLabels[folder] }}
+                        </button>
+                      </div>
+
+                      <div class="space-y-2 mt-4">
+                        <div *ngFor="let item of getFolderItems(module, getActiveFolderForSubchapter(module, ci + '_' + mi))"
+                          class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 hover:border-primary/30 transition-colors group/item">
+                          
+                          <div class="min-w-0">
+                            <p class="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate">{{ item.title }}</p>
+                            <div class="flex items-center gap-3 mt-1">
+                              <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ item.type }}</span>
+                              <span *ngIf="item.dueDate" class="text-[9px] font-bold text-rose-500 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[12px]">schedule</span>
+                                {{ item.dueDate | date:'dd MMM, HH:mm' }}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div class="flex items-center gap-2">
+                             <span *ngIf="(item.type === 'quiz' && (isItemQuizSubmitted(item) || isItemQuizFileSubmitted(item))) || (item.type === 'prosit' && isItemPrositSubmitted(course, module, item))" 
+                                class="px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-[8px] font-black text-emerald-600 uppercase tracking-widest">
+                                Submitted
+                             </span>
+                             <button (click)="onOpenContent(module, getActiveFolderForSubchapter(module, ci + '_' + mi), item)"
+                               class="p-2 rounded-lg bg-white dark:bg-slate-700 text-primary shadow-sm hover:bg-primary hover:text-white transition-all">
+                               <span class="material-symbols-outlined text-sm">visibility</span>
+                             </button>
+                          </div>
+                        </div>
+                        <div *ngIf="getFolderItems(module, getActiveFolderForSubchapter(module, ci + '_' + mi)).length === 0" 
+                          class="p-8 text-center bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 animate-fade-in">
+                          <span class="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-600 mb-2">folder_open</span>
+                          <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">No Content Found</p>
+                          <p class="text-[9px] text-slate-400/60 mt-1">Check back later for updates</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -407,116 +580,120 @@
         </div>
       </div>
 
-      <!-- Tab Content: Announcements Placeholder -->
-      <div *ngIf="activeSubjectTab === 'announcements'" class="animate-fade-in-up mt-8">
-         <div class="p-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] bg-slate-50/50 dark:bg-slate-900/50">
-           <span class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-4 block">campaign</span>
-           <h3 class="text-2xl font-black text-slate-700 dark:text-white mb-2">Announcements</h3>
-           <p class="text-slate-500 font-medium">No announcements at the moment.</p>
-         </div>
-      </div>
 
-      <!-- Tab Content: Discussions Placeholder -->
-      <div *ngIf="activeSubjectTab === 'discussions'" class="animate-fade-in-up mt-8">
-         <div class="p-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] bg-slate-50/50 dark:bg-slate-900/50">
-           <span class="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-700 mb-4 block">forum</span>
-           <h3 class="text-2xl font-black text-slate-700 dark:text-white mb-2">Discussions</h3>
-           <p class="text-slate-500 font-medium">The discussion space will be available soon.</p>
-         </div>
-      </div>
 
       <!-- Tab Content: Grades -->
-      <div *ngIf="activeSubjectTab === 'grades'" class="animate-fade-in-up mt-8">
-        <div class="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-          <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-            <div>
-              <h3 class="text-xl font-black text-slate-900 dark:text-white">Academic Performance</h3>
-              <p class="text-sm text-slate-500 font-medium">Your grades and attendance for {{ selectedSubject.name }}</p>
+      <div *ngIf="activeSubjectTab === 'grades'" class="animate-fade-in mt-8 space-y-8">
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="bg-white dark:bg-slate-900 p-5 rounded-[1.75rem] border border-slate-100 dark:border-slate-800 shadow-xl flex items-center gap-4 group hover:border-primary/30 transition-all duration-500">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">
+              <span class="material-symbols-outlined text-xl">event_available</span>
             </div>
-            <div class="flex items-center gap-4">
-              <div class="text-right">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Attendance</p>
-                <p class="text-2xl font-black text-primary">{{ attendancePercentage || 0 }}%</p>
-              </div>
-              <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <span class="material-symbols-outlined text-primary text-2xl">event_available</span>
-              </div>
+            <div>
+              <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Attendance</p>
+              <h4 class="text-xl font-black text-slate-900 dark:text-white">{{ attendancePercentage || 0 }}%</h4>
             </div>
           </div>
 
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="bg-slate-50/30 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800">
-                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Item Name</th>
-                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Subchapter</th>
-                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Due Date / Submitted</th>
-                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Grade</th>
-                  <th class="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
-                <tr *ngFor="let item of subjectGradeItems" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                  <td class="px-8 py-5">
-                    <div class="flex items-center gap-4">
-                      <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                        [ngClass]="item.type === 'attendance' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'">
-                        <span class="material-symbols-outlined text-xl">
-                          {{ item.type === 'attendance' ? 'calendar_month' : 'description' }}
-                        </span>
-                      </div>
-                      <span class="font-bold text-slate-700 dark:text-slate-200 text-sm">{{ item.name }}</span>
-                    </div>
-                  </td>
-                  <td class="px-8 py-5 text-center">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md" *ngIf="item.subChapterTitle">
-                      {{ item.subChapterTitle }}
-                    </span>
-                    <span class="text-slate-300 dark:text-slate-700" *ngIf="!item.subChapterTitle">---</span>
-                  </td>
-                  <td class="px-8 py-5 text-center">
-                    <span class="text-xs font-medium text-slate-500">{{ item.dueDate || '---' }}</span>
-                  </td>
-                  <td class="px-8 py-5 text-center">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
-                      [ngClass]="{
-                        'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400': item.status === 'Noté',
-                        'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400': item.status === 'Soumis',
-                        'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400': item.status === 'En cours'
-                      }">
-                      <span class="w-1.5 h-1.5 rounded-full" [ngClass]="{
+          <div class="bg-white dark:bg-slate-900 p-5 rounded-[1.75rem] border border-slate-100 dark:border-slate-800 shadow-xl flex items-center gap-4 group hover:border-primary/30 transition-all duration-500">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500">
+              <span class="material-symbols-outlined text-xl">star</span>
+            </div>
+            <div>
+              <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Evaluations</p>
+              <h4 class="text-xl font-black text-slate-900 dark:text-white">{{ subjectGradeItems.length }} Total</h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grade Items Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-12">
+          <div *ngFor="let item of subjectGradeItems; let gi = index"
+            class="group relative flex flex-col bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden animate-fade-in-up"
+            [ngStyle]="{ 'animation-delay': gi * 50 + 'ms' }">
+            
+            <!-- Smaller Item Header -->
+            <div class="h-16 w-full relative overflow-hidden">
+              <div class="absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+                [ngClass]="[
+                  'bg-gradient-to-r',
+                  item.type === 'attendance' ? 'from-amber-400 to-orange-500' :
+                  (item.detailTypeLabel?.toLowerCase() || '').includes('quiz') ? 'from-blue-400 to-indigo-600' :
+                  (item.detailTypeLabel?.toLowerCase() || '').includes('prosit') ? 'from-emerald-400 to-teal-600' :
+                  'from-slate-400 to-slate-600'
+                ]">
+              </div>
+              
+              <!-- Icon/Label Overlay -->
+              <div class="absolute inset-0 flex items-center justify-between px-5 pt-1">
+                <div class="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[8px] font-black text-white uppercase tracking-widest">
+                  {{ item.detailTypeLabel || item.type }}
+                </div>
+                <div *ngIf="item.gradeText" class="w-10 h-10 rounded-xl bg-white/90 dark:bg-slate-800/90 shadow-lg flex flex-col items-center justify-center border border-white dark:border-slate-700">
+                   <p class="text-[8px] font-black text-slate-400 leading-none mb-0.5">GRADE</p>
+                   <p class="text-xs font-black" [ngClass]="(item.gradeText.includes('100') || item.gradeText.includes('20/20')) ? 'text-emerald-500' : 'text-primary'">
+                     {{ item.gradeText === 'Non noté' ? '-' : item.gradeText.split('/')[0] }}
+                   </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Compact Card Body -->
+            <div class="p-5 pt-7 flex-grow flex flex-col">
+               <h4 class="text-sm font-black text-slate-900 dark:text-white mb-1.5 line-clamp-1 group-hover:text-primary transition-colors">
+                 {{ item.name }}
+               </h4>
+               
+               <div class="flex items-center gap-1.5 mb-3">
+                 <span class="material-symbols-outlined text-[14px] text-slate-400">folder_open</span>
+                 <span class="text-[10px] font-bold text-slate-500 truncate">{{ item.subChapterTitle || 'N/A' }}</span>
+               </div>
+
+               <div class="grid grid-cols-2 gap-3 mt-auto">
+                 <div class="space-y-0.5">
+                   <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Due Date</p>
+                   <p class="text-[10px] font-bold text-slate-700 dark:text-slate-300">{{ item.dueDate || '---' }}</p>
+                 </div>
+                 <div class="space-y-0.5">
+                   <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Status</p>
+                   <div class="flex items-center gap-1">
+                     <div class="w-1 h-1 rounded-full" [ngClass]="{
                         'bg-emerald-500': item.status === 'Noté',
                         'bg-blue-500': item.status === 'Soumis',
                         'bg-slate-400': item.status === 'En cours'
-                      }"></span>
-                      {{ item.status }}
-                    </span>
-                  </td>
-                  <td class="px-8 py-5 text-center">
-                    <div *ngIf="item.gradeText" class="inline-block px-4 py-1.5 rounded-xl text-xs font-black"
-                      [ngClass]="item.gradeText.includes('100') || item.gradeText.includes('20/20') ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'">
-                      {{ item.gradeText }}
-                    </div>
-                    <span *ngIf="!item.gradeText" class="text-slate-400 font-black">--</span>
-                  </td>
-                  <td class="px-8 py-5 text-right">
-                    <button *ngIf="item.type !== 'attendance'"
-                      (click)="visualizeGradeItem(item)"
-                      class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900 transition-all">
-                      Visualize
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                      }"></div>
+                     <span class="text-[9px] font-black uppercase tracking-widest" [ngClass]="{
+                        'text-emerald-600': item.status === 'Noté',
+                        'text-blue-600': item.status === 'Soumis',
+                        'text-slate-500': item.status === 'En cours'
+                      }">
+                        {{ 
+                          item.status === 'Noté' ? 'Graded' : 
+                          item.status === 'Soumis' ? 'Submitted' : 
+                          item.status === 'En cours' ? 'In Progress' : 
+                          item.status 
+                        }}
+                      </span>
+                   </div>
+                 </div>
+               </div>
 
-            <div *ngIf="subjectGradeItems.length === 0" class="p-20 text-center">
-               <span class="material-symbols-outlined text-6xl text-slate-200 dark:text-slate-800 mb-4 block">assignment_late</span>
-               <h3 class="text-xl font-bold text-slate-400 mb-1">No results yet</h3>
-               <p class="text-slate-400 text-sm">Your grades will appear here once you complete evaluations.</p>
+               <!-- View Results Button -->
+               <button *ngIf="item.type !== 'attendance'"
+                 (click)="visualizeGradeItem(item)"
+                 class="mt-4 w-full py-2.5 bg-slate-50 dark:bg-slate-800/50 hover:bg-primary hover:text-white dark:hover:bg-primary text-primary dark:text-slate-300 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-slate-100 dark:border-slate-800/50 hover:border-transparent group/btn">
+                 Visualize Results
+                 <span class="material-symbols-outlined text-[14px] group-hover/btn:translate-x-1 transition-transform">visibility</span>
+               </button>
             </div>
           </div>
+        </div>
+
+        <div *ngIf="subjectGradeItems.length === 0" class="p-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[4rem] bg-slate-50/50 dark:bg-slate-900/50">
+           <span class="material-symbols-outlined text-7xl text-slate-300 dark:text-slate-700 mb-6 block">assignment_late</span>
+           <h3 class="text-2xl font-black text-slate-700 dark:text-white mb-2">No results yet</h3>
+           <p class="text-slate-500 font-medium">Your grades will appear here once you complete evaluations.</p>
         </div>
       </div>
     </section>
@@ -530,7 +707,8 @@
           <h3 class="text-2xl font-black text-slate-900 dark:text-white">
             {{ selectedCourse.title }}
           </h3>
-          <p class="text-slate-500 text-sm mt-1">
+          <p class="text-slate-500 text-sm mt-1 flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg opacity-60">description</span>
             {{ selectedCourse.description || "No description available." }}
           </p>
         </div>
@@ -553,28 +731,51 @@
         
         <div class="space-y-3">
           <article *ngFor="let module of subchapterContents; let moduleIndex = index"
-            class="rounded-lg border border-blue-100 bg-white/80 p-3 dark:bg-slate-900 dark:border-blue-900">
+            class="animate-fade-in-up">
             
-            <!-- SubChapter Header -->
-            <div class="flex items-start justify-between gap-2 cursor-pointer" 
-              (click)="toggleSubChapter(moduleIndex)"
-              role="button" tabindex="0">
-              <div class="flex items-center gap-1">
-                <p class="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  {{ module.title }}
-                </p>
-                <span class="material-symbols-outlined text-base align-middle text-slate-400 transition-transform duration-200"
-                  [style.transform]="expandedSubChapterKey === ('' + moduleIndex) ? 'rotate(180deg)' : 'rotate(0deg)'">
-                  expand_more
-                </span>
-              </div>
-            </div>
+            <!-- Unified SubChapter Container -->
+            <div class="overflow-hidden bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 transition-all duration-300"
+              [ngClass]="expandedSubChapterKey === ('' + moduleIndex) ? 'rounded-[2rem] shadow-2xl shadow-primary/5 mb-6' : 'rounded-2xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 mb-3'">
+              
+              <!-- Modern SubChapter Header (Now as a top part of the unified card) -->
+              <div class="group flex items-center justify-between p-4 cursor-pointer transition-colors" 
+                [ngClass]="expandedSubChapterKey === ('' + moduleIndex) ? 'bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'"
+                (click)="toggleSubChapter(moduleIndex)"
+                role="button" tabindex="0">
+                
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                    <span class="text-sm font-black">{{ moduleIndex + 1 }}</span>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+                      {{ module.title }}
+                    </h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                      {{ expandedSubChapterKey === ('' + moduleIndex) ? 'Contenu de la leçon' : 'Cliquez pour explorer le contenu' }}
+                    </p>
+                  </div>
+                </div>
 
-            <!-- SubChapter Expanded Content -->
-            <div *ngIf="expandedSubChapterKey === ('' + moduleIndex)" class="mt-3 space-y-3">
-              <p class="text-xs text-slate-500" *ngIf="module.description">
-                {{ module.description }}
-              </p>
+                <div class="flex items-center gap-4">
+                  <span *ngIf="expandedSubChapterKey !== ('' + moduleIndex)" class="hidden sm:block text-[10px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                    Voir détails
+                  </span>
+                  <div class="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <span class="material-symbols-outlined text-lg text-slate-400 group-hover:text-primary transition-all duration-300"
+                      [style.transform]="expandedSubChapterKey === ('' + moduleIndex) ? 'rotate(180deg)' : 'rotate(0deg)'">
+                      expand_more
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SubChapter Expanded Content (Now perfectly integrated) -->
+              <div *ngIf="expandedSubChapterKey === ('' + moduleIndex)" 
+                class="p-6 space-y-4 animate-fade-in">
+                <p class="text-xs text-slate-500 font-medium leading-relaxed" *ngIf="module.description">
+                  {{ module.description }}
+                </p>
 
               <!-- Folder tabs (Same as Instructor) -->
               <div class="space-y-3">
@@ -616,12 +817,12 @@
                           
                           <div class="flex items-center gap-2 shrink-0">
                             <!-- REMIS Tag -->
-                            <span *ngIf="isPrositSubmitted(module, item)" 
+                            <span *ngIf="isItemPrositSubmitted(selectedCourse, module, item)" 
                               class="rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest animate-fade-in flex items-center gap-1">
                               <span class="material-symbols-outlined text-[12px]">check_circle</span>
                               REMIS
-                              <ng-container *ngIf="getPrositSubmission(module, item)?.status === 'graded'">
-                                - NOTE: {{ getPrositSubmission(module, item)?.grade || 0 }}/20
+                              <ng-container *ngIf="getPrositSubmission(selectedCourse, module, item)?.status === 'graded'">
+                                - NOTE: {{ getPrositSubmission(selectedCourse, module, item)?.grade || 0 }}/20
                               </ng-container>
                             </span>
                             
@@ -654,12 +855,16 @@
                         </div>
                       </div>
 
-                      <div *ngIf="getFolderItems(module, folder).length === 0" class="py-4 text-center">
-                        <p class="text-[11px] text-slate-400 font-medium italic">Aucun contenu dans ce dossier.</p>
+                      <div *ngIf="getFolderItems(module, folder).length === 0" 
+                        class="p-8 text-center bg-slate-50/30 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-100 dark:border-slate-800 animate-fade-in">
+                        <span class="material-symbols-outlined text-3xl text-slate-200 dark:text-slate-700 mb-2">folder_open</span>
+                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">No Content Found</p>
+                        <p class="text-[9px] text-slate-400/60 mt-1">This section is currently empty</p>
                       </div>
                     </div>
                   </article>
                 </ng-container>
+                </div>
               </div>
             </div>
           </article>
@@ -671,18 +876,20 @@
       </div>
     </section>
 
-    <!-- Unified Content Viewer Modal -->
+    <!-- Unified Content Viewer Modal: Zen Reader Experience -->
     <div *ngIf="showViewModal && selectedContentForView"
-      class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-fade-in">
-      <div
-        class="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in border border-white/10">
-        <!-- Modal Header -->
-        <div
-          class="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-          <div class="flex items-center gap-6">
-            <div
-              class="w-14 h-14 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-600 animate-bounce-soft">
-              <span class="material-symbols-outlined text-3xl">
+      class="fixed inset-0 z-[120] flex items-center justify-center p-0 md:p-6 bg-slate-900/60 backdrop-blur-2xl animate-fade-in transition-all duration-500">
+      
+      <!-- Close Backdrop (Click outside) -->
+      <div class="absolute inset-0 z-0" (click)="closeViewModal()"></div>
+
+      <div class="relative z-10 bg-white dark:bg-slate-900 w-full max-w-6xl h-full md:h-[95vh] md:rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col animate-scale-in border border-slate-200 dark:border-slate-800 ring-1 ring-black/5 dark:ring-white/10">
+        
+        <!-- Premium Floating Header -->
+        <header class="absolute top-0 inset-x-0 z-20 p-4 md:p-6 flex items-center justify-between bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-b border-slate-100/50 dark:border-slate-800/50">
+          <div class="flex items-center gap-4 md:gap-6">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-primary shadow-inner border border-primary/10">
+              <span class="material-symbols-outlined text-2xl animate-pulse">
                 {{
                 selectedContentForView.type === 'quiz' ? 'quiz' :
                 (selectedContentForView.type === 'video' || selectedContentForView.type === 'link') ? 'movie' :
@@ -690,34 +897,33 @@
                 }}
               </span>
             </div>
-            <div>
-              <h3 class="text-xl font-black text-slate-900 dark:text-white leading-tight">
+            <div class="min-w-0 space-y-1">
+              <h3 class="text-base md:text-xl font-black text-slate-900 dark:text-white leading-tight truncate pr-4 italic tracking-tighter">
                 {{ selectedContentForView.title }}
               </h3>
-              <div class="flex items-center gap-2">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  {{ selectedContentForView.moduleTitle }} • {{ getFolderLabel(selectedContentForView.folder) }}
-                </p>
-                <div *ngIf="selectedContentForView.type === 'prosit' && selectedContentForView.dueDate" 
-                  class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-500 text-[10px] font-black uppercase tracking-widest animate-pulse">
-                  <span class="material-symbols-outlined text-[14px]">schedule</span>
-                  Deadline: {{ selectedContentForView.dueDate | date:'dd MMM, HH:mm' }}
-                </div>
+              <div class="flex items-center gap-3">
+                 <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/5 border border-primary/10">
+                    <span class="text-[8px] font-black text-primary uppercase tracking-widest">{{ getFolderLabel(selectedContentForView.folder) }}</span>
+                 </div>
+                 <span class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] truncate opacity-70">
+                   {{ selectedContentForView.moduleTitle }}
+                 </span>
               </div>
             </div>
           </div>
-          <button (click)="closeViewModal()"
-            class="w-12 h-12 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all active:scale-90 group">
-            <span
-              class="material-symbols-outlined text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">close</span>
-          </button>
-        </div>
 
-        <!-- Modal Body -->
-        <div class="flex-1 overflow-y-auto p-10 custom-scrollbar bg-slate-50/30 dark:bg-slate-900/30">
+          <div class="flex items-center gap-3">
+            <button (click)="closeViewModal()"
+              class="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/50 hover:bg-rose-500 hover:text-white dark:hover:bg-rose-600 rounded-2xl transition-all duration-500 hover:rotate-90 hover:scale-105 active:scale-95 group shadow-sm hover:shadow-rose-500/20 border border-slate-200/50 dark:border-slate-700/50">
+              <span class="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors text-2xl">close</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto pt-24 md:pt-28 pb-10 px-4 md:px-10 custom-scrollbar scroll-smooth">
           <!-- 1. Quiz Display -->
-          <div *ngIf="selectedContentForView.type === 'quiz'" class="max-w-3xl mx-auto space-y-6 pb-12">
-            <!-- 1.1 File Quiz View (No MCQ questions) -->
+          <div *ngIf="selectedContentForView.type === 'quiz'" class="max-w-3xl mx-auto space-y-6">
             <div *ngIf="isModalFileQuiz()" class="animate-fade-in">
               <app-quiz-file-viewer 
                 [content]="buildQuizFileContentFromModal()"
@@ -729,8 +935,193 @@
               </app-quiz-file-viewer>
             </div>
 
-            <!-- 1.2 Empty State (Only if no file AND no MCQ) -->
-            <div *ngIf="!selectedContentForView.quizQuestions?.length && !getItemUrl(selectedContentForView)"
+            <div *ngIf="selectedContentForView.quizQuestions?.length">
+                <div *ngIf="getModalQuizResult() as result" class="animate-fade-in space-y-10">
+                   <!-- Premium Quiz Result Header -->
+                   <div class="relative p-8 md:p-10 rounded-[3.5rem] bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 text-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden group border border-white/5">
+                      <!-- Animated Mesh Background -->
+                      <div class="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] animate-pulse"></div>
+                      <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/20 rounded-full blur-[100px] animate-pulse" style="animation-delay: 2s"></div>
+                      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
+
+                      <div class="relative z-10 flex flex-col md:flex-row items-center gap-10">
+                        <!-- Enhanced Character Illustration -->
+                        <div class="relative shrink-0 group/char">
+                           <div class="absolute inset-0 bg-gradient-to-tr from-primary/40 to-purple-500/40 rounded-full blur-3xl opacity-50 group-hover/char:opacity-100 transition-opacity duration-700"></div>
+                           <div class="relative w-48 h-48 md:w-64 md:h-64 flex items-center justify-center bg-white/5 backdrop-blur-3xl rounded-full border border-white/10 shadow-2xl overflow-hidden">
+                              <img [src]="result.score === result.total ? 'assets/quiz/happy_student.png' : 'assets/quiz/sad_student.png'" 
+                                class="w-4/5 h-4/5 object-contain relative z-10 animate-character-float drop-shadow-[0_20px_30px_rgba(0,0,0,0.5)]" 
+                                [alt]="result.score === result.total ? 'Success' : 'Keep trying'">
+                           </div>
+                        </div>
+
+                        <div class="flex-1 text-center md:text-left space-y-6">
+                           <div class="space-y-2">
+                             <h4 class="text-3xl md:text-5xl font-black italic tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/50">
+                               {{ result.score === result.total ? 'Congratulations!' : result.score > 0 ? 'Not bad!' : 'Oops!' }}
+                             </h4>
+                             <p class="text-blue-100/70 font-medium text-lg md:text-xl max-w-md leading-relaxed">
+                               {{ result.score === result.total ? 'You have perfectly mastered this quiz. Outstanding work!' : 'Every mistake is a lesson. Keep pushing toward excellence!' }}
+                             </p>
+                           </div>
+                          
+                           <!-- Modern Dashboard Stats -->
+                           <div class="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                              <div class="px-8 py-5 rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl group/stat hover:bg-white/10 transition-all duration-300">
+                                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 mb-2">Final Score</p>
+                                 <div class="flex items-baseline gap-1">
+                                    <span class="text-4xl font-black">{{ result.score }}</span>
+                                    <span class="text-xl font-bold opacity-30">/ {{ result.total }}</span>
+                                 </div>
+                              </div>
+                              <div class="px-8 py-5 rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 shadow-xl group/stat hover:bg-white/10 transition-all duration-300">
+                                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-purple-400 mb-2">Accuracy</p>
+                                 <div class="flex items-baseline gap-1">
+                                    <span class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60">
+                                       {{ (result.score / result.total * 100) | number:'1.0-0' }}
+                                    </span>
+                                    <span class="text-xl font-bold opacity-30">%</span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                      </div>
+                   </div>
+
+                   <!-- Enhanced Correction Details Section -->
+                   <div *ngIf="!justSubmittedInModal && getModalStudentAnswers() as studentAnswers" class="space-y-6">
+                      <div class="flex items-center justify-between px-6">
+                         <h5 class="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Performance Review</h5>
+                         <div class="flex gap-2">
+                            <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-[9px] font-black border border-emerald-500/20">
+                               CORRECT: {{ result.score }}
+                            </div>
+                            <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 text-[9px] font-black border border-rose-500/20">
+                               INCORRECT: {{ result.total - result.score }}
+                            </div>
+                         </div>
+                      </div>
+
+                      <div class="grid gap-6">
+                         <div *ngFor="let q of selectedContentForView.quizQuestions; let qi = index" 
+                           class="group relative animate-scale-in" [style.animation-delay]="(qi * 100) + 'ms'">
+                           <div class="absolute -inset-0.5 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition duration-500 rounded-[2.5rem] blur"
+                             [ngClass]="studentAnswers[qi] === q.correctOptionIndex ? 'from-emerald-500/20 to-teal-500/20' : 'from-rose-500/20 to-orange-500/20'"></div>
+                           
+                           <div class="relative p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all duration-300">
+                             <div class="flex flex-col sm:flex-row gap-6">
+                                <!-- Status Indicator -->
+                                <div class="w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center text-lg font-black shadow-lg shadow-black/5"
+                                  [ngClass]="studentAnswers[qi] === q.correctOptionIndex ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white' : 'bg-gradient-to-br from-rose-400 to-rose-600 text-white'">
+                                  <span class="material-symbols-outlined font-black">
+                                     {{ studentAnswers[qi] === q.correctOptionIndex ? 'check' : 'close' }}
+                                  </span>
+                                </div>
+
+                                <div class="flex-1 min-w-0 space-y-6">
+                                   <div class="space-y-1">
+                                      <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question {{ qi + 1 }}</p>
+                                      <h3 class="text-lg font-bold text-slate-800 dark:text-white leading-relaxed">{{ q.question }}</h3>
+                                   </div>
+
+                                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <!-- Your Choice -->
+                                      <div class="relative p-5 rounded-2xl border transition-colors duration-300" 
+                                        [ngClass]="studentAnswers[qi] === q.correctOptionIndex ? 'border-emerald-100 bg-emerald-50/30' : 'border-rose-100 bg-rose-50/30'">
+                                         <span class="absolute top-4 right-4 material-symbols-outlined text-sm" 
+                                           [ngClass]="studentAnswers[qi] === q.correctOptionIndex ? 'text-emerald-500' : 'text-rose-500'">
+                                           {{ studentAnswers[qi] === q.correctOptionIndex ? 'verified' : 'cancel' }}
+                                         </span>
+                                         <p class="text-[9px] font-black uppercase tracking-widest opacity-50 mb-2">Your Answer</p>
+                                         <p class="font-bold text-slate-900 dark:text-white">{{ q.options[studentAnswers[qi] ?? -1] || 'No answer provided' }}</p>
+                                      </div>
+
+                                      <!-- Correct Answer -->
+                                      <div class="p-5 rounded-2xl border border-emerald-100 bg-white dark:bg-slate-800 shadow-sm border-dashed">
+                                         <p class="text-[9px] font-black uppercase tracking-widest text-emerald-600 mb-2">Expected Outcome</p>
+                                         <p class="font-bold text-emerald-700 dark:text-emerald-400">{{ q.options[q.correctOptionIndex ?? 0] }}</p>
+                                      </div>
+                                   </div>
+                                </div>
+                             </div>
+                           </div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                        <div *ngIf="!getModalQuizResult()" class="space-y-6 pb-20 relative">
+                    <!-- Integrated Progress Bar (Pinned at top) -->
+                    <div class="sticky top-0 z-30 -mx-4 md:-mx-10 px-4 md:px-10 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 animate-fade-in-down">
+                      <div class="max-w-3xl mx-auto flex items-center gap-6">
+                        <div class="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div class="h-full bg-primary transition-all duration-500 ease-out"
+                               [style.width.%]="(getModalAnsweredCount() / selectedContentForView.quizQuestions.length) * 100"></div>
+                        </div>
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                          {{ getModalAnsweredCount() }} / {{ selectedContentForView.quizQuestions.length }} COMPLETED
+                        </span>
+                      </div>
+                    </div>
+
+                    <div *ngFor="let q of selectedContentForView.quizQuestions; let qi = index" 
+                      class="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 md:p-8 shadow-sm transition-all hover:border-primary/20">
+                      
+                      <div class="flex items-center gap-3 mb-6">
+                        <span class="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-[10px] font-black tracking-widest uppercase">Question {{ qi + 1 }}</span>
+                        <div class="h-px flex-1 bg-slate-50 dark:bg-slate-800"></div>
+                      </div>
+
+                      <h5 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white leading-snug mb-8">
+                        {{ q.question }}
+                      </h5>
+                      
+                      <div class="grid gap-3">
+                        <button *ngFor="let opt of q.options; let oi = index" 
+                          (click)="setModalQuizAnswer(qi, oi)"
+                          class="group relative w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4"
+                          [ngClass]="getModalAnswer(qi) === oi 
+                            ? 'border-primary bg-primary/5 dark:bg-primary/10' 
+                            : 'border-slate-50 dark:border-slate-800 hover:border-primary/30 bg-slate-50/50 dark:bg-slate-900/30'">
+                          
+                          <div class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0"
+                            [ngClass]="getModalAnswer(qi) === oi 
+                              ? 'border-primary bg-primary text-white' 
+                              : 'border-slate-200 dark:border-slate-700 group-hover:border-primary/50'">
+                            <span *ngIf="getModalAnswer(qi) === oi" class="material-symbols-outlined text-sm font-black animate-scale-in">check</span>
+                            <span *ngIf="getModalAnswer(qi) !== oi" class="text-[9px] font-black text-slate-400 group-hover:text-primary transition-colors">{{ ['A', 'B', 'C', 'D'][oi] || oi + 1 }}</span>
+                          </div>
+
+                          <span class="text-sm font-semibold transition-colors"
+                            [ngClass]="getModalAnswer(qi) === oi ? 'text-primary' : 'text-slate-600 dark:text-slate-400'">
+                            {{ opt }}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Integrated Sticky Footer (Within same frame) -->
+                    <div class="sticky bottom-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 py-6 mt-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-100 dark:border-slate-800 rounded-b-2xl shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.05)]">
+                      <div class="flex items-center justify-between gap-6">
+                        <div class="hidden md:block">
+                          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Final Step</p>
+                          <p class="text-xs font-bold text-slate-900 dark:text-white">
+                            {{ getModalAnsweredCount() === selectedContentForView.quizQuestions.length ? 'Ready to submit!' : 'Please complete all questions' }}
+                          </p>
+                        </div>
+                        <button (click)="submitModalQuiz()" 
+                          [disabled]="getModalAnsweredCount() === 0"
+                          class="flex-1 md:flex-none px-12 py-4 rounded-2xl bg-gradient-to-r from-primary to-indigo-600 text-white font-black tracking-[0.2em] text-[10px] uppercase transition-all disabled:opacity-40 hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-primary/20 flex items-center justify-center gap-3 group">
+                          <span>FINISH & SUBMIT</span>
+                          <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">rocket_launch</span>
+                        </button>
+                      </div>
+                    </div>
+                 </div>
+                </div>
+
+            <!-- Empty Quiz State -->
+            <div *ngIf="!selectedContentForView.quizQuestions?.length && !getItemUrl(selectedContentForView) && !isModalFileQuiz()"
                  class="p-16 text-center rounded-[3rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm animate-fade-in">
               <div class="w-24 h-24 bg-violet-100 dark:bg-violet-500/10 text-violet-600 rounded-full flex items-center justify-center mx-auto mb-8">
                 <span class="material-symbols-outlined text-5xl">inventory_2</span>
@@ -739,406 +1130,235 @@
               <p class="text-slate-500 max-w-md mx-auto text-lg leading-relaxed font-medium">
                 Ce quiz ne contient pas encore de questions QCM. Il sera bientôt disponible !
               </p>
-              <div class="mt-10">
-                 <button (click)="closeViewModal()" class="px-10 py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black tracking-widest text-xs hover:scale-105 transition-all">
-                   RETOURNER AU CHAPITRE
-                 </button>
-              </div>
-            </div>
-
-            <!-- Interactive Quiz Content -->
-            <div *ngIf="selectedContentForView.quizQuestions?.length">
-                <!-- VIEW MODE: Already Submitted -->
-                <div *ngIf="getModalQuizResult() as result" class="animate-fade-in space-y-8">
-                   <div class="p-10 rounded-[3rem] bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/20 text-center">
-                      <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <span class="material-symbols-outlined text-4xl">workspace_premium</span>
-                      </div>
-                      <h4 class="text-3xl font-black mb-2">Quiz Terminé !</h4>
-                      <p class="text-emerald-50 font-medium opacity-90 mb-6">Vous avez complété ce quiz avec succès.</p>
-                      
-                      <div class="inline-flex items-center gap-4 bg-black/10 px-8 py-4 rounded-2xl backdrop-blur-sm">
-                         <div class="text-left">
-                            <p class="text-[10px] font-black uppercase tracking-widest opacity-60">Score Obtenu</p>
-                            <p class="text-2xl font-black">{{ result.score }} / {{ result.total }}</p>
-                         </div>
-                         <div class="w-px h-10 bg-white/20"></div>
-                         <div class="text-left">
-                            <p class="text-[10px] font-black uppercase tracking-widest opacity-60">Précision</p>
-                            <p class="text-2xl font-black">{{ (result.score / result.total * 100) | number:'1.0-0' }}%</p>
-                         </div>
-                      </div>
-                   </div>
-
-                   <!-- Detailed Review below the card -->
-                   <div *ngIf="getModalStudentAnswers() as studentAnswers" class="space-y-6">
-                      <h5 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] px-4">Correction détaillée</h5>
-                      <div *ngFor="let q of selectedContentForView.quizQuestions; let qi = index" 
-                        class="p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm animate-fade-in"
-                        [style.animation-delay]="qi * 100 + 'ms'">
-                        
-                        <div class="flex items-center gap-3 mb-4">
-                           <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
-                             [ngClass]="studentAnswers[qi] === q.correctOptionIndex 
-                               ? 'bg-emerald-100 text-emerald-600' 
-                               : 'bg-red-100 text-red-600'">
-                             {{ qi + 1 }}
-                           </div>
-                           <p class="text-sm font-bold text-slate-800 dark:text-white leading-relaxed">{{ q.question }}</p>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                           <div class="p-4 rounded-xl border text-xs flex flex-col gap-1"
-                             [ngClass]="studentAnswers[qi] === q.correctOptionIndex 
-                               ? 'border-emerald-100 bg-emerald-50/30' 
-                               : 'border-red-100 bg-red-50/30'">
-                              <p class="font-black uppercase tracking-tighter opacity-50">Votre réponse</p>
-                              <p class="font-bold">{{ q.options[studentAnswers[qi] ?? -1] || 'Aucune réponse' }}</p>
-                           </div>
-                           <div class="p-4 rounded-xl border border-emerald-100 bg-emerald-50/30 text-xs flex flex-col gap-1">
-                              <p class="font-black uppercase tracking-tighter opacity-50 text-emerald-600">Bonne réponse</p>
-                              <p class="font-bold text-emerald-700">{{ q.options[q.correctOptionIndex ?? 0] }}</p>
-                           </div>
-                        </div>
-                      </div>
-                   </div>
-                </div>
-
-                <!-- SUBMIT MODE: Questions and Options -->
-                <div *ngIf="!getModalQuizResult()" class="space-y-8">
-                   <div *ngFor="let q of selectedContentForView.quizQuestions; let qi = index" 
-                     class="p-8 rounded-[2rem] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm animate-fade-in"
-                     [style.animation-delay]="qi * 100 + 'ms'">
-                      <div class="flex items-start justify-between mb-6">
-                        <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Question {{ qi + 1 }}</p>
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ q.options?.length || 0 }} Options</span>
-                      </div>
-                      <h5 class="text-xl font-bold text-slate-900 dark:text-white leading-relaxed mb-8">{{ q.question }}</h5>
-                      
-                      <!-- Options List -->
-                      <div class="space-y-3">
-                        <button *ngFor="let opt of q.options; let oi = index" 
-                          (click)="setModalQuizAnswer(qi, oi)"
-                          class="w-full text-left p-5 rounded-2xl border transition-all flex items-center gap-4 group"
-                          [ngClass]="getModalAnswer(qi) === oi 
-                            ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-500/5' 
-                            : 'border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500 bg-slate-50/50 dark:bg-slate-900/50'">
-                          <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
-                            [ngClass]="getModalAnswer(qi) === oi 
-                              ? 'border-indigo-500 bg-indigo-500 text-white' 
-                              : 'border-slate-300 dark:border-slate-600 group-hover:border-slate-400'">
-                            <div *ngIf="getModalAnswer(qi) === oi" class="w-2 h-2 rounded-full bg-white"></div>
-                          </div>
-                          <span class="text-sm font-medium transition-colors"
-                            [ngClass]="getModalAnswer(qi) === oi ? 'text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400'">
-                            {{ opt }}
-                          </span>
-                        </button>
-                      </div>
-                   </div>
-
-                   <!-- Modal Quiz Submit Button -->
-                   <div class="pt-8 flex flex-col items-center gap-4">
-                     <p *ngIf="getModalAnsweredCount() < selectedContentForView.quizQuestions.length" 
-                       class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                       {{ getModalAnsweredCount() }} / {{ selectedContentForView.quizQuestions.length }} questions répondues
-                     </p>
-                     <button (click)="submitModalQuiz()" 
-                       [disabled]="getModalAnsweredCount() === 0"
-                       class="w-full py-5 rounded-[2rem] bg-indigo-600 text-white font-black tracking-[0.2em] text-xs hover:bg-indigo-700 hover:shadow-2xl hover:shadow-indigo-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                       VALIDER MON QUIZ
-                     </button>
-                   </div>
-                </div>
             </div>
           </div>
 
-          <!-- 2. Video Display -->
+          <!-- 2. Video -->
           <div *ngIf="(selectedContentForView.type === 'video' || (selectedContentForView.type === 'link' && getVideoType(selectedContentForView))) && getItemUrl(selectedContentForView)"
-            class="rounded-[3rem] overflow-hidden shadow-2xl bg-black aspect-video max-w-4xl mx-auto border-4 border-white/5">
-            <!-- Hosted MP4 -->
-            <video
-              *ngIf="getVideoType(selectedContentForView) === 'mp4'"
-              [src]="getItemUrl(selectedContentForView)" class="w-full h-full" controls></video>
-            <!-- Embed (YouTube/Vimeo) -->
-            <iframe
-              *ngIf="getVideoType(selectedContentForView) === 'embed'"
-              [src]="(getEmbedUrl(getItemUrl(selectedContentForView) || '') || '') | safeUrl" class="w-full h-full border-none"
-              allowfullscreen></iframe>
+            class="max-w-5xl mx-auto">
+            <div class="rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.3)] bg-black aspect-video border-8 border-white/10 animate-scale-in">
+              <video *ngIf="getVideoType(selectedContentForView) === 'mp4'" [src]="getItemUrl(selectedContentForView)" class="w-full h-full" controls></video>
+              <iframe *ngIf="getVideoType(selectedContentForView) === 'embed'" [src]="(getEmbedUrl(getItemUrl(selectedContentForView) || '') || '') | safeUrl" class="w-full h-full border-none" allowfullscreen></iframe>
+            </div>
           </div>
 
-          <!-- 3. File Display (PDF/DOCX) -->
+          <!-- Prosit Integration -->
+          <div *ngIf="selectedContentForView.type === 'prosit'" 
+            class="mb-8 p-4 md:p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-xl overflow-hidden">
+            <div class="max-w-5xl mx-auto">
+                <div *ngIf="getSelectedPrositSubmission() as submission">
+                  <div *ngIf="!prositEditMode" class="animate-fade-in py-2">
+                     <div class="p-6 rounded-[2.5rem] bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
+                        <!-- Decorative Success Glow -->
+                        <div class="absolute -right-12 -top-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors"></div>
+
+                        <div class="flex items-center gap-5 relative z-10">
+                           <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-success-pop">
+                              <span class="material-symbols-outlined text-2xl font-black">check_circle</span>
+                           </div>
+                           <div class="space-y-1">
+                              <h4 class="text-lg font-black text-slate-900 dark:text-white italic tracking-tighter">Mission Accomplished!</h4>
+                              <div class="flex items-center gap-2">
+                                 <span class="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full">Submitted</span>
+                                 <span class="text-[9px] font-medium text-slate-400 uppercase tracking-widest">{{ submission.submittedAt | date:'dd MMM yyyy • HH:mm' }}</span>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 relative z-10 w-full md:w-auto">
+                           <a *ngIf="getPrositSubmissionFileUrl(submission)" 
+                              [href]="getPrositSubmissionFileUrl(submission)" 
+                              target="_blank"
+                              class="flex-1 md:flex-none h-14 px-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center gap-3 text-slate-600 dark:text-slate-300 hover:text-emerald-500 hover:border-emerald-500/30 transition-all shadow-sm hover:shadow-md group/dl">
+                              <span class="text-xs font-bold">Review My Work</span>
+                              <span class="material-symbols-outlined text-lg group-hover/dl:animate-bounce">file_download</span>
+                           </a>
+
+                           <button (click)="prositEditMode = true"
+                             class="h-14 w-14 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg group/edit">
+                             <span class="material-symbols-outlined text-xl group-hover/edit:rotate-12 transition-transform">edit_note</span>
+                           </button>
+                        </div>
+                     </div>
+
+                     <!-- Mini Report View -->
+                     <div *ngIf="submission.reportText" class="mt-6 animate-fade-in-up">
+                        <div class="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-400 leading-relaxed relative italic">
+                           <span class="material-symbols-outlined absolute -top-3 -left-1 text-4xl text-primary/10 select-none">format_quote</span>
+                           "{{ submission.reportText | slice:0:200 }}{{ submission.reportText.length > 200 ? '...' : '' }}"
+                        </div>
+                     </div>
+                  </div>
+                </div>
+
+                <div *ngIf="!getSelectedPrositSubmission() || prositEditMode" class="animate-fade-in-up py-4">
+                   <div class="relative p-6 md:p-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-600/5 via-blue-600/5 to-purple-600/5 dark:from-indigo-400/10 dark:to-purple-400/10 border border-indigo-100 dark:border-indigo-500/20 shadow-2xl overflow-hidden group">
+                     <!-- Background Decorative Elements -->
+                     <div class="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-colors"></div>
+                     <div class="absolute -bottom-12 -left-12 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-colors"></div>
+
+                     <div class="relative z-10 flex flex-col lg:flex-row lg:items-center gap-8">
+                       <!-- Left: Creative Prompt -->
+                       <div class="lg:w-1/4 space-y-2">
+                         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-black uppercase tracking-widest border border-indigo-500/20">
+                           <span class="relative flex h-2 w-2">
+                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                             <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                           </span>
+                           Active Task
+                         </div>
+                         <h4 class="text-xl font-black text-slate-900 dark:text-white italic tracking-tighter">Ready to submit?</h4>
+                         <div *ngIf="selectedContentForView.dueDate" class="flex items-center gap-2 text-rose-500/80 font-bold">
+                           <span class="material-symbols-outlined text-sm">alarm</span>
+                           <span class="text-[9px] uppercase tracking-widest">{{ selectedContentForView.dueDate | date:'dd MMM, HH:mm' }}</span>
+                         </div>
+                       </div>
+                       
+                       <!-- Center: Interactive Dropzone -->
+                       <div class="flex-1">
+                         <div class="relative h-24 flex items-center justify-center rounded-[1.5rem] border-2 border-dashed border-indigo-200 dark:border-indigo-500/30 bg-white/50 dark:bg-slate-900/50 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all cursor-pointer group/drop overflow-hidden">
+                           <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" (change)="onPrositSubmissionFileSelected($event)" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                           
+                           <div class="flex items-center gap-4 px-6 w-full">
+                             <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center group-hover/drop:scale-110 group-hover/drop:bg-indigo-500 group-hover/drop:text-white transition-all duration-300">
+                               <span class="material-symbols-outlined text-2xl group-hover/drop:animate-bounce">upload_file</span>
+                             </div>
+                             <div class="flex-1 min-w-0">
+                               <p class="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
+                                 {{ selectedPrositSubmissionFile ? selectedPrositSubmissionFile.name : 'Choose a file or drag it here' }}
+                               </p>
+                               <p class="text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">
+                                 {{ selectedPrositSubmissionFile ? (selectedPrositSubmissionFile.size / 1024 | number:'1.0-0') + ' KB' : 'PDF, DOCX or PPTX (Max 10MB)' }}
+                               </p>
+                             </div>
+                           </div>
+
+                           <!-- Hover Glow Effect -->
+                           <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 opacity-0 group-hover/drop:opacity-100 transition-opacity pointer-events-none"></div>
+                         </div>
+                       </div>
+
+                       <!-- Right: Validate Button -->
+                       <div class="lg:w-1/4 flex items-center justify-end">
+                         <button (click)="submitProsit()" [disabled]="prositSubmitting || !selectedPrositSubmissionFile" 
+                           class="h-16 w-full lg:w-auto px-10 bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-500 hover:to-blue-600 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] hover:shadow-[0_15px_25px_-5px_rgba(79,70,229,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-3">
+                           <span class="material-symbols-outlined text-lg" *ngIf="!prositSubmitting">rocket_launch</span>
+                           {{ prositSubmitting ? 'PROCESSING...' : 'VALIDATE' }}
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                </div>
+            </div>
+          </div>
+
+          <!-- 3. Document: Immersive Reader View -->
           <div *ngIf="getItemUrl(selectedContentForView) && (selectedContentForView.type === 'file' || selectedContentForView.type === 'prosit' || (selectedContentForView.type === 'quiz' && !selectedContentForView.quizQuestions?.length && !isModalFileQuiz() && getItemUrl(selectedContentForView)))"
-            class="space-y-4">
+            class="h-full flex flex-col gap-4">
             
-            <!-- Toggle Button (Always visible if it's a file type) -->
-            <div (click)="showFilePreview = !showFilePreview"
-              class="group flex items-center justify-between p-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer hover:border-primary/30 hover:shadow-lg transition-all">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">
-                  <span class="material-symbols-outlined text-xl">description</span>
-                </div>
-                <div>
-                  <p class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Aperçu du document</p>
-                  <p class="text-[9px] font-medium text-slate-400 uppercase tracking-widest">{{ showFilePreview ? 'Cliquer pour réduire' : 'Cliquer pour agrandir' }}</p>
-                </div>
-              </div>
-              <button class="w-10 h-10 rounded-full flex items-center justify-center text-slate-300 group-hover:text-primary transition-all">
-                <span class="material-symbols-outlined text-2xl transition-transform duration-500"
-                  [style.transform]="showFilePreview ? 'rotate(180deg)' : 'rotate(0deg)'">
-                  expand_more
-                </span>
-              </button>
+            <!-- Modern Zoom & Action Toolbar -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white/20 shadow-2xl animate-fade-in-down z-[70] pointer-events-auto">
+               <div class="flex items-center gap-6">
+                  <div class="flex items-center bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden shadow-inner">
+                     <button (click)="zoomOutContent(); $event.stopPropagation()" 
+                       class="w-14 h-14 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all active:scale-90">
+                        <span class="material-symbols-outlined text-2xl">remove</span>
+                     </button>
+                     <div class="px-8 text-sm font-black text-slate-800 dark:text-slate-200 border-x border-slate-200/30 min-w-[100px] text-center">
+                        {{ contentZoom }}%
+                     </div>
+                     <button (click)="zoomInContent(); $event.stopPropagation()" 
+                       class="w-14 h-14 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 text-slate-500 hover:text-primary transition-all active:scale-90"
+                       [disabled]="contentZoom >= 100">
+                        <span class="material-symbols-outlined text-2xl">add</span>
+                     </button>
+                  </div>
+
+                  <button (click)="resetZoomContent(); $event.stopPropagation()" 
+                    class="hidden md:flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary/30 transition-all">
+                    <span class="material-symbols-outlined text-base">restart_alt</span>
+                    Reset View
+                  </button>
+               </div>
+
+               <div class="flex items-center gap-3">
+                  <a [href]="getItemUrl(selectedContentForView)" [attr.download]="getDownloadFileName(selectedContentForView)"
+                    class="h-14 px-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10 dark:shadow-white/5">
+                    <span class="material-symbols-outlined text-xl">download</span>
+                    Download File
+                  </a>
+               </div>
             </div>
+            
+            <div class="flex-1 min-h-[65vh] rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner bg-slate-50 dark:bg-slate-900 relative animate-fade-in-down group">
+              
+              <!-- Robust Scrollable Zoom Container -->
+              <div class="w-full h-full overflow-auto custom-scrollbar bg-slate-50 dark:bg-slate-900/20">
+                <div [style.width.%]="contentZoom" [style.height.%]="contentZoom" class="relative min-w-full min-h-full transition-all duration-300">
+                  <div class="absolute inset-0 origin-top-left transition-transform duration-300 flex justify-center"
+                       [style.transform]="'scale(' + contentZoom/100 + ')'"
+                       [style.width]="(10000 / contentZoom) + '%'"
+                       [style.height]="(10000 / contentZoom) + '%'">
+                    
+                    <div *ngIf="selectedContentForView.previewHtml"
+                      class="w-full p-10 md:p-20 prose prose-lg prose-slate dark:prose-invert max-w-none bg-white shadow-sm"
+                      [innerHTML]="selectedContentForView.previewHtml"></div>
 
-            <!-- Preview Container -->
-            <div *ngIf="showFilePreview"
-              class="h-[75vh] rounded-[2.5rem] overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xl bg-white relative animate-fade-in-down">
-              <!-- DOCX Preview -->
-              <div *ngIf="selectedContentForView.previewHtml"
-                class="p-16 overflow-y-auto h-full prose prose-slate max-w-none dark:prose-invert bg-white"
-                [innerHTML]="selectedContentForView.previewHtml"></div>
+                    <iframe *ngIf="!selectedContentForView.previewHtml && getItemUrl(selectedContentForView)?.toLowerCase()?.endsWith('.pdf')"
+                      [src]="(getItemUrl(selectedContentForView) + '#toolbar=0&navpanes=0') | safeUrl"
+                      class="w-full h-full border-none"></iframe>
 
-              <!-- PDF Preview -->
-              <iframe
-                *ngIf="!selectedContentForView.previewHtml && getItemUrl(selectedContentForView)?.toLowerCase()?.endsWith('.pdf')"
-                [src]="(getItemUrl(selectedContentForView) + '#toolbar=0&navpanes=0&view=FitH') | safeUrl"
-                class="w-full h-full border-none"></iframe>
-
-              <!-- Fallback if nothing else works -->
-              <div
-                *ngIf="!selectedContentForView.previewHtml && !getItemUrl(selectedContentForView)?.toLowerCase()?.endsWith('.pdf') && !selectedContentForView.loadingPreview"
-                class="flex flex-col items-center justify-center h-full p-20 text-center space-y-6">
-                <span class="material-symbols-outlined text-7xl text-slate-200">description</span>
-                <p class="text-slate-500 font-bold text-xl">L'aperçu n'est pas disponible pour ce type de fichier.</p>
-                <a [href]="getItemUrl(selectedContentForView)"
-                  target="_blank"
-                  class="px-10 py-4 bg-primary text-white rounded-2xl font-black tracking-widest text-xs hover:scale-105 transition-all shadow-xl shadow-primary/30">
-                  TELECHARGER LE DOCUMENT
-                </a>
+                    <!-- Fallback for other files -->
+                    <div *ngIf="!selectedContentForView.previewHtml && !getItemUrl(selectedContentForView)?.toLowerCase()?.endsWith('.pdf') && !selectedContentForView.loadingPreview"
+                      class="flex flex-col items-center justify-center w-full h-full p-20 text-center space-y-8 bg-white">
+                      <span class="material-symbols-outlined text-7xl text-slate-200">warning</span>
+                      <h3 class="text-2xl font-black text-slate-900 dark:text-white">Preview unavailable</h3>
+                      <a [href]="getItemUrl(selectedContentForView)" target="_blank"
+                        class="px-12 py-5 bg-primary text-white rounded-2xl font-black tracking-widest text-xs hover:scale-105 transition-all">
+                        DOWNLOAD DOCUMENT
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <!-- Loading Spinner -->
+              <!-- Loading Overlay -->
               <div *ngIf="selectedContentForView.loadingPreview"
-                class="absolute inset-0 flex flex-col items-center justify-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-10">
-                <div class="w-16 h-16 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
-                <p class="mt-6 text-xs font-black text-slate-400 tracking-[0.2em] uppercase">Chargement de l'aperçu...</p>
-              </div>
-
-              <!-- Error Message -->
-              <div *ngIf="selectedContentForView.previewError"
-                class="absolute inset-0 flex flex-col items-center justify-center bg-rose-50 p-20 text-center">
-                <span class="material-symbols-outlined text-rose-400 text-6xl">error</span>
-                <p class="mt-6 text-rose-800 font-black text-xl">{{ selectedContentForView.previewError }}</p>
-                <button (click)="onOpenContent({title: selectedContentForView.moduleTitle}, selectedContentForView.folder, selectedContentForView)"
-                  class="mt-6 text-sm font-black underline text-rose-600 hover:text-rose-700 tracking-widest uppercase">RÉESSAYER</button>
+                class="absolute inset-0 flex flex-col items-center justify-center bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl z-10">
+                <div class="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
               </div>
             </div>
           </div>
 
-          <!-- 4. Prosit Details Fallback (if no URL) -->
-          <div *ngIf="selectedContentForView.type === 'prosit' && !getItemUrl(selectedContentForView)" class="max-w-3xl mx-auto space-y-8">
-             <div class="p-10 rounded-[3rem] bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 flex items-start gap-6">
-                <span class="material-symbols-outlined text-amber-600 text-4xl">info</span>
-                <div>
-                   <h4 class="text-xl font-black text-amber-900 dark:text-amber-400 mb-2">Instructions du Prosit</h4>
-                   <p class="text-amber-800/80 dark:text-amber-500 font-medium leading-relaxed">
-                     {{ selectedContentForView.submissionInstructions || "Aucune consigne spécifique n'a été fournie pour ce prosit." }}
-                   </p>
-                </div>
-             </div>
-             <button (click)="openProsit(selectedContentForView, selectedContentForView.module)" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black tracking-[0.2em] text-xs hover:shadow-2xl hover:shadow-primary/30 transition-all">
-                DÉPOSER MON TRAVAIL
-             </button>
-          </div>
-          
-          <!-- 5. Code Display -->
+          <!-- 4. Code -->
           <div *ngIf="selectedContentForView.type === 'code'" class="max-w-4xl mx-auto space-y-4">
-            <div class="rounded-[2.5rem] bg-slate-900 p-10 shadow-2xl relative group overflow-hidden border border-white/5">
-              <div class="absolute top-0 right-0 p-6">
+            <div class="rounded-[2.5rem] bg-[#0d1117] p-8 md:p-12 shadow-2xl relative border border-white/5 group">
+              <div class="absolute top-6 right-6">
                 <button (click)="copyToClipboard(selectedContentForView.codeSnippet)"
-                  class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/10 text-white hover:bg-white/20 transition-all">
-                  <span class="material-symbols-outlined text-xl">content_copy</span>
+                  class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white/50 hover:bg-white/10 transition-all">
+                  <span class="material-symbols-outlined text-sm">content_copy</span>
                 </button>
               </div>
-              <pre class="font-mono text-base text-emerald-400 leading-relaxed whitespace-pre-wrap break-words"><code>{{ selectedContentForView.codeSnippet }}</code></pre>
+              <pre class="font-mono text-sm md:text-base text-emerald-400/90 overflow-x-auto whitespace-pre"><code>{{ selectedContentForView.codeSnippet }}</code></pre>
             </div>
           </div>
 
-          <!-- 6. Link Display -->
-          <div *ngIf="selectedContentForView.type === 'link'"
+          <!-- 5. Link -->
+          <div *ngIf="selectedContentForView.type === 'link' && !getVideoType(selectedContentForView)"
             class="flex flex-col items-center justify-center p-20 text-center space-y-8">
-            <div
-              class="w-24 h-24 rounded-[2rem] bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
+            <div class="w-24 h-24 rounded-[2rem] bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
               <span class="material-symbols-outlined text-5xl">link</span>
             </div>
-            <div class="space-y-3">
-              <h3 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Lien Externe</h3>
-              <p class="text-slate-500 max-w-sm font-medium text-lg leading-relaxed">Cette ressource est hébergée sur un site externe.</p>
-            </div>
             <a [href]="selectedContentForView.url" target="_blank"
-              class="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black tracking-[0.2em] text-xs hover:bg-blue-700 hover:shadow-2xl hover:shadow-blue-600/30 transition-all flex items-center gap-3">
-              OUVRIR LE LIEN
+              class="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black tracking-widest text-xs hover:bg-blue-700 shadow-xl transition-all flex items-center gap-3">
+              OPEN EXTERNAL LINK
               <span class="material-symbols-outlined text-lg">open_in_new</span>
             </a>
           </div>
 
-          <!-- Prosit Submission Integration (Conditional View/Submit) -->
-          <div *ngIf="selectedContentForView.type === 'prosit'" 
-            class="mt-12 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/20 dark:shadow-none animate-fade-in-up">
-            <div class="max-w-4xl mx-auto">
-              
-              <!-- IF ALREADY SUBMITTED: View Mode (unless explicitly editing) -->
-              <div *ngIf="getSelectedPrositSubmission() as submission" class="space-y-8">
-                <div *ngIf="!prositEditMode" class="animate-fade-in space-y-8">
-                  <div class="flex items-center justify-between">
-                    <div class="space-y-1">
-                      <h4 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
-                        <span class="material-symbols-outlined text-emerald-500 text-3xl">task_alt</span>
-                        Ma Remise
-                      </h4>
-                      <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-11">
-                        Travail soumis avec succès
-                      </p>
-                    </div>
-                    <div class="flex flex-col items-end">
-                      <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date de remise</p>
-                      <p class="text-xs font-bold text-slate-900 dark:text-white">{{ (submission.submittedAt || '') | date:'dd MMMM yyyy, HH:mm' }}</p>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Submitted Report -->
-                    <div *ngIf="submission.reportText" class="space-y-4">
-                      <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Mon Compte-rendu</label>
-                      <div class="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-950/30 border border-slate-100 dark:border-slate-800 min-h-[150px] text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                        {{ submission.reportText }}
-                      </div>
-                    </div>
-
-                    <!-- Submitted File -->
-                    <div [class.md:col-span-2]="!submission.reportText" class="space-y-4">
-                      <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Fichier joint</label>
-                      <div *ngIf="getPrositSubmissionFileUrl(submission)" 
-                        class="p-6 rounded-[2rem] bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100/50 dark:border-emerald-800/30 flex items-center justify-between group">
-                        <div class="flex items-center gap-4">
-                          <div class="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm flex items-center justify-center text-emerald-500">
-                            <span class="material-symbols-outlined text-2xl">description</span>
-                          </div>
-                          <div>
-                            <p class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest truncate max-w-[150px]">
-                              Document soumis
-                            </p>
-                            <p class="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Format PDF/DOCX/ZIP</p>
-                          </div>
-                        </div>
-                        <a [href]="getPrositSubmissionFileUrl(submission)" target="_blank"
-                          class="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all shadow-sm">
-                          <span class="material-symbols-outlined">download</span>
-                        </a>
-                      </div>
-                      <div *ngIf="!getPrositSubmissionFileUrl(submission)" 
-                        class="p-10 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-slate-300">
-                        <span class="material-symbols-outlined text-3xl mb-2">attachment_off</span>
-                        <p class="text-[9px] font-black uppercase tracking-widest">Aucun fichier joint</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                     <button (click)="editCurrentPrositSubmission()" 
-                       class="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:border-rose-500 hover:text-rose-500 transition-all">
-                       <span class="material-symbols-outlined text-[16px]">edit</span>
-                       Modifier ma remise
-                     </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- IF NOT SUBMITTED OR IN EDIT MODE: Form Mode -->
-              <div *ngIf="!getSelectedPrositSubmission() || prositEditMode" class="animate-fade-in">
-                <div class="flex items-center justify-between mb-8">
-                  <div class="space-y-1">
-                    <h4 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
-                      <span class="material-symbols-outlined text-indigo-500 text-3xl">send</span>
-                      {{ prositEditMode ? 'Modifier mon rendu' : 'Soumettre mon rendu' }}
-                    </h4>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-11">
-                      Déposez vos fichiers ou rédigez votre rapport
-                    </p>
-                  </div>
-                  <button *ngIf="prositEditMode" (click)="cancelEditPrositSubmission()"
-                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-400 hover:text-slate-600 transition-colors text-[10px] font-black uppercase tracking-widest">
-                    <span class="material-symbols-outlined text-sm">close</span>
-                    Annuler
-                  </button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <!-- Text Report -->
-                  <div class="space-y-4">
-                    <div class="flex items-center justify-between px-2">
-                      <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Compte-rendu</label>
-                      <span class="text-[10px] font-medium text-slate-400">{{ selectedPrositReportText.length || 0 }} caractères</span>
-                    </div>
-                    <div class="relative group">
-                      <textarea 
-                        [(ngModel)]="selectedPrositReportText"
-                        placeholder="Écrivez votre compte-rendu ici..."
-                        class="w-full h-48 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all resize-none shadow-inner custom-scrollbar"></textarea>
-                    </div>
-                  </div>
-
-                  <!-- File Upload -->
-                  <div class="space-y-4">
-                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Fichiers joints</label>
-                    <div class="h-48 flex flex-col items-center justify-center rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 hover:bg-white dark:hover:bg-slate-950 hover:border-primary/50 transition-all cursor-pointer group relative overflow-hidden">
-                      <input type="file" (change)="onPrositSubmissionFileSelected($event)" class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                      <div class="flex flex-col items-center gap-3 group-hover:-translate-y-2 transition-transform duration-500">
-                        <div class="w-16 h-16 rounded-full bg-white dark:bg-slate-900 shadow-sm flex items-center justify-center text-slate-300 group-hover:text-primary group-hover:scale-110 transition-all">
-                          <span class="material-symbols-outlined text-4xl">cloud_upload</span>
-                        </div>
-                        <div class="text-center">
-                          <p class="text-xs font-black text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                            {{ selectedPrositSubmissionFile ? selectedPrositSubmissionFile.name : 'Choisir un fichier' }}
-                          </p>
-                          <p class="text-[9px] font-medium text-slate-300 mt-1 uppercase tracking-widest">PDF, ZIP ou DOCX (Max 10MB)</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <div *ngIf="prositSubmitMessage" 
-                      class="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 text-[10px] font-bold uppercase tracking-wider animate-shake">
-                      {{ prositSubmitMessage }}
-                    </div>
-                  </div>
-                  
-                  <button (click)="submitProsit()" 
-                    [disabled]="prositSubmitting"
-                    class="group relative flex items-center gap-3 px-10 py-4 bg-primary text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-xs hover:shadow-2xl hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">{{ prositSubmitting ? 'sync' : 'publish' }}</span>
-                    {{ prositSubmitting ? 'ENVOI...' : 'VALIDER MA REMISE' }}
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="p-8 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-center">
-          <button (click)="closeViewModal()"
-            class="px-12 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-xs font-black tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-slate-900/20 dark:shadow-white/10">
-            FERMER L'APERÇU
-          </button>
-        </div>
+        </main>
+      </div>
     </div>
-  </div>
 
     <section *ngIf="viewMode === 'quiz' && selectedQuiz" class="space-y-6 pb-12">
       <div class="flex items-center justify-between gap-4">
@@ -1515,7 +1735,7 @@
                 Deposer les fichiers ici
               </p>
               <p class="text-xl font-semibold text-slate-700 mb-3">ou bien</p>
-              <input id="prosit-file-upload" type="file" aria-label="Upload prosit submission file"
+              <input id="prosit-file-upload" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" aria-label="Upload prosit submission file"
                 (change)="onPrositSubmissionFileSelected($event)"
                 class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold hover:file:bg-blue-700" />
               <p *ngIf="selectedPrositSubmissionFile" class="text-sm text-slate-700 mt-3">

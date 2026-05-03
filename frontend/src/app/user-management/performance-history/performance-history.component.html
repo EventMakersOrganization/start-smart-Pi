@@ -119,25 +119,8 @@
           </div>
         </div>
 
-        <!-- Difficulty Filter -->
+        <!-- Sort Filter -->
         <div class="flex items-center gap-2 ml-auto">
-          <span
-            class="material-symbols-outlined text-xs text-amber-400 align-middle"
-            >signal_cellular_alt</span
-          >
-          <span class="text-xs font-bold text-slate-500 uppercase"
-            >Difficulty</span
-          >
-          <select
-            [(ngModel)]="selectedDifficulty"
-            (change)="currentPage = 1"
-            class="text-xs border border-slate-200 rounded-lg px-3 py-1.5 bg-white font-medium"
-          >
-            <option value="all">All</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
           <span
             class="material-symbols-outlined text-xs text-emerald-400 align-middle"
             >sort</span
@@ -211,11 +194,7 @@
             >
               Topic
             </th>
-            <th
-              class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
-            >
-              Difficulty
-            </th>
+
             <th
               class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
             >
@@ -271,17 +250,7 @@
               </span>
             </td>
 
-            <!-- Difficulty -->
-            <td class="px-6 py-4">
-              <span
-                [class]="
-                  'text-xs font-bold px-2.5 py-1 rounded-full capitalize shadow ' +
-                  getDifficultyColor(p.difficulty || 'beginner')
-                "
-              >
-                {{ p.difficulty || "beginner" }}
-              </span>
-            </td>
+
 
             <!-- Score -->
             <td class="px-6 py-4">

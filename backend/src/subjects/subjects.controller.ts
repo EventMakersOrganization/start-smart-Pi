@@ -468,11 +468,11 @@ export class SubjectsController {
       limits: { fileSize: 20 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         const ext = extname(file.originalname || "").toLowerCase();
-        const allowed = [".pdf", ".doc", ".docx", ".html"];
+        const allowed = [".pdf", ".doc", ".docx", ".html", ".ppt", ".pptx"];
         if (!allowed.includes(ext)) {
           cb(
             new BadRequestException(
-              "Only PDF/Word files are allowed for quiz response",
+              "Only PDF, Word or PowerPoint files are allowed for quiz response",
             ) as any,
             false,
           );

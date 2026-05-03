@@ -24,7 +24,7 @@ export class PerformanceHistoryComponent implements OnInit {
 
   // Filtres
   selectedTopic = 'all';
-  selectedDifficulty = 'all';
+
   sortBy = 'date_desc';
 
   // Pagination
@@ -103,12 +103,7 @@ export class PerformanceHistoryComponent implements OnInit {
       data = data.filter((p) => (p.topic || 'general') === this.selectedTopic);
     }
 
-    // Filtre difficulty
-    if (this.selectedDifficulty !== 'all') {
-      data = data.filter(
-        (p) => (p.difficulty || 'beginner') === this.selectedDifficulty,
-      );
-    }
+
 
     // Sort
     data.sort((a, b) => {
@@ -153,11 +148,7 @@ export class PerformanceHistoryComponent implements OnInit {
     return 'Needs Work';
   }
 
-  getDifficultyColor(difficulty: string): string {
-    if (difficulty === 'advanced') return 'text-green-700 bg-green-100';
-    if (difficulty === 'intermediate') return 'text-blue-700 bg-blue-100';
-    return 'text-orange-700 bg-orange-100';
-  }
+
 
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-GB', {
@@ -175,7 +166,7 @@ export class PerformanceHistoryComponent implements OnInit {
 
   resetFilters(): void {
     this.selectedTopic = 'all';
-    this.selectedDifficulty = 'all';
+
     this.sortBy = 'date_desc';
     this.currentPage = 1;
   }
