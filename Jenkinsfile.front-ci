@@ -91,6 +91,16 @@ pipeline {
       }
     }
 
+    stage('Frontend Member4 Tests') {
+      steps {
+        dir('frontend') {
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/modules/analytics/services/analytics.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/modules/analytics/services/riskscore.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/modules/analytics/pages/deep-analytics/deep-analytics.component.spec.ts'
+        }
+      }
+    }
+
     stage('Frontend MemberKmar Tests') {
       steps {
         dir('frontend') {

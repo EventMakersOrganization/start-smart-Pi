@@ -504,4 +504,33 @@ describe('AnalyticsService health', () => {
     expect(result.cache.schemaVersion).toBe('v1');
     expect(result.cache.redisEnabled).toBe(false);
   });
+
+  it('should report mongo not connected when readyState is not connected', async () => {
+    const disconnectedConnection = {
+      readyState: 0,
+      db: null,
+    };
+
+    const service = new AnalyticsService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      disconnectedConnection as any,
+      mockReadCache as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    const result = await service.getAnalyticsHealth();
+
+    expect(result.ok).toBe(false);
+    expect(result.mongo.ok).toBe(false);
+    expect(result.mongo.error).toContain('readyState=0');
+  });
 });
