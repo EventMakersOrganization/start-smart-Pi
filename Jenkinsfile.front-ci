@@ -1,6 +1,7 @@
 // Frontend CI (Angular / Karma)
 // SonarQube: Jenkins credential ID sonar-token (Secret text). SONAR_HOST_URL default host.docker.internal:9000 when Jenkins is in Docker on Windows.
-// Create Sonar project key start-smart-frontend (or let first analysis create it). Scanner runs via docker: sonarsource/sonar-scanner-cli (Docker CLI required on agent).
+// Create Sonar project key start-smart-frontend (same key as frontend/sonar-project.properties) and grant your user Execute analysis (or Create projects).
+// Sonar stage uses SonarScanner CLI zip under ${WORKSPACE}/.ci-tools (not Docker), same reason as Jenkinsfile.back-ci: bind-mounts from Jenkins-in-Docker are often empty on the host Docker daemon.
 pipeline {
   agent any
 
