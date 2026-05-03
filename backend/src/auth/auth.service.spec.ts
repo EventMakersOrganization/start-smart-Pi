@@ -6,9 +6,9 @@ import { ActivityService } from '../activity/activity.service';
 import { SessionService } from '../activity/session.service';
 import { User, UserRole } from '../users/schemas/user.schema';
 import { ConflictException, BadRequestException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
-jest.mock('bcrypt', () => ({
+jest.mock('bcryptjs', () => ({
     hash: jest.fn(),
     compare: jest.fn(),
 }));
