@@ -3,7 +3,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 import { User, UserDocument, UserRole } from '../users/schemas/user.schema';

@@ -129,17 +129,26 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     this.showAddChapterForm = false;
   }
   openContentId: string | null = null;
+  contentZoom = 100;
 
   async onOpenContent(content: any) {
     this.selectedContentForView = {
       ...content,
       dueDate: this.getNormalizedPrositDueDate(content),
     };
-    this.showViewModal = true;
-
     const url = content.url || '';
     const isDocx = url.toLowerCase().endsWith('.docx') || url.toLowerCase().endsWith('.doc');
     const isText = url.toLowerCase().endsWith('.txt') || url.toLowerCase().endsWith('.html') || url.toLowerCase().endsWith('.htm');
+    const isPPT = url.toLowerCase().endsWith('.ppt') || url.toLowerCase().endsWith('.pptx');
+
+    if (isPPT && url) {
+      const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url}`;
+      const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullUrl)}&embedded=true`;
+      window.open(googleViewerUrl, '_blank');
+      return;
+    }
+
+    this.showViewModal = true;
 
     if (url && (isDocx || isText)) {
       this.selectedContentForView.loadingPreview = true;
@@ -174,6 +183,22 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   closeViewModal() {
     this.showViewModal = false;
     this.selectedContentForView = null;
+    this.contentZoom = 100;
+  }
+
+  zoomInContent() {
+    console.log('Zooming In', this.contentZoom);
+    if (this.contentZoom < 100) this.contentZoom += 10;
+  }
+
+  zoomOutContent() {
+    console.log('Zooming Out', this.contentZoom);
+    if (this.contentZoom > 50) this.contentZoom -= 10;
+  }
+
+  resetZoomContent() {
+    console.log('Resetting Zoom');
+    this.contentZoom = 100;
   }
 
   private getNormalizedPrositDueDate(content: any): string {
@@ -232,10 +257,10 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     'cours' | 'exercices' | 'videos' | 'ressources',
     string
   > = {
-    cours: 'Cours',
+    cours: 'Courses',
     exercices: 'Exercices',
     videos: 'Videos',
-    ressources: 'Ressources Additionnelles',
+    ressources: 'Additional Ressources',
   };
   user: any;
   loadingSubjects = false;

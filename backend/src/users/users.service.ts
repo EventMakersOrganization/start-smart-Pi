@@ -7,7 +7,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ActivityService } from '../activity/activity.service';
 import { SessionService } from '../activity/session.service';
 import { ActivityAction } from '../activity/schemas/activity.schema';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';

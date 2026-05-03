@@ -1,0 +1,153 @@
+[
+  {
+    "_id": "69f0b2dc1d4383c547e1c2c0",
+    "title": "zjledhgaiehf",
+    "description": "edkjbekhzf",
+    "level": "General",
+    "subject": "Architecture des SI",
+    "subjectId": "69f0b2921d4383c547e1c0da",
+    "chapterOrder": 0,
+    "subChapters": [
+      {
+        "title": "djaebkfhzvf",
+        "description": "dnaezljbkehfbv",
+        "order": 1,
+        "contents": [
+          {
+            "contentId": "cfaf4751-7ebb-4b1f-9b1b-739deae7c2a3",
+            "folder": "cours",
+            "type": "file",
+            "title": "TP Nagios.pdf",
+            "url": "/uploads/subjects/cours/1777382128169_TP_Nagios.pdf",
+            "fileName": "TP Nagios.pdf",
+            "mimeType": "application/pdf"
+          },
+          {
+            "contentId": "49e3858a-e4f7-4651-a943-b09bda11a680",
+            "folder": "videos",
+            "type": "video",
+            "title": "video.mp4",
+            "url": "/uploads/subjects/videos/1777382168960_video.mp4",
+            "fileName": "video.mp4",
+            "mimeType": "video/mp4"
+          },
+          {
+            "contentId": "a17f5c74-4858-4ec1-9164-d9f82d96432e",
+            "folder": "exercices",
+            "type": "prosit",
+            "title": "TP Nagios.pdf",
+            "url": "/uploads/subjects/cours/1777384505920_TP_Nagios.pdf",
+            "fileName": "TP Nagios.pdf",
+            "mimeType": "application/pdf",
+            "quizQuestions": [],
+            "dueDate": "2026-04-30T16:56:00.000Z"
+          },
+          {
+            "contentId": "6f5a1e87-4d2c-4e8d-a3f6-d26534abcaec",
+            "folder": "exercices",
+            "type": "prosit",
+            "title": "TP DNS 24-25.pdf",
+            "url": "/uploads/subjects/cours/1777385017154_TP_DNS_24-25.pdf",
+            "fileName": "TP DNS 24-25.pdf",
+            "mimeType": "application/pdf",
+            "dueDate": "2026-05-09T15:03:00.000Z",
+            "createdAt": "2026-04-28T14:03:37.397Z",
+            "quizQuestions": []
+          },
+          {
+            "contentId": "58d4a0db-9e96-4eec-87bd-b62d2ac37bf3",
+            "folder": "exercices",
+            "type": "quiz",
+            "title": "hjéefgviyé'jrhiekzf",
+            "quizQuestions": [
+              {
+                "question": "kjnokebzihdgfkyhevzjf",
+                "options": [
+                  "ljédebhgkiyef",
+                  "léheugfriéu'kfhlkjé;\"r"
+                ],
+                "correctOptionIndex": 1
+              }
+            ],
+            "createdAt": "2026-04-28T14:39:49.346Z"
+          },
+          {
+            "contentId": "a3f623c1-3bfa-4834-8cc7-2140db0d3495",
+            "folder": "exercices",
+            "type": "quiz",
+            "title": "TP DNS 24-25.pdf",
+            "url": "/uploads/subjects/cours/1777387714986_1_1.docx",
+            "fileName": "1.1.docx",
+            "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "quizQuestions": [],
+            "createdAt": "2026-04-28T14:48:35.133Z"
+          },
+          {
+            "contentId": "ad174e81-0f33-47f2-a3a9-a9c10f58786d",
+            "folder": "videos",
+            "type": "link",
+            "title": "kkkkkkkkkkkkkk",
+            "url": "https://youtu.be/CoVl96ApaHk",
+            "createdAt": "2026-04-28T21:00:01.756Z"
+          },
+          {
+            "contentId": "81bfe1b5-19ad-4dce-bb61-176c9ba96bff",
+            "folder": "ressources",
+            "type": "code",
+            "title": "edefegf",
+            "codeSnippet": "<code>\nx = 5;\ny = 6;\nz = x + y;\n</code>",
+            "createdAt": "2026-04-28T21:13:24.017Z",
+            "quizQuestions": []
+          },
+          {
+            "contentId": "56f1447e-0ebf-4771-ab15-e182325b0656",
+            "folder": "cours",
+            "type": "file",
+            "title": "Linear regression certif.docx",
+            "url": "/uploads/subjects/cours/1777410931815_Linear_regression_certif.docx",
+            "fileName": "Linear regression certif.docx",
+            "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "createdAt": "2026-04-28T21:15:31.950Z"
+          }
+        ]
+      }
+    ],
+    "instructorId": "69e28dd1ad31870579bd8406",
+    "createdAt": "2026-04-28T13:15:08.311Z",
+    "updatedAt": "2026-04-28T21:15:31.965Z",
+    "__v": 25
+  },
+  {
+    "_id": "69f1279ebfca7da930fc9b82",
+    "title": "fefzfrggr",
+    "description": "f\"rg\"gh\"gh",
+    "level": "General",
+    "subject": "Architecture des SI",
+    "subjectId": "69f0b2921d4383c547e1c0da",
+    "chapterOrder": 1,
+    "subChapters": [
+      {
+        "title": "eéeré''",
+        "description": "éedef\"rg",
+        "order": 1,
+        "contents": [
+          {
+            "contentId": "e4d3d969-854c-4ea0-acbf-389059ee3bfe",
+            "folder": "exercices",
+            "type": "quiz",
+            "title": "1.7.docx",
+            "url": "/uploads/subjects/cours/1777412060186_1_7.docx",
+            "fileName": "1.7.docx",
+            "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "quizQuestions": [],
+            "createdAt": "2026-04-28T21:34:20.277Z"
+          }
+        ]
+      }
+    ],
+    "instructorId": "69e28dd1ad31870579bd8406",
+    "createdAt": "2026-04-28T21:33:18.522Z",
+    "updatedAt": "2026-04-28T21:34:20.288Z",
+    "__v": 2
+  }
+]
