@@ -268,16 +268,23 @@ pipeline {
             export LANGCHAIN_TRACING_V2=false
             export LANGCHAIN_API_KEY=""
             export LANGSMITH_TRACING=false
+            # Faster coverage tracer (Python 3.12+); ignored on older coverage if unsupported.
+            export COVERAGE_CORE=sysmon
             COV_PKGS="--cov=adaptive --cov=analytics --cov=core --cov=embeddings --cov=generation"
             COV_PKGS="$COV_PKGS --cov=learning_state --cov=level_test --cov=optimization --cov=quality"
             COV_PKGS="$COV_PKGS --cov=rag --cov=recommendation --cov=search --cov=utils --cov=video"
+            # Parallel workers: same 183 tests, shorter wall time. Set AI_PYTEST_XDIST=0 in job env to disable if flaky.
+            XDIST_ARGS=
+            if [ "${AI_PYTEST_XDIST:-1}" != "0" ]; then
+              XDIST_ARGS="-n auto --dist worksteal"
+            fi
             PY_ARGS=(tests/test_unit_*.py
+              $XDIST_ARGS
               --override-ini "addopts=-q --tb=short --strict-markers"
               $COV_PKGS
               --cov-report=xml:coverage.xml
               --junitxml=test-results.xml)
             if [ -x .venv/bin/pytest ]; then PY=.venv/bin/pytest; else PY="python3 -m pytest"; fi
-            # Hard cap so the job cannot hang forever (exit 124 = timeout)
             if command -v timeout >/dev/null 2>&1; then
               timeout 25m $PY "${PY_ARGS[@]}"
             else

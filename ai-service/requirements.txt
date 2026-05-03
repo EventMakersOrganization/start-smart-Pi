@@ -17,6 +17,8 @@ PyJWT>=2.8.0
 # Test & CI
 pytest>=7.4
 pytest-cov>=4.1
+coverage>=7.6.0
+pytest-xdist>=3.5.0
 httpx>=0.24
 redis>=5.0
 locust>=2.31
