@@ -1,15 +1,16 @@
 // Backend + ai-service CI (Nest/Jest + pytest)
 // SonarQube (ai-service): Jenkins → Manage Credentials → add "Secret text" with ID exactly: sonar-token
-// Same machine as Jenkins UI (e.g. Jenkins http://localhost:8081, Sonar http://localhost:9000): default below is correct.
-// If the Jenkins agent runs inside Docker while Sonar is on the host, use http://host.docker.internal:9000 instead.
+// Browser: Jenkins http://localhost:8081 and Sonar http://localhost:9000 on Windows is normal.
+// Build agent: logs under /var/jenkins_home mean Jenkins runs IN A CONTAINER — "localhost" there is the container,
+// not your PC. Use host.docker.internal to reach Sonar on the Windows host (Docker Desktop). Pure Linux Docker: try http://172.17.0.1:9000.
 pipeline {
   agent any
 
   parameters {
     string(
       name: 'SONAR_HOST_URL',
-      defaultValue: 'http://localhost:9000',
-      description: 'SonarQube base URL as seen by the build agent (same PC: http://localhost:9000).',
+      defaultValue: 'http://host.docker.internal:9000',
+      description: 'Sonar URL from the agent. Container agent + Sonar on Windows host: http://host.docker.internal:9000. Agent on host OS: http://localhost:9000.',
       trim: true
     )
     booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run ai-service unit tests with coverage + SonarQube scan')
