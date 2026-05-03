@@ -172,8 +172,9 @@ pipeline {
         expression { params.RUN_SONAR == true }
       }
       steps {
-        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-          sh """#!/usr/bin/env bash
+        dir('frontend') {
+          withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            sh """#!/usr/bin/env bash
             set -e
             export SONAR_HOST_URL='${params.SONAR_HOST_URL}'
             if command -v curl >/dev/null 2>&1; then
@@ -186,18 +187,20 @@ pipeline {
               echo "docker CLI required for sonar-scanner-cli."
               exit 1
             fi
-            # Mandatory -D flags: scanner 8.x needs projectKey even if sonar-project.properties is missing from checkout.
+            if [ ! -d src ]; then
+              echo "Sonar: expected ./src from frontend/ (cwd=\$(pwd))"
+              ls -la
+              exit 1
+            fi
             SONAR_ARGS="-Dsonar.projectKey=start-smart-frontend"
             SONAR_ARGS="\$SONAR_ARGS -Dsonar.projectName=StartSmart-Frontend"
             SONAR_ARGS="\$SONAR_ARGS -Dsonar.sources=src"
-            SONAR_ARGS="\$SONAR_ARGS -Dsonar.tests=src"
-            SONAR_ARGS="\$SONAR_ARGS -Dsonar.test.inclusions=**/*.spec.ts"
             SONAR_ARGS="\$SONAR_ARGS -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/coverage/**"
             SONAR_ARGS="\$SONAR_ARGS -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info"
             SONAR_ARGS="\$SONAR_ARGS -Dsonar.typescript.lcov.reportPaths=coverage/frontend/lcov.info"
             if command -v timeout >/dev/null 2>&1; then
               timeout 18m docker run --rm \\
-                -v "${env.WORKSPACE}/frontend:/usr/src" \\
+                -v "\$(pwd):/usr/src" \\
                 -w /usr/src \\
                 sonarsource/sonar-scanner-cli \\
                 \$SONAR_ARGS \\
@@ -205,7 +208,7 @@ pipeline {
                 -Dsonar.token="\$SONAR_TOKEN"
             else
               docker run --rm \\
-                -v "${env.WORKSPACE}/frontend:/usr/src" \\
+                -v "\$(pwd):/usr/src" \\
                 -w /usr/src \\
                 sonarsource/sonar-scanner-cli \\
                 \$SONAR_ARGS \\
@@ -213,6 +216,7 @@ pipeline {
                 -Dsonar.token="\$SONAR_TOKEN"
             fi
           """
+          }
         }
       }
     }
