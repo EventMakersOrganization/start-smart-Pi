@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 
 import httpx
@@ -10,6 +11,8 @@ TIMEOUT = 120.0
 
 
 def _api_reachable() -> bool:
+    if not bool(os.environ.get("RUN_AI_FEEDBACK_INTEGRATION")):
+        return False
     try:
         r = httpx.get(f"{BASE}/health", timeout=5)
         return r.status_code == 200
@@ -17,16 +20,34 @@ def _api_reachable() -> bool:
         return False
 
 
-@pytest.mark.skipif(not _api_reachable(), reason="AI service not running at localhost:8000")
-def test_autorecord_signals_from_chat_and_brainrush():
-    def _count(signal: str) -> int:
-        r = httpx.get(f"{BASE}/feedback/stats/{signal}?last_n=500", timeout=TIMEOUT)
-        assert r.status_code == 200, r.text
-        return int(r.json().get("count", 0))
+def _count_signal(signal: str) -> int:
+    r = httpx.get(f"{BASE}/feedback/stats/{signal}?last_n=500", timeout=TIMEOUT)
+    assert r.status_code == 200, r.text
+    return int(r.json().get("count", 0))
 
-    before_latency = _count("response_latency")
-    before_hallu = _count("hallucination")
-    before_qquality = _count("question_quality")
+
+def test_count_signal_parses_integer_unit(monkeypatch):
+    class _Resp:
+        status_code = 200
+        text = 'ok'
+
+        @staticmethod
+        def json():
+            return {'count': '7'}
+
+    monkeypatch.setattr(httpx, 'get', lambda *args, **kwargs: _Resp())
+
+    assert _count_signal('response_latency') == 7
+
+
+@pytest.mark.skipif(
+    not _api_reachable(),
+    reason="Set RUN_AI_FEEDBACK_INTEGRATION=1 and run ai-service at localhost:8000",
+)
+def test_autorecord_signals_from_chat_and_brainrush():
+    before_latency = _count_signal("response_latency")
+    before_hallu = _count_signal("hallucination")
+    before_qquality = _count_signal("question_quality")
 
     sid = f"auto-signal-{uuid.uuid4()}"
     chat = httpx.post(
@@ -53,9 +74,9 @@ def test_autorecord_signals_from_chat_and_brainrush():
     )
     assert bq.status_code == 200, bq.text
 
-    after_latency = _count("response_latency")
-    after_hallu = _count("hallucination")
-    after_qquality = _count("question_quality")
+    after_latency = _count_signal("response_latency")
+    after_hallu = _count_signal("hallucination")
+    after_qquality = _count_signal("question_quality")
 
     assert after_latency >= before_latency + 2
     assert after_hallu >= before_hallu + 1

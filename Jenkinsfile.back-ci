@@ -62,6 +62,19 @@ pipeline {
       }
     }
 
+    stage('Backend Member4 Tests') {
+      steps {
+        dir('backend') {
+          sh 'npm run test -- --runInBand --testPathPattern=analytics.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=insight.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=kpi.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=alert.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=alert-config.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=report.service.spec'
+        }
+      }
+    }
+
     stage('Backend MemberKmar Tests') {
       steps {
         dir('backend') {
@@ -70,7 +83,6 @@ pipeline {
           sh 'npm run test -- --runInBand --testPathPattern=subjects.service.spec'
           sh 'npm run test -- --runInBand --testPathPattern=academic.service.spec'
           sh 'npm run test -- --runInBand --testPathPattern=exercises.service.spec'
-          sh 'npm run test -- --runInBand --testPathPattern=kpi.service.spec'
         }
       }
     }
@@ -116,6 +128,19 @@ pipeline {
             set -e
             if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py::TestLatencyFastPathUnit tests/test_unit_hybrid_response_cache.py -q
             else python3 -m pytest tests/test_unit_monitor.py tests/test_latency_fastpath.py::TestLatencyFastPathUnit tests/test_unit_hybrid_response_cache.py -q
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('AI Service Member4 Tests') {
+      steps {
+        dir('ai-service') {
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_intervention_effectiveness.py tests/test_feedback_autorecord.py -q
+            else python3 -m pytest tests/test_intervention_effectiveness.py tests/test_feedback_autorecord.py -q
             fi
           '''
         }

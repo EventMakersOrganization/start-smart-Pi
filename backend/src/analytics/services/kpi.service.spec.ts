@@ -107,6 +107,31 @@ describe('KpiService', () => {
       expect(d.totalAlertsDeltaPct).toBeNull();
       expect(d.highRiskUsersDeltaPct).toBeNull();
     });
+
+    it('should return 100 when previous window is zero and current window is positive', async () => {
+      sessionService.countUsersSeenInWindow
+        .mockResolvedValueOnce(5)
+        .mockResolvedValueOnce(0);
+
+      userModel.countDocuments
+        .mockResolvedValueOnce(3)
+        .mockResolvedValueOnce(0);
+
+      alertModel.countDocuments
+        .mockResolvedValueOnce(4)
+        .mockResolvedValueOnce(0);
+
+      riskScoreModel.countDocuments
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(0);
+
+      const d = await service.getDashboardDeltas();
+
+      expect(d.activeUsersDeltaPct).toBe(100);
+      expect(d.totalUsersDeltaPct).toBe(100);
+      expect(d.totalAlertsDeltaPct).toBe(100);
+      expect(d.highRiskUsersDeltaPct).toBe(100);
+    });
   });
 
   describe('getAverageRiskScorePercent', () => {
