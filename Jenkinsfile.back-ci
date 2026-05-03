@@ -186,8 +186,13 @@ pipeline {
       }
     }
 
-    // coverage.xml + test-results.xml for Sonar (scope matches sonar-project.properties test inclusions)
+    // coverage.xml + test-results.xml for Sonar.
+    // Do NOT use --cov=. here: pytest.ini addopts already add --cov=* and CLI --cov=. stacks, tracing the whole tree (very slow / looks hung on Jenkins).
+    // Override ini addopts and pass one explicit --cov list (packages + api module).
     stage('AI Service — coverage for Sonar') {
+      options {
+        timeout(time: 45, unit: 'MINUTES')
+      }
       when {
         expression { params.RUN_SONAR == true }
       }
@@ -195,10 +200,18 @@ pipeline {
         dir('ai-service') {
           sh '''#!/usr/bin/env bash
             set -e
+            COV_PKGS="--cov=adaptive --cov=analytics --cov=core --cov=embeddings --cov=generation"
+            COV_PKGS="$COV_PKGS --cov=learning_state --cov=level_test --cov=optimization --cov=quality"
+            COV_PKGS="$COV_PKGS --cov=rag --cov=recommendation --cov=search --cov=utils --cov=video --cov=api"
+            PY_ARGS=(tests/test_unit_*.py
+              --override-ini "addopts=-q --tb=short --strict-markers"
+              $COV_PKGS
+              --cov-report=xml:coverage.xml
+              --junitxml=test-results.xml)
             if [ -x .venv/bin/pytest ]; then
-              .venv/bin/pytest tests/test_unit_*.py --cov=. --cov-report=xml:coverage.xml --junitxml=test-results.xml -q
+              .venv/bin/pytest "${PY_ARGS[@]}"
             else
-              python3 -m pytest tests/test_unit_*.py --cov=. --cov-report=xml:coverage.xml --junitxml=test-results.xml -q
+              python3 -m pytest "${PY_ARGS[@]}"
             fi
           '''
         }
