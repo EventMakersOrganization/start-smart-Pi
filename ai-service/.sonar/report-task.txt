@@ -1,0 +1,6 @@
+projectKey=start-smart-ai-service
+serverUrl=http://localhost:9000
+serverVersion=26.4.0.121862
+dashboardUrl=http://localhost:9000/dashboard?id=start-smart-ai-service
+ceTaskId=d5576b78-9119-4435-b794-8285ddf63f78
+ceTaskUrl=http://localhost:9000/api/ce/task?id=d5576b78-9119-4435-b794-8285ddf63f78

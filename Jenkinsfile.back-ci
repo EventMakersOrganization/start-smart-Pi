@@ -1,6 +1,19 @@
 // Backend + ai-service CI (Nest/Jest + pytest)
+// SonarQube (ai-service): Jenkins → Manage Credentials → add "Secret text" with ID exactly: sonar-token
+// Same machine as Jenkins UI (e.g. Jenkins http://localhost:8081, Sonar http://localhost:9000): default below is correct.
+// If the Jenkins agent runs inside Docker while Sonar is on the host, use http://host.docker.internal:9000 instead.
 pipeline {
   agent any
+
+  parameters {
+    string(
+      name: 'SONAR_HOST_URL',
+      defaultValue: 'http://localhost:9000',
+      description: 'SonarQube base URL as seen by the build agent (same PC: http://localhost:9000).',
+      trim: true
+    )
+    booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run ai-service unit tests with coverage + SonarQube scan')
+  }
 
   options {
     timestamps()
@@ -169,6 +182,54 @@ pipeline {
             else python3 -m pytest tests/test_unit_api_auth.py -q
             fi
           '''
+        }
+      }
+    }
+
+    // coverage.xml + test-results.xml for Sonar (scope matches sonar-project.properties test inclusions)
+    stage('AI Service — coverage for Sonar') {
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('ai-service') {
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then
+              .venv/bin/pytest tests/test_unit_*.py --cov=. --cov-report=xml:coverage.xml --junitxml=test-results.xml -q
+            else
+              python3 -m pytest tests/test_unit_*.py --cov=. --cov-report=xml:coverage.xml --junitxml=test-results.xml -q
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('SonarQube — AI Service') {
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('ai-service') {
+          withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            sh """#!/usr/bin/env bash
+              set -e
+              export SONAR_HOST_URL='${params.SONAR_HOST_URL}'
+              if [ -x .venv/bin/pip ]; then
+                .venv/bin/pip install -q pysonar
+                .venv/bin/pysonar \\
+                  --sonar-host-url="\$SONAR_HOST_URL" \\
+                  --sonar-token="\$SONAR_TOKEN" \\
+                  --sonar-project-key=start-smart-ai-service
+              else
+                python3 -m pip install -q pysonar --break-system-packages
+                pysonar \\
+                  --sonar-host-url="\$SONAR_HOST_URL" \\
+                  --sonar-token="\$SONAR_TOKEN" \\
+                  --sonar-project-key=start-smart-ai-service
+              fi
+            """
+          }
         }
       }
     }

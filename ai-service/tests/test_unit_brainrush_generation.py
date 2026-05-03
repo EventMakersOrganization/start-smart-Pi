@@ -11,7 +11,7 @@ from generation.brainrush_question_generator import (
     MIN_BRAINRUSH_CONTEXT_CHARS,
     _fetch_brainrush_context,
     _passes_grounding_gate,
-    _topic_course_specs_from_modules,
+    _topic_course_specs_from_topic_rows,
     brainrush_session_question_ok,
     distribute_difficulties,
     normalize_stem_for_dedup,
@@ -86,7 +86,7 @@ def test_topic_specs_cover_all_courses() -> None:
         {"course_id": "c2", "title": "t2a"},
         {"course_id": "c3", "title": "t3a"},
     ]
-    specs = _topic_course_specs_from_modules(modules, 9, seed="roundrobin_test_seed")
+    specs = _topic_course_specs_from_topic_rows(modules, 9, seed="roundrobin_test_seed")
     assert len(specs) == 9
     assert len({s["course_id"] for s in specs}) == 3
 
@@ -97,7 +97,7 @@ def test_topic_specs_six_questions_use_three_courses() -> None:
         {"course_id": "c2", "title": "t2a"},
         {"course_id": "c3", "title": "t3a"},
     ]
-    specs = _topic_course_specs_from_modules(modules, 6, seed="cov_seed")
+    specs = _topic_course_specs_from_topic_rows(modules, 6, seed="cov_seed")
     assert len(specs) == 6
     assert len({s["course_id"] for s in specs}) == 3
 
@@ -109,7 +109,7 @@ def test_topic_specs_buckets_by_course_id_not_duplicate_titles() -> None:
         {"course_id": "c2", "title": "2.1 B", "chapter_title": "Duplicate title bug"},
         {"course_id": "c3", "title": "3.1 C", "chapter_title": "Duplicate title bug"},
     ]
-    specs = _topic_course_specs_from_modules(modules, 6, seed="cid_buckets")
+    specs = _topic_course_specs_from_topic_rows(modules, 6, seed="cid_buckets")
     assert len({s["course_id"] for s in specs}) == 3
 
 
@@ -121,7 +121,7 @@ def test_topic_specs_round_robin_distinct_chapter_titles() -> None:
         {"course_id": "same", "title": "3.1 C", "chapter_title": "Chapitre 2 - Types"},
         {"course_id": "same", "title": "3.2 D", "chapter_title": "Chapitre 2 - Types"},
     ]
-    specs = _topic_course_specs_from_modules(modules, 8, seed="chapters_rr")
+    specs = _topic_course_specs_from_topic_rows(modules, 8, seed="chapters_rr")
     assert len(specs) == 8
     assert len({s["topic"] for s in specs}) == 4
 
