@@ -8,7 +8,10 @@ import { User, UserRole } from '../users/schemas/user.schema';
 import { ConflictException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
-jest.mock('bcrypt');
+jest.mock('bcrypt', () => ({
+    hash: jest.fn(),
+    compare: jest.fn(),
+}));
 
 describe('AuthService', () => {
     let service: AuthService;
