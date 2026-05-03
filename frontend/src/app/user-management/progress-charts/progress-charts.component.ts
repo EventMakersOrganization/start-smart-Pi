@@ -124,9 +124,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
       const builders = [
         this.buildScoreLineChart,
         this.buildTopicBarChart,
-        this.buildDifficultyDoughnut,
         this.buildTimeSpentChart,
-        this.buildRadarChart,
         this.buildCumulativeLineChart,
       ];
 
@@ -307,50 +305,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     return label.substring(0, maxLength) + '...';
   }
 
-  // ── 3. Difficulty Distribution (Doughnut) ────
-  buildDifficultyDoughnut(): void {
-    const canvas = document.getElementById(
-      'difficultyDoughnut',
-    ) as HTMLCanvasElement;
-    if (!canvas) return;
 
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) existingChart.destroy();
-
-    const counts = this.getDifficultyCounts();
-
-    const chart = new Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels: ['Beginner', 'Intermediate', 'Advanced'],
-        datasets: [
-          {
-            data: [counts.beginner, counts.intermediate, counts.advanced],
-            backgroundColor: [
-              'rgba(249, 115, 22, 0.8)',
-              'rgba(17, 82, 212, 0.8)',
-              'rgba(16, 185, 129, 0.8)',
-            ],
-            borderWidth: 0,
-            hoverOffset: 8,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '70%',
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { padding: 16, font: { size: 12 } },
-          },
-        },
-      },
-    });
-
-    this.charts.push(chart);
-  }
 
   // ── 4. Time Spent by Topic (Bar Chart) ─────
   buildTimeSpentByTopicChart(): void {
@@ -727,104 +682,13 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     }));
   }
 
-  private getDifficultyCounts(): {
-    beginner: number;
-    intermediate: number;
-    advanced: number;
-  } {
-    if (this.trackingData?.byDifficulty) {
-      return {
-        beginner:
-          Number(this.trackingData.byDifficulty.beginner?.attempts) || 0,
-        intermediate:
-          Number(this.trackingData.byDifficulty.intermediate?.attempts) || 0,
-        advanced:
-          Number(this.trackingData.byDifficulty.advanced?.attempts) || 0,
-      };
-    }
 
-    const counts = { beginner: 0, intermediate: 0, advanced: 0 };
-    this.performances.forEach((p) => {
-      const d = p.difficulty || 'beginner';
-      if (d in counts) counts[d as keyof typeof counts]++;
-    });
-    return counts;
-  }
 
   // ════════════════════════════════════════════════════════
   // NEW CHARTS - RADAR, CUMULATIVE, HEATMAP
   // ════════════════════════════════════════════════════════
 
-  // ── 5. Radar Chart (Spider Chart) ────────────
-  buildRadarChart(): void {
-    const canvas = document.getElementById('radarChart') as HTMLCanvasElement;
-    if (!canvas) return;
 
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) existingChart.destroy();
-
-    const topicScores = this.getTopicAverageScores();
-    if (topicScores.length === 0) return;
-
-    const topics = topicScores.map((t) => t.topic);
-    const scores = topicScores.map((t) => t.averageScore);
-
-    const chart = new Chart(canvas, {
-      type: 'radar',
-      data: {
-        labels: topics,
-        datasets: [
-          {
-            label: 'Average Score',
-            data: scores,
-            borderColor: 'rgba(17, 82, 212, 0.8)',
-            backgroundColor: 'rgba(17, 82, 212, 0.15)',
-            borderWidth: 2.5,
-            pointRadius: 5,
-            pointBackgroundColor: 'rgba(17, 82, 212, 1)',
-            pointHoverRadius: 7,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            fill: true,
-            tension: 0.3,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: { font: { size: 12 }, padding: 12 },
-          },
-          tooltip: {
-            callbacks: {
-              label: (ctx: any) => ` ${ctx.parsed.r}%`,
-            },
-          },
-        },
-        scales: {
-          r: {
-            beginAtZero: true,
-            min: 0,
-            max: 100,
-            ticks: {
-              stepSize: 20,
-              callback: (val: any) => `${val}%`,
-              font: { size: 10 },
-            },
-            grid: { color: 'rgba(0, 0, 0, 0.08)' },
-            pointLabels: {
-              font: { size: 12, weight: 'bold' },
-            },
-          },
-        },
-      },
-    });
-
-    this.charts.push(chart);
-  }
 
   // ── 6. Cumulative Line Chart with Moving Average ──
   buildCumulativeLineChart(): void {
