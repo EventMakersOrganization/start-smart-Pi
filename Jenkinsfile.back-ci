@@ -145,11 +145,21 @@ pipeline {
               echo "docker CLI required for sonar-scanner-cli image. Install Docker client on the Jenkins agent."
               exit 1
             fi
+            # Mandatory -D flags: scanner 8.x needs projectKey even if sonar-project.properties is missing from checkout.
+            SONAR_ARGS="-Dsonar.projectKey=start-smart-backend"
+            SONAR_ARGS="\$SONAR_ARGS -Dsonar.projectName=StartSmart-Backend"
+            SONAR_ARGS="\$SONAR_ARGS -Dsonar.sources=src"
+            SONAR_ARGS="\$SONAR_ARGS -Dsonar.tests=src"
+            SONAR_ARGS="\$SONAR_ARGS -Dsonar.test.inclusions=**/*.spec.ts"
+            SONAR_ARGS="\$SONAR_ARGS -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/coverage/**"
+            SONAR_ARGS="\$SONAR_ARGS -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info"
+            SONAR_ARGS="\$SONAR_ARGS -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info"
             if command -v timeout >/dev/null 2>&1; then
               timeout 18m docker run --rm \\
                 -v "${env.WORKSPACE}/backend:/usr/src" \\
                 -w /usr/src \\
                 sonarsource/sonar-scanner-cli \\
+                \$SONAR_ARGS \\
                 -Dsonar.host.url="\$SONAR_HOST_URL" \\
                 -Dsonar.token="\$SONAR_TOKEN"
             else
@@ -157,6 +167,7 @@ pipeline {
                 -v "${env.WORKSPACE}/backend:/usr/src" \\
                 -w /usr/src \\
                 sonarsource/sonar-scanner-cli \\
+                \$SONAR_ARGS \\
                 -Dsonar.host.url="\$SONAR_HOST_URL" \\
                 -Dsonar.token="\$SONAR_TOKEN"
             fi
