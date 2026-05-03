@@ -24,6 +24,25 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Docker CLI only — CD pipelines call `docker build/push`; engine comes from the HOST via mounted socket.
+# After rebuild, run the container with: -v /var/run/docker.sock:/var/run/docker.sock
+# On Linux also pass group of the socket so user `jenkins` can access it, e.g.
+#   --group-add $(stat -c '%g' /var/run/docker.sock)
+ARG DOCKER_CLI_VERSION=27.4.1
+RUN set -eux; \
+    ARCH="$(uname -m)"; \
+    case "$ARCH" in \
+      x86_64) DL_ARCH=x86_64 ;; \
+      aarch64|arm64) DL_ARCH=aarch64 ;; \
+      *) echo "unsupported arch: $ARCH"; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://download.docker.com/linux/static/stable/${DL_ARCH}/docker-${DOCKER_CLI_VERSION}.tgz" -o /tmp/d.tgz; \
+    tar -xzf /tmp/d.tgz -C /tmp; \
+    mv /tmp/docker/docker /usr/local/bin/docker; \
+    chmod +x /usr/local/bin/docker; \
+    rm -rf /tmp/docker /tmp/d.tgz; \
+    docker --version
+
 # Karma / Angular --browsers=ChromeHeadless looks for Chrome or CHROME_BIN.
 ENV CHROME_BIN=/usr/bin/chromium
 
