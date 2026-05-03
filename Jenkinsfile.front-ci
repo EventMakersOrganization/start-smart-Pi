@@ -1,6 +1,18 @@
 // Frontend CI (Angular / Karma)
+// SonarQube: Jenkins credential ID sonar-token (Secret text). SONAR_HOST_URL default host.docker.internal:9000 when Jenkins is in Docker on Windows.
+// Create Sonar project key start-smart-frontend (or let first analysis create it). Scanner runs via docker: sonarsource/sonar-scanner-cli (Docker CLI required on agent).
 pipeline {
   agent any
+
+  parameters {
+    string(
+      name: 'SONAR_HOST_URL',
+      defaultValue: 'http://host.docker.internal:9000',
+      description: 'Sonar URL reachable from the build agent.',
+      trim: true
+    )
+    booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run Karma with --code-coverage + Sonar scan')
+  }
 
   options {
     timestamps()
@@ -121,6 +133,75 @@ pipeline {
           sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/jwt.interceptor.spec.ts'
           sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/role.guard.spec.ts'
           sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/login/login.component.spec.ts'
+        }
+      }
+    }
+
+    // Full suite + LCOV for Sonar (karma.conf.js). Can take several minutes; CHROME_BIN comes from Prepare Chromium.
+    stage('Frontend — coverage for Sonar') {
+      options {
+        timeout(time: 45, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('frontend') {
+          sh """#!/usr/bin/env bash
+            set -e
+            export CHROME_BIN='${env.CHROME_BIN}'
+            if [ -z "\$CHROME_BIN" ]; then
+              echo "CHROME_BIN empty — Prepare Chromium for Karma stage must run first."
+              exit 1
+            fi
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 38m npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
+            else
+              npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
+            fi
+          """
+        }
+      }
+    }
+
+    stage('SonarQube — Frontend') {
+      options {
+        timeout(time: 25, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+          sh """#!/usr/bin/env bash
+            set -e
+            export SONAR_HOST_URL='${params.SONAR_HOST_URL}'
+            if command -v curl >/dev/null 2>&1; then
+              curl -sS -m 15 -f "\$SONAR_HOST_URL/api/system/status" >/dev/null || {
+                echo "SonarQube not reachable (SONAR_HOST_URL / firewall)."
+                exit 1
+              }
+            fi
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "docker CLI required for sonar-scanner-cli."
+              exit 1
+            fi
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 18m docker run --rm \\
+                -v "${env.WORKSPACE}/frontend:/usr/src" \\
+                -w /usr/src \\
+                sonarsource/sonar-scanner-cli \\
+                -Dsonar.host.url="\$SONAR_HOST_URL" \\
+                -Dsonar.token="\$SONAR_TOKEN"
+            else
+              docker run --rm \\
+                -v "${env.WORKSPACE}/frontend:/usr/src" \\
+                -w /usr/src \\
+                sonarsource/sonar-scanner-cli \\
+                -Dsonar.host.url="\$SONAR_HOST_URL" \\
+                -Dsonar.token="\$SONAR_TOKEN"
+            fi
+          """
         }
       }
     }

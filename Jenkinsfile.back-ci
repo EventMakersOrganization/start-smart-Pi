@@ -13,7 +13,7 @@ pipeline {
       description: 'Sonar URL from the agent. Container agent + Sonar on Windows host: http://host.docker.internal:9000. Agent on host OS: http://localhost:9000.',
       trim: true
     )
-    booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run ai-service unit tests with coverage + SonarQube scan')
+    booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run backend + ai-service coverage and SonarQube scans (same sonar-token)')
   }
 
   options {
@@ -97,6 +97,70 @@ pipeline {
           sh 'npm run test -- --runInBand --testPathPattern=subjects.service.spec'
           sh 'npm run test -- --runInBand --testPathPattern=academic.service.spec'
           sh 'npm run test -- --runInBand --testPathPattern=exercises.service.spec'
+        }
+      }
+    }
+
+    // Jest coverage → coverage/lcov.info (see backend/sonar-project.properties). Same caveats as ai-service: use SONAR_HOST_URL reachable from agent (host.docker.internal on Docker Desktop).
+    stage('Backend — coverage for Sonar') {
+      options {
+        timeout(time: 35, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('backend') {
+          sh '''#!/usr/bin/env bash
+            set -e
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 28m npm run test:cov -- --runInBand
+            else
+              npm run test:cov -- --runInBand
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('SonarQube — Backend') {
+      options {
+        timeout(time: 25, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+          sh """#!/usr/bin/env bash
+            set -e
+            export SONAR_HOST_URL='${params.SONAR_HOST_URL}'
+            if command -v curl >/dev/null 2>&1; then
+              curl -sS -m 15 -f "\$SONAR_HOST_URL/api/system/status" >/dev/null || {
+                echo "SonarQube not reachable (check SONAR_HOST_URL for container agents)."
+                exit 1
+              }
+            fi
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "docker CLI required for sonar-scanner-cli image. Install Docker client on the Jenkins agent."
+              exit 1
+            fi
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 18m docker run --rm \\
+                -v "${env.WORKSPACE}/backend:/usr/src" \\
+                -w /usr/src \\
+                sonarsource/sonar-scanner-cli \\
+                -Dsonar.host.url="\$SONAR_HOST_URL" \\
+                -Dsonar.token="\$SONAR_TOKEN"
+            else
+              docker run --rm \\
+                -v "${env.WORKSPACE}/backend:/usr/src" \\
+                -w /usr/src \\
+                sonarsource/sonar-scanner-cli \\
+                -Dsonar.host.url="\$SONAR_HOST_URL" \\
+                -Dsonar.token="\$SONAR_TOKEN"
+            fi
+          """
         }
       }
     }
