@@ -1,4 +1,6 @@
 // CD: build & push Nest backend image to Docker Hub (requires Docker on agent + credential dockerhub-registry)
+// Expected to run after backend CI succeeds: either triggered by Jenkinsfile.back-ci stage "Trigger CD" (job name default cd-back)
+// or by Jenkins "Build after other projects are built" on the CI job.
 pipeline {
   agent any
 

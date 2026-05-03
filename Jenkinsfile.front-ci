@@ -2,6 +2,7 @@
 // SonarQube: Jenkins credential ID sonar-token (Secret text). SONAR_HOST_URL default host.docker.internal:9000 when Jenkins is in Docker on Windows.
 // Create Sonar project key start-smart-frontend (same key as frontend/sonar-project.properties) and grant your user Execute analysis (or Create projects).
 // Sonar stage uses SonarScanner CLI zip under ${WORKSPACE}/.ci-tools (not Docker), same reason as Jenkinsfile.back-ci: bind-mounts from Jenkins-in-Docker are often empty on the host Docker daemon.
+// CD chain: stage "Trigger CD" queues DOWNSTREAM_CD_JOB (default cd-front). Jenkins user needs Job/Build on that job.
 pipeline {
   agent any
 
@@ -13,6 +14,17 @@ pipeline {
       trim: true
     )
     booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run Karma with --code-coverage + Sonar scan')
+    booleanParam(
+      name: 'TRIGGER_CD_AFTER_SUCCESS',
+      defaultValue: true,
+      description: 'When true and DOWNSTREAM_CD_JOB is non-empty, queue that CD job after this pipeline succeeds (wait: false).'
+    )
+    string(
+      name: 'DOWNSTREAM_CD_JOB',
+      defaultValue: 'cd-front',
+      description: 'Jenkins name of the frontend CD job (folder/job if in a folder). Empty = skip CD trigger.',
+      trim: true
+    )
   }
 
   options {
@@ -231,6 +243,22 @@ pipeline {
             fi
           """
           }
+        }
+      }
+    }
+
+    stage('Trigger CD') {
+      when {
+        allOf {
+          expression { params.TRIGGER_CD_AFTER_SUCCESS == true }
+          expression { return (params.DOWNSTREAM_CD_JOB ?: '').trim().length() > 0 }
+        }
+      }
+      steps {
+        script {
+          def downstream = params.DOWNSTREAM_CD_JOB.trim()
+          echo "CI succeeded — queueing downstream CD: ${downstream} (wait: false, propagate: false)"
+          build job: downstream, wait: false, propagate: false
         }
       }
     }

@@ -5,6 +5,9 @@
 // not your PC. Use host.docker.internal to reach Sonar on the Windows host (Docker Desktop). Pure Linux Docker: try http://172.17.0.1:9000.
 // Backend Sonar stage uses the SonarScanner CLI zip on the agent (not Docker): bind-mounting the Jenkins workspace into
 // sonarsource/sonar-scanner-cli often yields an empty /usr/src when the Docker daemon runs on the host (paths under /var/jenkins_home do not exist there).
+// CD chain: final stage "Trigger CD" queues DOWNSTREAM_CD_JOB (default cd-back) when TRIGGER_CD_AFTER_SUCCESS is true.
+// The Jenkins user must have Job/Build on that job. If your CD job name differs, change the parameter default in the job config.
+// Alternative (no code): Jenkins CD job → Build Triggers → "Build after other projects are built" → ci-back (only if stable).
 pipeline {
   agent any
 
@@ -16,6 +19,17 @@ pipeline {
       trim: true
     )
     booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run backend + ai-service coverage and SonarQube scans (same sonar-token)')
+    booleanParam(
+      name: 'TRIGGER_CD_AFTER_SUCCESS',
+      defaultValue: true,
+      description: 'When true and DOWNSTREAM_CD_JOB is non-empty, queue that CD job after this pipeline succeeds (wait: false).'
+    )
+    string(
+      name: 'DOWNSTREAM_CD_JOB',
+      defaultValue: 'cd-back',
+      description: 'Jenkins name of the backend CD job (folder/job if in a folder). Empty = skip CD trigger.',
+      trim: true
+    )
   }
 
   options {
@@ -365,6 +379,22 @@ pipeline {
               fi
             """
           }
+        }
+      }
+    }
+
+    stage('Trigger CD') {
+      when {
+        allOf {
+          expression { params.TRIGGER_CD_AFTER_SUCCESS == true }
+          expression { return (params.DOWNSTREAM_CD_JOB ?: '').trim().length() > 0 }
+        }
+      }
+      steps {
+        script {
+          def downstream = params.DOWNSTREAM_CD_JOB.trim()
+          echo "CI succeeded — queueing downstream CD: ${downstream} (wait: false, propagate: false)"
+          build job: downstream, wait: false, propagate: false
         }
       }
     }

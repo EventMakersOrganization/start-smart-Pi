@@ -1,4 +1,5 @@
 // CD: build & push Angular static image to Docker Hub (requires Docker on agent + credential dockerhub-registry)
+// Expected to run after frontend CI succeeds: Jenkinsfile.front-ci "Trigger CD" (default downstream cd-front) or Jenkins upstream trigger.
 pipeline {
   agent any
 
