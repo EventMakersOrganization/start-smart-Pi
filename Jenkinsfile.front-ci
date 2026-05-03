@@ -183,8 +183,8 @@ pipeline {
                 exit 1
               }
             fi
-            if ! command -v docker >/dev/null 2>&1; then
-              echo "docker CLI required for sonar-scanner-cli."
+            if ! command -v curl >/dev/null 2>&1; then
+              echo "curl required to download SonarScanner CLI."
               exit 1
             fi
             if [ ! -d src ]; then
@@ -192,28 +192,41 @@ pipeline {
               ls -la
               exit 1
             fi
-            SONAR_ARGS="-Dsonar.projectKey=start-smart-frontend"
-            SONAR_ARGS="\$SONAR_ARGS -Dsonar.projectName=StartSmart-Frontend"
-            SONAR_ARGS="\$SONAR_ARGS -Dsonar.sources=src"
-            SONAR_ARGS="\$SONAR_ARGS -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/coverage/**"
-            SONAR_ARGS="\$SONAR_ARGS -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info"
-            SONAR_ARGS="\$SONAR_ARGS -Dsonar.typescript.lcov.reportPaths=coverage/frontend/lcov.info"
+            SCAN_VER="6.2.1.4610"
+            SCAN_ROOT="\${WORKSPACE}/.ci-tools"
+            SCAN_HOME="\$SCAN_ROOT/sonar-scanner-\${SCAN_VER}-linux-x64"
+            SCAN_BIN="\$SCAN_HOME/bin/sonar-scanner"
+            if [ ! -x "\$SCAN_BIN" ]; then
+              echo "Installing SonarScanner CLI \${SCAN_VER} under \$SCAN_ROOT ..."
+              mkdir -p "\$SCAN_ROOT"
+              curl -fSL --retry 3 --connect-timeout 20 \\
+                -o /tmp/sonar-scanner-cli.zip \\
+                "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-\${SCAN_VER}-linux-x64.zip"
+              rm -rf "\$SCAN_HOME"
+              mkdir -p /tmp/sonar-scan-unpack
+              rm -rf /tmp/sonar-scan-unpack/*
+              if command -v unzip >/dev/null 2>&1; then
+                unzip -q /tmp/sonar-scanner-cli.zip -d /tmp/sonar-scan-unpack
+              else
+                python3 -c "import zipfile; zipfile.ZipFile('/tmp/sonar-scanner-cli.zip').extractall('/tmp/sonar-scan-unpack')"
+              fi
+              mv /tmp/sonar-scan-unpack/sonar-scanner-\${SCAN_VER}-linux-x64 "\$SCAN_HOME"
+              rm -f /tmp/sonar-scanner-cli.zip
+            fi
+            SONAR_OPTS=(
+              -Dsonar.projectKey=start-smart-frontend
+              -Dsonar.projectName=StartSmart-Frontend
+              -Dsonar.sources=src
+              -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/coverage/**
+              -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info
+              -Dsonar.typescript.lcov.reportPaths=coverage/frontend/lcov.info
+              -Dsonar.host.url="\$SONAR_HOST_URL"
+              -Dsonar.token="\$SONAR_TOKEN"
+            )
             if command -v timeout >/dev/null 2>&1; then
-              timeout 18m docker run --rm \\
-                -v "\$(pwd):/usr/src" \\
-                -w /usr/src \\
-                sonarsource/sonar-scanner-cli \\
-                \$SONAR_ARGS \\
-                -Dsonar.host.url="\$SONAR_HOST_URL" \\
-                -Dsonar.token="\$SONAR_TOKEN"
+              timeout 18m "\$SCAN_BIN" "\${SONAR_OPTS[@]}"
             else
-              docker run --rm \\
-                -v "\$(pwd):/usr/src" \\
-                -w /usr/src \\
-                sonarsource/sonar-scanner-cli \\
-                \$SONAR_ARGS \\
-                -Dsonar.host.url="\$SONAR_HOST_URL" \\
-                -Dsonar.token="\$SONAR_TOKEN"
+              "\$SCAN_BIN" "\${SONAR_OPTS[@]}"
             fi
           """
           }
