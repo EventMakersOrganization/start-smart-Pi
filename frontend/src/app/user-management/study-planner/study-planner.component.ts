@@ -38,6 +38,7 @@ interface WeekDayColumn {
 @Component({
   selector: 'app-study-planner',
   templateUrl: './study-planner.component.html',
+  styleUrls: ['./study-planner.component.css'],
 })
 export class StudyPlannerComponent implements OnInit, OnChanges {
   @Input() studentId = '';

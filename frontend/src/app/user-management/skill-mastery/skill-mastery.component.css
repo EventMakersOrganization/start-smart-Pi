@@ -1,7 +1,41 @@
-/* Skill Mastery Component Styles */
+.mastery-card {
+  @apply bg-white/80 dark:bg-slate-900/90 rounded-[2rem] border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-2xl backdrop-blur-xl transition-all duration-500;
+}
 
-:host {
-  display: block;
+.skill-item-card {
+  @apply relative rounded-2xl border transition-all duration-300 overflow-hidden;
+}
+
+.skill-item-card:hover {
+  @apply shadow-xl -translate-y-1;
+}
+
+.filter-btn {
+  @apply px-4 py-2 rounded-xl text-[13px] font-black transition-all duration-200 flex items-center gap-2;
+}
+
+.filter-btn-active {
+  @apply shadow-lg shadow-primary/20 scale-105;
+}
+
+.progress-bar-container {
+  @apply w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5;
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full transition-all duration-1000 ease-out;
+}
+
+.star-icon {
+  @apply text-base transition-all duration-300;
+}
+
+.group:hover .star-icon {
+  @apply scale-110;
+}
+
+.legend-item {
+  @apply flex flex-col items-center p-3 rounded-2xl transition-all duration-300 border border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-100 dark:hover:border-slate-800;
 }
 
 @keyframes pulse-badge {

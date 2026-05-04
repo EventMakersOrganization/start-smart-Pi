@@ -1116,6 +1116,7 @@ export class AdaptiveLearningService {
         timeSpent: 0,
         attemptDate: row?.submittedAt || row?.createdAt,
         source: "quiz",
+        title: row?.quizTitle || row?.title || "Quiz",
         topic:
           String(
             row?.subjectTitle ||
@@ -1137,6 +1138,7 @@ export class AdaptiveLearningService {
         timeSpent: 0,
         attemptDate: row?.gradedAt || row?.submittedAt || row?.createdAt,
         source: "quiz",
+        title: row?.quizTitle || row?.title || "Quiz File",
         topic:
           String(
             row?.subjectTitle ||
@@ -1158,7 +1160,8 @@ export class AdaptiveLearningService {
         score: Math.max(0, Math.min(100, score)),
         timeSpent: 0,
         attemptDate: row?.gradedAt || row?.submittedAt || row?.createdAt,
-        source: "exercise",
+        source: "prosit",
+        title: row?.prositTitle || row?.title || "Prosit",
         topic:
           String(
             row?.subjectTitle ||
@@ -1217,7 +1220,8 @@ export class AdaptiveLearningService {
       timeSpent: Math.max(0, Number(row?.timeSpent ?? 0)),
       attemptDate:
         row?.attemptDate || row?.submittedAt || row?.gradedAt || row?.createdAt,
-      source: String(row?.source || "exercise"),
+      source: (row?.source === "exercise" || row?.source === "prosit") ? "prosit" : String(row?.source || "quiz"),
+      title: String(row?.title || row?.exerciseTitle || "Assessment"),
       topic: String(
         row?.subjectTitle ||
           row?.topic ||
@@ -3448,10 +3452,7 @@ export class AdaptiveLearningService {
       status: "passed" | "failed";
     }>;
   }> {
-    const attempts = await this.performanceModel
-      .find({ studentId })
-      .sort({ attemptDate: -1 })
-      .exec();
+    const attempts = await this.findPerformanceByStudent(studentId);
 
     const totalAttempts = attempts.length;
     const totalCompleted = attempts.filter((a: any) => a.score >= 70).length;
@@ -3612,12 +3613,14 @@ export class AdaptiveLearningService {
       },
     };
 
-    const recentActivity = attempts.slice(0, 5).map((a: any) => ({
+    const recentActivity = attempts.slice(0, 10).map((a: any) => ({
       exerciseId: String(a.exerciseId || ""),
       topic: a.topic || "general",
       score: a.score,
       difficulty: a.difficulty || "unknown",
       date: a.attemptDate,
+      source: a.source,
+      title: a.title || "Assessment",
       status: a.score >= 70 ? ("passed" as const) : ("failed" as const),
     }));
 

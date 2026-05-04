@@ -1,0 +1,37 @@
+.planner-card {
+  @apply bg-white/80 dark:bg-slate-900/90 rounded-[2rem] border border-slate-200/60 dark:border-slate-800/60 shadow-xl backdrop-blur-xl transition-all duration-300;
+}
+
+.stat-card {
+  @apply flex flex-col items-center p-4 rounded-2xl border transition-all duration-300;
+}
+
+.stat-card:hover {
+  @apply scale-105 shadow-lg;
+}
+
+.calendar-day {
+  @apply flex flex-col p-4 rounded-2xl border bg-white/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 transition-all duration-300;
+}
+
+.calendar-day:hover {
+  @apply bg-white dark:bg-slate-800 border-primary/20 shadow-md;
+}
+
+.session-pill {
+  @apply rounded-xl border p-2 shadow-sm transition-all duration-300;
+}
+
+.session-pill:hover {
+  @apply border-primary/30 shadow-md;
+}
+
+/* Custom scrollbar for weekly calendar if it overflows on mobile */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
