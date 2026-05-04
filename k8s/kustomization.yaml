@@ -1,0 +1,28 @@
+# Docker Hub: only slm334/startsmart-api and slm334/startsmart-web (cd-back + cd-front).
+# ai-service is tested in ci-back but not built as a third image — run it on the VM or elsewhere
+# and set AI_SERVICE_URL in backend-config.yaml (reachable from cluster pods, often host LAN IP).
+#
+#   kubectl apply -k k8s/
+#
+# Requires Secret backend-secrets in namespace start-smart (see backend-secret.example.yaml).
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: start-smart
+
+resources:
+  - namespace.yaml
+  - backend-config.yaml
+  - backend-deployment.yaml
+  - backend-service.yaml
+  - frontend-deployment.yaml
+  - frontend-service.yaml
+
+images:
+  - name: startsmart-api
+    newName: slm334/startsmart-api
+    newTag: latest
+  - name: startsmart-web
+    newName: slm334/startsmart-web
+    newTag: latest
