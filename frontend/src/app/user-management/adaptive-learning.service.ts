@@ -172,6 +172,36 @@ export interface StudentComparisonAnalyticsResponse {
   focusTopics: string[];
 }
 
+export interface StudentRankHistoryPoint {
+  attemptIndex: number;
+  rank: number;
+  score: number;
+  classAverageScore: number;
+  classSize: number;
+}
+
+export interface StudentRankHistoryResponse {
+  studentId: string;
+  points: StudentRankHistoryPoint[];
+}
+
+export interface StudentQuizRankHistoryPoint {
+  attemptIndex: number;
+  quizId: string;
+  quizTitle: string;
+  correctAnswersCount: number;
+  totalQuestions: number;
+  scorePercentage: number;
+  rank: number;
+  classSize: number;
+  submittedAt: string;
+}
+
+export interface StudentQuizRankHistoryResponse {
+  studentId: string;
+  points: StudentQuizRankHistoryPoint[];
+}
+
 export interface LearningEventRequest {
   student_id?: string;
   event_type: 'quiz' | 'exercise' | 'chat' | 'brainrush';
@@ -551,6 +581,22 @@ export class AdaptiveLearningService {
     );
   }
 
+  getStudentRankHistory(
+    studentId: string,
+  ): Observable<StudentRankHistoryResponse> {
+    return this.http.get<StudentRankHistoryResponse>(
+      `${this.apiUrl}/students/${studentId}/rank-history`,
+    );
+  }
+
+  getStudentQuizRankHistory(
+    studentId: string,
+  ): Observable<StudentQuizRankHistoryResponse> {
+    return this.http.get<StudentQuizRankHistoryResponse>(
+      `${this.apiUrl}/students/${studentId}/quiz-rank-history`,
+    );
+  }
+
   getAllPerformances(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/performances`);
   }
@@ -659,7 +705,10 @@ export class AdaptiveLearningService {
     });
   }
 
-  startLevelTestStage(subjects?: string[], subjectId?: string): Observable<any> {
+  startLevelTestStage(
+    subjects?: string[],
+    subjectId?: string,
+  ): Observable<any> {
     const studentId = this.resolveCurrentStudentId();
     const body: any = {
       student_id: studentId,
@@ -692,11 +741,17 @@ export class AdaptiveLearningService {
     });
   }
 
-  submitPostEvaluationAnswer(sessionId: string, answer: string): Observable<any> {
-    return this.http.post(`${this.aiServiceUrl}/post-evaluation/submit-answer`, {
-      session_id: sessionId,
-      answer,
-    });
+  submitPostEvaluationAnswer(
+    sessionId: string,
+    answer: string,
+  ): Observable<any> {
+    return this.http.post(
+      `${this.aiServiceUrl}/post-evaluation/submit-answer`,
+      {
+        session_id: sessionId,
+        answer,
+      },
+    );
   }
 
   completePostEvaluationStage(sessionId: string): Observable<any> {
@@ -706,7 +761,9 @@ export class AdaptiveLearningService {
   }
 
   getPostEvaluationSession(sessionId: string): Observable<any> {
-    return this.http.get(`${this.aiServiceUrl}/post-evaluation/session/${sessionId}`);
+    return this.http.get(
+      `${this.aiServiceUrl}/post-evaluation/session/${sessionId}`,
+    );
   }
 
   syncPostEvaluationProfileToBackend(
@@ -727,7 +784,9 @@ export class AdaptiveLearningService {
 
   getLatestCompletedPostEvaluation(studentId: string): Observable<any> {
     return this.http
-      .get(`${this.apiUrl}/post-evaluation/student/${studentId}/latest-completed`)
+      .get(
+        `${this.apiUrl}/post-evaluation/student/${studentId}/latest-completed`,
+      )
       .pipe(catchError(() => of(null)));
   }
 

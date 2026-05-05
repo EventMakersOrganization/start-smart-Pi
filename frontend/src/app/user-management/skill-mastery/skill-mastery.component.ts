@@ -1,4 +1,4 @@
-﻿import {
+import {
   Component,
   OnInit,
   OnDestroy,
@@ -19,6 +19,9 @@ interface SkillLevel {
   bgColor: string;
   starColor: string;
   icon: string;
+  gradientStart: string;
+  gradientEnd: string;
+  accentRgb: string;
 }
 
 interface SkillTopic {
@@ -59,38 +62,53 @@ export class SkillMasteryComponent implements OnInit, OnDestroy, OnChanges {
       bgColor: 'bg-yellow-50 border-yellow-200',
       starColor: 'text-yellow-500',
       icon: 'star',
+      gradientStart: '#f59e0b',
+      gradientEnd: '#fbbf24',
+      accentRgb: '245, 158, 11',
     },
     {
       level: 'Advanced',
       minScore: 75,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50 border-blue-200',
+      bgColor: 'bg-blue-50/50 border-blue-200/50',
       starColor: 'text-blue-500',
-      icon: 'star_half',
+      icon: 'military_tech',
+      gradientStart: '#2563eb',
+      gradientEnd: '#60a5fa',
+      accentRgb: '37, 99, 235',
     },
     {
       level: 'Proficient',
       minScore: 60,
       color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50 border-emerald-200',
+      bgColor: 'bg-emerald-50/50 border-emerald-200/50',
       starColor: 'text-emerald-500',
-      icon: 'grade',
+      icon: 'auto_awesome',
+      gradientStart: '#059669',
+      gradientEnd: '#34d399',
+      accentRgb: '5, 150, 105',
     },
     {
       level: 'Learning',
       minScore: 40,
       color: 'text-orange-600',
-      bgColor: 'bg-orange-50 border-orange-200',
+      bgColor: 'bg-orange-50/50 border-orange-200/50',
       starColor: 'text-orange-500',
-      icon: 'trending_up',
+      icon: 'cyclone',
+      gradientStart: '#ea580c',
+      gradientEnd: '#fb923c',
+      accentRgb: '234, 88, 12',
     },
     {
       level: 'Beginner',
       minScore: 0,
       color: 'text-slate-600',
-      bgColor: 'bg-slate-50 border-slate-200',
+      bgColor: 'bg-slate-50/50 border-slate-200/50',
       starColor: 'text-slate-400',
-      icon: 'circle',
+      icon: 'architecture',
+      gradientStart: '#475569',
+      gradientEnd: '#94a3b8',
+      accentRgb: '71, 85, 105',
     },
   ];
 
@@ -315,11 +333,11 @@ export class SkillMasteryComponent implements OnInit, OnDestroy, OnChanges {
   getSourceLabel(source: 'strength' | 'weakness' | 'neutral'): string {
     switch (source) {
       case 'strength':
-        return 'Force';
+        return 'Strength';
       case 'weakness':
-        return 'Faiblesse';
+        return 'Weakness';
       default:
-        return 'Neutre';
+        return 'Neutral';
     }
   }
 

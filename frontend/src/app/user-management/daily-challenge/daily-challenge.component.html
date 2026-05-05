@@ -1,0 +1,123 @@
+<section class="w-full animate-fade-in-up">
+  <div class="relative overflow-hidden rounded-[2rem] bg-white border border-slate-200 shadow-2xl shadow-indigo-500/10">
+    <!-- Background Accents -->
+    <div class="absolute -top-40 -right-40 w-80 h-80 bg-fuchsia-600/30 blur-[100px] rounded-full pointer-events-none"></div>
+    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-600/30 blur-[100px] rounded-full pointer-events-none"></div>
+
+    <div class="relative p-6 md:p-8 z-10">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-indigo-600 p-0.5 shadow-lg shadow-fuchsia-500/20">
+            <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+              <span class="material-symbols-outlined text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-indigo-400">bolt</span>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Daily Challenge</h2>
+              <span *ngIf="hasCompletedToday" class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">Completed</span>
+            </div>
+            <p class="text-xs md:text-sm text-slate-500 mt-0.5 font-medium flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-sm text-amber-500">local_fire_department</span>
+              Current Streak: <span class="text-slate-900 font-bold">{{ streak }} day{{ streak > 1 ? 's' : '' }}</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="px-4 py-2 rounded-xl bg-white/80 border border-slate-200/50 backdrop-blur-md flex flex-col items-end">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Expires in</span>
+          <div class="text-sm font-black text-slate-900 font-mono tracking-wider">{{ timeLeft }}</div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="py-16 flex flex-col items-center justify-center text-center">
+        <div class="w-12 h-12 border-4 border-slate-800 border-t-fuchsia-500 rounded-full animate-spin mb-4"></div>
+        <p class="text-sm font-bold text-slate-400 animate-pulse">Generating your AI challenge...</p>
+      </div>
+
+      <!-- Content State -->
+      <div *ngIf="!isLoading && dailyQuestion">
+        
+        <!-- Question View -->
+        <div>
+          
+          <div class="mb-8">
+            <div class="inline-block px-3 py-1 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-widest mb-4 border border-indigo-500/30">
+              AI Question
+            </div>
+            <h3 class="text-xl md:text-2xl font-bold text-slate-900 leading-snug">
+              {{ dailyQuestion.question }}
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button 
+              *ngFor="let option of dailyQuestion.options; let i = index"
+              (click)="selectOption(i)"
+              [disabled]="selectedOptionIndex !== null"
+              class="relative w-full text-left p-5 rounded-2xl border transition-all duration-300 group overflow-hidden"
+              [ngClass]="{
+                'bg-slate-50 border-slate-200 hover:border-fuchsia-500/50 hover:bg-white': selectedOptionIndex === null,
+                'bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-500/20': selectedOptionIndex !== null && i === dailyQuestion.correctIndex,
+                'bg-red-50 border-red-500 text-red-900 ring-2 ring-red-500/20': selectedOptionIndex === i && i !== dailyQuestion.correctIndex,
+                'opacity-40 bg-slate-50 border-slate-100 text-slate-300': selectedOptionIndex !== null && i !== dailyQuestion.correctIndex && i !== selectedOptionIndex
+              }"
+            >
+              <!-- Hover effect background -->
+              <div class="absolute inset-0 bg-gradient-to-r from-fuchsia-600/10 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" *ngIf="selectedOptionIndex === null"></div>
+              
+              <div class="relative z-10 flex items-start gap-4">
+                <div class="w-8 h-8 rounded-full flex-none flex items-center justify-center text-sm font-black border transition-colors"
+                  [ngClass]="{
+                    'bg-white border-slate-300 text-slate-500': selectedOptionIndex === null,
+                    'bg-emerald-600 border-emerald-400 text-white shadow-lg': selectedOptionIndex !== null && i === dailyQuestion.correctIndex,
+                    'bg-red-600 border-red-400 text-white shadow-lg': selectedOptionIndex === i && i !== dailyQuestion.correctIndex,
+                    'bg-slate-100 border-slate-200 text-slate-300': selectedOptionIndex !== null && i !== dailyQuestion.correctIndex && i !== selectedOptionIndex
+                  }">
+                  {{ ['A', 'B', 'C', 'D'][i] }}
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1" *ngIf="selectedOptionIndex !== null">
+                    <span *ngIf="dailyQuestion && i === dailyQuestion.correctIndex" class="text-[9px] font-black uppercase tracking-tighter text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">Correct Answer</span>
+                    <span *ngIf="dailyQuestion && selectedOptionIndex === i && i !== dailyQuestion.correctIndex" class="text-[9px] font-black uppercase tracking-tighter text-red-700 bg-red-100 px-1.5 py-0.5 rounded">Your Choice</span>
+                  </div>
+                  <p class="text-[15px] font-medium leading-relaxed" 
+                     [ngClass]="selectedOptionIndex !== null ? (i === dailyQuestion.correctIndex ? 'text-emerald-900 font-bold' : (selectedOptionIndex === i ? 'text-red-900 font-bold' : 'text-slate-400')) : 'text-slate-600 group-hover:text-slate-900'">
+                    {{ option }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Icon status -->
+              <div class="absolute right-5 top-1/2 -translate-y-1/2" *ngIf="selectedOptionIndex !== null">
+                <span *ngIf="dailyQuestion && i === dailyQuestion.correctIndex" class="material-symbols-outlined text-emerald-600 text-3xl drop-shadow-md animate-bounce-short">check_circle</span>
+                <span *ngIf="dailyQuestion && selectedOptionIndex === i && i !== dailyQuestion.correctIndex" class="material-symbols-outlined text-red-600 text-3xl drop-shadow-md">cancel</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Result Feedback -->
+          <div *ngIf="selectedOptionIndex !== null" class="mt-8 p-6 rounded-2xl border animate-fade-in-up"
+               [ngClass]="isCorrect ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center"
+                   [ngClass]="isCorrect ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'">
+                <span class="material-symbols-outlined text-3xl">{{ isCorrect ? 'emoji_events' : 'sentiment_dissatisfied' }}</span>
+              </div>
+              <div>
+                <h4 class="text-lg font-black text-slate-900">{{ isCorrect ? 'Excellent Answer!' : 'Oops, that\'s not it.' }}</h4>
+                <p class="text-sm font-medium" [ngClass]="isCorrect ? 'text-emerald-800' : 'text-red-800'">
+                  {{ isCorrect ? '+10 points earned and streak maintained!' : 'The correct answer was letter ' + ['A', 'B', 'C', 'D'][dailyQuestion.correctIndex || 0] + '. Try again tomorrow!' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

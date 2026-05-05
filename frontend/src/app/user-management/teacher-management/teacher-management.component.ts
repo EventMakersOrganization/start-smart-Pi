@@ -25,9 +25,16 @@ export class TeacherManagementComponent implements OnInit {
   editing: Record<string, boolean> = {};
   editModels: Record<string, Partial<UserRow>> = {};
   error = '';
+  success = '';
+
+  // Stats
+  totalInstructors = 0;
+  activeInstructors = 0;
+  offlineInstructors = 0;
 
   filterText = '';
   filterStatus = 'Status: All';
+  showStatusDropdown = false;
 
   // add-user modal state
   showAddUserModal = false;
@@ -38,6 +45,10 @@ export class TeacherManagementComponent implements OnInit {
   newUserRole: 'student' | 'instructor' | 'admin' = 'instructor';
   addUserLoading = false;
   addUserError = '';
+
+  // edit modal state
+  showEditModal = false;
+  editingTeacherId: string | null = null;
 
   get filteredTeachers(): UserRow[] {
     const text = (this.filterText || '').trim().toLowerCase();
@@ -75,13 +86,27 @@ export class TeacherManagementComponent implements OnInit {
 
   loadTeachers() {
     this.http.get<UserRow[]>('http://localhost:3000/api/admin/instructors').subscribe({
-      next: data => this.teachers = data,
+      next: data => {
+        this.teachers = data;
+        this.updateStats();
+      },
       error: () => this.error = 'Failed to load instructors'
     });
   }
 
+  updateStats() {
+    this.totalInstructors = this.teachers.length;
+    this.activeInstructors = this.teachers.filter(t => t.isOnline).length;
+    this.offlineInstructors = this.totalInstructors - this.activeInstructors;
+  }
+
+  setStatus(status: string) {
+    this.filterStatus = status;
+    this.showStatusDropdown = false;
+  }
+
   startEdit(t: UserRow) {
-    this.editing[t.id] = true;
+    this.editingTeacherId = t.id;
     this.editModels[t.id] = {
       first_name: t.first_name,
       last_name: t.last_name,
@@ -90,10 +115,12 @@ export class TeacherManagementComponent implements OnInit {
       status: t.status,
       role: t.role
     } as any;
+    this.showEditModal = true;
   }
 
   cancelEdit(id: string) {
-    delete this.editing[id];
+    this.showEditModal = false;
+    this.editingTeacherId = null;
     delete this.editModels[id];
   }
 
@@ -108,8 +135,11 @@ export class TeacherManagementComponent implements OnInit {
     });
     this.http.put(`http://localhost:3000/api/admin/user/${id}`, body).subscribe({
       next: () => {
-        this.cancelEdit(id);
+        this.showEditModal = false;
+        this.editingTeacherId = null;
         this.loadTeachers();
+        this.success = 'Updated successfully';
+        setTimeout(() => this.success = '', 3000);
       },
       error: (err) => {
         console.error('update error', err);
@@ -119,7 +149,7 @@ export class TeacherManagementComponent implements OnInit {
   }
 
   deleteUser(id: string) {
-    if (!confirm('Delete this user?')) return;
+    if (!confirm('Delete this instructor?')) return;
     this.http.delete(`http://localhost:3000/api/admin/user/${id}`).subscribe({
       next: () => this.loadTeachers(),
       error: () => this.error = 'Failed to delete user'

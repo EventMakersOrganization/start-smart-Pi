@@ -1,208 +1,356 @@
-<div class="h-[calc(100vh-64px)] flex flex-col bg-slate-50/50 dark:bg-slate-950/50 overflow-hidden">
-  <!-- Header Area -->
-  <div class="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary">school</span>
-          Instructor Management
-        </h1>
-        <p class="text-sm text-slate-500 mt-1">
-          Review and update instructor profiles and teaching assignments.
-        </p>
+<div class="h-[calc(100vh-64px)] flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden">
+  <!-- Modern Header Area -->
+  <div class="relative px-8 pt-8 pb-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm z-10">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div class="space-y-1">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+            <span class="material-symbols-outlined text-2xl font-bold">person_celebrate</span>
+          </div>
+          <div>
+            <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
+              Instructor Directory
+            </h1>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+              {{ filteredTeachers.length }} Teaching Professionals
+            </p>
+          </div>
+        </div>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="relative w-72">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+
+      <div class="flex flex-wrap items-center gap-4">
+        <!-- Search -->
+        <div class="relative group min-w-[320px]">
+          <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
           <input
             [(ngModel)]="filterText"
-            class="w-full pl-10 pr-10 py-2 bg-slate-100 dark:bg-slate-800 border-transparent rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-            placeholder="Search by name or email..."
+            class="w-full pl-12 pr-10 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-medium focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none shadow-inner"
+            placeholder="Search instructors..."
             type="text"
           />
           <button 
             *ngIf="filterText"
             (click)="filterText = ''"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500 transition-colors"
           >
             <span class="material-symbols-outlined text-sm">close</span>
           </button>
         </div>
+
         <button
           (click)="openAddUserModal()"
-          class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95"
+          class="flex items-center gap-2 px-6 py-3.5 bg-primary text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:shadow-2xl hover:shadow-primary/30 transition-all active:scale-95 group"
         >
-          <span class="material-symbols-outlined text-sm">person_add</span> Add Instructor
+          <span class="material-symbols-outlined text-lg group-hover:rotate-90 transition-transform">add</span>
+          Add Instructor
         </button>
       </div>
     </div>
 
-    <!-- Filters Strip -->
-    <div class="flex items-center gap-4 mt-6">
-      <div class="flex items-center gap-2">
-        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filter by:</span>
-        <select [(ngModel)]="filterStatus" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold py-1.5 px-3 focus:ring-primary/20 outline-none">
-          <option>Status: All</option>
-          <option>Active</option>
-          <option>Suspended</option>
-        </select>
+    <!-- Stats Bar -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
+      <div class="bg-slate-50 dark:bg-slate-800/40 rounded-[1.25rem] p-4 border border-slate-100 dark:border-slate-800/50 flex items-center gap-4 group hover:border-primary/20 transition-all">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+          <span class="material-symbols-outlined text-xl">groups</span>
+        </div>
+        <div>
+          <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Faculty</p>
+          <h4 class="text-lg font-black text-slate-900 dark:text-white">{{ totalInstructors }}</h4>
+        </div>
       </div>
-      <div class="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
-      <div class="text-xs text-slate-500 font-medium">
-        Found <span class="text-slate-900 dark:text-white font-bold">{{ filteredTeachers.length }}</span> instructors
+
+      <div class="bg-slate-50 dark:bg-slate-800/40 rounded-[1.25rem] p-4 border border-slate-100 dark:border-slate-800/50 flex items-center gap-4 group hover:border-primary/20 transition-all">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+          <span class="material-symbols-outlined text-xl">sensors</span>
+        </div>
+        <div>
+          <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Currently Active</p>
+          <h4 class="text-lg font-black text-slate-900 dark:text-white">{{ activeInstructors }}</h4>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 dark:bg-slate-800/40 rounded-[1.25rem] p-4 border border-slate-100 dark:border-slate-800/50 flex items-center gap-4 group hover:border-primary/20 transition-all">
+        <div class="w-10 h-10 rounded-xl bg-slate-500/10 text-slate-500 flex items-center justify-center">
+          <span class="material-symbols-outlined text-xl">sensors_off</span>
+        </div>
+        <div>
+          <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Offline</p>
+          <h4 class="text-lg font-black text-slate-900 dark:text-white">{{ offlineInstructors }}</h4>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Content Area (Scrollable) -->
-  <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  <!-- Content Area -->
+  <div class="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/50 dark:bg-slate-950/50">
+    <!-- Filter Strip -->
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-8 px-2">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 p-1.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <!-- Custom Status Dropdown -->
+          <div class="relative">
+            <button (click)="showStatusDropdown = !showStatusDropdown"
+                    class="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-primary transition-colors">
+              {{ filterStatus }}
+              <span class="material-symbols-outlined text-sm transition-transform duration-300" [class.rotate-180]="showStatusDropdown">expand_more</span>
+            </button>
+            <div *ngIf="showStatusDropdown" 
+                 class="absolute top-full left-0 mt-2 w-40 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-200">
+              <button (click)="setStatus('Status: All')" class="w-full text-left px-3 py-2 text-[10px] font-bold uppercase rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" [class.text-primary]="filterStatus === 'Status: All'">All Status</button>
+              <button (click)="setStatus('Active')" class="w-full text-left px-3 py-2 text-[10px] font-bold uppercase rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" [class.text-primary]="filterStatus === 'Active'">Active</button>
+              <button (click)="setStatus('Suspended')" class="w-full text-left px-3 py-2 text-[10px] font-bold uppercase rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" [class.text-primary]="filterStatus === 'Suspended'">Suspended</button>
+            </div>
+          </div>
+        </div>
+        <button *ngIf="filterStatus !== 'Status: All' || filterText"
+                (click)="filterText = ''; filterStatus = 'Status: All'"
+                class="text-[10px] font-black text-primary uppercase tracking-widest hover:underline px-2">
+          Clear Filters
+        </button>
+      </div>
+      
+      <div class="flex items-center gap-4 text-[11px] font-bold text-slate-400">
+        <span class="uppercase tracking-widest">Viewing {{ filteredTeachers.length }} Profiles</span>
+      </div>
+    </div>
+
+    <!-- Instructor Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       <div
         *ngFor="let t of filteredTeachers; let i = index"
-        class="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 hover:shadow-xl hover:-translate-y-1 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500"
-        [style.animation-delay]="i * 50 + 'ms'"
+        class="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 transition-all duration-500 animate-in fade-in slide-in-from-bottom-6"
+        [style.animation-delay]="i * 40 + 'ms'"
       >
-        <!-- Status Indicator -->
-        <div class="absolute top-4 right-4 flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full"
-                [class.bg-emerald-500]="t.isOnline"
-                [class.bg-slate-400]="!t.isOnline"></span>
-          <span class="text-[10px] font-black uppercase text-slate-400">{{ t.isOnline ? 'online' : 'offline' }}</span>
-        </div>
-
-        <div class="flex flex-col items-center text-center">
-          <!-- Avatar -->
-          <div class="relative mb-4">
-            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center text-xl font-black text-blue-600 border-2 border-blue-100 dark:border-blue-900/30">
+        <!-- Card Header: Profile & Status -->
+        <div class="flex items-start justify-between mb-6">
+          <div class="relative">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-xl font-black text-primary shadow-inner group-hover:scale-110 transition-transform duration-500">
               {{ t.first_name?.[0] }}{{ t.last_name?.[0] }}
             </div>
+            <div class="absolute -top-2 -right-2 p-1.5 rounded-full bg-white dark:bg-slate-900 shadow-lg border border-slate-100 dark:border-slate-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <span class="material-symbols-outlined text-[14px] text-primary font-black">verified_user</span>
+            </div>
           </div>
+          
+          <div class="flex flex-col items-end gap-1.5">
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider"
+                 [ngClass]="t.isOnline ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' : 'bg-slate-50 text-slate-400 dark:bg-slate-800/50'">
+              <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-500]="t.isOnline" [class.bg-slate-300]="!t.isOnline"></span>
+              {{ t.isOnline ? 'Active Now' : 'Offline' }}
+            </div>
+          </div>
+        </div>
 
-          <!-- Name & Email -->
-          <h3 class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+        <!-- Instructor Info -->
+        <div class="space-y-1 mb-6">
+          <h3 class="text-lg font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors truncate">
             {{ t.first_name }} {{ t.last_name }}
           </h3>
-          <p class="text-xs text-slate-500 truncate w-full px-4 mb-4">{{ t.email }}</p>
+          <p class="text-[11px] font-medium text-slate-400 flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm opacity-50">mail</span>
+            {{ t.email }}
+          </p>
+        </div>
 
-          <!-- Info Badges -->
-          <div class="w-full grid grid-cols-2 gap-2 mt-2">
-            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
-              <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Phone</span>
-              <span class="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate block">{{ t.phone || 'N/A' }}</span>
-            </div>
-            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
-              <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Role</span>
-              <span class="text-[10px] font-bold text-indigo-600 uppercase">{{ t.role }}</span>
-            </div>
+        <!-- Details Grid -->
+        <div class="grid grid-cols-2 gap-3 p-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800/50 mb-6">
+          <div class="space-y-0.5">
+            <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Phone</p>
+            <p class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{{ t.phone || 'N/A' }}</p>
+          </div>
+          <div class="space-y-0.5 text-right">
+            <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Role</p>
+            <p class="text-[10px] font-black text-primary uppercase tracking-widest">{{ t.role }}</p>
           </div>
         </div>
 
-        <!-- Action Overlay (visible on hover) -->
-        <div class="mt-6 flex items-center gap-2">
-          <button (click)="startEdit(t)" class="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-1">
-            <span class="material-symbols-outlined text-sm">edit</span> Edit
+        <!-- Modern Action Area -->
+        <div class="flex items-center gap-2">
+          <button (click)="startEdit(t)" 
+                  class="flex-1 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">edit_square</span>
+            Edit Profile
           </button>
-          <button (click)="deleteUser(t.id)" class="p-2 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-500 hover:bg-red-500 hover:text-white transition-all">
-            <span class="material-symbols-outlined text-sm">delete</span>
+          <button (click)="deleteUser(t.id)" 
+                  class="w-12 h-12 flex items-center justify-center bg-rose-50 dark:bg-rose-950/20 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all active:scale-95 shadow-sm group/del">
+            <span class="material-symbols-outlined text-lg group-hover/del:scale-110 transition-transform">delete</span>
           </button>
-        </div>
-        
-        <!-- Inline Editing Mode (Overlay) -->
-        <div *ngIf="editing[t.id]" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 z-20 p-5 rounded-2xl flex flex-col gap-3">
-          <h4 class="text-xs font-black uppercase text-slate-400 mb-1">Quick Edit</h4>
-          <input [(ngModel)]="editModels[t.id].first_name" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-1.5 px-3 text-xs" placeholder="First Name"/>
-          <input [(ngModel)]="editModels[t.id].last_name" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-1.5 px-3 text-xs" placeholder="Last Name"/>
-          <input [(ngModel)]="editModels[t.id].phone" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-1.5 px-3 text-xs" placeholder="Phone"/>
-          <div class="flex items-center gap-2 mt-auto">
-            <button (click)="save(t.id)" class="flex-1 py-2 bg-emerald-500 text-white rounded-lg text-[10px] font-bold">SAVE</button>
-            <button (click)="cancelEdit(t.id)" class="flex-1 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold">CANCEL</button>
-          </div>
         </div>
       </div>
     </div>
-    
+
     <!-- Empty State -->
-    <div *ngIf="!filteredTeachers.length" class="flex flex-col items-center justify-center py-40 text-slate-400">
-      <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 opacity-40">
-        <span class="material-symbols-outlined text-5xl">person_off</span>
+    <div *ngIf="!filteredTeachers.length" class="flex flex-col items-center justify-center py-40">
+      <div class="w-24 h-24 bg-slate-100 dark:bg-slate-900 rounded-3xl flex items-center justify-center mb-6 border border-slate-200 dark:border-slate-800 shadow-inner">
+        <span class="material-symbols-outlined text-5xl text-slate-300 animate-pulse">person_off</span>
       </div>
-      <p class="font-medium">No instructors found matching your search.</p>
+      <h3 class="text-xl font-black text-slate-800 dark:text-white mb-2">No instructors found</h3>
+      <p class="text-sm text-slate-500 font-medium max-w-xs text-center">Adjust your filters or search terms to find the teaching staff you're looking for.</p>
+      <button (click)="filterText = ''; filterStatus = 'Status: All'" 
+              class="mt-6 px-6 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">
+        Reset All Filters
+      </button>
     </div>
   </div>
 </div>
 
-<!-- Add User Modal -->
-<div *ngIf="showAddUserModal" class="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6">
-  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md" (click)="closeAddUserModal()"></div>
-  <div class="relative w-full max-w-xl transform overflow-hidden rounded-[2rem] bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in duration-300">
+<!-- Edit Instructor Modal -->
+<div *ngIf="showEditModal && editingTeacherId" class="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6">
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-500" (click)="cancelEdit(editingTeacherId!)"></div>
+  <div class="relative w-full max-w-xl transform overflow-hidden rounded-[2.5rem] bg-white dark:bg-slate-900 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
     <!-- Modal Header -->
-    <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
-      <div class="flex items-center gap-4">
-        <div class="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600">
-          <span class="material-symbols-outlined text-2xl font-bold">person_add</span>
+    <div class="p-10 pb-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-800/20">
+      <div class="flex items-center gap-5">
+        <div class="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-inner">
+          <span class="material-symbols-outlined text-3xl font-bold">edit_square</span>
         </div>
         <div>
-          <h3 class="text-xl font-black text-slate-900 dark:text-white">Add New Instructor</h3>
-          <p class="text-xs text-slate-500 font-medium">Create a new instructor account</p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Edit Instructor</h3>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Update professional profile</p>
         </div>
       </div>
-      <button (click)="closeAddUserModal()" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all">
+      <button (click)="cancelEdit(editingTeacherId!)" class="w-12 h-12 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-300 hover:text-slate-600 transition-all">
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
 
     <!-- Modal Body -->
-    <form (ngSubmit)="createUser()" class="p-8 space-y-6">
+    <div class="p-10 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
       <div class="grid grid-cols-2 gap-6">
-        <div class="space-y-1.5">
-          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
+        <div class="space-y-2">
+          <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">First Name</label>
+          <input [(ngModel)]="editModels[editingTeacherId].first_name" type="text"
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-5 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 shadow-inner"
+                 placeholder="First Name" />
+        </div>
+        <div class="space-y-2">
+          <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Last Name</label>
+          <input [(ngModel)]="editModels[editingTeacherId].last_name" type="text"
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-5 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 shadow-inner"
+                 placeholder="Last Name" />
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Email Address</label>
+        <div class="relative group">
+          <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors">alternate_email</span>
+          <input [(ngModel)]="editModels[editingTeacherId].email" type="email"
+                 class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 shadow-inner"
+                 placeholder="Email" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Phone Number</label>
+          <input [(ngModel)]="editModels[editingTeacherId].phone" type="text"
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-5 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 shadow-inner"
+                 placeholder="Phone" />
+        </div>
+        <div class="space-y-2">
+          <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Account Status</label>
+          <div class="relative">
+            <select [(ngModel)]="editModels[editingTeacherId].status"
+                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-5 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none appearance-none shadow-inner">
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none">expand_more</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="p-10 pt-6 flex items-center gap-4">
+      <button type="button" (click)="cancelEdit(editingTeacherId!)"
+              class="flex-1 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-50 transition-all active:scale-95">
+        DISCARD
+      </button>
+      <button type="button" (click)="save(editingTeacherId!)"
+              class="flex-1 py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:shadow-2xl hover:shadow-emerald-500/30 transition-all active:scale-95">
+        SAVE CHANGES
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Instructor Modal -->
+<div *ngIf="showAddUserModal" class="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6">
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-500" (click)="closeAddUserModal()"></div>
+  <div class="relative w-full max-w-xl transform overflow-hidden rounded-[2.5rem] bg-white dark:bg-slate-900 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+    <!-- Modal Header -->
+    <div class="p-10 pb-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-5">
+        <div class="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+          <span class="material-symbols-outlined text-3xl font-bold">person_add</span>
+        </div>
+        <div>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Onboard Instructor</h3>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Register new faculty member</p>
+        </div>
+      </div>
+      <button (click)="closeAddUserModal()" class="w-12 h-12 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-300 hover:text-slate-600 transition-all">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <form (ngSubmit)="createUser()" class="p-10 space-y-8">
+      <div class="grid grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">First Name</label>
           <input [(ngModel)]="newUserFirstName" name="firstName" type="text"
-                 class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400"
-                 placeholder="e.g. Alex" />
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-5 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 shadow-inner"
+                 placeholder="Alex" />
         </div>
-        <div class="space-y-1.5">
-          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
+        <div class="space-y-2">
+          <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Last Name</label>
           <input [(ngModel)]="newUserLastName" name="lastName" type="text"
-                 class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400"
-                 placeholder="e.g. Johnson" />
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-5 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 shadow-inner"
+                 placeholder="Johnson" />
         </div>
       </div>
 
-      <div class="space-y-1.5">
-        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-        <input [(ngModel)]="newUserEmail" name="email" type="email"
-               class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400"
-               placeholder="instructor@example.com" />
+      <div class="space-y-2">
+        <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Official Email</label>
+        <div class="relative group">
+          <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors">alternate_email</span>
+          <input [(ngModel)]="newUserEmail" name="email" type="email"
+                 class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 shadow-inner"
+                 placeholder="alex.johnson@example.com" />
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-6">
-        <div class="space-y-1.5">
-          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
-          <input [(ngModel)]="newUserPhone" name="phone" type="tel"
-                 class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400"
+        <div class="space-y-2">
+          <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Phone Number</label>
+          <input [(ngModel)]="newUserPhone" name="phone" type="text"
+                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-5 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-slate-300 shadow-inner"
                  placeholder="+216 ..." />
         </div>
-        <div class="space-y-1.5">
-          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Role</label>
-          <div class="w-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-2xl py-3 px-4 text-sm font-bold text-slate-500 flex items-center gap-2 cursor-not-allowed">
-            <span class="material-symbols-outlined text-sm">school</span>
+        <div class="space-y-2">
+          <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Institutional Role</label>
+          <div class="w-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-2xl py-4 px-5 text-xs font-black text-slate-400 flex items-center gap-3 cursor-not-allowed uppercase tracking-widest">
+            <span class="material-symbols-outlined text-lg">school</span>
             Instructor
           </div>
         </div>
       </div>
 
-      <p *ngIf="addUserError" class="text-xs text-red-500 font-bold text-center bg-red-50 dark:bg-red-950/20 py-2 rounded-lg">{{ addUserError }}</p>
+      <p *ngIf="addUserError" class="text-[11px] font-black text-rose-500 text-center bg-rose-50 dark:bg-rose-950/20 py-3 rounded-xl border border-rose-100 dark:border-rose-900/30 uppercase tracking-widest">{{ addUserError }}</p>
 
       <!-- Modal Footer -->
       <div class="flex items-center gap-4 pt-4">
         <button type="button" (click)="closeAddUserModal()"
-                class="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-black hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95">
-          CANCEL
+                class="flex-1 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-50 transition-all active:scale-95">
+          DISCARD
         </button>
         <button type="submit"
                 [disabled]="addUserLoading || !newUserFirstName || !newUserLastName || !newUserEmail"
-                class="flex-1 py-3.5 bg-primary text-white rounded-2xl text-sm font-black hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95">
-          {{ addUserLoading ? 'CREATING...' : 'CREATE ACCOUNT' }}
+                class="flex-1 py-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:shadow-2xl hover:shadow-primary/30 transition-all disabled:opacity-50 active:scale-95">
+          {{ addUserLoading ? 'INITIALIZING...' : 'FINALIZE PROFILE' }}
         </button>
       </div>
     </form>

@@ -1511,6 +1511,82 @@ export class SubjectsService {
     return this.findOne(subjectId);
   }
 
+  async deleteSubChapter(
+    subjectId: string,
+    chapterOrder: number,
+    subChapterOrder: number,
+  ): Promise<any> {
+    const subject = await this.subjectModel.findById(subjectId).exec();
+    if (!subject) {
+      throw new NotFoundException(`Subject with ID "${subjectId}" not found`);
+    }
+
+    const courseDoc = await this.findCourseByChapterOrder(subject, chapterOrder);
+    if (!courseDoc) {
+      throw new NotFoundException(
+        `Chapter with order "${chapterOrder}" not found in this subject`,
+      );
+    }
+
+    const subChapters = Array.isArray((courseDoc as any).subChapters)
+      ? (courseDoc as any).subChapters
+      : [];
+    
+    const subChapterIndex = subChapters.findIndex(
+      (item: any) => Number(item.order) === Number(subChapterOrder),
+    );
+
+    if (subChapterIndex < 0) {
+      throw new NotFoundException(
+        `SubChapter with order "${subChapterOrder}" not found in this chapter`,
+      );
+    }
+
+    const subChapter = subChapters[subChapterIndex];
+    const contents = subChapter.contents || [];
+
+    // Cleanup assets for each content item
+    for (const content of contents) {
+      const contentId = String(content.contentId);
+      await this.courseUploadAssetModel
+        .deleteMany({
+          subjectId: subject._id,
+          sourceContentId: contentId,
+        })
+        .exec();
+      
+      await this.prositQuizAssetModel
+        .deleteMany({
+          subjectId: subject._id,
+          sourceContentId: contentId,
+        })
+        .exec();
+
+      await this.videoAssetModel
+        .deleteMany({
+          subjectId: subject._id,
+          sourceContentId: contentId,
+        })
+        .exec();
+
+      await this.resourceAddAssetModel
+        .deleteMany({
+          subjectId: subject._id,
+          sourceContentId: contentId,
+        })
+        .exec();
+    }
+
+    // Remove the subchapter
+    subChapters.splice(subChapterIndex, 1);
+    (courseDoc as any).subChapters = subChapters;
+
+    (courseDoc as any).markModified("subChapters");
+    await courseDoc.save();
+    this.courseIndexing.scheduleCourseReindex(String(courseDoc._id));
+    return this.findOne(subjectId);
+  }
+
   // Backward-compatible wrappers for chapter-content routes.
   // With the new data model, chapter content must target a subchapter.
   async addChapterContent(

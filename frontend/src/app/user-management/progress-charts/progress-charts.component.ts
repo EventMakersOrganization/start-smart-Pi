@@ -28,6 +28,17 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
   private charts: Chart[] = [];
   private rebuildTimer: ReturnType<typeof setTimeout> | null = null;
   trackingData: any = null;
+  quizRankHistoryData: Array<{
+    attemptIndex: number;
+    quizId: string;
+    quizTitle: string;
+    rank: number;
+    correctAnswersCount: number;
+    totalQuestions: number;
+    scorePercentage: number;
+    classSize: number;
+    submittedAt: string;
+  }> = [];
   timeSpentByTopicData: Array<{ topic: string; minutes: number }> = [];
 
   constructor(
@@ -90,6 +101,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
   private loadTracking(): void {
     if (!this.studentId) {
       this.trackingData = null;
+      this.quizRankHistoryData = [];
       this.refreshDerivedData();
       this.rebuildCharts();
       this.cdr.markForCheck();
@@ -112,6 +124,21 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
           this.cdr.markForCheck();
         },
       });
+
+    this.adaptiveService.getStudentQuizRankHistory(this.studentId).subscribe({
+      next: (data) => {
+        this.quizRankHistoryData = Array.isArray(data?.points)
+          ? data.points
+          : [];
+        this.rebuildCharts();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.quizRankHistoryData = [];
+        this.rebuildCharts();
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   private refreshDerivedData(): void {
@@ -125,7 +152,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         this.buildScoreLineChart,
         this.buildTopicBarChart,
         this.buildTimeSpentChart,
-        this.buildCumulativeLineChart,
+        this.buildQuizRankChart,
       ];
 
       builders.forEach((builder) => {
@@ -175,8 +202,10 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             borderColor: '#1152D4',
             backgroundColor: 'rgba(17, 82, 212, 0.08)',
             borderWidth: 2.5,
-            pointBackgroundColor: sources.map(s => 
-              (s?.toLowerCase() === 'prosit' || s?.toLowerCase() === 'exercise') ? '#a855f7' : '#1152D4'
+            pointBackgroundColor: sources.map((s) =>
+              s?.toLowerCase() === 'prosit' || s?.toLowerCase() === 'exercise'
+                ? '#a855f7'
+                : '#1152D4',
             ),
             pointRadius: 6,
             pointHoverRadius: 8,
@@ -201,7 +230,8 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
               title: (tooltipItems: any) => {
                 const index = tooltipItems[0].dataIndex;
                 const src = sources[index]?.toLowerCase();
-                const type = (src === 'prosit' || src === 'exercise') ? 'PROSIT' : 'QUIZ';
+                const type =
+                  src === 'prosit' || src === 'exercise' ? 'PROSIT' : 'QUIZ';
                 return `${type}: ${titles[index]}`;
               },
               label: (ctx: any) => {
@@ -209,7 +239,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
                 return [
                   ` Score: ${ctx.parsed.y}%`,
                   ` Subject: ${topics[index]}`,
-                  ` Date: ${new Date(dates[index]).toLocaleDateString()}`
+                  ` Date: ${new Date(dates[index]).toLocaleDateString()}`,
                 ];
               },
             },
@@ -255,14 +285,6 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     const topics = topicScores.map((t) => t.topic);
     const averages = topicScores.map((t) => t.averageScore);
 
-    const colors = topics.map((t) => {
-      const avg = topicScores.find((x) => x.topic === t)?.averageScore || 0;
-      if (avg >= 85) return '#10b981'; // Emerald
-      if (avg >= 70) return '#3b82f6'; // Blue
-      if (avg >= 50) return '#6366f1'; // Indigo
-      return '#f59e0b'; // Amber
-    });
-
     const chart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -271,14 +293,24 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
           {
             label: 'Average Score',
             data: averages,
-            backgroundColor: colors.map(c => c + 'CC'), // 80% opacity
-            borderColor: colors,
-            borderWidth: 1.5,
+            backgroundColor: (ctx: any) => {
+              const canvas = ctx.chart.ctx;
+              const gradient = canvas.createLinearGradient(
+                0,
+                0,
+                0,
+                ctx.chart.height,
+              );
+              gradient.addColorStop(0, 'rgba(59, 130, 246, 0.85)'); // Blue
+              gradient.addColorStop(1, 'rgba(16, 185, 129, 0.85)'); // Emerald
+              return gradient;
+            },
+            borderColor: '#3b82f6',
+            borderWidth: 1,
             borderRadius: 12,
             borderSkipped: false,
-            maxBarThickness: 50,
-            hoverBackgroundColor: colors,
-            hoverBorderWidth: 2,
+            maxBarThickness: 45,
+            hoverBackgroundColor: '#10b981',
           },
         ],
       },
@@ -288,36 +320,36 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
             padding: 14,
+            cornerRadius: 12,
             titleFont: { size: 14, weight: 'bold' },
             bodyFont: { size: 13 },
-            cornerRadius: 12,
-            displayColors: true,
+            displayColors: false,
             callbacks: {
-              label: (ctx: any) => ` Mastery Level: ${ctx.parsed.y}%`,
+              label: (ctx: any) => ` Mastery: ${ctx.parsed.y}%`,
             },
           },
         },
         scales: {
-          y: {
-            min: 0,
-            max: 100,
-            ticks: {
-              callback: (val: any) => `${val}%`,
-              padding: 10,
-              font: { size: 11, weight: 500 },
-              color: '#94a3b8'
-            },
-            grid: { color: 'rgba(0,0,0,0.03)', display: true },
-          },
           x: {
             grid: { display: false },
             ticks: {
               padding: 10,
               font: { size: 12, weight: 600 },
-              color: '#64748b'
+              color: '#64748b',
             },
+          },
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              stepSize: 20,
+              font: { size: 10, weight: 600 },
+              color: '#94a3b8',
+              callback: (val: any) => `${val}%`,
+            },
+            grid: { color: 'rgba(0, 0, 0, 0.03)' },
           },
         },
       },
@@ -331,8 +363,6 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     if (label.length <= maxLength) return label;
     return label.substring(0, maxLength) + '...';
   }
-
-
 
   // ── 4. Time Spent by Topic (Bar Chart) ─────
   buildTimeSpentByTopicChart(): void {
@@ -418,7 +448,12 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             data: minutes,
             backgroundColor: (ctx: any) => {
               const canvas = ctx.chart.ctx;
-              const gradient = canvas.createLinearGradient(0, 0, ctx.chart.width, 0);
+              const gradient = canvas.createLinearGradient(
+                0,
+                0,
+                ctx.chart.width,
+                0,
+              );
               gradient.addColorStop(0, 'rgba(99, 102, 241, 0.85)'); // Indigo
               gradient.addColorStop(1, 'rgba(139, 92, 246, 0.85)'); // Violet
               return gradient;
@@ -452,7 +487,9 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
                 const value = Number(ctx.parsed.x || 0);
                 const hours = Math.floor(value / 60);
                 const mins = Math.round(value % 60);
-                return hours > 0 ? ` ⏱️ Total: ${hours}h ${mins}min` : ` ⏱️ Total: ${mins} minutes`;
+                return hours > 0
+                  ? ` ⏱️ Total: ${hours}h ${mins}min`
+                  : ` ⏱️ Total: ${mins} minutes`;
               },
             },
           },
@@ -463,7 +500,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             ticks: {
               callback: (val: any) => `${val}m`,
               font: { size: 11, weight: 600 },
-              color: '#94a3b8'
+              color: '#94a3b8',
             },
             grid: { color: 'rgba(0, 0, 0, 0.03)', display: true },
           },
@@ -472,8 +509,8 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             ticks: {
               font: { weight: 700, size: 12 },
               color: '#475569',
-              padding: 12
-            }
+              padding: 12,
+            },
           },
         },
       },
@@ -598,6 +635,26 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     );
   }
 
+  formatDuration(minutes: number): string {
+    if (minutes === 0) return '0 min';
+    if (minutes < 1) {
+      const seconds = Math.round(minutes * 60);
+      return `${seconds} sec`;
+    }
+    const mins = Math.floor(minutes);
+    const secs = Math.round((minutes - mins) * 60);
+    return secs > 0 ? `${mins}m ${secs}s` : `${mins} min`;
+  }
+
+  getTopicTimePercentage(minutes: number): number {
+    if (this.timeSpentByTopicData.length === 0) return 0;
+    const maxMinutes = Math.max(
+      ...this.timeSpentByTopicData.map((i) => i.minutes),
+      1,
+    );
+    return (minutes / maxMinutes) * 100;
+  }
+
   getTimeSpentByTopic(): Array<{ topic: string; minutes: number }> {
     return this.timeSpentByTopicData;
   }
@@ -710,94 +767,73 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     }));
   }
 
-
-
   // ════════════════════════════════════════════════════════
   // NEW CHARTS - RADAR, CUMULATIVE, HEATMAP
   // ════════════════════════════════════════════════════════
 
-
-
-  // ── 6. Cumulative Line Chart with Moving Average ──
-  buildCumulativeLineChart(): void {
+  // ── 6. Bump Chart: MCQ Quiz Rank in Class ──
+  buildQuizRankChart(): void {
     const canvas = document.getElementById(
-      'cumulativeLineChart',
+      'quizRankChart',
     ) as HTMLCanvasElement;
     if (!canvas) return;
 
     const existingChart = Chart.getChart(canvas);
     if (existingChart) existingChart.destroy();
 
-    const points = this.getRecentScorePoints();
+    const points = Array.isArray(this.quizRankHistoryData)
+      ? [...this.quizRankHistoryData].sort(
+          (a, b) => Number(a.attemptIndex) - Number(b.attemptIndex),
+        )
+      : [];
     if (points.length === 0) return;
 
-    const labels = points.map((_, i) => `Attempt #${i + 1}`);
-    const scores = points.map((p) => p.score);
-
-    // Calculate cumulative average
-    const cumulativeAvg: number[] = [];
-    let cumulative = 0;
-    scores.forEach((score, index) => {
-      cumulative += score;
-      cumulativeAvg.push(Math.round((cumulative / (index + 1)) * 100) / 100);
-    });
-
-    // Calculate 3-point moving average (only if we have at least 3 points)
-    const movingAvg3: (number | null)[] = scores.map((_, index) => {
-      if (index < 2) return null;
-      const window = scores.slice(index - 2, index + 1);
-      return (
-        Math.round((window.reduce((s, v) => s + v, 0) / window.length) * 100) /
-        100
-      );
-    });
-
-    const datasets = [
-      {
-        label: 'Individual Score',
-        data: scores,
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.05)',
-        borderWidth: 2,
-        pointRadius: 4,
-        pointBackgroundColor: '#3b82f6',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        fill: true,
-        tension: 0.4,
-        borderDash: [],
-      },
-      {
-        label: 'Overall Average',
-        data: cumulativeAvg,
-        borderColor: '#10b981',
-        borderDash: [5, 5],
-        borderWidth: 3,
-        pointRadius: 0,
-        fill: false,
-        tension: 0.3,
-      },
-    ];
-
-    if (scores.length >= 3) {
-      datasets.push({
-        label: 'Moving Average (3)',
-        data: movingAvg3 as number[],
-        borderColor: '#f59e0b',
-        borderWidth: 2.5,
-        pointRadius: 0,
-        fill: false,
-        tension: 0.5,
-        borderDash: [],
-      });
-    }
+    const labels = points.map((point) =>
+      this.shortenLabel(point.quizTitle || `Quiz #${point.attemptIndex}`),
+    );
+    const ranks = points.map((point) => Number(point.rank) || 1);
+    const topRanks = points.map(() => 1);
+    const classSizes = points.map((point) => Number(point.classSize) || 1);
+    const maxClassSize = Math.max(...classSizes, 1);
 
     const chart = new Chart(canvas, {
       type: 'line',
-      data: { labels, datasets },
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Your Rank',
+            data: ranks,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+            borderWidth: 3,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointBackgroundColor: '#2563eb',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            fill: false,
+            tension: 0.32,
+          },
+          {
+            label: 'Top Rank',
+            data: topRanks,
+            borderColor: '#10b981',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+            borderDash: [4, 4],
+          },
+        ],
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index',
+        },
         plugins: {
           legend: {
             display: true,
@@ -807,43 +843,60 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
               boxWidth: 8,
               usePointStyle: true,
               pointStyle: 'circle',
-              font: { size: 10, weight: 600 },
-              padding: 15,
-              color: '#64748b'
-            }
+              font: { size: 10, weight: 800 },
+              padding: 20,
+              color: '#475569',
+            },
           },
           tooltip: {
-            backgroundColor: 'rgba(30, 41, 59, 0.95)',
-            padding: 14,
-            cornerRadius: 12,
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 16,
+            cornerRadius: 16,
             titleFont: { size: 14, weight: 'bold' },
             bodyFont: { size: 13 },
             displayColors: true,
+            boxPadding: 6,
             callbacks: {
+              title: (items: any) => {
+                const idx = items?.[0]?.dataIndex ?? 0;
+                return points[idx]?.quizTitle || `Quiz #${idx + 1}`;
+              },
               label: (ctx: any) => {
-                const label = ctx.dataset.label || '';
-                return ` ${label}: ${ctx.parsed.y.toFixed(1)}%`;
-              }
-            }
-          }
+                const idx = ctx.dataIndex;
+                if (ctx.dataset.label === 'Your Rank') {
+                  return ` Rank: #${ctx.parsed.y} / ${classSizes[idx]}`;
+                }
+                return ' Target: Top #1';
+              },
+              afterBody: (items: any) => {
+                const idx = items?.[0]?.dataIndex ?? 0;
+                return [
+                  `Good answers: ${points[idx]?.correctAnswersCount || 0}/${points[idx]?.totalQuestions || 0}`,
+                  `Score: ${Number(points[idx]?.scorePercentage || 0).toFixed(0)}%`,
+                ];
+              },
+            },
+          },
         },
         scales: {
           y: {
-            min: 0,
-            max: 100,
+            min: 1,
+            max: maxClassSize,
+            reverse: true,
             ticks: {
-              callback: (val: any) => `${val}%`,
+              stepSize: 1,
+              font: { size: 10, weight: 600 },
               color: '#94a3b8',
-              font: { size: 10, weight: 500 },
-              padding: 8
+              callback: (val: any) => `#${val}`,
             },
-            grid: { color: 'rgba(0,0,0,0.03)' }
+            grid: { color: 'rgba(0, 0, 0, 0.03)' },
           },
           x: {
             ticks: {
-              padding: 8,
-              font: { size: 11 },
+              font: { size: 10, weight: 600 },
+              color: '#64748b',
             },
+            grid: { display: false },
           },
         },
       },
@@ -858,7 +911,13 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
       day: string;
       week: number;
       activityCount: number;
+      quizCount: number;
+      prositCount: number;
+      otherCount: number;
+      activityLabel: string;
       backgroundColor: string;
+      textColor: string;
+      borderColor: string;
       tooltip: string;
     }>
   > {
@@ -869,7 +928,13 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         day: string;
         week: number;
         activityCount: number;
+        quizCount: number;
+        prositCount: number;
+        otherCount: number;
+        activityLabel: string;
         backgroundColor: string;
+        textColor: string;
+        borderColor: string;
         tooltip: string;
       }>
     > = [];
@@ -879,7 +944,10 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - 27);
 
-    const activityMap: Record<string, number> = {};
+    const activityMap: Record<
+      string,
+      { quiz: number; prosit: number; other: number }
+    > = {};
     this.performances.forEach((p) => {
       if (!p.attemptDate) return;
       const d = new Date(p.attemptDate);
@@ -887,7 +955,19 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         2,
         '0',
       )}-${String(d.getDate()).padStart(2, '0')}`;
-      activityMap[key] = (activityMap[key] || 0) + 1;
+
+      if (!activityMap[key]) {
+        activityMap[key] = { quiz: 0, prosit: 0, other: 0 };
+      }
+
+      const source = String(p.source || '').toLowerCase();
+      if (source === 'quiz') {
+        activityMap[key].quiz += 1;
+      } else if (source === 'prosit') {
+        activityMap[key].prosit += 1;
+      } else {
+        activityMap[key].other += 1;
+      }
     });
 
     for (let i = 0; i < 28; i++) {
@@ -900,17 +980,28 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
 
       const dayOfWeek = d.getDay();
       const week = Math.floor(i / 7);
-      const count = activityMap[key] || 0;
+      const bucket = activityMap[key] || { quiz: 0, prosit: 0, other: 0 };
+      const count = bucket.quiz + bucket.prosit + bucket.other;
 
       let backgroundColor: string;
+      let textColor: string;
+      let borderColor: string;
       if (count === 0) {
-        backgroundColor = 'rgba(226, 232, 240, 0.6)'; // light gray
+        backgroundColor = 'rgba(241, 245, 249, 1)';
+        textColor = '#64748b';
+        borderColor = 'rgba(226, 232, 240, 1)';
       } else if (count <= 1) {
-        backgroundColor = 'rgba(100, 200, 150, 0.6)'; // light green
+        backgroundColor = 'rgba(186, 230, 253, 1)';
+        textColor = '#0f172a';
+        borderColor = 'rgba(125, 211, 252, 1)';
       } else if (count <= 3) {
-        backgroundColor = 'rgba(50, 180, 100, 0.8)'; // medium green
+        backgroundColor = 'rgba(74, 222, 128, 1)';
+        textColor = '#052e16';
+        borderColor = 'rgba(34, 197, 94, 1)';
       } else {
-        backgroundColor = 'rgba(16, 150, 80, 1)'; // dark green
+        backgroundColor = 'rgba(22, 163, 74, 1)';
+        textColor = '#ffffff';
+        borderColor = 'rgba(21, 128, 61, 1)';
       }
 
       if (!grid[week]) grid[week] = [];
@@ -918,12 +1009,40 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         day: days[dayOfWeek],
         week,
         activityCount: count,
+        quizCount: bucket.quiz,
+        prositCount: bucket.prosit,
+        otherCount: bucket.other,
+        activityLabel: this.getHeatmapActivityLabel(bucket.quiz, bucket.prosit),
         backgroundColor,
-        tooltip: `${key}: ${count} exercise${count !== 1 ? 's' : ''}`,
+        textColor,
+        borderColor,
+        tooltip: this.formatHeatmapTooltip(key, bucket),
       };
     }
 
     return grid;
+  }
+
+  private getHeatmapActivityLabel(
+    quizCount: number,
+    prositCount: number,
+  ): string {
+    if (quizCount > 0 && prositCount > 0) return 'Quiz + Prosit';
+    if (quizCount > 0) return 'Quiz';
+    if (prositCount > 0) return 'Prosit';
+    return '';
+  }
+
+  private formatHeatmapTooltip(
+    dateKey: string,
+    bucket: { quiz: number; prosit: number; other: number },
+  ): string {
+    const total = bucket.quiz + bucket.prosit + bucket.other;
+    const pieces = [`${dateKey}: ${total} activit${total === 1 ? 'y' : 'ies'}`];
+    if (bucket.quiz > 0) pieces.push(`Quiz: ${bucket.quiz}`);
+    if (bucket.prosit > 0) pieces.push(`Prosit: ${bucket.prosit}`);
+    if (bucket.other > 0) pieces.push(`Other: ${bucket.other}`);
+    return pieces.join(' • ');
   }
 
   // ── 8. Completion Rate ───────────────────────

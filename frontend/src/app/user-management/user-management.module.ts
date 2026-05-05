@@ -30,6 +30,7 @@ import { GoalSettingComponent } from './goal-setting/goal-setting.component';
 import { BadgeDisplayComponent } from './badge-display/badge-display.component';
 import { PeerComparisonComponent } from './peer-comparison/peer-comparison.component';
 import { StudyPlannerComponent } from './study-planner/study-planner.component';
+import { DailyChallengeComponent } from './daily-challenge/daily-challenge.component';
 import { MyCoursesComponent } from './my-courses/my-courses.component';
 import { ContinueLearningComponent } from './continue-learning/continue-learning.component';
 import { AssignmentsComponent } from './assignments/assignments.component';
@@ -409,6 +410,7 @@ const routes: Routes = [
     BadgeDisplayComponent,
     PeerComparisonComponent,
     StudyPlannerComponent,
+    DailyChallengeComponent,
     MyCoursesComponent,
     ContinueLearningComponent,
     AssignmentsComponent,

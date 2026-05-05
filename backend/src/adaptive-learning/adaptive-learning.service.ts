@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import axios from "axios";
 import {
   StudentProfile,
@@ -57,6 +57,10 @@ import {
   PrositSubmissionDocument,
 } from "../prosits/schemas/prosit-submission.schema";
 import { Subject, SubjectDocument } from "../subjects/schemas/subject.schema";
+import {
+  ClassEnrollment,
+  ClassEnrollmentDocument,
+} from "../academic/schemas/class-enrollment.schema";
 
 @Injectable()
 export class AdaptiveLearningService {
@@ -99,7 +103,249 @@ export class AdaptiveLearningService {
     private prositSubmissionModel: Model<PrositSubmissionDocument>,
     @InjectModel(Subject.name)
     private subjectModel: Model<SubjectDocument>,
+    @InjectModel(ClassEnrollment.name)
+    private classEnrollmentModel: Model<ClassEnrollmentDocument>,
   ) {}
+
+  async getStudentRankHistory(studentId: string): Promise<{
+    studentId: string;
+    points: Array<{
+      attemptIndex: number;
+      rank: number;
+      score: number;
+      classAverageScore: number;
+      classSize: number;
+    }>;
+  }> {
+    if (!Types.ObjectId.isValid(studentId)) {
+      return { studentId, points: [] };
+    }
+
+    const enrollment = await this.classEnrollmentModel
+      .findOne({ studentId: new Types.ObjectId(studentId) })
+      .lean()
+      .exec();
+
+    if (!enrollment?.schoolClassId) {
+      return { studentId, points: [] };
+    }
+
+    const classmates = await this.classEnrollmentModel
+      .find({ schoolClassId: enrollment.schoolClassId })
+      .select("studentId")
+      .lean()
+      .exec();
+
+    const classmateIds = classmates
+      .map((row: any) => String(row?.studentId || "").trim())
+      .filter((id: string) => !!id);
+
+    if (!classmateIds.length) {
+      return { studentId, points: [] };
+    }
+
+    const attempts = await this.performanceModel
+      .find({ studentId: { $in: classmateIds } })
+      .select("studentId score attemptDate")
+      .sort({ attemptDate: 1 })
+      .lean()
+      .exec();
+
+    const byStudent = new Map<string, Array<{ score: number }>>();
+    attempts.forEach((attempt: any) => {
+      const sid = String(attempt?.studentId || "").trim();
+      if (!sid) return;
+      const score = Number(attempt?.score) || 0;
+      const list = byStudent.get(sid) || [];
+      list.push({ score });
+      byStudent.set(sid, list);
+    });
+
+    const targetAttempts = byStudent.get(studentId) || [];
+    if (!targetAttempts.length) {
+      return { studentId, points: [] };
+    }
+
+    const averageUpTo = (
+      scores: Array<{ score: number }>,
+      endIndex: number,
+    ) => {
+      const slice = scores.slice(0, endIndex + 1);
+      if (!slice.length) return 0;
+      const total = slice.reduce(
+        (sum, row) => sum + (Number(row.score) || 0),
+        0,
+      );
+      return total / slice.length;
+    };
+
+    const points = targetAttempts.map((attempt, index) => {
+      const cohortAverages = Array.from(byStudent.values())
+        .filter((rows) => rows.length > index)
+        .map((rows) => averageUpTo(rows, index));
+
+      const studentAvg = averageUpTo(targetAttempts, index);
+      const betterCount = cohortAverages.filter(
+        (avg) => avg > studentAvg,
+      ).length;
+      const classAverageScore =
+        cohortAverages.length > 0
+          ? cohortAverages.reduce((sum, value) => sum + value, 0) /
+            cohortAverages.length
+          : 0;
+
+      return {
+        attemptIndex: index + 1,
+        rank: betterCount + 1,
+        score: Number(attempt.score) || 0,
+        classAverageScore: Math.round(classAverageScore * 100) / 100,
+        classSize: cohortAverages.length,
+      };
+    });
+
+    return { studentId, points };
+  }
+
+  async getStudentQuizRankHistory(studentId: string): Promise<{
+    studentId: string;
+    points: Array<{
+      attemptIndex: number;
+      quizId: string;
+      quizTitle: string;
+      correctAnswersCount: number;
+      totalQuestions: number;
+      scorePercentage: number;
+      rank: number;
+      classSize: number;
+      submittedAt: Date;
+    }>;
+  }> {
+    if (!Types.ObjectId.isValid(studentId)) {
+      return { studentId, points: [] };
+    }
+
+    const enrollment = await this.classEnrollmentModel
+      .findOne({ studentId: new Types.ObjectId(studentId) })
+      .lean()
+      .exec();
+
+    if (!enrollment?.schoolClassId) {
+      return { studentId, points: [] };
+    }
+
+    const classmates = await this.classEnrollmentModel
+      .find({ schoolClassId: enrollment.schoolClassId })
+      .select("studentId")
+      .lean()
+      .exec();
+
+    const classmateIds = classmates
+      .map((row: any) => String(row?.studentId || "").trim())
+      .filter((id: string) => !!id);
+
+    if (!classmateIds.length) {
+      return { studentId, points: [] };
+    }
+
+    const submissions = await this.quizSubmissionModel
+      .find({ studentId: { $in: classmateIds } })
+      .select(
+        "studentId quizId quizTitle totalQuestions scoreObtained scorePercentage answers submittedAt",
+      )
+      .sort({ submittedAt: 1 })
+      .lean()
+      .exec();
+
+    const extractCorrectCount = (submission: any): number => {
+      const answers = Array.isArray(submission?.answers)
+        ? submission.answers
+        : [];
+      const correctFromAnswers = answers.filter(
+        (answer: any) => answer?.isCorrect,
+      ).length;
+      if (correctFromAnswers > 0) {
+        return correctFromAnswers;
+      }
+      return Number(submission?.scoreObtained) || 0;
+    };
+
+    const studentSubmissions = submissions
+      .filter(
+        (submission: any) =>
+          String(submission?.studentId || "") === String(studentId),
+      )
+      .sort(
+        (a: any, b: any) =>
+          new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime(),
+      );
+
+    if (!studentSubmissions.length) {
+      return { studentId, points: [] };
+    }
+
+    const bestByStudentAndQuiz = new Map<string, Map<string, any>>();
+    submissions.forEach((submission: any) => {
+      const sid = String(submission?.studentId || "").trim();
+      const quizId = String(submission?.quizId || "").trim();
+      if (!sid || !quizId) return;
+
+      const correctAnswersCount = extractCorrectCount(submission);
+      const existingStudentMap =
+        bestByStudentAndQuiz.get(quizId) || new Map<string, any>();
+      const currentBest = existingStudentMap.get(sid);
+
+      if (
+        !currentBest ||
+        correctAnswersCount > currentBest.correctAnswersCount ||
+        (correctAnswersCount === currentBest.correctAnswersCount &&
+          new Date(submission.submittedAt).getTime() <
+            new Date(currentBest.submittedAt).getTime())
+      ) {
+        existingStudentMap.set(sid, {
+          ...submission,
+          correctAnswersCount,
+        });
+        bestByStudentAndQuiz.set(quizId, existingStudentMap);
+      }
+    });
+
+    const points = studentSubmissions.map((submission: any, index: number) => {
+      const quizId = String(submission?.quizId || "").trim();
+      const quizBestMap =
+        bestByStudentAndQuiz.get(quizId) || new Map<string, any>();
+      const peerRows = Array.from(quizBestMap.values());
+
+      const currentCorrect = extractCorrectCount(submission);
+      const distinctBetterCounts = new Set(
+        peerRows
+          .map((row: any) => Number(row?.correctAnswersCount) || 0)
+          .filter((count: number) => count > currentCorrect),
+      ).size;
+
+      const rank = distinctBetterCounts + 1;
+      const totalQuestions = Number(submission?.totalQuestions) || 0;
+      const scorePercentage =
+        typeof submission?.scorePercentage === "number"
+          ? Number(submission.scorePercentage)
+          : totalQuestions > 0
+            ? Math.round((currentCorrect / totalQuestions) * 100)
+            : 0;
+
+      return {
+        attemptIndex: index + 1,
+        quizId,
+        quizTitle: String(submission?.quizTitle || quizId || "Quiz").trim(),
+        correctAnswersCount: currentCorrect,
+        totalQuestions,
+        scorePercentage,
+        rank,
+        classSize: Math.max(1, peerRows.length),
+        submittedAt: submission.submittedAt,
+      };
+    });
+
+    return { studentId, points };
+  }
 
   // ══════════════════════════════════
   // STUDENT PROFILE CRUD
@@ -1123,8 +1369,7 @@ export class AdaptiveLearningService {
               row?.chapterTitle ||
               row?.subChapterTitle ||
               "general",
-          ).trim() ||
-          "general",
+          ).trim() || "general",
         difficulty: this.estimateDifficultyFromScore(score),
       });
     });
@@ -1145,8 +1390,7 @@ export class AdaptiveLearningService {
               row?.chapterTitle ||
               row?.subChapterTitle ||
               "general",
-          ).trim() ||
-          "general",
+          ).trim() || "general",
         difficulty: this.estimateDifficultyFromScore(score),
       });
     });
@@ -1168,8 +1412,7 @@ export class AdaptiveLearningService {
               row?.chapterTitle ||
               row?.subChapterTitle ||
               "general",
-          ).trim() ||
-          "general",
+          ).trim() || "general",
         difficulty: this.estimateDifficultyFromScore(score),
       });
     });
@@ -1220,7 +1463,10 @@ export class AdaptiveLearningService {
       timeSpent: Math.max(0, Number(row?.timeSpent ?? 0)),
       attemptDate:
         row?.attemptDate || row?.submittedAt || row?.gradedAt || row?.createdAt,
-      source: (row?.source === "exercise" || row?.source === "prosit") ? "prosit" : String(row?.source || "quiz"),
+      source:
+        row?.source === "exercise" || row?.source === "prosit"
+          ? "prosit"
+          : String(row?.source || "quiz"),
       title: String(row?.title || row?.exerciseTitle || "Assessment"),
       topic: String(
         row?.subjectTitle ||
@@ -3330,11 +3576,17 @@ export class AdaptiveLearningService {
     });
 
     const levelWeakTopicSet = new Set(
-      weakFromLevelTest.map((item) => String(item.topic || "").trim().toLowerCase()),
+      weakFromLevelTest.map((item) =>
+        String(item.topic || "")
+          .trim()
+          .toLowerCase(),
+      ),
     );
     const perfTopicScoreMap = new Map<string, number>(
       Object.entries(topicScoresFromPerf).map(([topic, stat]) => [
-        String(topic || "").trim().toLowerCase(),
+        String(topic || "")
+          .trim()
+          .toLowerCase(),
         Math.round(stat.total / stat.count),
       ]),
     );
@@ -5065,7 +5317,8 @@ export class AdaptiveLearningService {
     const strongTopics = areaScores
       .filter((item) => item.score >= 70)
       .map((item) => item.topic);
-    const recommendations = this.generatePostEvaluationRecommendations(areaScores);
+    const recommendations =
+      this.generatePostEvaluationRecommendations(areaScores);
     const overallScore = this.resolvePostEvaluationOverallScore(
       normalizedResult,
       areaScores,
@@ -5182,8 +5435,12 @@ export class AdaptiveLearningService {
 
     return {
       studentId,
-      sessionId: String(payload?.sessionId || payload?.session_id || sessionId || "").trim(),
-      totalScore: Number(payload?.totalScore ?? payload?.score ?? payload?.overall_mastery ?? 0),
+      sessionId: String(
+        payload?.sessionId || payload?.session_id || sessionId || "",
+      ).trim(),
+      totalScore: Number(
+        payload?.totalScore ?? payload?.score ?? payload?.overall_mastery ?? 0,
+      ),
       questions: normalizedQuestions,
       answers: normalizedAnswers,
       areaScores: Array.isArray(payload?.areaScores) ? payload.areaScores : [],
@@ -5253,7 +5510,10 @@ export class AdaptiveLearningService {
     if (areaScores.length === 0) {
       return 0;
     }
-    const total = areaScores.reduce((sum, area) => sum + Number(area.score || 0), 0);
+    const total = areaScores.reduce(
+      (sum, area) => sum + Number(area.score || 0),
+      0,
+    );
     return Math.max(0, Math.min(100, total / areaScores.length));
   }
 
@@ -5302,7 +5562,9 @@ export class AdaptiveLearningService {
     return "HIGH";
   }
 
-  private mapScoreToLevel(score: number): "beginner" | "intermediate" | "advanced" {
+  private mapScoreToLevel(
+    score: number,
+  ): "beginner" | "intermediate" | "advanced" {
     if (score >= 80) return "advanced";
     if (score >= 50) return "intermediate";
     return "beginner";

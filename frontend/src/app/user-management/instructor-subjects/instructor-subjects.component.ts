@@ -245,10 +245,15 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     this.showContentModal = true;
   }
 
+  copySuccess = false;
+
   copyToClipboard(text: string) {
     if (text) {
       navigator.clipboard.writeText(text).then(() => {
-        // Optionnel: feedback visuel
+        this.copySuccess = true;
+        setTimeout(() => {
+          this.copySuccess = false;
+        }, 2000);
       });
     }
   }
@@ -258,9 +263,9 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     string
   > = {
     cours: 'Courses',
-    exercices: 'Exercices',
+    exercices: 'Exercise',
     videos: 'Videos',
-    ressources: 'Additional Ressources',
+    ressources: 'Additional Resources',
   };
   user: any;
   loadingSubjects = false;
@@ -294,6 +299,79 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   showContentModal = false;
   showViewModal = false;
   selectedContentForView: any = null;
+  subjectActiveTab: 'content' | 'submissions' = 'content';
+  showTypeDropdown = false;
+  submissionView: 'quiz' | 'prosit' = 'quiz';
+
+  switchSubjectTab(tab: 'content' | 'submissions') {
+    this.subjectActiveTab = tab;
+  }
+
+  switchSubmissionView(view: 'quiz' | 'prosit') {
+    this.submissionView = view;
+  }
+
+  // Accordion State for grouped submissions
+  expandedStudentAccordions: { [studentId: string]: boolean } = {};
+
+  toggleStudentAccordion(studentId: string, event: Event) {
+    event.stopPropagation();
+    this.expandedStudentAccordions[studentId] = !this.expandedStudentAccordions[studentId];
+  }
+
+  private getStudentIdString(sub: any): string {
+    if (sub && typeof sub.studentId === 'object' && sub.studentId._id) {
+      return sub.studentId._id;
+    }
+    if (sub && typeof sub.studentId === 'string') {
+      return sub.studentId;
+    }
+    return this.getStudentDisplayName(sub) || 'unknown';
+  }
+
+  get groupedQuizSubmissions() {
+    const subs = this.getSelectedSubjectQuizFileSubmissions();
+    const grouped = new Map<string, any>();
+    for (const sub of subs) {
+      const sId = this.getStudentIdString(sub);
+      if (!grouped.has(sId)) {
+        grouped.set(sId, {
+          studentId: sId,
+          studentName: this.getStudentDisplayName(sub),
+          submissions: []
+        });
+      }
+      grouped.get(sId).submissions.push(sub);
+    }
+    return Array.from(grouped.values());
+  }
+
+  get groupedPrositSubmissions() {
+    const subs = this.getSelectedSubjectPrositSubmissions();
+    const grouped = new Map<string, any>();
+    for (const sub of subs) {
+      const sId = this.getStudentIdString(sub);
+      if (!grouped.has(sId)) {
+        grouped.set(sId, {
+          studentId: sId,
+          studentName: sub.studentName || 'Unknown Student',
+          submissions: []
+        });
+      }
+      grouped.get(sId).submissions.push(sub);
+    }
+    return Array.from(grouped.values());
+  }
+
+  toggleTypeDropdown() {
+    this.showTypeDropdown = !this.showTypeDropdown;
+  }
+
+  selectContentType(type: any) {
+    this.chapterContentForm.type = type;
+    this.showTypeDropdown = false;
+    this.onContentTypeChange();
+  }
 
   // File upload state
   selectedChapterFile: File | null = null;
@@ -600,6 +678,26 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     const record = historyRecord.records.find((r: any) => r.studentId === studentId);
     return record ? record.status : '-';
   }
+
+  deleteAttendanceDay(date: string): void {
+    if (!this.selectedClassId) return;
+    if (!confirm('Are you sure you want to delete all attendance records for ' + new Date(date).toLocaleDateString() + '?')) {
+      return;
+    }
+
+    this.http.delete(`http://localhost:3000/api/admin/attendance/${this.selectedClassId}/${date}`).subscribe({
+      next: () => {
+        // Refresh history and student list (to update percentages)
+        this.loadAttendanceHistory();
+        this.loadClassStudents();
+      },
+      error: (err) => {
+        console.error('Error deleting attendance:', err);
+        alert('Failed to delete attendance record.');
+      }
+    });
+  }
+
 
   editPastAttendance(date: string, sessionType: 'S1' | 'S2'): void {
     this.attendanceDate = new Date(date).toISOString().split('T')[0];
@@ -1606,6 +1704,40 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
       });
   }
 
+  deleteSubChapter(chapterOrder: number, subChapterOrder: number): void {
+    if (!this.selectedSubject?._id) {
+      this.error = 'Unable to delete subchapter (missing subject).';
+      return;
+    }
+
+    const ok = confirm('Delete this subchapter and all its contents?');
+    if (!ok) {
+      return;
+    }
+
+    this.error = '';
+    this.subjectsService
+      .deleteSubChapter(this.selectedSubject._id, chapterOrder, subChapterOrder)
+      .subscribe({
+        next: (updated) => {
+          this.selectedSubject = this.normalizeContentFolders(updated);
+          this.subjects = this.subjects.map((item) =>
+            item._id === updated._id ? updated : item,
+          );
+          const key = `${chapterOrder}_${subChapterOrder}`;
+          if (this.expandedSubChapterKey === key) {
+            this.expandedSubChapterKey = null;
+          }
+        },
+        error: (err) => {
+          this.error =
+            err?.error?.message ||
+            err?.error?.detail ||
+            'Failed to delete subchapter.';
+        },
+      });
+  }
+
   onChapterFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = (input.files && input.files[0]) || null;
@@ -1793,7 +1925,10 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         title,
       };
 
-      if (type === 'file' || type === 'video') {
+      const isFileMode = type === 'file' || (type === 'video' && this.videoUploadMode === 'file');
+      const isLinkMode = type === 'link' || (type === 'video' && this.videoUploadMode === 'link');
+
+      if (isFileMode) {
         if (!this.selectedChapterFile) {
           throw new Error('Please choose a file first.');
         }
@@ -1807,69 +1942,30 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
         );
         this.uploadingChapterFile = false;
 
-        // Use only the path part for the URL (relative to server root)
         let fileUrl =
           uploadResult?.url ||
           uploadResult?.fileUrl ||
           uploadResult?.file_url ||
           uploadResult?.download_url ||
           undefined;
+
         if (fileUrl && fileUrl.startsWith('http')) {
           try {
             const urlObj = new URL(fileUrl);
             fileUrl = urlObj.pathname + urlObj.search;
-          } catch (e) {
-            // fallback: leave as is
-          }
+          } catch (e) {}
         }
 
         payload = {
           ...payload,
+          url: fileUrl,
           fileName: this.selectedChapterFile.name,
           mimeType: this.selectedChapterFile.type || undefined,
         };
-        // N'ajoute url que pour 'file', jamais pour 'video'
-        if (type === 'file') {
-          payload.url = fileUrl;
+      } else if (isLinkMode) {
+        if (!url) {
+          throw new Error('URL is required.');
         }
-      }
-
-    if (type === 'video') {
-  if (!this.selectedChapterFile && url) {
-    payload = { ...payload, url };
-  } else if (this.selectedChapterFile) {
-    // Upload déjà fait au-dessus → récupère l'url
-    this.uploadingChapterFile = true;
-    const uploadResult = await this.uploadChapterFile(
-      this.selectedSubject._id,
-      chapterOrder,
-      subChapterOrder,
-      this.selectedChapterFile,
-    );
-    this.uploadingChapterFile = false;
-
-    let fileUrl =
-      uploadResult?.url ||
-      uploadResult?.fileUrl ||
-      uploadResult?.file_url ||
-      uploadResult?.download_url ||
-      undefined;
-
-    if (fileUrl && fileUrl.startsWith('http')) {
-      try {
-        const urlObj = new URL(fileUrl);
-        fileUrl = urlObj.pathname + urlObj.search;
-      } catch (e) {}
-    }
-
-    payload = {
-      ...payload,
-      url: fileUrl,
-      fileName: this.selectedChapterFile.name,
-      mimeType: this.selectedChapterFile.type || undefined,
-    };
-  }
-} else if (type === 'link') {
         payload = {
           ...payload,
           url,
@@ -2034,6 +2130,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     };
     this.selectedChapterFile = null;
     this.selectedQuizFile = null;
+    this.videoUploadMode = 'file';
     this.isEditingQuizFileContent = false;
     this.quizFileContent = '';
     this.loadingQuizFileContent = false;

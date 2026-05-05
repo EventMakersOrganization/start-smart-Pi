@@ -1114,27 +1114,37 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
               }
             }
 
+            // Check if late
+            if (status === 'En cours' && content.dueDate) {
+              const now = new Date();
+              const due = new Date(content.dueDate);
+              if (now > due) {
+                status = 'En retard';
+              }
+            }
+
             let detailTypeLabel = 'Activité';
             if (content.type === 'prosit') {
               detailTypeLabel = 'Prosit';
             } else if (content.type === 'quiz') {
               detailTypeLabel = (content.quizQuestions && content.quizQuestions.length > 0) 
-                ? 'Quiz QCM' 
-                : 'Quiz Fichier';
+                ? 'MCQ Quiz' 
+                : 'File Quiz';
             }
 
             const displayTitle = content.fileName || content.title;
             items.push({
               type: content.type === 'quiz' ? 'quiz' : 'prosit',
-              name: content.type === 'quiz' ? `Évaluation : ${displayTitle}` : `Rendu : ${displayTitle}`,
+              name: content.type === 'quiz' ? `Quiz : ${displayTitle}` : `Prosit : ${displayTitle}`,
               detailTypeLabel,
               subChapterTitle: subChapter.title,
               chapterTitle: course.title,
-              dueDate: content.dueDate ? new Date(content.dueDate).toLocaleDateString() : undefined,
+              dueDate: content.dueDate ? new Date(content.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : undefined,
               status,
               gradeText,
               actionKey,
-              syllabusItem: content
+              syllabusItem: content,
+              isLate: status === 'En retard'
             });
           }
         });
@@ -1641,6 +1651,15 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     this.selectedSubject = subject;
     this.selectedCourse = null;
     this.viewMode = 'courses';
+    
+    // Auto-scroll to courses section to focus on content while keeping guides accessible above
+    setTimeout(() => {
+      const element = document.getElementById('courses-section');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+
     this.trackActivity('subject_open', {
       resource_type: 'subject',
       resource_id: subject.subjectDbId || subject.name,
@@ -3293,11 +3312,14 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     };
   }
 
+  codeCopied = false;
   copyToClipboard(text: string): void {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
-      // Optional: Show a toast or notification
-      console.log('Copied to clipboard');
+      this.codeCopied = true;
+      setTimeout(() => {
+        this.codeCopied = false;
+      }, 2000);
     });
   }
 

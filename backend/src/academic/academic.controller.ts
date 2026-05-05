@@ -123,4 +123,11 @@ export class AcademicController {
   removeInstructor(@Param('id') id: string, @Param('instructorId') instructorId: string) {
     return this.academicService.removeInstructor(id, instructorId);
   }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  @Delete('attendance/:classId/:date')
+  deleteAttendance(@Param('classId') classId: string, @Param('date') date: string) {
+    return this.academicService.deleteAttendance(classId, date);
+  }
 }
+

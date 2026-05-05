@@ -13,6 +13,7 @@ import {
   SpacedRepetitionResponse,
   SpacedRepetitionSession,
 } from '../adaptive-learning.service';
+import { SubjectsService } from '../subjects.service';
 
 type DayLabel = 'Lun' | 'Mar' | 'Mer' | 'Jeu' | 'Ven' | 'Sam' | 'Dim';
 
@@ -70,7 +71,10 @@ export class StudyPlannerComponent implements OnInit, OnChanges {
 
   private spacedSchedule: SpacedRepetitionSession[] = [];
 
-  constructor(private adaptiveService: AdaptiveLearningService) {}
+  constructor(
+    private adaptiveService: AdaptiveLearningService,
+    private subjectsService: SubjectsService
+  ) {}
 
   ngOnInit(): void {
     this.setupWeekColumns();
@@ -185,21 +189,28 @@ export class StudyPlannerComponent implements OnInit, OnChanges {
     this.errorMessage = '';
 
     forkJoin({
-      spaced: this.adaptiveService.getSpacedRepetitionSchedule(this.studentId),
+      spaced: this.adaptiveService.getSpacedRepetitionSchedule(this.studentId).pipe(catchError(() => of(null))),
       weakAreas: this.adaptiveService
         .getWeakAreaRecommendations(this.studentId)
         .pipe(catchError(() => of([]))),
       learningPath: this.adaptiveService
         .getLearningPath(this.studentId)
         .pipe(catchError(() => of([]))),
+      enrolledSubjects: this.subjectsService
+        .getSubjects(undefined, false)
+        .pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ spaced, weakAreas, learningPath }) => {
+      next: ({ spaced, weakAreas, learningPath, enrolledSubjects }) => {
         this.spacedSchedule = this.normalizeSpacedSchedule(spaced);
-        const generatedPlan = this.generateInitialPlan(
+        let generatedPlan = this.generateInitialPlan(
           this.spacedSchedule,
           weakAreas,
           learningPath,
         );
+
+        if (generatedPlan.length === 0 && enrolledSubjects && enrolledSubjects.length > 0) {
+          generatedPlan = this.generatePlanFromEnrolledSubjects(enrolledSubjects);
+        }
 
         const savedPlan = this.readPersistedPlanner();
         this.allSessions = savedPlan.length > 0 ? savedPlan : generatedPlan;
@@ -298,6 +309,33 @@ export class StudyPlannerComponent implements OnInit, OnChanges {
         plannedDate: dateKey,
         recommendedDifficulty: 'intermediate',
         completed: this.isCompleted(dateKey, topic),
+        source: 'learning-path',
+      });
+    });
+
+    return sessions.sort(
+      (a, b) => this.urgencyOrder(a.urgency) - this.urgencyOrder(b.urgency),
+    );
+  }
+
+  private generatePlanFromEnrolledSubjects(subjects: any[]): PlannerSession[] {
+    const sessions: PlannerSession[] = [];
+    const weekDates = this.weekColumns.map((d) => d.dateKey);
+    const todayKey = this.toDateKey(this.startOfDay(new Date()));
+
+    subjects.slice(0, 7).forEach((subject, index) => {
+      const dayOffset = index % weekDates.length;
+      const plannedDate = weekDates[dayOffset] || todayKey;
+      const topicName = subject.title || subject.name || 'Subject ' + subject.code;
+
+      sessions.push({
+        topic: topicName,
+        urgency: 'scheduled',
+        lastScore: 0,
+        estimatedMinutes: this.defaultSessionMinutes,
+        plannedDate,
+        recommendedDifficulty: 'beginner',
+        completed: this.isCompleted(plannedDate, topicName),
         source: 'learning-path',
       });
     });

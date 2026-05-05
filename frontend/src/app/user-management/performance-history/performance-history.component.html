@@ -1,16 +1,31 @@
 <div class="space-y-10">
   <div class="animate-fade-in-up">
-    <div class="flex items-center gap-6 p-8 rounded-[2.5rem] bg-gradient-to-r from-indigo-400 to-blue-500 shadow-2xl relative overflow-hidden group">
+    <div
+      class="flex items-center gap-6 p-8 rounded-[2.5rem] bg-gradient-to-r from-indigo-400 to-blue-500 shadow-2xl relative overflow-hidden group"
+    >
       <!-- Decorative background elements -->
-      <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
-      <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
-      
-      <div class="p-4 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-lg relative z-10">
-        <span class="material-symbols-outlined text-white block text-4xl font-bold">insights</span>
+      <div
+        class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"
+      ></div>
+      <div
+        class="absolute -left-10 -bottom-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"
+      ></div>
+
+      <div
+        class="p-4 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-lg relative z-10"
+      >
+        <span
+          class="material-symbols-outlined text-white block text-4xl font-bold"
+          >insights</span
+        >
       </div>
       <div class="relative z-10">
-        <h2 class="text-3xl font-black text-white tracking-tight leading-tight">Performance Overview</h2>
-        <p class="text-white/90 mt-1 font-medium text-[15px]">Detailed analysis of your learning results and history.</p>
+        <h2 class="text-3xl font-black text-white tracking-tight leading-tight">
+          Performance Overview
+        </h2>
+        <p class="text-white/90 mt-1 font-medium text-[15px]">
+          Detailed analysis of your learning results and history.
+        </p>
       </div>
     </div>
   </div>
@@ -47,7 +62,7 @@
   >
     <!-- ── Header ── -->
     <div class="p-7 border-b border-slate-100 dark:border-slate-800">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center mb-4">
         <div class="flex items-center gap-2">
           <span
             class="material-symbols-outlined text-lg text-blue-400 bg-blue-100 rounded-full p-1"
@@ -65,13 +80,6 @@
             </p>
           </div>
         </div>
-        <button
-          (click)="resetFilters()"
-          class="text-xs text-slate-500 hover:text-primary flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-primary transition-colors bg-white/80 dark:bg-slate-900/40"
-        >
-          <span class="material-symbols-outlined text-sm">filter_alt_off</span>
-          Reset
-        </button>
       </div>
 
       <!-- ── Filters ── -->
@@ -158,39 +166,36 @@
       *ngIf="paginated.length > 0"
       class="overflow-x-auto animate-fade-in-up animate-delay-900"
     >
-      <table class="w-full rounded-2xl overflow-hidden">
+      <table
+        class="w-full rounded-2xl overflow-hidden border border-slate-100/80 dark:border-slate-800/80 shadow-[0_18px_60px_-24px_rgba(15,23,42,0.25)] bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm"
+      >
         <thead>
           <tr
-            class="bg-gradient-to-r from-blue-50/80 to-emerald-50/80 border-b border-slate-100 dark:border-slate-800"
+            class="bg-gradient-to-r from-sky-50 via-blue-50 to-emerald-50 border-b border-slate-100 dark:border-slate-800"
           >
             <th
-              class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
+              class="text-left px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]"
             >
               Exercise
             </th>
             <th
-              class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
+              class="text-left px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]"
             >
               Topic
             </th>
 
             <th
-              class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
+              class="text-left px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]"
             >
               Score
             </th>
             <th
-              class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
-            >
-              Time
-            </th>
-            <th
-              class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
+              class="text-left px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]"
             >
               Date
             </th>
             <th
-              class="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider"
+              class="text-left px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]"
             >
               Status
             </th>
@@ -199,50 +204,74 @@
         <tbody class="divide-y divide-slate-50 dark:divide-slate-800">
           <tr
             *ngFor="let p of paginated; let i = index"
-            class="hover:bg-blue-50/60 dark:hover:bg-slate-900/40 transition-colors animate-fade-in-up"
+            class="group hover:bg-gradient-to-r hover:from-sky-50/60 hover:to-emerald-50/50 dark:hover:from-slate-900/40 dark:hover:to-slate-800/30 transition-all duration-200 animate-fade-in-up"
             [style.animationDelay]="1 + i * 0.07 + 's'"
           >
             <!-- Exercise ID -->
-            <td class="px-6 py-4">
+            <td class="px-6 py-5">
               <div class="flex items-center gap-3">
                 <div
-                  [class]="'w-10 h-10 rounded-xl flex items-center justify-center shadow-glow ' + 
-                           ((p.source === 'prosit' || p.source === 'exercise') ? 'bg-purple-100/80' : 'bg-blue-100/80')"
+                  [class]="
+                    'w-11 h-11 rounded-2xl flex items-center justify-center shadow-glow ring-1 ring-white/70 ' +
+                    (p.source === 'prosit' || p.source === 'exercise'
+                      ? 'bg-purple-100/80'
+                      : 'bg-blue-100/80')
+                  "
                 >
-                  <span [class]="'material-symbols-outlined text-lg ' + 
-                                ((p.source === 'prosit' || p.source === 'exercise') ? 'text-purple-500' : 'text-blue-500')">
-                    {{ (p.source === 'prosit' || p.source === 'exercise') ? 'school' : 'quiz' }}
+                  <span
+                    [class]="
+                      'material-symbols-outlined text-lg ' +
+                      (p.source === 'prosit' || p.source === 'exercise'
+                        ? 'text-purple-500'
+                        : 'text-blue-500')
+                    "
+                  >
+                    {{
+                      p.source === "prosit" || p.source === "exercise"
+                        ? "school"
+                        : "quiz"
+                    }}
                   </span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="text-base font-bold text-slate-700 dark:text-white leading-tight">
-                    {{ p.title || p.exerciseId || 'Assessment' }}
+                  <span
+                    class="text-base font-extrabold text-slate-800 dark:text-white leading-tight group-hover:text-slate-900 dark:group-hover:text-white"
+                  >
+                    {{ p.title || p.exerciseId || "Assessment" }}
                   </span>
-                  <span [class]="'text-[10px] font-black uppercase tracking-widest mt-0.5 ' + 
-                                ((p.source === 'prosit' || p.source === 'exercise') ? 'text-purple-500' : 'text-blue-500')">
-                    {{ (p.source === 'prosit' || p.source === 'exercise') ? 'PROSIT' : 'QUIZ' }}
+                  <span
+                    [class]="
+                      'text-[10px] font-black uppercase tracking-[0.22em] mt-1 ' +
+                      (p.source === 'prosit' || p.source === 'exercise'
+                        ? 'text-purple-500'
+                        : 'text-blue-500')
+                    "
+                  >
+                    {{
+                      p.source === "prosit" || p.source === "exercise"
+                        ? "PROSIT"
+                        : "QUIZ"
+                    }}
                   </span>
                 </div>
               </div>
             </td>
 
             <!-- Topic -->
-            <td class="px-6 py-4">
+            <td class="px-6 py-5">
               <span
-                class="text-sm font-medium text-slate-600 dark:text-slate-300 capitalize"
+                class="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200 capitalize"
               >
                 {{ p.topic || "general" }}
               </span>
             </td>
 
-
-
             <!-- Score -->
-            <td class="px-6 py-4">
+            <td class="px-6 py-5">
               <div class="flex items-center gap-2">
                 <span
                   [class]="
-                    'text-base font-black px-2.5 py-1 rounded-xl shadow ' +
+                    'text-base font-black px-3 py-1.5 rounded-xl shadow-sm ring-1 ring-white/70 ' +
                     getScoreColor(p.score)
                   "
                 >
@@ -250,7 +279,7 @@
                 </span>
                 <!-- Mini progress bar -->
                 <div
-                  class="w-20 bg-slate-100 h-2 rounded-full overflow-hidden shadow-inner"
+                  class="w-24 bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner"
                 >
                   <div
                     [style.width.%]="p.score"
@@ -266,25 +295,20 @@
               </div>
             </td>
 
-            <!-- Time -->
-            <td class="px-6 py-4">
-              <span class="text-sm text-slate-500 dark:text-slate-300">
-                {{ formatTime(p.timeSpent) }}
-              </span>
-            </td>
-
             <!-- Date -->
-            <td class="px-6 py-4">
-              <span class="text-sm text-slate-500 dark:text-slate-300">
+            <td class="px-6 py-5">
+              <span
+                class="text-sm font-medium text-slate-500 dark:text-slate-300"
+              >
                 {{ formatDate(p.attemptDate) }}
               </span>
             </td>
 
             <!-- Status -->
-            <td class="px-6 py-4">
+            <td class="px-6 py-5">
               <span
                 [class]="
-                  'text-xs font-bold px-2.5 py-1 rounded-full shadow ' +
+                  'text-xs font-black px-3 py-1.5 rounded-full shadow-sm ring-1 ring-white/70 ' +
                   getScoreColor(p.score)
                 "
               >
@@ -299,7 +323,7 @@
     <!-- ── Pagination ── -->
     <div
       *ngIf="totalPages > 1"
-      class="px-7 py-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between animate-fade-in-up animate-delay-1000"
+      class="px-7 py-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between animate-fade-in-up animate-delay-1000 bg-white/50 dark:bg-slate-900/40"
     >
       <p class="text-xs text-slate-500">
         Showing {{ (currentPage - 1) * itemsPerPage + 1 }}–

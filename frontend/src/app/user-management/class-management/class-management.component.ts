@@ -90,7 +90,16 @@ export class ClassManagementComponent implements OnInit {
   selectedSubjectIds: string[] = [];
   selectedInstructorIds: string[] = [];
 
+  // Stats
+  totalClasses = 0;
+  totalStudentsEnrolled = 0;
+  totalActiveClasses = 0;
+
   showClassModal = false;
+  showLinkSubjectModal = false;
+  showEnrollStudentModal = false;
+  showAssignInstructorModal = false;
+  
   editingClassId: string | null = null;
   classForm = this.createEmptyForm();
 
@@ -138,7 +147,6 @@ export class ClassManagementComponent implements OnInit {
   }
 
   get availableStudents(): StudentOption[] {
-    // Show only students who are NOT assigned to any class yet
     return this.students.filter((student) => !student.class);
   }
 
@@ -188,6 +196,8 @@ export class ClassManagementComponent implements OnInit {
         this.subjects = subjects || [];
         this.instructors = instructors || [];
 
+        this.updateStats();
+
         if (this.selectedClass) {
           this.selectedClass = this.classes.find((item) => item.id === this.selectedClass?.id) || this.classes[0] || null;
         } else {
@@ -197,29 +207,17 @@ export class ClassManagementComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        console.error('load classes error', err);
+        console.error('load data error', err);
         this.error = 'Failed to load academic data';
         this.loading = false;
       },
     });
   }
 
-  refreshSelectedClass(classId?: string) {
-    if (!classId) {
-      this.selectedClass = null;
-      return;
-    }
-
-    this.http.get<SchoolClassRow>(`${this.classesApi}/${classId}`).subscribe({
-      next: (row) => {
-        this.selectedClass = row;
-        this.classes = this.classes.map((item) => (item.id === row.id ? row : item));
-      },
-      error: (err) => {
-        console.error('refresh class error', err);
-        this.error = 'Failed to refresh the selected class';
-      },
-    });
+  updateStats() {
+    this.totalClasses = this.classes.length;
+    this.totalStudentsEnrolled = this.classes.reduce((acc, c) => acc + (c.studentCount || 0), 0);
+    this.totalActiveClasses = this.classes.filter(c => c.active !== false).length;
   }
 
   openCreateModal() {
@@ -243,17 +241,39 @@ export class ClassManagementComponent implements OnInit {
   }
 
   closeClassModal() {
-    if (this.savingClass) {
-      return;
-    }
-
+    if (this.savingClass) return;
     this.showClassModal = false;
   }
 
+  openLinkSubjectModal() {
+    this.selectedSubjectIds = [];
+    this.showLinkSubjectModal = true;
+  }
+
+  closeLinkSubjectModal() {
+    this.showLinkSubjectModal = false;
+  }
+
+  openEnrollStudentModal() {
+    this.selectedStudentIds = [];
+    this.showEnrollStudentModal = true;
+  }
+
+  closeEnrollStudentModal() {
+    this.showEnrollStudentModal = false;
+  }
+
+  openAssignInstructorModal() {
+    this.selectedInstructorIds = [];
+    this.showAssignInstructorModal = true;
+  }
+
+  closeAssignInstructorModal() {
+    this.showAssignInstructorModal = false;
+  }
+
   saveClass() {
-    if (this.savingClass) {
-      return;
-    }
+    if (this.savingClass) return;
 
     const name = this.classForm.name.trim();
     if (!name) {
@@ -280,16 +300,7 @@ export class ClassManagementComponent implements OnInit {
 
     request.subscribe({
       next: (row) => {
-        if (this.editingClassId) {
-          this.classes = this.classes.map((item) => (item.id === row.id ? row : item));
-          if (this.selectedClass?.id === row.id) {
-            this.selectedClass = row;
-          }
-        } else {
-          this.classes = [row, ...this.classes];
-          this.selectedClass = row;
-        }
-
+        this.loadData();
         this.showClassModal = false;
         this.savingClass = false;
         this.success = this.editingClassId ? 'Class updated successfully' : 'Class created successfully';
@@ -304,16 +315,11 @@ export class ClassManagementComponent implements OnInit {
   }
 
   deleteClass(row: SchoolClassRow) {
-    if (!confirm(`Delete class ${row.name}?`)) {
-      return;
-    }
+    if (!confirm(`Delete class ${row.name}?`)) return;
 
     this.http.delete(`${this.classesApi}/${row.id}`).subscribe({
       next: () => {
-        this.classes = this.classes.filter((item) => item.id !== row.id);
-        if (this.selectedClass?.id === row.id) {
-          this.selectedClass = this.classes[0] || null;
-        }
+        this.loadData();
         this.success = 'Class deleted';
         setTimeout(() => (this.success = ''), 2500);
       },
@@ -336,9 +342,7 @@ export class ClassManagementComponent implements OnInit {
   }
 
   enrollSelectedStudents() {
-    if (!this.selectedClass || !this.selectedStudentIds.length || this.actionLoading) {
-      return;
-    }
+    if (!this.selectedClass || !this.selectedStudentIds.length || this.actionLoading) return;
 
     this.actionLoading = true;
     forkJoin(
@@ -348,23 +352,22 @@ export class ClassManagementComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.selectedStudentIds = [];
+        this.showEnrollStudentModal = false;
         this.loadData();
         this.actionLoading = false;
         this.success = 'Students enrolled successfully';
         setTimeout(() => (this.success = ''), 2500);
       },
       error: (err) => {
-        console.error('enroll students error', err);
-        this.error = err.error?.message || 'Failed to enroll students';
+        console.error('enroll error', err);
+        this.error = err.error?.message || 'Failed to enroll';
         this.actionLoading = false;
       },
     });
   }
 
   linkSelectedSubjects() {
-    if (!this.selectedClass || !this.selectedSubjectIds.length || this.actionLoading) {
-      return;
-    }
+    if (!this.selectedClass || !this.selectedSubjectIds.length || this.actionLoading) return;
 
     this.actionLoading = true;
     forkJoin(
@@ -374,51 +377,37 @@ export class ClassManagementComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.selectedSubjectIds = [];
+        this.showLinkSubjectModal = false;
         this.loadData();
         this.actionLoading = false;
         this.success = 'Subjects linked successfully';
         setTimeout(() => (this.success = ''), 2500);
       },
       error: (err) => {
-        console.error('link subjects error', err);
-        this.error = err.error?.message || 'Failed to link subjects';
+        this.error = 'Failed to link subjects';
         this.actionLoading = false;
       },
     });
   }
 
   removeStudent(studentId: string) {
-    if (!this.selectedClass) {
-      return;
-    }
-
+    if (!this.selectedClass) return;
     this.http.delete(`${this.classesApi}/${this.selectedClass.id}/students/${studentId}`).subscribe({
       next: () => this.loadData(),
-      error: (err) => {
-        console.error('remove student error', err);
-        this.error = err.error?.message || 'Failed to remove student';
-      },
+      error: () => this.error = 'Failed to remove student',
     });
   }
 
   unlinkSubject(subjectId: string) {
-    if (!this.selectedClass) {
-      return;
-    }
-
+    if (!this.selectedClass) return;
     this.http.delete(`${this.classesApi}/${this.selectedClass.id}/subjects/${subjectId}`).subscribe({
       next: () => this.loadData(),
-      error: (err) => {
-        console.error('unlink subject error', err);
-        this.error = err.error?.message || 'Failed to unlink subject';
-      },
+      error: () => this.error = 'Failed to unlink subject',
     });
   }
 
   assignSelectedInstructors() {
-    if (!this.selectedClass || !this.selectedInstructorIds.length || this.actionLoading) {
-      return;
-    }
+    if (!this.selectedClass || !this.selectedInstructorIds.length || this.actionLoading) return;
 
     this.actionLoading = true;
     forkJoin(
@@ -428,44 +417,42 @@ export class ClassManagementComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.selectedInstructorIds = [];
+        this.showAssignInstructorModal = false;
         this.loadData();
         this.actionLoading = false;
         this.success = 'Instructors assigned successfully';
         setTimeout(() => (this.success = ''), 2500);
       },
-      error: (err) => {
-        console.error('assign instructors error', err);
-        this.error = err.error?.message || 'Failed to assign instructors';
+      error: () => {
+        this.error = 'Failed to assign instructors';
         this.actionLoading = false;
       },
     });
   }
 
   removeInstructor(instructorId: string) {
-    if (!this.selectedClass) {
-      return;
-    }
-
+    if (!this.selectedClass) return;
     this.http.delete(`${this.classesApi}/${this.selectedClass.id}/instructors/${instructorId}`).subscribe({
       next: () => this.loadData(),
-      error: (err) => {
-        console.error('remove instructor error', err);
-        this.error = err.error?.message || 'Failed to remove instructor';
-      },
+      error: () => this.error = 'Failed to remove instructor',
     });
   }
 
-  labelStudent(student: StudentOption | ClassStudent) {
-    const name = `${student.first_name || ''} ${student.last_name || ''}`.trim();
-    return name ? `${name} (${student.email})` : student.email;
+  toggleStudentSelection(id: string) {
+    const idx = this.selectedStudentIds.indexOf(id);
+    if (idx >= 0) this.selectedStudentIds.splice(idx, 1);
+    else this.selectedStudentIds.push(id);
   }
 
-  labelSubject(subject: SubjectOption | ClassSubject) {
-    return `${subject.code} - ${subject.title}`;
+  toggleSubjectSelection(id: string) {
+    const idx = this.selectedSubjectIds.indexOf(id);
+    if (idx >= 0) this.selectedSubjectIds.splice(idx, 1);
+    else this.selectedSubjectIds.push(id);
   }
 
-  labelInstructor(instructor: InstructorOption) {
-    const name = `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim();
-    return name ? `${name} (${instructor.email})` : instructor.email;
+  toggleInstructorSelection(id: string) {
+    const idx = this.selectedInstructorIds.indexOf(id);
+    if (idx >= 0) this.selectedInstructorIds.splice(idx, 1);
+    else this.selectedInstructorIds.push(id);
   }
 }

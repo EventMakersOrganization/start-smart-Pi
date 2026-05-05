@@ -1,13 +1,13 @@
 .mastery-card {
-  @apply bg-white/80 dark:bg-slate-900/90 rounded-[2rem] border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-2xl backdrop-blur-xl transition-all duration-500;
+  @apply bg-white/40 dark:bg-slate-900/40 rounded-[2.5rem] border border-white/40 dark:border-slate-800/40 p-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition-all duration-500;
 }
 
 .skill-item-card {
-  @apply relative rounded-2xl border transition-all duration-300 overflow-hidden;
+  @apply relative rounded-3xl border border-white/40 dark:border-slate-800/20 bg-white/60 dark:bg-slate-900/60 transition-all duration-500 overflow-hidden shadow-sm;
 }
 
 .skill-item-card:hover {
-  @apply shadow-xl -translate-y-1;
+  @apply shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] -translate-y-2 border-primary/20 bg-white dark:bg-slate-900;
 }
 
 .filter-btn {
@@ -19,31 +19,43 @@
 }
 
 .progress-bar-container {
-  @apply w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5;
+  @apply w-full h-3 bg-slate-200/50 dark:bg-slate-800/50 rounded-full overflow-hidden p-1 inner-shadow;
 }
 
 .progress-bar-fill {
-  @apply h-full rounded-full transition-all duration-1000 ease-out;
+  @apply h-full rounded-full transition-all duration-[1500ms] ease-out-expo shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)];
+  background: linear-gradient(90deg, var(--bar-start) 0%, var(--bar-end) 100%);
+}
+
+.inner-shadow {
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
 }
 
 .star-icon {
-  @apply text-base transition-all duration-300;
+  @apply text-lg transition-all duration-300 drop-shadow-sm;
 }
 
 .group:hover .star-icon {
-  @apply scale-110;
+  @apply scale-125 rotate-[15deg];
 }
 
 .legend-item {
-  @apply flex flex-col items-center p-3 rounded-2xl transition-all duration-300 border border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-100 dark:hover:border-slate-800;
+  @apply flex flex-col items-center p-4 rounded-[1.5rem] transition-all duration-300 border border-transparent hover:bg-white/80 dark:hover:bg-slate-800/80 hover:shadow-lg hover:-translate-y-1;
 }
 
-@keyframes pulse-badge {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+.proficiency-badge {
+  @apply px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.ease-out-expo {
+  transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
 }

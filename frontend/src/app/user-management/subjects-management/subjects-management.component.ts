@@ -32,9 +32,21 @@ export class SubjectsManagementComponent implements OnInit {
   success = '';
   filterText = '';
 
+  // Stats
+  totalSubjects = 0;
+  totalAssignments = 0;
+  avgInstructorsPerSubject = 0;
+
   showAddSubjectModal = false;
+  showEditSubjectModal = false;
   showInstructorsModal = false;
   selectedSubject: SubjectRow | null = null;
+  editingSubjectId: string | null = null;
+
+  // Dropdown states
+  showAddInstructorDropdown = false;
+  showEditInstructorDropdown = false;
+
   addSubjectLoading = false;
   addSubjectError = '';
   newSubjectName = '';
@@ -71,12 +83,26 @@ export class SubjectsManagementComponent implements OnInit {
     this.http.get<SubjectRow[]>('http://localhost:3000/api/admin/subjects').subscribe({
       next: (data) => {
         this.subjects = data;
+        this.updateStats();
       },
       error: (err) => {
         console.error('load subjects error', err);
         this.error = 'Failed to load subjects';
       }
     });
+  }
+
+  getValidInstructorCount(subject: SubjectRow): number {
+    if (!subject.instructors) return 0;
+    return subject.instructors.filter(i => 
+      i && i.id && this.instructors.some(gi => String(gi.id) === String(i.id))
+    ).length;
+  }
+
+  updateStats() {
+    this.totalSubjects = this.subjects.length;
+    this.totalAssignments = this.subjects.reduce((acc, s) => acc + this.getValidInstructorCount(s), 0);
+    this.avgInstructorsPerSubject = this.totalSubjects > 0 ? parseFloat((this.totalAssignments / this.totalSubjects).toFixed(1)) : 0;
   }
 
   loadInstructors() {
@@ -144,16 +170,20 @@ export class SubjectsManagementComponent implements OnInit {
   }
 
   startEdit(subject: SubjectRow) {
-    this.editing[subject.id] = true;
+    this.editingSubjectId = subject.id;
     this.editModels[subject.id] = {
       name: subject.name,
       description: subject.description || '',
-      instructorIds: subject.instructors.map((i) => i.id),
+      instructorIds: (subject.instructors || [])
+        .filter(i => i && i.id)
+        .map((i) => i.id),
     };
+    this.showEditSubjectModal = true;
   }
 
   cancelEdit(id: string) {
-    delete this.editing[id];
+    this.showEditSubjectModal = false;
+    this.editingSubjectId = null;
     delete this.editModels[id];
   }
 
@@ -177,7 +207,8 @@ export class SubjectsManagementComponent implements OnInit {
       instructorIds: model.instructorIds,
     }).subscribe({
       next: () => {
-        this.cancelEdit(id);
+        this.showEditSubjectModal = false;
+        this.editingSubjectId = null;
         this.loadSubjects();
         this.success = 'Subject updated successfully';
         this.error = '';
@@ -217,29 +248,15 @@ export class SubjectsManagementComponent implements OnInit {
     this.selectedSubject = null;
   }
 
-  instructorLabel(instructor: InstructorOption) {
-    const name = `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim();
-    if (name && instructor.email) {
-      return `${name} (${instructor.email})`;
-    }
-    if (name) {
-      return name;
-    }
-    if (instructor.email) {
-      return instructor.email;
-    }
-    return `Instructor ${String(instructor.id).slice(-6)}`;
-  }
-
   toggleInstructorSelection(id: string, isNew: boolean, subjectId?: string) {
     let list: string[] = [];
     if (isNew) {
       list = this.newSubjectInstructorIds;
-    } else if (subjectId) {
+    } else if (subjectId && this.editModels[subjectId]) {
       list = this.editModels[subjectId].instructorIds;
     }
 
-    const idx = list.indexOf(id);
+    const idx = list.findIndex(sid => String(sid) === String(id));
     if (idx >= 0) {
       list.splice(idx, 1);
     } else {
@@ -249,11 +266,24 @@ export class SubjectsManagementComponent implements OnInit {
 
   isInstructorSelected(id: string, isNew: boolean, subjectId?: string): boolean {
     if (isNew) {
-      return this.newSubjectInstructorIds.includes(id);
-    } else if (subjectId) {
-      return this.editModels[subjectId].instructorIds.includes(id);
+      return this.newSubjectInstructorIds.some(sid => String(sid) === String(id));
+    } else if (subjectId && this.editModels[subjectId]) {
+      return this.editModels[subjectId].instructorIds.some(sid => String(sid) === String(id));
     }
     return false;
+  }
+
+  getSelectedInstructorNames(isNew: boolean, subjectId?: string): string {
+    const list = isNew ? this.newSubjectInstructorIds : (subjectId && this.editModels[subjectId] ? this.editModels[subjectId].instructorIds : []);
+    
+    if (!list || list.length === 0) return 'Select Instructors';
+    
+    const names = list.map(id => {
+      const inst = this.instructors.find(i => String(i.id) === String(id));
+      return inst ? `${inst.first_name} ${inst.last_name}` : null;
+    }).filter(n => n !== null) as string[];
+
+    return names.length > 0 ? names.join(', ') : 'Select Instructors';
   }
 
   getSubjectIcon(name: string): string {

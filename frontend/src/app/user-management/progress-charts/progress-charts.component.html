@@ -1,7 +1,9 @@
 <div class="space-y-6">
   <!-- ── Mini Stats ── -->
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-    <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
+    <div
+      class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md"
+    >
       <p class="text-xs font-bold text-slate-500 uppercase mb-1">Avg Score</p>
       <p class="text-2xl font-black text-slate-900">{{ getAverageScore() }}%</p>
       <div class="flex items-center justify-center gap-1 mt-1">
@@ -24,13 +26,17 @@
       </div>
     </div>
 
-    <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
+    <div
+      class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md"
+    >
       <p class="text-xs font-bold text-slate-500 uppercase mb-1">Best Score</p>
       <p class="text-2xl font-black text-emerald-600">{{ getBestScore() }}%</p>
       <p class="text-xs text-slate-500 mt-1">personal record</p>
     </div>
 
-    <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
+    <div
+      class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md"
+    >
       <p class="text-xs font-bold text-slate-500 uppercase mb-1">Top Topic</p>
       <p class="text-lg font-black text-primary capitalize">
         {{ getTopTopic() }}
@@ -38,7 +44,9 @@
       <p class="text-xs text-slate-500 mt-1">highest average score</p>
     </div>
 
-    <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
+    <div
+      class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md"
+    >
       <p class="text-xs font-bold text-slate-500 uppercase mb-1">
         Total Submissions
       </p>
@@ -66,24 +74,44 @@
   <!-- ── Charts ── -->
   <div *ngIf="hasAnalyticsData()" class="space-y-6">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left">
-        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Total time spent</p>
-        <p class="text-2xl font-black text-blue-700">{{ getTotalStudyTime() }} minutes</p>
+      <div
+        class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left"
+      >
+        <p class="text-xs font-bold text-slate-500 uppercase mb-2">
+          Total time spent
+        </p>
+        <p class="text-2xl font-black text-blue-700">
+          {{ getTotalStudyTime() }} minutes
+        </p>
       </div>
 
-      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left">
-        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Most active topic</p>
-        <p class="text-xl font-black text-primary capitalize leading-tight">{{ getMostStudiedTopic() }}</p>
+      <div
+        class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left"
+      >
+        <p class="text-xs font-bold text-slate-500 uppercase mb-2">
+          Most active topic
+        </p>
+        <p class="text-xl font-black text-primary capitalize leading-tight">
+          {{ getMostStudiedTopic() }}
+        </p>
       </div>
 
-      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left">
-        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Average per topic</p>
-        <p class="text-2xl font-black text-slate-900">{{ getAverageTimePerTopic() }} minutes</p>
+      <div
+        class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left"
+      >
+        <p class="text-xs font-bold text-slate-500 uppercase mb-2">
+          Average per topic
+        </p>
+        <p class="text-2xl font-black text-slate-900">
+          {{ getAverageTimePerTopic() }} minutes
+        </p>
       </div>
     </div>
 
     <!-- Line Chart : Score Evolution -->
-    <div class="bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md">
+    <div
+      class="bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md"
+    >
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="text-lg font-bold">Score Evolution</h3>
@@ -92,14 +120,36 @@
         <div class="flex gap-4">
           <div class="flex items-center gap-1.5">
             <div class="w-2.5 h-2.5 rounded-full bg-[#a855f7] shadow-sm"></div>
-            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Prosit</span>
+            <span
+              class="text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+              >Prosit</span
+            >
           </div>
           <div class="flex items-center gap-1.5">
             <div class="w-2.5 h-2.5 rounded-full bg-[#1152D4] shadow-sm"></div>
-            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Quiz</span>
+            <span
+              class="text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+              >Quiz</span
+            >
           </div>
         </div>
       </div>
+
+      <div
+        class="mb-5 rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50/80 to-indigo-50/70 px-4 py-3"
+      >
+        <div
+          class="grid grid-cols-1 gap-2 text-xs text-slate-600 md:grid-cols-2"
+        >
+          <p>
+            Each point represents one exercise. The higher the point, the better
+            your score.
+          </p>
+          <p>The chart shows your last 10 attempts, from oldest to newest.</p>
+          <p>Hover over a point to see the title, score, topic, and date.</p>
+        </div>
+      </div>
+
       <div class="chart-frame chart-frame--md">
         <canvas id="scoreLineChart"></canvas>
       </div>
@@ -116,7 +166,6 @@
             <h3 class="text-lg font-bold">Score by Topic</h3>
             <p class="text-xs text-slate-500">Average score per subject</p>
           </div>
-
         </div>
         <div class="chart-frame chart-frame--md">
           <canvas id="topicBarChart"></canvas>
@@ -124,151 +173,146 @@
       </div>
     </div>
 
-    <!-- Time Spent by Topic -->
-    <div class="grid grid-cols-12 gap-6">
-      <div
-        class="col-span-12 lg:col-span-8 bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md"
-      >
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-lg font-bold">Time Spent per Topic</h3>
-            <p class="text-xs text-slate-500">Minutes invested per subject</p>
-          </div>
-
-        </div>
-        <div class="chart-frame chart-frame--lg">
-          <canvas id="timeSpentChart"></canvas>
-        </div>
-      </div>
-
-      <div
-        class="col-span-12 lg:col-span-4 bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md"
-      >
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-lg font-bold">Topic Breakdown</h3>
-            <p class="text-xs text-slate-500">Sorted by time spent</p>
-          </div>
-        </div>
-
-        <div class="space-y-2 max-h-72 overflow-auto pr-1">
-          <div
-            *ngFor="let item of timeSpentByTopicData"
-            class="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2"
-          >
-            <span class="text-sm font-medium text-slate-700 capitalize">{{
-              item.topic
-            }}</span>
-            <span class="text-xs font-bold text-blue-700"
-              >{{ item.minutes }} min</span
-            >
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-    <!-- Cumulative Line Chart -->
-    <div class="bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md">
+    <!-- Bump Chart -->
+    <div
+      class="bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md"
+    >
       <div class="flex items-center justify-between mb-4">
         <div>
-          <h3 class="text-lg font-bold">Progression Trend</h3>
-          <p class="text-xs text-slate-500">Cumulative & moving average</p>
+          <h3 class="text-lg font-bold">Class Rank Journey</h3>
+          <p class="text-xs text-slate-500">
+            Your MCQ rank evolution by quiz vs your class
+          </p>
         </div>
-
       </div>
-      <div class="chart-frame chart-frame--md">
-        <canvas id="cumulativeLineChart"></canvas>
+      <div
+        *ngIf="quizRankHistoryData.length > 0"
+        class="chart-frame chart-frame--md"
+      >
+        <canvas id="quizRankChart"></canvas>
+      </div>
+      <div
+        *ngIf="quizRankHistoryData.length === 0"
+        class="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-6 text-center"
+      >
+        <p class="text-sm font-semibold text-slate-700">
+          MCQ rank chart unavailable for now
+        </p>
+        <p class="text-xs text-slate-500 mt-1">
+          We need class quiz submissions to compute your ranking timeline.
+        </p>
       </div>
     </div>
 
     <!-- Activity Heatmap -->
     <div
-      class="bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md overflow-hidden"
+      class="bg-white/90 dark:bg-slate-900/90 rounded-[2rem] border border-slate-200/70 dark:border-slate-800/70 p-6 shadow-2xl backdrop-blur-md overflow-hidden"
     >
-      <div class="flex items-center justify-between mb-4">
-        <div class="min-w-0 pr-4">
-          <h3 class="text-lg font-bold">Activity Heatmap</h3>
-          <p class="text-xs text-slate-500">Last 28 days of activity</p>
+      <div
+        class="flex flex-col gap-4 mb-6 lg:flex-row lg:items-start lg:justify-between"
+      >
+        <div class="min-w-0 pr-4 text-center lg:text-left">
+          <div
+            class="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-sky-700 mb-3"
+          >
+            <span class="size-2 rounded-full bg-sky-500"></span>
+            Activity Heatmap
+          </div>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+            Learning activity over the last 28 days
+          </h3>
+          <p class="text-sm text-slate-500 max-w-2xl mt-2 leading-6">
+            This grid shows how active you were during the last 28 days. Each
+            box represents one day, and the color becomes stronger when you
+            submit more quizzes or prosits.
+          </p>
         </div>
 
+        <div class="flex flex-wrap gap-2 justify-center lg:justify-end lg:pt-1">
+          <div
+            class="flex items-center gap-2 rounded-full border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 px-4 py-2 text-xs font-semibold text-sky-800 shadow-sm"
+          >
+            <span class="size-2.5 rounded-full bg-sky-500 shadow"></span>
+            Quiz
+          </div>
+          <div
+            class="flex items-center gap-2 rounded-full border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-2 text-xs font-semibold text-emerald-800 shadow-sm"
+          >
+            <span class="size-2.5 rounded-full bg-emerald-500 shadow"></span>
+            Prosit
+          </div>
+          <div
+            class="flex items-center gap-2 rounded-full border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm"
+          >
+            <span class="size-2.5 rounded-full bg-slate-300"></span>
+            No activity
+          </div>
+        </div>
       </div>
-      <div class="flex flex-col gap-3 overflow-x-auto pb-1">
+      <div class="flex flex-col items-center gap-3 overflow-x-auto pb-2">
         <!-- Header Row -->
-        <div class="flex gap-2 pl-12">
+        <div class="flex w-fit gap-2 pl-12 mx-auto">
           <div
             *ngFor="
               let day of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
             "
-            class="w-9 h-6 flex items-center justify-center text-xs font-bold text-slate-500"
+            class="w-12 h-6 flex items-center justify-center text-[11px] font-extrabold uppercase tracking-wider text-slate-500"
           >
             {{ day }}
           </div>
         </div>
         <!-- Weeks Grid -->
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 w-fit mx-auto">
           <div
             *ngFor="let week of getHeatmapData(); let weekIdx = index"
-            class="flex gap-2 items-center"
+            class="flex gap-2 items-center justify-center"
           >
-            <div class="text-xs font-bold text-slate-600 w-10 text-right pr-1">
+            <div
+              class="text-xs font-black uppercase tracking-wider text-slate-500 w-10 text-right pr-1"
+            >
               W{{ weekIdx + 1 }}
             </div>
             <div class="flex gap-2">
               <div
                 *ngFor="let day of week"
-                class="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-300 hover:shadow-sm transition-all"
+                class="w-14 h-14 rounded-2xl border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all px-1 shadow-sm hover:shadow-lg hover:-translate-y-0.5"
                 [style.background-color]="day.backgroundColor"
+                [style.border-color]="day.borderColor"
                 [title]="day.tooltip"
               >
-                <span class="text-[8px] font-bold text-slate-700">{{
-                  day.activityCount
-                }}</span>
+                <span
+                  class="text-[10px] font-black leading-none"
+                  [style.color]="day.textColor"
+                  >{{ day.activityCount }}</span
+                >
+                <div
+                  *ngIf="day.quizCount > 0 || day.prositCount > 0"
+                  class="flex flex-col items-center gap-0.5 leading-none"
+                >
+                  <span
+                    *ngIf="day.quizCount > 0"
+                    class="text-[8px] font-semibold uppercase tracking-wide"
+                    [style.color]="day.textColor"
+                  >
+                    Quiz: {{ day.quizCount }}
+                  </span>
+                  <span
+                    *ngIf="day.prositCount > 0"
+                    class="text-[8px] font-semibold uppercase tracking-wide"
+                    [style.color]="day.textColor"
+                  ></span>
+                  <span
+                    *ngIf="day.prositCount > 0"
+                    class="text-[8px] font-semibold uppercase tracking-wide"
+                    [style.color]="day.textColor"
+                  >
+                    Prosit: {{ day.prositCount }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Enhanced Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
-        <p class="text-xs font-bold text-slate-500 uppercase mb-1">
-          Completion Rate
-        </p>
-        <p class="text-2xl font-black text-emerald-600">
-          {{ getCompletionRate() }}%
-        </p>
-        <p class="text-xs text-slate-500 mt-1">exercises ≥ 70%</p>
-      </div>
-
-      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
-        <p class="text-xs font-bold text-slate-500 uppercase mb-1">
-          Total Submissions
-        </p>
-        <p class="text-2xl font-black text-blue-600">
-          {{ getTotalExercisesAttempted() }}
-        </p>
-        <p class="text-xs text-slate-500 mt-1">global activity</p>
-      </div>
-
-      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
-        <p class="text-xs font-bold text-slate-500 uppercase mb-1">
-          Current Streak
-        </p>
-        <p class="text-2xl font-black text-orange-600">
-          {{ getCurrentStreak() }}
-        </p>
-        <p class="text-xs text-slate-500 mt-1">days in a row</p>
-      </div>
-
-      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
-        <p class="text-xs font-bold text-slate-500 uppercase mb-1">Topics</p>
-        <p class="text-2xl font-black text-purple-600">
-          {{ getTopicAverageScores().length }}
-        </p>
-        <p class="text-xs text-slate-500 mt-1">studied</p>
       </div>
     </div>
   </div>

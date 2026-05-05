@@ -1,281 +1,212 @@
-<div class="w-full">
+<div class="w-full max-w-6xl mx-auto p-4 md:p-8 space-y-10">
   <!-- Loading State -->
-  <div *ngIf="loading" class="flex items-center justify-center py-12">
-    <div
-      class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"
-    ></div>
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 space-y-4">
+    <div class="relative w-16 h-16">
+      <div class="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
+      <div class="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+    <p class="text-slate-500 font-bold animate-pulse">Designing your path...</p>
   </div>
 
   <!-- Error State -->
-  <div
-    *ngIf="error && !loading"
-    class="bg-red-50 border border-red-200 rounded-xl p-4"
-  >
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-red-500">error</span>
-      <div>
-        <p class="font-semibold text-red-700">{{ error }}</p>
-        <p class="text-sm text-red-600">Please try again later</p>
-      </div>
-    </div>
+  <div *ngIf="error && !loading" class="glass-card bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30 rounded-3xl p-6 text-center animate-fade-in">
+    <span class="material-symbols-outlined text-red-500 text-5xl mb-4">error_outline</span>
+    <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2">Something went wrong</h3>
+    <p class="text-slate-500 mb-6">{{ error }}</p>
+    <button (click)="loadLearningPath()" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-blue-500/20">
+      Try Again
+    </button>
   </div>
 
   <!-- Empty State -->
-  <div
-    *ngIf="!loading && !error && !learningPath"
-    class="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center"
-  >
-    <span class="material-symbols-outlined text-5xl text-slate-300 block mb-3"
-      >route</span
-    >
-    <p class="font-bold text-slate-700 mb-2">No learning path available</p>
-    <p class="text-sm text-slate-500">
-      Complete your level test to generate your personalized learning path
-    </p>
+  <div *ngIf="!loading && !error && !learningPath" class="glass-card rounded-[3rem] p-12 text-center animate-fade-in">
+    <div class="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+      <span class="material-symbols-outlined text-5xl text-slate-300">route</span>
+    </div>
+    <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-2">Your path is waiting</h3>
+    <p class="text-slate-500 max-w-sm mx-auto mb-8">Complete your level test to generate a personalized learning journey tailored to your goals.</p>
+    <button class="px-8 py-3 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/20 hover:scale-105 transition-all">
+      Start Level Test
+    </button>
   </div>
 
   <!-- Learning Path Content -->
-  <div *ngIf="!loading && learningPath" class="space-y-8">
-    <!-- Header Section -->
-    <div
-      class="glass-effect bg-gradient-to-r from-blue-50/80 via-white/90 to-purple-100/80 border border-blue-200 dark:border-blue-900 rounded-3xl p-8 shadow-xl animate-fade-in-up animate-delay-100"
-    >
-      <div
-        class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
-      >
-        <div class="flex-1">
-          <div
-            class="flex items-center justify-start gap-6 mb-4 animate-fade-in-up animate-delay-200"
-          >
+  <div *ngIf="!loading && learningPath" class="space-y-12">
+    
+    <!-- Premium Header Section -->
+    <header class="relative overflow-hidden rounded-[3rem] glass-card p-8 md:p-12 animate-fade-in">
+      <div class="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl"></div>
+
+      <div class="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
+        <!-- Level Progression Visual -->
+        <div class="flex-1 w-full">
+          <div class="flex items-center justify-center lg:justify-start gap-4 md:gap-8">
             <!-- Current Level -->
-            <div class="flex flex-col items-center">
-              <div
-                class="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-200/80 to-blue-400/80 flex items-center justify-center mb-2 shadow-glow"
-              >
-                <span class="material-symbols-outlined text-blue-700 text-4xl"
-                  >signal_cellular_alt_1_bar</span
-                >
+            <div class="text-center group">
+              <div class="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white dark:bg-slate-800 shadow-2xl flex items-center justify-center mb-4 border border-slate-100 dark:border-slate-700 group-hover:scale-110 transition-transform duration-500">
+                <span class="material-symbols-outlined text-4xl text-blue-500">{{ getLevelIcon(learningPath.currentLevel) }}</span>
               </div>
-              <p class="text-xs font-bold text-blue-500 uppercase">Current</p>
-              <p class="font-black capitalize text-slate-900 text-lg">
-                {{ learningPath.currentLevel }}
-              </p>
+              <span class="level-chip bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/30">
+                Current: {{ learningPath.currentLevel }}
+              </span>
             </div>
 
-            <!-- Arrow -->
-            <div
-              class="flex-shrink-0 text-3xl text-blue-400 mt-8 animate-bounce-soft"
-            >
-              <span class="material-symbols-outlined">arrow_forward</span>
+            <!-- Animated Connector -->
+            <div class="flex-grow max-w-[100px] h-px bg-gradient-to-r from-blue-400 to-purple-400 relative">
+              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-lg">
+                <span class="material-symbols-outlined text-slate-400 text-sm animate-pulse">trending_flat</span>
+              </div>
             </div>
 
             <!-- Target Level -->
-            <div class="flex flex-col items-center">
-              <div
-                class="w-20 h-20 rounded-3xl bg-gradient-to-br from-purple-200/80 to-purple-400/80 flex items-center justify-center mb-2 shadow-glow"
-              >
-                <span class="material-symbols-outlined text-purple-700 text-4xl"
-                  >signal_cellular_alt_2_bar</span
-                >
+            <div class="text-center group">
+              <div class="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
+                <span class="material-symbols-outlined text-4xl text-white">{{ getLevelIcon(learningPath.targetLevel) }}</span>
               </div>
-              <p class="text-xs font-bold text-purple-500 uppercase">Target</p>
-              <p class="font-black capitalize text-slate-900 text-lg">
-                {{ learningPath.targetLevel }}
-              </p>
+              <span class="level-chip bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800/30">
+                Target: {{ learningPath.targetLevel }}
+              </span>
             </div>
           </div>
 
-          <!-- Estimated Timeline -->
-          <div
-            class="text-base text-slate-600 mt-2 animate-fade-in-up animate-delay-300"
-          >
-            <span
-              class="material-symbols-outlined text-base align-middle text-blue-400"
-              >schedule</span
-            >
-            <span class="ml-1">
-              <strong>{{ learningPath.estimatedWeeks }} weeks</strong> estimated
-              to reach your goal
-            </span>
+          <div class="mt-10 flex items-center gap-3 text-slate-600 dark:text-slate-400 font-bold bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 w-fit">
+            <span class="material-symbols-outlined text-blue-500">timer</span>
+            <span>Estimated journey: <strong class="text-slate-900 dark:text-white">{{ learningPath.estimatedWeeks }} weeks</strong></span>
           </div>
         </div>
 
-        <!-- Global Progress Bar -->
-        <div
-          class="w-full md:w-56 flex-shrink-0 animate-fade-in-up animate-delay-400"
-        >
-          <div class="mb-2 flex items-center justify-between">
-            <p class="text-base font-bold text-blue-600">Overall Progress</p>
-            <p class="text-base font-black text-blue-700">
-              {{ getProgressPercentage() }}%
-            </p>
+        <!-- Global Progress Ring/Stats -->
+        <div class="flex-shrink-0 text-center glass-card p-8 rounded-[2.5rem] bg-white/40 border-white/50">
+          <div class="relative w-32 h-32 mx-auto mb-4">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8" class="text-slate-100 dark:text-slate-800"></circle>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="url(#gradient)" stroke-width="8" stroke-dasharray="282.7" [attr.stroke-dashoffset]="282.7 - (282.7 * getProgressPercentage() / 100)" class="transition-all duration-1000 ease-out" stroke-linecap="round"></circle>
+              <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#3b82f6" />
+                  <stop offset="100%" stop-color="#8b5cf6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-3xl font-black text-slate-900 dark:text-white leading-none">{{ getProgressPercentage() }}%</span>
+              <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Global</span>
+            </div>
           </div>
-          <div
-            class="w-full bg-slate-200 h-4 rounded-full overflow-hidden shadow-inner"
-          >
-            <div
-              class="bg-gradient-to-r from-blue-400 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-500 animate-fade-in-up animate-delay-500"
-              [style.width.%]="getProgressPercentage()"
-            ></div>
-          </div>
+          <h4 class="text-base font-black text-slate-900 dark:text-white">Path Progress</h4>
+          <p class="text-xs font-bold text-slate-400">{{ getCompletedCount() }} / {{ learningPath.steps.length }} Steps done</p>
         </div>
       </div>
-    </div>
+    </header>
 
-    <!-- Timeline Section -->
-    <div
-      class="glass-effect bg-gradient-to-br from-white/90 to-blue-50/80 border border-slate-200 dark:border-blue-900 rounded-3xl p-8 shadow-xl animate-fade-in-up animate-delay-600"
-    >
-      <h3 class="text-2xl font-bold mb-6 flex items-center gap-2 text-blue-700">
-        <span class="material-symbols-outlined text-blue-400">route</span>
-        Learning Steps
-      </h3>
+    <!-- Vertical Timeline Section -->
+    <main class="relative px-2">
+      <div class="flex items-center gap-3 mb-10">
+        <div class="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
+          <span class="material-symbols-outlined">auto_graph</span>
+        </div>
+        <div>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white">Your Learning Roadmap</h3>
+          <p class="text-sm font-bold text-slate-400">Step by step to mastery</p>
+        </div>
+      </div>
 
-      <!-- Steps Timeline -->
-      <div class="space-y-6">
-        <div
-          *ngFor="
-            let step of learningPath.steps;
-            let i = index;
-            let last = last
-          "
-          class="relative animate-fade-in-up"
-          [style.animationDelay]="0.7 + i * 0.12 + 's'"
-        >
-          <!-- Vertical Line (between steps) -->
-          <div
-            *ngIf="!last"
-            class="absolute left-8 top-20 w-0.5 h-8 bg-slate-200"
-          ></div>
+      <div class="relative">
+        <!-- Connecting Line -->
+        <div class="timeline-line"></div>
 
-          <!-- Step Card -->
-          <div
-            [class]="
-              'flex gap-6 pb-6 ' +
-              getStepCardClass(step) +
-              ' glass-effect bg-gradient-to-br from-white/90 to-blue-50/80 border border-slate-200 dark:border-blue-900 rounded-2xl shadow-lg'
-            "
-          >
-            <!-- Step Circle -->
-            <div class="relative flex-shrink-0">
-              <!-- Pulse animation for in-progress -->
-              <div
-                *ngIf="step.status === 'in-progress'"
-                class="absolute inset-0 animate-pulse"
-              >
-                <div
-                  class="w-16 h-16 rounded-full bg-blue-400/30 border-2 border-blue-400"
-                ></div>
-              </div>
-
-              <!-- Circle with step number -->
-              <div
-                [class]="
-                  'relative w-20 h-20 rounded-full flex items-center justify-center font-black text-white text-2xl border-4 shadow-glow ' +
-                  (step.status === 'completed'
-                    ? 'bg-emerald-500 border-emerald-600'
-                    : step.status === 'in-progress'
-                      ? 'bg-blue-500 border-blue-600'
-                      : 'bg-slate-300 border-slate-400')
-                "
-              >
-                <span
-                  *ngIf="step.status !== 'completed'"
-                  class="material-symbols-outlined text-2xl"
-                  >{{ step.order }}</span
-                >
-                <span
-                  *ngIf="step.status === 'completed'"
-                  class="material-symbols-outlined text-3xl"
-                  >check</span
-                >
+        <!-- Steps List -->
+        <div class="space-y-8">
+          <div *ngFor="let step of learningPath.steps; let i = index; let last = last" 
+            class="relative flex gap-8 items-start animate-fade-in-up"
+            [style.animation-delay]="(i * 100) + 'ms'">
+            
+            <!-- Step Marker -->
+            <div class="relative z-10 flex flex-col items-center flex-shrink-0 w-20">
+              <div [class]="'w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl transition-all duration-500 border-4 ' + 
+                (step.status === 'completed' ? 'bg-emerald-500 border-emerald-100 text-white' : 
+                 step.status === 'in-progress' ? 'bg-blue-500 border-blue-100 text-white scale-110 ring-4 ring-blue-500/10' : 
+                 'bg-white dark:bg-slate-800 border-white dark:border-slate-700 text-slate-400')">
+                
+                <span *ngIf="step.status === 'completed'" class="material-symbols-outlined text-2xl font-black">done_all</span>
+                <span *ngIf="step.status === 'in-progress'" class="material-symbols-outlined text-2xl font-black animate-spin-slow">autorenew</span>
+                <span *ngIf="step.status === 'pending'" class="text-xl font-black opacity-40">{{ step.order }}</span>
               </div>
             </div>
 
-            <!-- Step Content -->
-            <div class="flex-1 pt-2">
-              <!-- Topic -->
-              <h4 class="font-black text-lg text-blue-700 mb-1 tracking-tight">
-                {{ capitalizeTopic(step.topic) }}
-              </h4>
+            <!-- Step Card -->
+            <div (click)="navigateToStep(step)"
+              class="step-card flex-1 glass-card p-6 rounded-[2rem] border-slate-100/50 dark:border-slate-800/50 cursor-pointer group"
+              [ngClass]="{'active': step.status === 'in-progress', 'completed': step.status === 'completed'}">
+              
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center gap-5">
+                  <div class="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                    <span class="material-symbols-outlined text-3xl">{{ getTopicIcon(step.topic) }}</span>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <span [class]="'text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest ' + (
+                        step.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
+                        step.status === 'in-progress' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600')">
+                        {{ step.status }}
+                      </span>
+                      <span *ngIf="step.priority === 'high'" class="bg-rose-50 text-rose-500 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[12px]">priority_high</span> High Priority
+                      </span>
+                    </div>
+                    <h4 class="text-xl font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors">{{ capitalizeTopic(step.topic) }}</h4>
+                  </div>
+                </div>
 
-              <!-- Action -->
-              <p class="text-base text-slate-600 mb-3">{{ step.action }}</p>
+                <div class="md:text-right">
+                  <button class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-500/25">
+                    Continue Learning
+                  </button>
+                </div>
+              </div>
 
-              <!-- Badges -->
-              <div class="flex flex-wrap gap-3">
-                <!-- Priority Badge -->
-                <span
-                  [class]="
-                    'text-xs font-bold px-3 py-1 rounded-full border shadow ' +
-                    getPriorityBadgeClass(step.priority)
-                  "
-                >
-                  <span class="material-symbols-outlined text-xs align-middle"
-                    >flag</span
-                  >
-                  <span class="ml-1 capitalize">{{ step.priority }}</span>
-                </span>
-
-                <!-- Status Badge -->
-                <span
-                  [class]="
-                    'text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1 shadow ' +
-                    getStatusBadgeClass(step.status)
-                  "
-                >
-                  <span class="material-symbols-outlined text-xs">{{
-                    getStatusIcon(step.status)
-                  }}</span>
-                  <span class="capitalize">{{ step.status }}</span>
-                </span>
+              <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                <p class="text-sm font-medium text-slate-500 leading-relaxed">{{ step.action }}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
 
-    <!-- Stats Footer -->
-    <div
-      class="grid grid-cols-3 gap-6 mt-8 animate-fade-in-up animate-delay-900"
-    >
-      <div
-        class="glass-effect bg-gradient-to-br from-emerald-50/80 via-white/90 to-emerald-100/80 border border-emerald-200 dark:border-emerald-900 rounded-2xl p-6 text-center shadow-xl"
-      >
-        <p
-          class="text-xs font-bold text-emerald-600 uppercase mb-1 tracking-wider"
-        >
-          Completed
-        </p>
-        <p class="text-3xl font-black text-emerald-700">
-          {{ getCompletedCount() }}
-        </p>
+    <!-- Stats Summary Cards -->
+    <footer class="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 border-t border-slate-200 dark:border-slate-800">
+      <div class="glass-card p-6 rounded-[2rem] flex items-center gap-5 bg-emerald-50/30 dark:bg-emerald-900/10 border-emerald-100/50">
+        <div class="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <span class="material-symbols-outlined text-2xl">verified</span>
+        </div>
+        <div>
+          <h5 class="text-2xl font-black text-emerald-600 leading-none mb-1">{{ getCompletedCount() }}</h5>
+          <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Completed</p>
+        </div>
       </div>
-      <div
-        class="glass-effect bg-gradient-to-br from-blue-50/80 via-white/90 to-blue-100/80 border border-blue-200 dark:border-blue-900 rounded-2xl p-6 text-center shadow-xl"
-      >
-        <p
-          class="text-xs font-bold text-blue-600 uppercase mb-1 tracking-wider"
-        >
-          In Progress
-        </p>
-        <p class="text-3xl font-black text-blue-700">
-          {{ getInProgressCount() }}
-        </p>
+
+      <div class="glass-card p-6 rounded-[2rem] flex items-center gap-5 bg-blue-50/30 dark:bg-blue-900/10 border-blue-100/50">
+        <div class="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <span class="material-symbols-outlined text-2xl">play_circle</span>
+        </div>
+        <div>
+          <h5 class="text-2xl font-black text-blue-600 leading-none mb-1">{{ getInProgressCount() }}</h5>
+          <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">In Progress</p>
+        </div>
       </div>
-      <div
-        class="glass-effect bg-gradient-to-br from-slate-50/80 via-white/90 to-slate-100/80 border border-slate-200 dark:border-slate-900 rounded-2xl p-6 text-center shadow-xl"
-      >
-        <p
-          class="text-xs font-bold text-slate-600 uppercase mb-1 tracking-wider"
-        >
-          Pending
-        </p>
-        <p class="text-3xl font-black text-slate-700">
-          {{ getPendingCount() }}
-        </p>
+
+      <div class="glass-card p-6 rounded-[2rem] flex items-center gap-5 bg-slate-50/30 dark:bg-slate-900/10 border-slate-100/50">
+        <div class="w-14 h-14 rounded-2xl bg-slate-400 text-white flex items-center justify-center shadow-lg shadow-slate-400/20">
+          <span class="material-symbols-outlined text-2xl">more_horiz</span>
+        </div>
+        <div>
+          <h5 class="text-2xl font-black text-slate-600 leading-none mb-1">{{ getPendingCount() }}</h5>
+          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending</p>
+        </div>
       </div>
-    </div>
+    </footer>
   </div>
 </div>

@@ -305,4 +305,16 @@ export class SubjectsService {
       )
       .pipe(map(normalizeSubjectItem));
   }
+
+  deleteSubChapter(
+    subjectId: string,
+    chapterOrder: number,
+    subChapterOrder: number,
+  ): Observable<SubjectItem> {
+    return this.http
+      .delete<any>(
+        `${this.apiUrl}/${subjectId}/chapters/${chapterOrder}/subchapters/${subChapterOrder}`,
+      )
+      .pipe(map(normalizeSubjectItem));
+  }
 }

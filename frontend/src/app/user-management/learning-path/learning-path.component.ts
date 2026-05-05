@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
 import { AuthService } from '../auth.service';
 import { Subject } from 'rxjs';
@@ -36,6 +37,7 @@ export class LearningPathComponent implements OnInit, OnDestroy {
   constructor(
     private adaptiveLearningService: AdaptiveLearningService,
     private authService: AuthService,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -206,5 +208,47 @@ export class LearningPathComponent implements OnInit, OnDestroy {
     return (
       this.learningPath?.steps.filter((s) => s.status === 'pending').length || 0
     );
+  }
+
+  getTopicIcon(topic: string): string {
+    const t = topic.toLowerCase();
+    if (t.includes('base') || t.includes('donnée') || t.includes('db') || t.includes('sql')) return 'database';
+    if (t.includes('code') || t.includes('programmation') || t.includes('js') || t.includes('ts')) return 'code';
+    if (t.includes('cloud') || t.includes('azure') || t.includes('aws')) return 'cloud';
+    if (t.includes('devops') || t.includes('docker') || t.includes('jenkins')) return 'settings_suggest';
+    if (t.includes('web') || t.includes('front') || t.includes('html')) return 'web';
+    if (t.includes('back') || t.includes('api') || t.includes('node')) return 'lan';
+    if (t.includes('mobile') || t.includes('android') || t.includes('ios')) return 'smartphone';
+    if (t.includes('test') || t.includes('qualité') || t.includes('qa')) return 'rule';
+    if (t.includes('agile') || t.includes('scrum') || t.includes('projet')) return 'assignment';
+    if (t.includes('design') || t.includes('ui') || t.includes('ux')) return 'palette';
+    if (t.includes('ai') || t.includes('ml') || t.includes('data')) return 'psychology';
+    return 'school';
+  }
+
+  getLevelColor(level: string): string {
+    const l = level.toLowerCase();
+    if (l.includes('beginner')) return 'blue';
+    if (l.includes('intermediate')) return 'indigo';
+    if (l.includes('advanced')) return 'purple';
+    if (l.includes('expert')) return 'fuchsia';
+    return 'slate';
+  }
+
+  getLevelIcon(level: string): string {
+    const l = level.toLowerCase();
+    if (l.includes('beginner')) return 'star_rate_half';
+    if (l.includes('intermediate')) return 'star';
+    if (l.includes('advanced')) return 'military_tech';
+    if (l.includes('expert')) return 'diamond';
+    return 'school';
+  }
+
+  navigateToStep(step: Step): void {
+    // Navigate to My Courses and use the topic as a query parameter
+    // The My Courses component is configured to automatically open the matching subject.
+    this.router.navigate(['/student-dashboard/my-courses'], {
+      queryParams: { subject: step.topic },
+    });
   }
 }

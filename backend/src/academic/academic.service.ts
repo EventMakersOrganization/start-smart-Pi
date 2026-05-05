@@ -606,4 +606,25 @@ export class AcademicService {
 
     return this.toResponse(schoolClass);
   }
+
+  async deleteAttendance(classId: string, date: string, sessionType?: string) {
+    const schoolClassId = this.toObjectId(classId);
+    
+    // Ensure date is treated as UTC midnight
+    const dateStr = date.split('T')[0];
+    const queryDate = new Date(`${dateStr}T00:00:00.000Z`);
+
+    const filter: any = { schoolClassId, date: queryDate };
+    if (sessionType) {
+      filter.sessionType = sessionType;
+    }
+
+    const result = await this.attendanceModel.deleteMany(filter).exec();
+    
+    // Trigger recalculation of percentages
+    await this.recalculateClassAttendance(classId);
+
+    return { success: true, deletedCount: result.deletedCount };
+  }
 }
+

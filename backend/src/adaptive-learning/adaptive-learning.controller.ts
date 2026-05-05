@@ -199,6 +199,16 @@ export class AdaptiveLearningController {
     return this.adaptiveService.getStudentComparisonAnalytics(studentId);
   }
 
+  @Get("students/:studentId/rank-history")
+  getStudentRankHistory(@Param("studentId") studentId: string) {
+    return this.adaptiveService.getStudentRankHistory(studentId);
+  }
+
+  @Get("students/:studentId/quiz-rank-history")
+  getStudentQuizRankHistory(@Param("studentId") studentId: string) {
+    return this.adaptiveService.getStudentQuizRankHistory(studentId);
+  }
+
   @Get("recommendations/:id")
   findRecommendationById(@Param("id") id: string) {
     return this.adaptiveService.findRecommendationById(id);

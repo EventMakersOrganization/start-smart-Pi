@@ -52,6 +52,10 @@ import {
   PrositSubmission,
   PrositSubmissionSchema,
 } from "../prosits/schemas/prosit-submission.schema";
+import {
+  ClassEnrollment,
+  ClassEnrollmentSchema,
+} from "../academic/schemas/class-enrollment.schema";
 
 @Module({
   imports: [
@@ -123,6 +127,10 @@ import {
       {
         name: PrositSubmission.name,
         schema: PrositSubmissionSchema,
+      },
+      {
+        name: ClassEnrollment.name,
+        schema: ClassEnrollmentSchema,
       },
     ]),
   ],

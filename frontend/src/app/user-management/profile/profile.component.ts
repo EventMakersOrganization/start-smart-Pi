@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { AuthService } from '../auth.service';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
 
 interface ProfileData {
@@ -73,6 +73,7 @@ export class ProfileComponent implements OnInit {
     private authService: AuthService,
     private http: HttpClient,
     private router: Router,
+    private route: ActivatedRoute,
     private adaptiveLearningService: AdaptiveLearningService
   ) {
     this.profileForm = this.fb.group({
@@ -90,6 +91,11 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit() {
     this.loadProfile();
+    this.route.queryParams.subscribe(params => {
+      if (params['tab']) {
+        this.activeTab = params['tab'] as ProfileTab;
+      }
+    });
   }
 
   setTab(tab: ProfileTab): void {

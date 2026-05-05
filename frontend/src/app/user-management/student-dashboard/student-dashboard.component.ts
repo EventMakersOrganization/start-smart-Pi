@@ -201,15 +201,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   learningStreak = 0;
   studyHours = 0;
   goalSettings: GoalSettings | null = null;
-
-  goalTracking: any = {
-    studyHoursCompleted: 0,
-    studyHoursGoal: 0,
-    quizSuccess: 0,
-    quizSuccessGoal: 0,
-    hasGoals: false,
-    targetTopic: 'general',
-    deadline: '',
+  hasGoals = false;
+  goalCards: any[] = [];
+  metrics: any = {
+    weeklyStudyHours: 0,
+    avgExercisesPerDay: 0,
+    averageScoreByTopic: {} as Record<string, number>,
+    currentLevel: 'beginner',
   };
 
   alerts: any[] = [];
@@ -734,25 +732,40 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.performances = data;
         if (data.length > 0) {
-          const total = data.reduce((sum: number, p: any) => sum + p.score, 0);
-          this.performance = Math.round(total / data.length);
+          // Calculate metrics similarly to GoalSettingComponent
+          const last7Days = data.filter((p: any) => {
+            const date = new Date(p.attemptDate).getTime();
+            return !Number.isNaN(date) && date >= Date.now() - 7 * 24 * 60 * 60 * 1000;
+          });
 
-          const totalMinutes = data.reduce(
-            (sum: number, p: any) => sum + (p.timeSpent || 0),
-            0,
-          );
-          this.studyHours = Math.round((totalMinutes / 60) * 10) / 10;
+          const weeklyMinutes = last7Days.reduce((sum: number, p: any) => sum + (Number(p.timeSpent) || 0), 0);
+          
+          const scoreByTopic: Record<string, { total: number; count: number }> = {};
+          data.forEach((p: any) => {
+            const topic = String(p.topic || 'general').trim() || 'general';
+            if (!scoreByTopic[topic]) scoreByTopic[topic] = { total: 0, count: 0 };
+            scoreByTopic[topic].total += Number(p.score) || 0;
+            scoreByTopic[topic].count++;
+          });
 
-          this.goalTracking = {
-            studyHoursCompleted: this.studyHours,
-            studyHoursGoal: this.goalSettings?.studyHoursPerWeek || 0,
-            quizSuccess: this.performance,
-            quizSuccessGoal: this.goalSettings?.targetScorePerTopic || 0,
-            hasGoals: !!this.goalSettings,
-            targetTopic: this.goalSettings?.targetTopic || 'general',
-            deadline: this.goalSettings?.deadline || '',
+          const averageScoreByTopic: Record<string, number> = {};
+          Object.keys(scoreByTopic).forEach(topic => {
+            const item = scoreByTopic[topic];
+            averageScoreByTopic[topic] = item.count > 0 ? item.total / item.count : 0;
+          });
+
+          this.metrics = {
+            weeklyStudyHours: Math.round((weeklyMinutes / 60) * 10) / 10,
+            avgExercisesPerDay: Math.round((last7Days.length / 7) * 10) / 10,
+            averageScoreByTopic,
+            currentLevel: 'beginner' // simplify for now or use estimateLevel
           };
 
+          this.rebuildGoalCards();
+          
+          const total = data.reduce((sum: number, p: any) => sum + p.score, 0);
+          this.performance = Math.round(total / data.length);
+          this.studyHours = this.metrics.weeklyStudyHours;
           this.completedModules = data.filter((p: any) => p.score >= 70).length;
           this.learningStreak = this.calculateStreak(data);
           this.refreshCourseProgressDisplay();
@@ -770,45 +783,96 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadGoalSettingsForDashboard(studentId: string): void {
+    if (!studentId) return;
+    
     this.adaptiveService.getGoalSettings(studentId).subscribe({
       next: (goals) => {
-        this.goalSettings = goals;
-        this.goalTracking = {
-          ...this.goalTracking,
-          studyHoursGoal: goals?.studyHoursPerWeek || 0,
-          quizSuccessGoal: goals?.targetScorePerTopic || 0,
-          hasGoals: !!goals,
-          targetTopic: goals?.targetTopic || 'general',
-          deadline: goals?.deadline || '',
-        };
+        if (goals) {
+          this.goalSettings = goals;
+          this.hasGoals = true;
+          this.rebuildGoalCards();
+        } else {
+          this.goalSettings = null;
+          this.hasGoals = false;
+          this.goalCards = [];
+        }
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error loading goals:', err);
         this.goalSettings = null;
-        this.goalTracking = {
-          ...this.goalTracking,
-          studyHoursGoal: 0,
-          quizSuccessGoal: 0,
-          hasGoals: false,
-          targetTopic: 'general',
-          deadline: '',
-        };
+        this.hasGoals = false;
+        this.goalCards = [];
       },
     });
   }
 
-  getStudyHoursGoalPercent(): number {
-    const goal = Number(this.goalTracking?.studyHoursGoal || 0);
-    if (goal <= 0) return 0;
-    const current = Number(this.goalTracking?.studyHoursCompleted || 0);
-    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  private rebuildGoalCards(): void {
+    if (!this.goalSettings) {
+      this.hasGoals = false;
+      this.goalCards = [];
+      return;
+    }
+
+    const gs = this.goalSettings;
+    const metrics = this.metrics || { weeklyStudyHours: 0, avgExercisesPerDay: 0, averageScoreByTopic: {} };
+    const targetTopic = gs.targetTopic || 'general';
+    const currentTopicScore = (metrics.averageScoreByTopic && metrics.averageScoreByTopic[targetTopic]) || 0;
+
+    this.goalCards = [
+      {
+        key: 'studyHours',
+        title: 'Study Hours / Week',
+        icon: 'schedule',
+        currentLabel: `${(metrics.weeklyStudyHours || 0).toFixed(1)}h`,
+        targetLabel: `${gs.studyHoursPerWeek || 0}h`,
+        progress: this.progressRatio(metrics.weeklyStudyHours || 0, gs.studyHoursPerWeek || 8),
+        status: this.progressStatus(this.progressRatio(metrics.weeklyStudyHours || 0, gs.studyHoursPerWeek || 8)),
+      },
+      {
+        key: 'targetScore',
+        title: `Score (${targetTopic})`,
+        icon: 'track_changes',
+        currentLabel: `${Math.round(currentTopicScore)}%`,
+        targetLabel: `${gs.targetScorePerTopic || 0}%`,
+        progress: this.progressRatio(currentTopicScore, gs.targetScorePerTopic || 75),
+        status: this.progressStatus(this.progressRatio(currentTopicScore, gs.targetScorePerTopic || 75)),
+      },
+      {
+        key: 'exercisesPerDay',
+        title: 'Exercises / Day',
+        icon: 'fitness_center',
+        currentLabel: `${(metrics.avgExercisesPerDay || 0).toFixed(1)}`,
+        targetLabel: `${gs.exercisesPerDay || 0}`,
+        progress: this.progressRatio(metrics.avgExercisesPerDay || 0, gs.exercisesPerDay || 2),
+        status: this.progressStatus(this.progressRatio(metrics.avgExercisesPerDay || 0, gs.exercisesPerDay || 2)),
+      }
+    ];
   }
 
-  getQuizGoalPercent(): number {
-    const goal = Number(this.goalTracking?.quizSuccessGoal || 0);
-    if (goal <= 0) return 0;
-    const current = Number(this.goalTracking?.quizSuccess || 0);
-    return Math.max(0, Math.min(100, Math.round((current / goal) * 100)));
+  private progressRatio(current: number, target: number): number {
+    if (target <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round((current / target) * 100)));
   }
+
+  private progressStatus(progress: number): string {
+    if (progress >= 100) return 'achieved';
+    if (progress >= 70) return 'on-track';
+    return 'at-risk';
+  }
+
+  getProgressBarClass(status: string): string {
+    if (status === 'achieved') return 'bg-emerald-500';
+    if (status === 'on-track') return 'bg-blue-500';
+    return 'bg-orange-500';
+  }
+
+  getStatusPillClass(status: string): string {
+    if (status === 'achieved') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'on-track') return 'bg-blue-100 text-blue-700';
+    return 'bg-orange-100 text-orange-700';
+  }
+
+
 
   private loadAdaptiveInsights(userId: string): void {
     if (!userId) {

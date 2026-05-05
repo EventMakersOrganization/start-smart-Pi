@@ -103,8 +103,6 @@ export class PerformanceHistoryComponent implements OnInit {
       data = data.filter((p) => (p.topic || 'general') === this.selectedTopic);
     }
 
-
-
     // Sort
     data.sort((a, b) => {
       if (this.sortBy === 'date_desc')
@@ -148,20 +146,12 @@ export class PerformanceHistoryComponent implements OnInit {
     return 'Needs Work';
   }
 
-
-
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
-  }
-
-  formatTime(minutes: number): string {
-    if (!minutes) return '—';
-    if (minutes < 60) return `${minutes}m`;
-    return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
   }
 
   resetFilters(): void {

@@ -352,6 +352,23 @@ export class SubjectsController {
     );
   }
 
+  @Delete(":id/chapters/:chapterOrder/subchapters/:subChapterOrder")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete a subchapter from a chapter" })
+  deleteSubChapter(
+    @Param("id") id: string,
+    @Param("chapterOrder", ParseIntPipe) chapterOrder: number,
+    @Param("subChapterOrder", ParseIntPipe) subChapterOrder: number,
+  ) {
+    return this.subjectsService.deleteSubChapter(
+      id,
+      chapterOrder,
+      subChapterOrder,
+    );
+  }
+
   @Delete(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)

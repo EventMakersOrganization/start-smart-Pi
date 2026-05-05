@@ -31,11 +31,24 @@ export class StudentManagementComponent implements OnInit {
   error = '';
   success = '';
 
+  // Stats
+  totalStudents = 0;
+  activeStudents = 0;
+  highRiskStudents = 0;
+  avgPoints = 0;
+
   // filter inputs from template
   filterText = '';
   filterStatus = 'Status: All';
   filterRisk = 'Risk: All';
 
+  showStatusDropdown = false;
+  showRiskDropdown = false;
+
+  // edit modal state
+  showEditModal = false;
+  editingStudentId: string | null = null;
+  
   // add-user modal state
   showAddUserModal = false;
   newUserFirstName = '';
@@ -98,16 +111,28 @@ export class StudentManagementComponent implements OnInit {
 
   loadStudents() {
     this.http.get<UserRow[]>('http://localhost:3000/api/admin/students').subscribe({
-      next: data => this.students = data.map((student: any) => ({
-        ...student,
-        class: student.class ?? student.academic_level ?? '',
-      })),
+      next: data => {
+        this.students = data.map((student: any) => ({
+          ...student,
+          class: student.class ?? student.academic_level ?? '',
+        }));
+        this.updateStats();
+      },
       error: () => this.error = 'Failed to load students'
     });
   }
 
+  updateStats() {
+    this.totalStudents = this.students.length;
+    this.activeStudents = this.students.filter(s => (s.status || '').toLowerCase() === 'active').length;
+    this.highRiskStudents = this.students.filter(s => s.risk_level === 'HIGH').length;
+    
+    const totalPoints = this.students.reduce((acc, s) => acc + (s.points_gamification || 0), 0);
+    this.avgPoints = this.totalStudents > 0 ? Math.round(totalPoints / this.totalStudents) : 0;
+  }
+
   startEdit(s: UserRow) {
-    this.editing[s.id] = true;
+    this.editingStudentId = s.id;
     this.editModels[s.id] = {
       first_name: s.first_name,
       last_name: s.last_name,
@@ -119,10 +144,12 @@ export class StudentManagementComponent implements OnInit {
       status: s.status,
       role: s.role
     } as any;
+    this.showEditModal = true;
   }
 
   cancelEdit(id: string) {
-    delete this.editing[id];
+    this.showEditModal = false;
+    this.editingStudentId = null;
     delete this.editModels[id];
   }
 
@@ -144,7 +171,8 @@ export class StudentManagementComponent implements OnInit {
             ? { ...student, ...body, class: body.class ?? student.class }
             : student,
         );
-        this.cancelEdit(id);
+        this.showEditModal = false;
+        this.editingStudentId = null;
         this.loadStudents();
         setTimeout(() => this.success = '', 3000);
       },
@@ -218,5 +246,15 @@ export class StudentManagementComponent implements OnInit {
         this.addUserLoading = false;
       },
     });
+  }
+
+  setStatus(status: string) {
+    this.filterStatus = status;
+    this.showStatusDropdown = false;
+  }
+
+  setRisk(risk: string) {
+    this.filterRisk = risk;
+    this.showRiskDropdown = false;
   }
 }
