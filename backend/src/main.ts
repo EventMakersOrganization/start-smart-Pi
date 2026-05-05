@@ -57,7 +57,11 @@ async function bootstrap() {
       rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 100, // limit each IP to 100 requests per windowMs
-        skip: (req) => req.path === "/api/auth/login", // Exempt login from global limiter
+        skip: (req) =>
+          req.path === "/api/auth/login" ||
+          // Kubernetes HTTP probes hit /api; do not count them or readiness/liveness will get 429
+          (typeof req.headers["user-agent"] === "string" &&
+            req.headers["user-agent"].includes("kube-probe")),
       }),
     );
     // Auth-specific limiter (stricter for login)
