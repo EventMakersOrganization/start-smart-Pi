@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../core/api-url';
 
 export interface PrositSubmissionResponse {
   _id: string;
@@ -39,7 +40,7 @@ interface WrappedPrositSubmissionResponse {
   providedIn: 'root',
 })
 export class PrositSubmissionService {
-  private readonly apiUrl = 'http://localhost:3000/api/prosits';
+  private readonly apiUrl = apiUrl('/api/prosits');
 
   constructor(private http: HttpClient) {}
 

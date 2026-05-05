@@ -5,6 +5,7 @@ import { AuthService } from '../auth.service';
 import { AnalyticsService, InterventionTrackingItem } from '../../modules/analytics/services/analytics.service';
 import { SubjectItem, SubjectsService } from '../subjects.service';
 import { catchError, of } from 'rxjs';
+import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
 
 @Component({
   selector: 'app-instructor-shell',
@@ -32,7 +33,7 @@ export class InstructorShellComponent implements OnInit {
   }
 
   loadProfile(): void {
-    this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
+    this.http.get<any>(apiUrl('/api/user/profile')).subscribe({
       next: (data) => {
         this.profileData = data;
         if (this.user && data?.user?.phone) {

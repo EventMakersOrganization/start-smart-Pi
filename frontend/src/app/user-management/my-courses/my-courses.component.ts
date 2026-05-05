@@ -19,6 +19,7 @@ import {
   PrositSubmissionResponse,
   PrositSubmissionService,
 } from '../prosit-submission.service';
+import { apiUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
 import {
   SubjectChapterContent,
   SubjectItem as DbSubjectItem,
@@ -349,7 +350,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     if (!submission || !submission.filePath) return null;
     const path = submission.filePath;
     if (/^https?:\/\//i.test(path)) return path;
-    return `http://localhost:3000${path.startsWith('/') ? '' : '/'}${path}`;
+    return `${publicApiOrigin()}${path.startsWith('/') ? '' : '/'}${path}`;
   }
   selectedPrositReportText = '';
   selectedPrositReportHtml = '';
@@ -426,7 +427,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     const isPPT = url.toLowerCase().endsWith('.ppt') || url.toLowerCase().endsWith('.pptx');
 
     if (isPPT && url) {
-      const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url}`;
+      const fullUrl = url.startsWith('http') ? url : `${publicApiOrigin()}${url}`;
       const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullUrl)}&embedded=true`;
       window.open(googleViewerUrl, '_blank');
       return;
@@ -480,7 +481,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
     if (url && (isDocx || isText)) {
       this.selectedContentForView.loadingPreview = true;
       try {
-        const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url}`;
+        const fullUrl = url.startsWith('http') ? url : `${publicApiOrigin()}${url}`;
         const response = await fetch(fullUrl);
         
         if (isDocx) {
@@ -2085,10 +2086,10 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       return direct;
     }
     if (direct.startsWith('/uploads/')) {
-      return `http://localhost:3000${direct}`;
+      return `${publicApiOrigin()}${direct}`;
     }
     if (direct.startsWith('uploads/')) {
-      return `http://localhost:3000/${direct}`;
+      return `${publicApiOrigin()}/${direct}`;
     }
 
     return direct;
@@ -2681,10 +2682,10 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
         return candidate;
       }
       if (candidate.startsWith('/uploads/')) {
-        return `http://localhost:3000${candidate}`;
+        return `${publicApiOrigin()}${candidate}`;
       }
       if (candidate.startsWith('uploads/')) {
-        return `http://localhost:3000/${candidate}`;
+        return `${publicApiOrigin()}/${candidate}`;
       }
     }
 
@@ -3024,7 +3025,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       return subtitle;
     }
     if (subtitle.startsWith('/uploads/')) {
-      return `http://localhost:3000${subtitle}`;
+      return `${publicApiOrigin()}${subtitle}`;
     }
 
     const name = String(current.fileName || '').trim();
@@ -3036,11 +3037,11 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
       return name;
     }
     if (name.startsWith('/uploads/')) {
-      return `http://localhost:3000${name}`;
+      return `${publicApiOrigin()}${name}`;
     }
 
     if (/\.(pdf|doc|docx|ppt|pptx)$/i.test(name)) {
-      return `http://localhost:3000/uploads/subjects/cours/${encodeURIComponent(name)}`;
+      return apiUrl(`/uploads/subjects/cours/${encodeURIComponent(name)}`);
     }
 
     return null;

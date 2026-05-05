@@ -1,14 +1,13 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable, BehaviorSubject, Subject } from 'rxjs';
+import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
 
 @Injectable({
     providedIn: 'root'
 })
 export class CodebattleSocketService {
     private socket: Socket;
-    private url = 'http://localhost:3000/codebattle';
-
     private roomSubject = new BehaviorSubject<any>(null);
     room$ = this.roomSubject.asObservable();
 
@@ -21,7 +20,7 @@ export class CodebattleSocketService {
     get socketId() { return this.socket.id; }
 
     constructor() {
-        this.socket = io(this.url, {
+        this.socket = io(socketBaseUrl() + '/codebattle', {
             transports: ['websocket'],
             autoConnect: false
         });

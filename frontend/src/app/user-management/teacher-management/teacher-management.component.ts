@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { apiUrl } from '../../core/api-url';
 
 interface UserRow {
   id: string;
@@ -74,7 +75,7 @@ export class TeacherManagementComponent implements OnInit {
   }
 
   loadTeachers() {
-    this.http.get<UserRow[]>('http://localhost:3000/api/admin/instructors').subscribe({
+    this.http.get<UserRow[]>(apiUrl('/api/admin/instructors')).subscribe({
       next: data => this.teachers = data,
       error: () => this.error = 'Failed to load instructors'
     });
@@ -106,7 +107,7 @@ export class TeacherManagementComponent implements OnInit {
         body[k] = v;
       }
     });
-    this.http.put(`http://localhost:3000/api/admin/user/${id}`, body).subscribe({
+    this.http.put(apiUrl(`/api/admin/user/${id}`), body).subscribe({
       next: () => {
         this.cancelEdit(id);
         this.loadTeachers();
@@ -120,7 +121,7 @@ export class TeacherManagementComponent implements OnInit {
 
   deleteUser(id: string) {
     if (!confirm('Delete this user?')) return;
-    this.http.delete(`http://localhost:3000/api/admin/user/${id}`).subscribe({
+    this.http.delete(apiUrl(`/api/admin/user/${id}`)).subscribe({
       next: () => this.loadTeachers(),
       error: () => this.error = 'Failed to delete user'
     });
@@ -165,7 +166,7 @@ export class TeacherManagementComponent implements OnInit {
       body.phone = phone;
     }
 
-    this.http.post('http://localhost:3000/api/admin/user', body).subscribe({
+    this.http.post(apiUrl('/api/admin/user'), body).subscribe({
       next: () => {
         this.addUserLoading = false;
         this.showAddUserModal = false;

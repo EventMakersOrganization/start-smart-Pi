@@ -8,7 +8,7 @@
 #
 # Option A — Easiest for pods-on-VM: install Docker on the VMware Ubuntu VM, copy this file,
 #   run `docker compose -f docker-compose.vm-deps.yml up -d` ON THE VM.
-#   Use the VM’s LAN IP in MONGODB_URI (example): mongodb://192.168.204.100:27017/...
+#   Use the VM’s LAN IP in MONGODB_URI (example): mongodb://192.168.192.130:27017/...
 #
 # Option B — Mongo/Redis in WSL (this file, Docker Desktop): containers run on your PC.
 #   Pods on the VMware VM must reach your host over the network — use an IP the VM can ping

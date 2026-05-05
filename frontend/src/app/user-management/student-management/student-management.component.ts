@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { apiUrl } from '../../core/api-url';
 
 interface UserRow {
   id: string;
@@ -90,14 +91,14 @@ export class StudentManagementComponent implements OnInit {
   }
 
   loadClasses() {
-    this.http.get<any[]>('http://localhost:3000/api/admin/classes').subscribe({
+    this.http.get<any[]>(apiUrl('/api/admin/classes')).subscribe({
       next: data => this.classes = data,
       error: () => console.error('Failed to load classes')
     });
   }
 
   loadStudents() {
-    this.http.get<UserRow[]>('http://localhost:3000/api/admin/students').subscribe({
+    this.http.get<UserRow[]>(apiUrl('/api/admin/students')).subscribe({
       next: data => this.students = data.map((student: any) => ({
         ...student,
         class: student.class ?? student.academic_level ?? '',
@@ -136,7 +137,7 @@ export class StudentManagementComponent implements OnInit {
         body[k] = v;
       }
     });
-    this.http.put(`http://localhost:3000/api/admin/user/${id}`, body).subscribe({
+    this.http.put(apiUrl(`/api/admin/user/${id}`), body).subscribe({
       next: () => {
         this.success = 'Updated successfully';
         this.students = this.students.map((student) =>
@@ -157,7 +158,7 @@ export class StudentManagementComponent implements OnInit {
 
   deleteUser(id: string) {
     if (!confirm('Delete this user?')) return;
-    this.http.delete(`http://localhost:3000/api/admin/user/${id}`).subscribe({
+    this.http.delete(apiUrl(`/api/admin/user/${id}`)).subscribe({
       next: () => this.loadStudents(),
       error: () => this.error = 'Failed to delete user'
     });
@@ -206,7 +207,7 @@ export class StudentManagementComponent implements OnInit {
       body.classId = this.newUserClassId;
     }
 
-    this.http.post('http://localhost:3000/api/admin/user', body).subscribe({
+    this.http.post(apiUrl('/api/admin/user'), body).subscribe({
       next: () => {
         this.addUserLoading = false;
         this.showAddUserModal = false;

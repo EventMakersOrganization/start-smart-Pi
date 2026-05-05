@@ -3,12 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { Webinar, ChatMessage } from './webinar.interface';
 import { io, Socket } from 'socket.io-client';
+import { apiUrl, socketBaseUrl } from '../../core/api-url';
 
 @Injectable({
     providedIn: 'root'
 })
 export class WebinarService {
-    private apiUrl = 'http://localhost:3000';
     private socket!: Socket;
 
     private messageSubject = new Subject<ChatMessage>();
@@ -33,20 +33,20 @@ export class WebinarService {
 
     // REST API
     getWebinars(): Observable<Webinar[]> {
-        return this.http.get<Webinar[]>(`${this.apiUrl}/api/webinars`);
+        return this.http.get<Webinar[]>(apiUrl('/api/webinars'));
     }
 
     getWebinarById(id: string): Observable<Webinar> {
-        return this.http.get<Webinar>(`${this.apiUrl}/api/webinars/${id}`);
+        return this.http.get<Webinar>(apiUrl(`/api/webinars/${id}`));
     }
 
     createWebinar(webinar: any): Observable<Webinar> {
-        return this.http.post<Webinar>(`${this.apiUrl}/api/webinars`, webinar);
+        return this.http.post<Webinar>(apiUrl('/api/webinars'), webinar);
     }
 
     // Socket.io
     connect(webinarId: string, user: { userId: string, username: string }) {
-        this.socket = io(`${this.apiUrl}/webinar`, {
+        this.socket = io(`${socketBaseUrl()}/webinar`, {
             transports: ['websocket']
         });
 

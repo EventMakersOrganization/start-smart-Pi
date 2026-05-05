@@ -1,4 +1,5 @@
 import { SafeUrlPipe } from './safe-url.pipe';
+import { AssetUrlPipe } from './asset-url.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -416,6 +417,7 @@ const routes: Routes = [
     ProgressReportsComponent,
     InstructorSubjectsComponent,
     SafeUrlPipe,
+    AssetUrlPipe,
     SubjectsManagementComponent,
     ClassManagementComponent,
     InstructorDashboardComponent,

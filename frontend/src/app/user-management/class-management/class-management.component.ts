@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
+import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
 
 interface StudentOption {
   id: string;
@@ -103,10 +104,10 @@ export class ClassManagementComponent implements OnInit {
   filterText = '';
   activeTab: 'students' | 'subjects' | 'instructors' = 'students';
 
-  private readonly classesApi = 'http://localhost:3000/api/admin/classes';
-  private readonly studentsApi = 'http://localhost:3000/api/admin/students';
-  private readonly subjectsApi = 'http://localhost:3000/api/admin/subjects';
-  private readonly instructorsApi = 'http://localhost:3000/api/admin/instructors';
+  private readonly classesApi = apiUrl('/api/admin/classes');
+  private readonly studentsApi = apiUrl('/api/admin/students');
+  private readonly subjectsApi = apiUrl('/api/admin/subjects');
+  private readonly instructorsApi = apiUrl('/api/admin/instructors');
 
   constructor(private http: HttpClient) {}
 

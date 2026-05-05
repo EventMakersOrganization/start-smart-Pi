@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../auth.service';
+import { apiUrl } from '../../core/api-url';
 import {
   AdaptiveLearningService,
   StudentComparisonAnalyticsResponse,
@@ -98,7 +99,7 @@ export class ProgressReportsComponent implements OnInit {
     forkJoin({
       profiles: this.adaptiveService.getAllProfiles().pipe(catchError(() => of([] as any[]))),
       students: this.http
-        .get<any[]>('http://localhost:3000/api/admin/students')
+        .get<any[]>(apiUrl('/api/admin/students'))
         .pipe(catchError(() => of([] as any[]))),
     }).subscribe({
       next: ({ profiles, students }) => {

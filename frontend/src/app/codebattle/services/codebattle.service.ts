@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
+import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
 
 export interface CodeProblem {
     id: string;
@@ -27,7 +28,7 @@ export interface SoloSession {
     providedIn: 'root'
 })
 export class CodebattleService {
-    private apiUrl = 'http://localhost:3000/api/codebattle';
+    private apiUrl = apiUrl('/api/codebattle');
 
     private currentSessionSubject = new BehaviorSubject<SoloSession | null>(null);
     currentSession$ = this.currentSessionSubject.asObservable();

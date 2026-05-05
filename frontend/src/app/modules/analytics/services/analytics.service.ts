@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, map, catchError, of, shareReplay } from 'rxjs';
+import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../../core/api-url';
 
 export interface DashboardData {
   totalUsers: number;
@@ -184,8 +185,8 @@ export interface UnifiedStudentAnalytics {
   providedIn: 'root'
 })
 export class AnalyticsService {
-  private apiUrl = 'http://localhost:3000/api/analytics';
-  private monitoringUrl = 'http://localhost:3000/api/monitoring';
+  private apiUrl = apiUrl('/api/analytics');
+  private monitoringUrl = apiUrl('/api/monitoring');
 
   /** Memoized observables so repeated subscriptions / navigation reuse one HTTP round-trip. Cleared on logout (see AuthService). */
   private readonly sharedObservables = new Map<string, Observable<unknown>>();
@@ -280,7 +281,7 @@ export class AnalyticsService {
     return this.shareAnalyticsRequest('riskDistribution', () =>
       this.http.get<RiskDistributionData>(`${this.apiUrl}/risk-distribution`).pipe(
         catchError(() =>
-          this.http.get<RiskDistributionData>('http://localhost:3000/api/analytics/kpis/risk-distribution'),
+          this.http.get<RiskDistributionData>(apiUrl('/api/analytics/kpis/risk-distribution')),
         ),
       ),
     );
@@ -332,8 +333,8 @@ export class AnalyticsService {
       this.http.get<StudentRiskListItem[]>(`${this.apiUrl}/student-risk-list`).pipe(
         catchError(() =>
           forkJoin({
-            riskScores: this.http.get<Array<any>>('http://localhost:3000/api/riskscores'),
-            alerts: this.http.get<Array<any>>('http://localhost:3000/api/alerts/unresolved'),
+            riskScores: this.http.get<Array<any>>(apiUrl('/api/riskscores')),
+            alerts: this.http.get<Array<any>>(apiUrl('/api/alerts/unresolved')),
           }).pipe(
             map(({ riskScores, alerts }) => {
               const unresolvedByUser = new Map<string, boolean>();

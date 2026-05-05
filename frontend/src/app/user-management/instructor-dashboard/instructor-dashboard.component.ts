@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { WebinarService } from '../../webinar/services/webinar.service';
 import { ToastService } from '../../shared/services/toast.service';
 import { Webinar } from '../../webinar/services/webinar.interface';
+import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
 
 @Component({
   selector: 'app-instructor-dashboard',
@@ -49,7 +50,7 @@ export class InstructorDashboardComponent implements OnInit {
   }
 
   loadProfile() {
-    this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
+    this.http.get<any>(apiUrl('/api/user/profile')).subscribe({
       next: (data) => {
         this.profileData = data;
         if (this.user && data?.user?.phone) {

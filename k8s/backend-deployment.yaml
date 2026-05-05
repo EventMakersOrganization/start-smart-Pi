@@ -40,13 +40,13 @@ spec:
               memory: 1Gi
           readinessProbe:
             httpGet:
-              path: /
+              path: /api
               port: 3000
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /
+              path: /api
               port: 3000
             initialDelaySeconds: 45
             periodSeconds: 20

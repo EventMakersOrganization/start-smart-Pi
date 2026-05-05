@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, Subscription, catchError, interval, of, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { AnalyticsService } from '../modules/analytics/services/analytics.service';
+import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../core/api-url';
 
 interface LoginResponse {
   token: string;
@@ -20,7 +21,7 @@ interface LoginResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:3000/api';
+  private apiUrl = apiUrl('/api');
   private tokenKey = 'authToken';
   private userKey = 'authUser';
   private userSubject = new BehaviorSubject<any>(null);

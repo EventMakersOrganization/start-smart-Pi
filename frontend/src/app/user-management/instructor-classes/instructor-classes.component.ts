@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
+import { apiUrl } from '../../core/api-url';
 
 interface ClassStudent {
   id: string;
@@ -40,7 +40,7 @@ export class InstructorClassesComponent implements OnInit {
   error = '';
   
   // Using the same base path as the admin classes, but specifically for the instructor.
-  private readonly classesApi = `http://localhost:3000/api/admin/instructor/classes`;
+  private readonly classesApi = apiUrl('/api/admin/instructor/classes');
 
   constructor(private http: HttpClient) {}
 
