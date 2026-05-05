@@ -15,7 +15,47 @@
   animation: bounce-soft 1.2s infinite;
 }
 
-/* Optionally, reduce for icons as well */
-.material-symbols-outlined.animate-bounce-soft {
-  animation: bounce-soft 1.2s infinite;
+/* Modern Dashboard Widget Styles */
+.widget-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.widget-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.progress-ring-gradient {
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.3));
+}
+
+.goal-card {
+  @apply bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50;
+  transition: all 0.2s ease;
+}
+
+.goal-card:hover {
+  @apply bg-white dark:bg-slate-800 border-primary/20 shadow-md;
+}
+
+/* Horizontal Scroll Styles */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scroll-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+}
+
+.scroll-item {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
 }

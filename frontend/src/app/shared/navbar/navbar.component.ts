@@ -13,7 +13,7 @@ import { BrandLogoComponent } from '../brand-logo/brand-logo.component';
 export class NavbarComponent implements OnInit {
   @Input() user: any;
   @Input() homeLink: string = '/';
-  @Input() searchPlaceholder: string = 'Search...';
+
   
   @Output() logoutRequest = new EventEmitter<void>();
   @Output() profileSidebarRequest = new EventEmitter<void>();

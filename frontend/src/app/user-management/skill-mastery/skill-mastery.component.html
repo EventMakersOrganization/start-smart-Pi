@@ -1,258 +1,140 @@
-﻿<div class="space-y-6">
+<div class="space-y-8 animate-fade-in-up">
   <!-- Loading State -->
-  <div
-    *ngIf="loading"
-    class="bg-white rounded-2xl border border-slate-200 p-8 text-center"
-  >
-    <div class="inline-block">
-      <div
-        class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
-      ></div>
-    </div>
-    <p class="text-slate-500 mt-3">Chargement des compétences...</p>
+  <div *ngIf="loading" class="p-10 mastery-card flex flex-col items-center justify-center text-center">
+    <div class="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+    <p class="text-sm text-slate-500 font-black uppercase tracking-widest">Analyzing your mastery...</p>
   </div>
 
   <!-- Error State -->
-  <div
-    *ngIf="error && !loading"
-    class="bg-red-50 border border-red-200 rounded-2xl p-6"
-  >
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-red-600 text-xl">error</span>
-      <div>
-        <p class="font-bold text-red-700">Erreur</p>
-        <p class="text-sm text-red-600">{{ error }}</p>
-      </div>
+  <div *ngIf="error && !loading" class="p-6 rounded-3xl bg-red-50 border border-red-100 flex items-center gap-4 text-red-700">
+    <div class="p-2 rounded-xl bg-red-100">
+      <span class="material-symbols-outlined block">error</span>
+    </div>
+    <div>
+      <p class="text-sm font-black uppercase tracking-widest">Analysis Error</p>
+      <p class="text-[13px] opacity-80">{{ error }}</p>
     </div>
   </div>
 
   <!-- Main Content -->
   <ng-container *ngIf="!loading && !error">
-    <div class="bg-white rounded-2xl border border-slate-200 p-6">
-      <!-- Header -->
-      <div class="mb-6">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-2xl font-bold text-slate-900">
-              Maîtrise des Compétences
-            </h2>
-            <p class="text-sm text-slate-500 mt-1">
-              {{ filteredSkills.length }} sujet{{
-                filteredSkills.length !== 1 ? "s" : ""
-              }}
-            </p>
+    <div class="mastery-card">
+      <!-- Header & Filters -->
+      <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-10">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <div class="p-2 rounded-xl bg-purple-500/10 dark:bg-purple-500/20">
+              <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 block text-2xl">workspace_premium</span>
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Skill Mastery</h2>
           </div>
-          <div
-            class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"
-          >
-            <span class="material-symbols-outlined text-purple-600">badge</span>
-          </div>
+          <p class="text-[13px] text-slate-500 dark:text-slate-400">
+            Track your expertise across <span class="font-black text-slate-900 dark:text-white">{{ skills.length }}</span> learning topics
+          </p>
         </div>
 
         <!-- Filter Buttons -->
         <div class="flex flex-wrap gap-2">
-          <button
-            (click)="applyFilter('all')"
-            [class]="
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors ' +
-              (currentFilter === 'all'
-                ? 'bg-primary text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200')
-            "
-          >
-            <span class="material-symbols-outlined text-sm align-middle"
-              >check_circle</span
-            >
-            Tous
+          <button (click)="applyFilter('all')" class="filter-btn"
+            [ngClass]="currentFilter === 'all' ? 'bg-primary text-white filter-btn-active' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'">
+            <span class="material-symbols-outlined text-lg">apps</span>
+            All
           </button>
 
-          <button
-            (click)="applyFilter('strengths')"
-            [class]="
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ' +
-              (currentFilter === 'strengths'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200')
-            "
-          >
-            <span class="material-symbols-outlined text-sm">trending_up</span>
-            Forces
+          <button (click)="applyFilter('strengths')" class="filter-btn"
+            [ngClass]="currentFilter === 'strengths' ? 'bg-emerald-600 text-white filter-btn-active' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'">
+            <span class="material-symbols-outlined text-lg text-emerald-500">trending_up</span>
+            Strengths
           </button>
 
-          <button
-            (click)="applyFilter('weaknesses')"
-            [class]="
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ' +
-              (currentFilter === 'weaknesses'
-                ? 'bg-red-600 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200')
-            "
-          >
-            <span class="material-symbols-outlined text-sm">trending_down</span>
-            Faiblesses
+          <button (click)="applyFilter('weaknesses')" class="filter-btn"
+            [ngClass]="currentFilter === 'weaknesses' ? 'bg-red-600 text-white filter-btn-active' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'">
+            <span class="material-symbols-outlined text-lg text-red-500">trending_down</span>
+            Weaknesses
           </button>
 
-          <button
-            (click)="applyFilter('in-progress')"
-            [class]="
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ' +
-              (currentFilter === 'in-progress'
-                ? 'bg-orange-600 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200')
-            "
-          >
-            <span class="material-symbols-outlined text-sm">schedule</span>
-            En cours
+          <button (click)="applyFilter('in-progress')" class="filter-btn"
+            [ngClass]="currentFilter === 'in-progress' ? 'bg-amber-600 text-white filter-btn-active' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'">
+            <span class="material-symbols-outlined text-lg text-amber-500">pending</span>
+            In Progress
           </button>
         </div>
       </div>
 
       <!-- Empty State -->
-      <div *ngIf="filteredSkills.length === 0" class="text-center py-12">
-        <div class="inline-block">
-          <div
-            class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center"
-          >
-            <span class="material-symbols-outlined text-slate-400 text-3xl"
-              >folder_open</span
-            >
-          </div>
+      <div *ngIf="filteredSkills.length === 0" class="py-20 flex flex-col items-center justify-center text-center">
+        <div class="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+          <span class="material-symbols-outlined text-slate-300 dark:text-slate-700 text-4xl">inventory_2</span>
         </div>
-        <p class="text-slate-500 mt-4">Aucune compétence pour ce filtre</p>
+        <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">No skills found for this filter</p>
       </div>
 
       <!-- Skills Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        <div
-          *ngFor="let skill of filteredSkills"
-          [ngClass]="
-            getSkillLevelConfig(skill.proficiency)?.bgColor ||
-            'bg-slate-50 border-slate-200'
-          "
-          class="border rounded-lg p-3 hover:shadow-md transition-shadow"
-        >
-          <!-- Header -->
-          <div class="flex items-start justify-between mb-2">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div *ngFor="let skill of filteredSkills" class="group skill-item-card p-5"
+          [ngClass]="getSkillLevelConfig(skill.proficiency)?.bgColor || 'bg-slate-50 border-slate-100 dark:bg-slate-800/30 dark:border-slate-800'">
+          
+          <div class="flex items-start justify-between mb-6">
             <div class="flex-1">
-              <div class="flex items-center gap-2 mb-1">
-                <h3 class="font-semibold text-slate-900 text-sm">
-                  {{ skill.topic }}
-                </h3>
-                <span
-                  *ngIf="skill.source !== 'neutral'"
-                  [ngClass]="
-                    'inline-block px-2 py-0.5 rounded-full text-xs font-semibold ' +
-                    getSourceBadgeClass(skill.source)
-                  "
-                >
+              <h3 class="text-sm font-black text-slate-900 dark:text-white leading-tight mb-2">{{ skill.topic }}</h3>
+              <div class="flex items-center gap-2">
+                <div class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest"
+                  [ngClass]="getSourceBadgeClass(skill.source)">
                   {{ getSourceLabel(skill.source) }}
-                </span>
+                </div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{{ skill.attempts }} attempts</span>
               </div>
-              <p class="text-xs text-slate-600">
-                {{ skill.attempts }} tentative{{
-                  skill.attempts !== 1 ? "s" : ""
-                }}
-              </p>
             </div>
 
-            <!-- Level Badge -->
-            <div
-              class="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg bg-white/50 border"
-              [ngClass]="
-                getSkillLevelConfig(skill.proficiency)?.color ||
-                'text-slate-600'
-              "
-            >
-              <span
-                [ngClass]="
-                  'text-base font-bold ' +
-                  (getSkillLevelConfig(skill.proficiency)?.color ||
-                    'text-slate-600')
-                "
-              >
-                {{ skill.score }}%
-              </span>
-              <span
-                [ngClass]="
-                  'text-[11px] font-semibold ' +
-                  (getSkillLevelConfig(skill.proficiency)?.color ||
-                    'text-slate-600')
-                "
-              >
-                {{ skill.proficiency }}
-              </span>
+            <!-- Proficiency Circle -->
+            <div class="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-white/60 dark:bg-slate-900/40 border border-white/20 shadow-sm"
+              [ngClass]="getSkillLevelConfig(skill.proficiency)?.color || 'text-slate-600'">
+              <span class="text-[15px] font-black leading-none">{{ skill.score }}%</span>
+              <span class="text-[8px] font-black uppercase tracking-tighter mt-1 opacity-80">{{ skill.proficiency }}</span>
             </div>
           </div>
 
-          <!-- Progress Bar -->
-          <div class="mb-2">
-            <div
-              class="w-full h-2 bg-white/40 rounded-full overflow-hidden border border-white/20"
-            >
-              <div
-                class="h-full rounded-full transition-all duration-500"
-                [ngClass]="
-                  getSkillLevelConfig(skill.proficiency)?.starColor ||
-                  'bg-slate-400'
-                "
-                [style.width.%]="skill.score"
-              ></div>
+          <!-- Progress -->
+          <div class="mb-5">
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill shadow-glow"
+                [ngClass]="getSkillLevelConfig(skill.proficiency)?.starColor?.replace('text-', 'bg-') || 'bg-slate-400'"
+                [style.width.%]="skill.score"></div>
             </div>
           </div>
 
-          <!-- Stars and Details -->
+          <!-- Footer -->
           <div class="flex items-center justify-between">
-            <!-- Stars -->
             <div class="flex gap-0.5">
-              <span
-                *ngFor="let i of getStarArray(skill.stars)"
-                [ngClass]="
-                  'material-symbols-outlined text-[16px] fill ' +
-                  (i < skill.stars
-                    ? getSkillLevelConfig(skill.proficiency)?.starColor ||
-                      'text-slate-300'
-                    : 'text-slate-300')
-                "
-              >
+              <span *ngFor="let i of getStarArray(5)" class="material-symbols-outlined star-icon"
+                [ngClass]="i < skill.stars ? (getSkillLevelConfig(skill.proficiency)?.starColor || 'text-slate-300') : 'text-slate-200 dark:text-slate-700'">
                 star
               </span>
             </div>
-
-            <!-- Proficiency Icon -->
-            <span
-              class="material-symbols-outlined"
-              [ngClass]="
-                getSkillLevelConfig(skill.proficiency)?.starColor ||
-                'text-slate-400'
-              "
-              [title]="skill.proficiency"
-            >
-              {{ getSkillLevelConfig(skill.proficiency)?.icon }}
-            </span>
+            <div class="p-1.5 rounded-lg bg-white/40 dark:bg-slate-900/20">
+              <span class="material-symbols-outlined text-lg block"
+                [ngClass]="getSkillLevelConfig(skill.proficiency)?.starColor || 'text-slate-400'">
+                {{ getSkillLevelConfig(skill.proficiency)?.icon }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Legend -->
-      <div class="mt-8 pt-6 border-t border-slate-200">
-        <p class="text-xs font-bold text-slate-500 uppercase mb-3">Légende</p>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div *ngFor="let level of skillLevels" class="text-center">
-            <div class="flex justify-center gap-0">
-              <span
-                *ngFor="
-                  let i of getStarArray(getStarCountForLevel(level.level))
-                "
-                class="material-symbols-outlined text-xs fill"
-                [ngClass]="level.starColor"
-              >
-                star
-              </span>
+      <!-- Modern Legend -->
+      <div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Mastery Legend</span>
+          <div class="flex-1 h-px bg-slate-100 dark:bg-slate-800"></div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div *ngFor="let level of skillLevels" class="legend-item">
+            <div class="flex gap-0.5 mb-2">
+              <span *ngFor="let i of getStarArray(getStarCountForLevel(level.level)) | slice:0:getStarCountForLevel(level.level)"
+                class="material-symbols-outlined text-[10px]" [ngClass]="level.starColor">star</span>
             </div>
-            <p class="text-xs font-semibold text-slate-600 mt-1">
-              {{ level.level }}
-            </p>
-            <p class="text-xs text-slate-500">≥ {{ level.minScore }}%</p>
+            <p class="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-0.5">{{ level.level }}</p>
+            <p class="text-[10px] font-bold text-slate-400">≥ {{ level.minScore }}%</p>
           </div>
         </div>
       </div>
