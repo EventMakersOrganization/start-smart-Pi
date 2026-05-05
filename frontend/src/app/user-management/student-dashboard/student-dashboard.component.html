@@ -17,20 +17,23 @@
       ">
       <div class="p-8 space-y-8 max-w-7xl mx-auto" *ngIf="showDashboardShell() && !isSubPageView()">
         <!-- Welcome Header -->
-        <section class="flex flex-wrap items-end justify-between gap-4">
-          <section
-            class="relative flex flex-wrap items-end justify-between gap-4 p-8 rounded-3xl bg-gradient-to-br from-primary/90 via-indigo-500/80 to-blue-400/80 text-white overflow-hidden group shadow-2xl backdrop-blur-md border border-white/10 animate-fade-in-up">
-            <div class="absolute inset-0 pointer-events-none">
+        <section class="w-full relative mt-8 lg:mt-16 mb-8">
+          <div
+            class="relative flex items-center justify-between p-8 md:p-10 rounded-3xl bg-gradient-to-br from-primary/90 via-indigo-500/80 to-blue-400/80 text-white shadow-2xl backdrop-blur-md border border-white/10 animate-fade-in-up w-full">
+            
+            <!-- Background effects with overflow hidden -->
+            <div class="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
               <div class="absolute -top-10 -left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-              <div class="absolute -bottom-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-2xl animate-pulse">
-              </div>
+              <div class="absolute -bottom-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
             </div>
-            <div class="relative z-10">
-              <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight text-white drop-shadow animate-fade-in-up">
+
+            <!-- Content -->
+            <div class="relative z-10 w-full md:w-2/3 lg:w-3/4">
+              <h1 class="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow animate-fade-in-up">
                 Welcome back, {{ user?.first_name }}!
                 <span class="animate-wave inline-block">👋</span>
               </h1>
-              <p class="text-white/90 mt-3 text-lg animate-fade-in-up animate-delay-200">
+              <p class="text-white/90 mt-4 text-lg md:text-xl animate-fade-in-up animate-delay-200">
                 <ng-container *ngIf="progress > 0; else noCourseProgressYet">
                   Your average score this
                   {{ learningProgressPeriod === "monthly" ? "month" : "week" }}:
@@ -41,17 +44,18 @@
                   learning progress here.
                 </ng-template>
                 <span *ngIf="levelTestScore > 0"
-                  class="block mt-1 text-indigo-100 animate-fade-in-up animate-delay-300">
+                  class="block mt-2 text-indigo-100 animate-fade-in-up animate-delay-300">
                   Latest level test: <strong>{{ levelTestScore }}%</strong>.
                 </span>
               </p>
             </div>
-            <div class="relative z-10 flex gap-4 animate-fade-in-up animate-delay-300">
 
-
-
+            <!-- Illustration overflowing at the top -->
+            <div class="absolute bottom-0 right-4 lg:right-12 z-20 hidden md:block">
+              <img src="assets/images/student-illustration.png" alt="Student" class="h-56 md:h-72 lg:h-[340px] w-auto object-contain object-bottom drop-shadow-2xl animate-fade-in-up animate-delay-200" />
             </div>
-          </section>
+            
+          </div>
         </section>
 
         <section
@@ -84,372 +88,215 @@
         <div class="grid grid-cols-12 gap-8 mt-6">
           <!-- Learning Progress Rings -->
           <div
-            class="col-span-12 lg:col-span-8 bg-white/70 dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl backdrop-blur-md animate-fade-in-up animate-delay-200">
+            class="col-span-12 lg:col-span-8 bg-white/80 dark:bg-slate-900/90 rounded-[2rem] border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-2xl backdrop-blur-xl widget-card animate-fade-in-up animate-delay-200">
             <div class="flex items-center justify-between mb-6">
-              <h3
-                class="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2 animate-fade-in-up">
-                <span class="material-symbols-outlined text-blue-500 animate-bounce-soft">auto_graph</span>
-                Learning Progress
-              </h3>
-              <select [ngModel]="learningProgressPeriod" (ngModelChange)="onLearningProgressPeriodChange($event)"
-                class="bg-slate-50 border-none text-sm font-medium rounded-lg py-1 px-3">
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
+              <div>
+                <h3 class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
+                  <div class="p-1.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/20">
+                    <span class="material-symbols-outlined text-blue-500 block text-xl">query_stats</span>
+                  </div>
+                  Learning Progress
+                </h3>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 ml-10">Your proficiency across topics</p>
+              </div>
+
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6" *ngIf="topicRings.length > 0">
-              <div *ngFor="let ring of topicRings" class="flex flex-col items-center gap-3">
-                <div class="relative w-24 h-24">
-                  <svg class="progress-ring w-full h-full" viewBox="0 0 100 100">
-                    <circle class="text-slate-100 dark:text-slate-800" cx="50" cy="50" r="40" fill="transparent"
+            
+            <div class="scroll-container hide-scrollbar gap-2 pb-2" *ngIf="topicRings.length > 0">
+              <div *ngFor="let ring of topicRings" 
+                   class="scroll-item group flex flex-col items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-300 w-32">
+                <div class="relative w-20 h-20 mb-2">
+                  <svg class="progress-ring w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <!-- Background circle -->
+                    <circle class="text-slate-200 dark:text-slate-800" cx="50" cy="50" r="42" fill="transparent"
                       stroke="currentColor" stroke-width="8"></circle>
-                    <circle [class]="ring.color" cx="50" cy="50" r="40" fill="transparent" stroke="currentColor"
-                      stroke-dasharray="251.2" [attr.stroke-dashoffset]="getRingDashoffset(ring.score)"
-                      stroke-linecap="round" stroke-width="8"></circle>
+                    
+                    <!-- Progress circle with gradient -->
+                    <circle [class]="ring.color" cx="50" cy="50" r="42" fill="transparent" 
+                      stroke="currentColor" stroke-width="8"
+                      stroke-dasharray="263.89" [attr.stroke-dashoffset]="263.89 - (ring.score / 100 * 263.89)"
+                      stroke-linecap="round" class="progress-ring-gradient"></circle>
                   </svg>
-                  <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-lg">{{
-                    ring.score }}%</span>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span class="text-lg font-black text-slate-900 dark:text-white leading-none">{{ ring.score }}</span>
+                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">%</span>
+                  </div>
                 </div>
-                <span class="text-xs font-bold text-slate-500 uppercase">{{
-                  formatTopicRingName(ring.name)
-                  }}</span>
+                <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] text-center group-hover:text-primary transition-colors truncate w-full px-1">
+                  {{ formatTopicRingName(ring.name) }}
+                </span>
               </div>
             </div>
-            <p *ngIf="topicRings.length === 0"
-              class="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-200 rounded-xl">
-              No course activity in this period yet. Open
-              <a routerLink="/student-dashboard/my-courses" class="text-primary font-semibold underline">My Courses</a>
-              to start learning.
-            </p>
+            
+            <div *ngIf="topicRings.length === 0"
+              class="flex flex-col items-center justify-center py-8 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[1.5rem]">
+              <span class="material-symbols-outlined text-4xl text-slate-200 dark:text-slate-700 mb-3">analytics</span>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">No activity in this period yet.</p>
+              <a routerLink="/student-dashboard/my-courses" class="mt-3 px-5 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold hover:bg-primary/20 transition-colors">
+                Start Learning
+              </a>
+            </div>
           </div>
 
           <!-- Goal Tracking Widget -->
           <div
-            class="col-span-12 lg:col-span-4 bg-white/70 dark:bg-slate-900/80 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl backdrop-blur-md animate-fade-in-up animate-delay-300">
-            <h3
-              class="text-2xl font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2 animate-fade-in-up">
-              <span class="material-symbols-outlined text-emerald-500 animate-bounce">flag</span>
-              Goal Tracking
-            </h3>
-            <div class="space-y-6" *ngIf="goalTracking?.hasGoals; else noGoalsConfigured">
-              <div>
-                <div class="flex justify-between text-sm mb-2">
-                  <span class="font-medium text-slate-600 dark:text-slate-400">Study Hours</span>
-                  <span class="font-bold">{{ goalTracking.studyHoursCompleted | number: "1.0-1" }}/{{
-                    goalTracking.studyHoursGoal | number: "1.0-1"
-                    }}h</span>
+            class="col-span-12 lg:col-span-4 bg-white/80 dark:bg-slate-900/90 rounded-[2rem] border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-2xl backdrop-blur-xl widget-card animate-fade-in-up animate-delay-300">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="p-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20">
+                <span class="material-symbols-outlined text-emerald-500 block text-xl">flag</span>
+              </div>
+              <h3 class="text-xl font-black text-slate-900 dark:text-white tracking-tight">Goal Tracking</h3>
+            </div>
+            
+            <div class="space-y-3" *ngIf="goalTracking?.hasGoals; else noGoalsConfigured">
+              <div class="goal-card !p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500 text-base">timer</span>
+                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Study Hours</span>
+                  </div>
+                  <span class="text-[10px] font-black text-slate-400">{{ getStudyHoursGoalPercent() | number: "1.0-0" }}%</span>
                 </div>
-                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div class="bg-primary h-full" [style.width.%]="getStudyHoursGoalPercent()"></div>
+                <div class="flex items-end gap-1.5 mb-2">
+                  <span class="text-xl font-black text-slate-900 dark:text-white leading-none">{{ goalTracking.studyHoursCompleted | number: "1.0-1" }}</span>
+                  <span class="text-[10px] font-bold text-slate-400 mb-0.5">/ {{ goalTracking.studyHoursGoal | number: "1.0-1" }}h</span>
+                </div>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden p-0.5">
+                  <div class="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full" [style.width.%]="getStudyHoursGoalPercent()"></div>
                 </div>
               </div>
-              <div>
-                <div class="flex justify-between text-sm mb-2">
-                  <span class="font-medium text-slate-600 dark:text-slate-400">Quiz Success ({{
-                    goalTracking.targetTopic || "general"
-                    }})</span>
-                  <span class="font-bold">{{ goalTracking.quizSuccess | number: "1.0-0" }}% /
-                    {{ goalTracking.quizSuccessGoal | number: "1.0-0" }}%</span>
+
+              <div class="goal-card !p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-500 text-base">fact_check</span>
+                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Quiz Success</span>
+                  </div>
+                  <span class="text-[10px] font-black text-slate-400">{{ getQuizGoalPercent() | number: "1.0-0" }}%</span>
                 </div>
-                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div class="bg-emerald-500 h-full" [style.width.%]="getQuizGoalPercent()"></div>
+                <div class="flex items-end gap-1.5 mb-2">
+                  <span class="text-xl font-black text-slate-900 dark:text-white leading-none">{{ goalTracking.quizSuccess | number: "1.0-0" }}%</span>
+                  <span class="text-[10px] font-bold text-slate-400 mb-0.5">target: {{ goalTracking.quizSuccessGoal | number: "1.0-0" }}%</span>
+                </div>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden p-0.5">
+                  <div class="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full" [style.width.%]="getQuizGoalPercent()"></div>
                 </div>
               </div>
-              <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
-                <p class="text-sm font-medium italic text-slate-500">
-                  Deadline: {{ goalTracking.deadline || "Not set" }}
-                </p>
+
+              <div class="mt-4 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-3">
+                <span class="material-symbols-outlined text-amber-500 text-lg">event</span>
+                <div>
+                  <p class="text-[9px] font-black text-amber-600/60 uppercase tracking-widest leading-none">Deadline</p>
+                  <p class="text-xs font-bold text-slate-700 dark:text-slate-200">{{ goalTracking.deadline || "Flexible" }}</p>
+                </div>
               </div>
             </div>
+            
             <ng-template #noGoalsConfigured>
-              <div
-                class="bg-slate-100 dark:bg-slate-800 rounded-xl p-5 text-slate-500 dark:text-slate-400 text-base animate-fade-in-up animate-delay-400">
-                No backend goal configured yet. Configure goals from Goal
-                Setting to start real tracking.
+              <div class="flex flex-col items-center justify-center py-6 px-4 bg-slate-50 dark:bg-slate-800/40 rounded-[1.5rem] border border-slate-100 dark:border-slate-800/60 text-center">
+                <div class="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm flex items-center justify-center mb-3">
+                  <span class="material-symbols-outlined text-slate-300 dark:text-slate-600 text-2xl">ads_click</span>
+                </div>
+                <p class="text-slate-800 dark:text-white font-bold text-sm mb-1">Set Your Goals</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                  Track your journey with personalized targets.
+                </p>
+                <button class="mt-4 px-4 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-black shadow-sm border border-slate-200 dark:border-slate-600 hover:bg-slate-50 transition-all">
+                  Configure
+                </button>
               </div>
             </ng-template>
           </div>
 
           <!-- Personalized Recommendations -->
-          <div class="col-span-12 lg:col-span-9">
-            <div class="flex items-center justify-between mb-6">
-              <h3
-                class="text-3xl font-extrabold text-slate-900 dark:text-white animate-fade-in-up animate-delay-400 flex items-center gap-2">
-                <span class="material-symbols-outlined text-pink-500 animate-bounce">recommend</span>
-                Personalized Recommendations
-              </h3>
+          <div class="col-span-12 lg:col-span-12 mt-12">
+            <div class="flex items-center justify-between mb-8">
+              <div>
+                <h3 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
+                  <div class="p-2 rounded-2xl bg-pink-500/10 dark:bg-pink-500/20">
+                    <span class="material-symbols-outlined text-pink-500 block">recommend</span>
+                  </div>
+                  Personalized Recommendations
+                </h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 ml-11">AI-curated learning paths tailored for you</p>
+              </div>
               <button type="button" (click)="navigateToMyCoursesRecommendations()"
-                class="text-primary text-base font-bold hover:underline transition-all">
+                class="px-5 py-2 text-sm font-bold text-primary bg-primary/5 rounded-xl hover:bg-primary/10 transition-all">
                 {{ showAllRecommendations ? "Show Less" : "View All" }}
               </button>
             </div>
+
             <div *ngIf="recommendationsLoading"
-              class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Loading AI recommendations...
+              class="flex flex-col items-center justify-center py-20 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-slate-800">
+              <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+              <p class="text-slate-500 font-medium">Generating your path...</p>
             </div>
 
             <div *ngIf="!recommendationsLoading && recommendationsError"
-              class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              {{ recommendationsError }}
+              class="p-6 rounded-[2rem] bg-amber-50 border border-amber-100 flex items-center gap-4">
+              <span class="material-symbols-outlined text-amber-500 text-3xl">error</span>
+              <p class="text-amber-800 font-medium">{{ recommendationsError }}</p>
             </div>
 
-            <div *ngIf="
-                !recommendationsLoading &&
-                !recommendationsError &&
-                suggestedCourses.length === 0
-              " class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              No recommendations available yet. Keep learning activities to get
-              personalized suggestions.
+            <div *ngIf="!recommendationsLoading && !recommendationsError && suggestedCourses.length === 0" 
+              class="flex flex-col items-center justify-center py-20 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-slate-800 text-center">
+              <span class="material-symbols-outlined text-5xl text-slate-200 mb-4">auto_stories</span>
+              <p class="text-slate-500 font-medium">No recommendations available yet. Keep learning to see magic!</p>
             </div>
 
             <div *ngIf="!recommendationsLoading && suggestedCourses.length > 0"
-              class="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <!-- Show only 3 recommendations unless showAllRecommendations is true -->
-              <div *ngFor="
-                  let course of showAllRecommendations
-                    ? suggestedCourses
-                    : (suggestedCourses | slice: 0 : 3);
-                  let i = index
-                " (click)="navigateToRecommendedCourse(course)"
-                class="bg-gradient-to-br from-indigo-200/80 via-purple-200/80 to-blue-200/80 dark:from-indigo-900/60 dark:via-purple-900/60 dark:to-blue-900/60 rounded-3xl p-7 shadow-2xl animate-fade-in-up"
-                [ngStyle]="{ 'animation-delay': i * 180 + 400 + 'ms' }" role="button" tabindex="0"
-                (keydown.enter)="navigateToRecommendedCourse(course)" (keydown.space)="
-                  $event.preventDefault(); navigateToRecommendedCourse(course)
-                ">
-                <div class="h-32 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
-                  <div class="absolute inset-0 bg-gradient-to-br from-primary/40 to-purple-600/40 opacity-50"></div>
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div *ngFor="let course of showAllRecommendations ? suggestedCourses : (suggestedCourses | slice: 0 : 3); let i = index" 
+                (click)="navigateToRecommendedCourse(course)"
+                class="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden cursor-pointer"
+                [ngStyle]="{ 'animation-delay': i * 150 + 'ms' }">
+                
+                <!-- Card Header/Image Area -->
+                <div class="h-40 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 relative overflow-hidden">
+                  <div class="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent"></div>
+                  <div class="absolute top-4 left-4">
+                    <div class="px-3 py-1 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-sm border border-white/20">
+                      <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ course.level || "ADAPTIVE" }}</span>
+                    </div>
+                  </div>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-6xl text-slate-200 dark:text-slate-700 group-hover:scale-110 transition-transform duration-500">school</span>
+                  </div>
                 </div>
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-xl text-primary animate-bounce">star</span>
-                  <h4 class="font-bold text-base text-slate-900 dark:text-white">
-                    {{ course.title }}
-                  </h4>
-                </div>
-                <p class="text-slate-700 dark:text-slate-200 mb-2 text-sm">
-                  {{ course.reason }}
-                </p>
-                <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span class="material-symbols-outlined text-base text-indigo-400">schedule</span>
-                  <span>{{ course.level || "Adaptive" }} •
-                    {{ course.duration }}</span>
-                </div>
-                <div class="flex items-center justify-between mt-2">
-                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">Open in My Courses</span>
-                  <button type="button" (click)="
-                      $event.stopPropagation();
-                      navigateToRecommendedCourse(course)
-                    " class="text-primary material-symbols-outlined hover:scale-110 transition-transform"
-                    aria-label="Open recommended subject">
-                    arrow_forward_ios
-                  </button>
+
+                <!-- Card Content -->
+                <div class="p-7">
+                  <div class="flex items-start justify-between mb-3">
+                    <h4 class="font-black text-lg text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors">
+                      {{ course.title }}
+                    </h4>
+                    <span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all">arrow_forward</span>
+                  </div>
+                  
+                  <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-6 leading-relaxed">
+                    {{ course.reason }}
+                  </p>
+
+                  <div class="flex items-center gap-4 pt-6 border-t border-slate-50 dark:border-slate-800">
+                    <div class="flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-sm text-indigo-500">bolt</span>
+                      <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tighter">{{ course.duration }}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 ml-auto">
+                      <span class="text-[11px] font-black text-primary uppercase tracking-widest">Enroll Now</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- ── Peer Comparison ── -->
-          <div class="col-span-12 grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <section
-              class="rounded-3xl glass-effect bg-gradient-to-br from-blue-50/80 via-white/80 to-purple-100/80 dark:from-blue-900/40 dark:via-slate-900/60 dark:to-purple-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up">
-              <div class="flex items-center justify-between gap-3 mb-2">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="material-symbols-outlined text-blue-500 text-2xl bg-blue-100 rounded-full p-2 shadow-glow">group</span>
-                  <div>
-                    <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">
-                      Collaborative Recommendations
-                    </h3>
-                    <p class="text-xs text-slate-500">
-                      Topics recommended from similar learners
-                    </p>
-                  </div>
-                </div>
-                <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 shadow">{{
-                  collaborativeRecommendations.length }} items</span>
-              </div>
-
-              <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
-                Loading collaborative insights...
-              </div>
-
-              <div *ngIf="
-                  !adaptiveInsightsLoading &&
-                  collaborativeRecommendations.length > 0
-                " class="mt-4 space-y-3">
-                <article *ngFor="
-                    let rec of collaborativeRecommendations | slice: 0 : 3
-                  " class="rounded-xl bg-slate-50 p-3">
-                  <div class="flex items-center justify-between gap-2">
-                    <p class="font-semibold text-slate-800">{{ rec.topic }}</p>
-                    <span class="text-xs text-slate-500">{{ rec.similarStudentsCount }} peers</span>
-                  </div>
-                  <p class="mt-1 text-sm text-slate-600">{{ rec.reason }}</p>
-                  <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span class="rounded-full bg-emerald-100 px-2 py-1 font-semibold text-emerald-700">{{
-                      rec.averageSuccessRate }}%</span>
-                    <span class="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-700">{{
-                      rec.suggestedDifficulty }}</span>
-                  </div>
-                </article>
-              </div>
-
-              <p *ngIf="!adaptiveInsightsLoading && adaptiveInsightsError" class="mt-4 text-sm text-amber-700">
-                {{ adaptiveInsightsError }}
-              </p>
-
-              <ng-template #noCollaborative>
-                <p class="mt-4 text-sm text-slate-500">
-                  No collaborative recommendations yet.
-                </p>
-              </ng-template>
-
-              <p *ngIf="
-                  !adaptiveInsightsLoading &&
-                  !adaptiveInsightsError &&
-                  collaborativeRecommendations.length === 0
-                " class="mt-4 text-sm text-slate-500">
-                No collaborative recommendations yet.
-              </p>
-            </section>
-
-            <section
-              class="rounded-3xl glass-effect bg-gradient-to-br from-emerald-50/80 via-white/80 to-emerald-100/80 dark:from-emerald-900/40 dark:via-slate-900/60 dark:to-emerald-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up">
-              <div class="flex items-center justify-between gap-3 mb-2">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="material-symbols-outlined text-emerald-500 text-2xl bg-emerald-100 rounded-full p-2 shadow-glow">groups</span>
-                  <div>
-                    <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">
-                      Study Group Suggestions
-                    </h3>
-                    <p class="text-xs text-slate-500">
-                      Groups inferred from shared strengths and weaknesses
-                    </p>
-                  </div>
-                </div>
-                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 shadow">{{
-                  studyGroupsAnalyzed }} students</span>
-              </div>
-
-              <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
-                Loading study group suggestions...
-              </div>
-
-              <div *ngIf="
-                  !adaptiveInsightsLoading && studyGroupSuggestions.length > 0
-                " class="mt-4 space-y-3">
-                <article *ngFor="let group of studyGroupSuggestions | slice: 0 : 3" class="rounded-xl bg-slate-50 p-3">
-                  <div class="flex items-center justify-between gap-2">
-                    <p class="font-semibold text-slate-800">
-                      {{ group.groupName }}
-                    </p>
-                    <span class="text-xs text-slate-500">{{
-                      formatCompatibilityScore(group.compatibilityScore)
-                      }}
-                      compat.</span>
-                  </div>
-                  <p class="mt-1 text-sm text-slate-600">
-                    {{ formatGroupTypeLabel(group.groupType) }}
-                  </p>
-                  <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span *ngFor="let topic of group.commonTopics | slice: 0 : 3"
-                      class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-700">{{ topic }}</span>
-                  </div>
-                </article>
-              </div>
-
-              <ng-template #noStudyGroups>
-                <p class="mt-4 text-sm text-slate-500">
-                  No study group suggestions yet.
-                </p>
-              </ng-template>
-
-              <p *ngIf="
-                  !adaptiveInsightsLoading &&
-                  !adaptiveInsightsError &&
-                  studyGroupSuggestions.length === 0
-                " class="mt-4 text-sm text-slate-500">
-                No study group suggestions yet.
-              </p>
-            </section>
-
-            <section
-              class="rounded-3xl glass-effect bg-gradient-to-br from-violet-50/80 via-white/80 to-purple-100/80 dark:from-violet-900/40 dark:via-slate-900/60 dark:to-purple-900/40 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-fade-in-up">
-              <div class="flex items-center justify-between gap-3 mb-2">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="material-symbols-outlined text-violet-500 text-2xl bg-violet-100 rounded-full p-2 shadow-glow">psychology</span>
-                  <div>
-                    <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">
-                      Learning Style
-                    </h3>
-                    <p class="text-xs text-slate-500">
-                      Behavioral profile detected from performances
-                    </p>
-                  </div>
-                </div>
-                <span class="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700 shadow">{{
-                  getLearningStyleConfidencePercent() }}%</span>
-              </div>
-
-              <div *ngIf="adaptiveInsightsLoading" class="mt-4 text-sm text-slate-500">
-                Loading learning style insight...
-              </div>
-
-              <ng-container *ngIf="
-                  !adaptiveInsightsLoading && learningStyleInsight;
-                  else noLearningStyle
-                ">
-                <div class="mt-4 space-y-3">
-                  <div>
-                    <p class="text-sm font-semibold text-slate-800">
-                      {{ learningStyleInsight.primaryStyle }}
-                    </p>
-                    <p class="text-sm text-slate-600" *ngIf="learningStyleInsight.secondaryStyle">
-                      Secondary: {{ learningStyleInsight.secondaryStyle }}
-                    </p>
-                  </div>
-                  <p class="text-sm text-slate-600">
-                    {{ learningStyleInsight.styleDescription }}
-                  </p>
-                  <ul class="space-y-2 text-sm text-slate-600">
-                    <li *ngFor="let tip of learningStyleInsight.learningTips">
-                      • {{ tip }}
-                    </li>
-                  </ul>
-                </div>
-              </ng-container>
-
-              <ng-template #noLearningStyle>
-                <p class="mt-4 text-sm text-slate-500" *ngIf="!adaptiveInsightsLoading">
-                  Learning style detection will appear once enough performance
-                  data is available.
-                </p>
-              </ng-template>
-            </section>
-          </div>
-
-          <div class="col-span-12">
-            <app-peer-comparison [studentId]="user?._id || user?.id" [adaptiveProfile]="adaptiveProfile">
-            </app-peer-comparison>
-          </div>
-
           <!-- ── Study Planner ── -->
-          <div class="col-span-12">
+          <div class="col-span-12 mt-16">
             <app-study-planner [studentId]="user?._id || user?.id">
             </app-study-planner>
           </div>
-
           <!-- ── Skill Mastery ── -->
-          <div class="col-span-12">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="text-xl font-bold">Skill Mastery</h3>
-                <p class="text-sm text-slate-500">
-                  Track your mastery level across learning topics
-                </p>
-              </div>
-            </div>
+          <div class="col-span-12 mt-20">
             <app-skill-mastery [studentId]="user?._id || user?.id" [adaptiveProfile]="adaptiveProfile">
             </app-skill-mastery>
           </div>

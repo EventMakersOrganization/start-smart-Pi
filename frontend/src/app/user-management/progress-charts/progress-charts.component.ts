@@ -159,6 +159,10 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
       p.topic ? `${p.topic}` : `Exercise ${i + 1}`,
     );
     const scores = source.map((p) => p.score);
+    const sources = source.map((p) => p.source);
+    const titles = source.map((p) => p.title);
+    const topics = source.map((p) => p.topic);
+    const dates = source.map((p) => p.date);
 
     const chart = new Chart(canvas, {
       type: 'line',
@@ -166,18 +170,20 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         labels,
         datasets: [
           {
-            label: 'Score',
+            label: 'Score %',
             data: scores,
             borderColor: '#1152D4',
             backgroundColor: 'rgba(17, 82, 212, 0.08)',
             borderWidth: 2.5,
-            pointBackgroundColor: '#1152D4',
+            pointBackgroundColor: sources.map(s => 
+              (s?.toLowerCase() === 'prosit' || s?.toLowerCase() === 'exercise') ? '#a855f7' : '#1152D4'
+            ),
             pointRadius: 6,
             pointHoverRadius: 8,
             pointBorderColor: '#fff',
             pointBorderWidth: 2,
             fill: true,
-            tension: 0.3,
+            tension: 0.4,
           },
         ],
       },
@@ -192,7 +198,20 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             titleFont: { size: 13, weight: 'bold' },
             bodyFont: { size: 12 },
             callbacks: {
-              label: (ctx: any) => ` Score: ${ctx.parsed.y}%`,
+              title: (tooltipItems: any) => {
+                const index = tooltipItems[0].dataIndex;
+                const src = sources[index]?.toLowerCase();
+                const type = (src === 'prosit' || src === 'exercise') ? 'PROSIT' : 'QUIZ';
+                return `${type}: ${titles[index]}`;
+              },
+              label: (ctx: any) => {
+                const index = ctx.dataIndex;
+                return [
+                  ` Score: ${ctx.parsed.y}%`,
+                  ` Subject: ${topics[index]}`,
+                  ` Date: ${new Date(dates[index]).toLocaleDateString()}`
+                ];
+              },
             },
           },
         },
@@ -238,9 +257,10 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
 
     const colors = topics.map((t) => {
       const avg = topicScores.find((x) => x.topic === t)?.averageScore || 0;
-      if (avg >= 75) return 'rgba(16, 185, 129, 0.8)'; // vert
-      if (avg >= 50) return 'rgba(17, 82, 212, 0.8)'; // bleu
-      return 'rgba(249, 115, 22, 0.8)'; // orange
+      if (avg >= 85) return '#10b981'; // Emerald
+      if (avg >= 70) return '#3b82f6'; // Blue
+      if (avg >= 50) return '#6366f1'; // Indigo
+      return '#f59e0b'; // Amber
     });
 
     const chart = new Chart(canvas, {
@@ -251,11 +271,14 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
           {
             label: 'Average Score',
             data: averages,
-            backgroundColor: colors,
-            borderRadius: 8,
+            backgroundColor: colors.map(c => c + 'CC'), // 80% opacity
+            borderColor: colors,
+            borderWidth: 1.5,
+            borderRadius: 12,
             borderSkipped: false,
-            borderWidth: 0,
-            hoverBackgroundColor: colors.map((c) => c.replace('0.8', '1')),
+            maxBarThickness: 50,
+            hoverBackgroundColor: colors,
+            hoverBorderWidth: 2,
           },
         ],
       },
@@ -265,12 +288,14 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            padding: 12,
-            titleFont: { size: 13, weight: 'bold' },
-            bodyFont: { size: 12 },
+            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            padding: 14,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
+            cornerRadius: 12,
+            displayColors: true,
             callbacks: {
-              label: (ctx: any) => ` Score: ${ctx.parsed.y}%`,
+              label: (ctx: any) => ` Mastery Level: ${ctx.parsed.y}%`,
             },
           },
         },
@@ -280,16 +305,18 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
             max: 100,
             ticks: {
               callback: (val: any) => `${val}%`,
-              padding: 8,
-              font: { size: 11 },
+              padding: 10,
+              font: { size: 11, weight: 500 },
+              color: '#94a3b8'
             },
-            grid: { color: 'rgba(0,0,0,0.05)', display: true },
+            grid: { color: 'rgba(0,0,0,0.03)', display: true },
           },
           x: {
             grid: { display: false },
             ticks: {
-              padding: 8,
-              font: { size: 11, weight: 'bold' },
+              padding: 10,
+              font: { size: 12, weight: 600 },
+              color: '#64748b'
             },
           },
         },
@@ -379,13 +406,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     if (topicsData.length === 0) return;
 
     const topics = topicsData.map((item) => this.shortenLabel(item.topic));
-    const minutes = topicsData.map((item) => Math.round(item.minutes));
-
-    const maxIndex = Math.max(topicsData.length - 1, 1);
-    const barColors = topicsData.map((_, index) => {
-      const alpha = 0.95 - (index / maxIndex) * 0.6;
-      return `rgba(17, 82, 212, ${Math.max(alpha, 0.35).toFixed(2)})`;
-    });
+    const minutes = topicsData.map((item) => item.minutes);
 
     const chart = new Chart(canvas, {
       type: 'bar',
@@ -393,65 +414,66 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         labels: topics,
         datasets: [
           {
-            label: 'Time Spent',
+            label: 'Minutes',
             data: minutes,
-            backgroundColor: barColors,
-            borderRadius: 8,
+            backgroundColor: (ctx: any) => {
+              const canvas = ctx.chart.ctx;
+              const gradient = canvas.createLinearGradient(0, 0, ctx.chart.width, 0);
+              gradient.addColorStop(0, 'rgba(99, 102, 241, 0.85)'); // Indigo
+              gradient.addColorStop(1, 'rgba(139, 92, 246, 0.85)'); // Violet
+              return gradient;
+            },
+            borderColor: '#6366f1',
+            borderWidth: 1,
+            borderRadius: 16,
             borderSkipped: false,
-            borderWidth: 0,
-            hoverBackgroundColor: barColors.map((c) =>
-              c.replace(/[\d.]+\)$/, (match) => {
-                const alpha = parseFloat(match.slice(0, -1));
-                return Math.min(alpha + 0.15, 1).toFixed(2) + ')';
-              }),
-            ),
+            minBarLength: 8,
+            barPercentage: 0.6,
+            categoryPercentage: 0.8,
+            hoverBackgroundColor: '#8b5cf6',
           },
         ],
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        indexAxis: 'y',
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            padding: 12,
-            titleFont: { size: 13, weight: 'bold' },
-            bodyFont: { size: 12 },
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            padding: 16,
+            cornerRadius: 16,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
+            displayColors: false,
             callbacks: {
               label: (ctx: any) => {
                 const value = Number(ctx.parsed.x || 0);
                 const hours = Math.floor(value / 60);
-                const remainingMins = value % 60;
-                if (hours > 0) {
-                  return ` ${hours}h ${remainingMins}min`;
-                }
-                return ` ${value} minutes`;
+                const mins = Math.round(value % 60);
+                return hours > 0 ? ` ⏱️ Total: ${hours}h ${mins}min` : ` ⏱️ Total: ${mins} minutes`;
               },
             },
           },
         },
         scales: {
           x: {
-            title: {
-              display: true,
-              text: 'Minutes',
-              font: { size: 12, weight: 'bold' },
-            },
+            beginAtZero: true,
             ticks: {
               callback: (val: any) => `${val}m`,
-              padding: 8,
-              font: { size: 11 },
+              font: { size: 11, weight: 600 },
+              color: '#94a3b8'
             },
-            grid: { color: 'rgba(0,0,0,0.05)', display: true },
+            grid: { color: 'rgba(0, 0, 0, 0.03)', display: true },
           },
           y: {
             grid: { display: false },
             ticks: {
-              padding: 8,
-              font: { size: 11, weight: 'bold' },
-            },
+              font: { weight: 700, size: 12 },
+              color: '#475569',
+              padding: 12
+            }
           },
         },
       },
@@ -600,7 +622,7 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     return Object.entries(topicMap)
       .map(([topic, minutes]) => ({
         topic,
-        minutes: Math.round(minutes),
+        minutes: minutes,
       }))
       .sort((a, b) => b.minutes - a.minutes);
   }
@@ -626,6 +648,8 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
     topic: string;
     score: number;
     date: Date;
+    title: string;
+    source: string;
   }> {
     if (
       Array.isArray(this.trackingData?.recentActivity) &&
@@ -636,6 +660,8 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
           topic: x.topic || 'general',
           score: Number(x.score) || 0,
           date: x.date,
+          title: x.title || x.exerciseTitle || 'Assessment',
+          source: x.source || 'exercise',
         }))
         .sort(
           (a: any, b: any) =>
@@ -649,6 +675,8 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
         topic: x.topic || 'general',
         score: Number(x.score) || 0,
         date: x.attemptDate,
+        title: x.title || x.exerciseTitle || 'Assessment',
+        source: x.source || 'exercise',
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(-10);
@@ -726,102 +754,92 @@ export class ProgressChartsComponent implements OnInit, OnDestroy, OnChanges {
 
     const datasets = [
       {
-        label: 'Score',
+        label: 'Individual Score',
         data: scores,
-        borderColor: 'rgba(17, 82, 212, 0.8)',
-        backgroundColor: 'rgba(17, 82, 212, 0.08)',
-        borderWidth: 2.5,
-        pointRadius: 5,
-        pointBackgroundColor: 'rgba(17, 82, 212, 1)',
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#3b82f6',
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
         fill: true,
-        tension: 0.2,
-        yAxisID: 'y',
+        tension: 0.4,
+        borderDash: [],
       },
       {
-        label: 'Cumulative Avg',
+        label: 'Overall Average',
         data: cumulativeAvg,
-        borderColor: 'rgba(16, 185, 129, 0.8)',
-        backgroundColor: 'transparent',
-        borderWidth: 2.5,
-        pointRadius: 5,
-        pointBackgroundColor: 'rgba(16, 185, 129, 1)',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
+        borderColor: '#10b981',
+        borderDash: [5, 5],
+        borderWidth: 3,
+        pointRadius: 0,
         fill: false,
         tension: 0.3,
-        yAxisID: 'y',
       },
     ];
 
-    // Only add moving average if we have enough data points
     if (scores.length >= 3) {
       datasets.push({
-        label: '3-Point Moving Avg',
+        label: 'Moving Average (3)',
         data: movingAvg3 as number[],
-        borderColor: 'rgba(249, 115, 22, 0.8)',
-        backgroundColor: 'transparent',
+        borderColor: '#f59e0b',
         borderWidth: 2.5,
-        pointRadius: 5,
-        pointBackgroundColor: 'rgba(249, 115, 22, 1)',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
+        pointRadius: 0,
         fill: false,
-        tension: 0.3,
-        yAxisID: 'y',
+        tension: 0.5,
+        borderDash: [],
       });
     }
 
     const chart = new Chart(canvas, {
       type: 'line',
-      data: {
-        labels,
-        datasets,
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: {
+            display: true,
             position: 'top',
+            align: 'end',
             labels: {
-              padding: 15,
-              font: { size: 11, weight: 'bold' },
+              boxWidth: 8,
               usePointStyle: true,
               pointStyle: 'circle',
-            },
+              font: { size: 10, weight: 600 },
+              padding: 15,
+              color: '#64748b'
+            }
           },
           tooltip: {
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            padding: 12,
-            titleFont: { size: 13, weight: 'bold' },
-            bodyFont: { size: 12 },
+            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            padding: 14,
+            cornerRadius: 12,
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 13 },
+            displayColors: true,
             callbacks: {
               label: (ctx: any) => {
-                const datasetLabel = ctx.dataset.label || '';
-                const yValue = ctx.parsed.y ?? 0;
-                return ` ${datasetLabel}: ${yValue.toFixed(1)}%`;
-              },
-            },
-          },
+                const label = ctx.dataset.label || '';
+                return ` ${label}: ${ctx.parsed.y.toFixed(1)}%`;
+              }
+            }
+          }
         },
         scales: {
           y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
             min: 0,
             max: 100,
             ticks: {
               callback: (val: any) => `${val}%`,
-              padding: 8,
-              font: { size: 11 },
+              color: '#94a3b8',
+              font: { size: 10, weight: 500 },
+              padding: 8
             },
-            grid: { color: 'rgba(0, 0, 0, 0.05)', display: true },
+            grid: { color: 'rgba(0,0,0,0.03)' }
           },
           x: {
-            grid: { display: false },
             ticks: {
               padding: 8,
               font: { size: 11 },

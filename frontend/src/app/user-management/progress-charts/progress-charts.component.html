@@ -1,7 +1,7 @@
 <div class="space-y-6">
   <!-- ── Mini Stats ── -->
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+    <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
       <p class="text-xs font-bold text-slate-500 uppercase mb-1">Avg Score</p>
       <p class="text-2xl font-black text-slate-900">{{ getAverageScore() }}%</p>
       <div class="flex items-center justify-center gap-1 mt-1">
@@ -24,13 +24,13 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+    <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
       <p class="text-xs font-bold text-slate-500 uppercase mb-1">Best Score</p>
       <p class="text-2xl font-black text-emerald-600">{{ getBestScore() }}%</p>
       <p class="text-xs text-slate-500 mt-1">personal record</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+    <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
       <p class="text-xs font-bold text-slate-500 uppercase mb-1">Top Topic</p>
       <p class="text-lg font-black text-primary capitalize">
         {{ getTopTopic() }}
@@ -38,14 +38,14 @@
       <p class="text-xs text-slate-500 mt-1">highest average score</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+    <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
       <p class="text-xs font-bold text-slate-500 uppercase mb-1">
-        Exercises Attempted
+        Total Submissions
       </p>
       <p class="text-2xl font-black text-blue-600">
         {{ getTotalExercisesAttempted() }}
       </p>
-      <p class="text-xs text-slate-500 mt-1">total submissions</p>
+      <p class="text-xs text-slate-500 mt-1">global activity</p>
     </div>
   </div>
 
@@ -65,50 +65,39 @@
 
   <!-- ── Charts ── -->
   <div *ngIf="hasAnalyticsData()" class="space-y-6">
-    <div class="bg-white rounded-2xl border border-slate-200 p-5">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="text-center md:text-left">
-          <p class="text-xs font-bold text-slate-500 uppercase">
-            Total time spent
-          </p>
-          <p class="text-2xl font-black text-blue-700">
-            {{ getTotalStudyTime() }} minutes
-          </p>
-        </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left">
+        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Total time spent</p>
+        <p class="text-2xl font-black text-blue-700">{{ getTotalStudyTime() }} minutes</p>
+      </div>
 
-        <div class="text-center md:text-left">
-          <p class="text-xs font-bold text-slate-500 uppercase">
-            Most active topic
-          </p>
-          <p class="text-xl font-black text-primary capitalize">
-            {{ getMostStudiedTopic() }}
-          </p>
-        </div>
+      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left">
+        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Most active topic</p>
+        <p class="text-xl font-black text-primary capitalize leading-tight">{{ getMostStudiedTopic() }}</p>
+      </div>
 
-        <div class="text-center md:text-left">
-          <p class="text-xs font-bold text-slate-500 uppercase">
-            Average per topic
-          </p>
-          <p class="text-2xl font-black text-slate-900">
-            {{ getAverageTimePerTopic() }} minutes
-          </p>
-        </div>
+      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-lg backdrop-blur-md text-center md:text-left">
+        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Average per topic</p>
+        <p class="text-2xl font-black text-slate-900">{{ getAverageTimePerTopic() }} minutes</p>
       </div>
     </div>
 
     <!-- Line Chart : Score Evolution -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-6">
+    <div class="bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="text-lg font-bold">Score Evolution</h3>
           <p class="text-xs text-slate-500">Your last 10 exercises</p>
         </div>
-        <div
-          class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center"
-        >
-          <span class="material-symbols-outlined text-primary text-sm"
-            >show_chart</span
-          >
+        <div class="flex gap-4">
+          <div class="flex items-center gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-[#a855f7] shadow-sm"></div>
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Prosit</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-[#1152D4] shadow-sm"></div>
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Quiz</span>
+          </div>
         </div>
       </div>
       <div class="chart-frame chart-frame--md">
@@ -120,20 +109,14 @@
     <div class="grid grid-cols-12 gap-6">
       <!-- Bar Chart : Score par Topic -->
       <div
-        class="col-span-12 bg-white rounded-2xl border border-slate-200 p-6"
+        class="col-span-12 bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md"
       >
         <div class="flex items-center justify-between mb-4">
           <div>
             <h3 class="text-lg font-bold">Score by Topic</h3>
             <p class="text-xs text-slate-500">Average score per subject</p>
           </div>
-          <div
-            class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"
-          >
-            <span class="material-symbols-outlined text-emerald-600 text-sm"
-              >bar_chart</span
-            >
-          </div>
+
         </div>
         <div class="chart-frame chart-frame--md">
           <canvas id="topicBarChart"></canvas>
@@ -144,20 +127,14 @@
     <!-- Time Spent by Topic -->
     <div class="grid grid-cols-12 gap-6">
       <div
-        class="col-span-12 lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6"
+        class="col-span-12 lg:col-span-8 bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md"
       >
         <div class="flex items-center justify-between mb-4">
           <div>
             <h3 class="text-lg font-bold">Time Spent per Topic</h3>
             <p class="text-xs text-slate-500">Minutes invested per subject</p>
           </div>
-          <div
-            class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"
-          >
-            <span class="material-symbols-outlined text-blue-600 text-sm"
-              >schedule</span
-            >
-          </div>
+
         </div>
         <div class="chart-frame chart-frame--lg">
           <canvas id="timeSpentChart"></canvas>
@@ -165,7 +142,7 @@
       </div>
 
       <div
-        class="col-span-12 lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6"
+        class="col-span-12 lg:col-span-4 bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md"
       >
         <div class="flex items-center justify-between mb-4">
           <div>
@@ -192,19 +169,13 @@
 
 
     <!-- Cumulative Line Chart -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-6">
+    <div class="bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="text-lg font-bold">Progression Trend</h3>
           <p class="text-xs text-slate-500">Cumulative & moving average</p>
         </div>
-        <div
-          class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center"
-        >
-          <span class="material-symbols-outlined text-indigo-600 text-sm"
-            >trending_up</span
-          >
-        </div>
+
       </div>
       <div class="chart-frame chart-frame--md">
         <canvas id="cumulativeLineChart"></canvas>
@@ -213,20 +184,14 @@
 
     <!-- Activity Heatmap -->
     <div
-      class="bg-white rounded-2xl border border-slate-200 p-6 overflow-hidden"
+      class="bg-white/80 dark:bg-slate-900/90 rounded-3xl border border-slate-200/60 dark:border-slate-800/60 p-6 shadow-xl backdrop-blur-md overflow-hidden"
     >
       <div class="flex items-center justify-between mb-4">
         <div class="min-w-0 pr-4">
           <h3 class="text-lg font-bold">Activity Heatmap</h3>
           <p class="text-xs text-slate-500">Last 28 days of activity</p>
         </div>
-        <div
-          class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0"
-        >
-          <span class="material-symbols-outlined text-red-600 text-sm"
-            >calendar_month</span
-          >
-        </div>
+
       </div>
       <div class="flex flex-col gap-3 overflow-x-auto pb-1">
         <!-- Header Row -->
@@ -268,7 +233,7 @@
 
     <!-- Enhanced Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
         <p class="text-xs font-bold text-slate-500 uppercase mb-1">
           Completion Rate
         </p>
@@ -278,17 +243,17 @@
         <p class="text-xs text-slate-500 mt-1">exercises ≥ 70%</p>
       </div>
 
-      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
         <p class="text-xs font-bold text-slate-500 uppercase mb-1">
-          Total Exercises
+          Total Submissions
         </p>
         <p class="text-2xl font-black text-blue-600">
           {{ getTotalExercisesAttempted() }}
         </p>
-        <p class="text-xs text-slate-500 mt-1">attempted</p>
+        <p class="text-xs text-slate-500 mt-1">global activity</p>
       </div>
 
-      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
         <p class="text-xs font-bold text-slate-500 uppercase mb-1">
           Current Streak
         </p>
@@ -298,7 +263,7 @@
         <p class="text-xs text-slate-500 mt-1">days in a row</p>
       </div>
 
-      <div class="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+      <div class="bg-white/80 dark:bg-slate-900/90 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 text-center shadow-lg backdrop-blur-md">
         <p class="text-xs font-bold text-slate-500 uppercase mb-1">Topics</p>
         <p class="text-2xl font-black text-purple-600">
           {{ getTopicAverageScores().length }}
