@@ -23,9 +23,9 @@ data:
           - source_labels: [__meta_kubernetes_service_name]
             action: keep
             regex: backend
-          - source_labels: [__meta_kubernetes_endpoint_port_number]
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
             action: keep
-            regex: "3000"
+            regex: http
           - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
           - source_labels: [__meta_kubernetes_service_name]
