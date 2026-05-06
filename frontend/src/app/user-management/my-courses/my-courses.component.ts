@@ -295,7 +295,7 @@ export class MyCoursesComponent implements OnInit, OnDestroy {
   justSubmittedInModal = false;
   @ViewChild('prositEditor') prositEditor?: ElementRef<HTMLDivElement>;
 
-  private aiServiceUrl = 'http://localhost:8000';
+  private aiServiceUrl = apiUrl('/ai');
   private reindexAttempted = false;
   private availableCourseTitles: string[] = [];
   user: any = null;

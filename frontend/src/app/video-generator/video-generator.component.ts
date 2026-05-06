@@ -1,6 +1,7 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { VideoGeneratorService, VideoJob } from './video-generator.service';
+import { apiUrl } from '../core/api-url';
 
 type UIState = 'idle' | 'loading' | 'done' | 'error';
 
@@ -98,7 +99,7 @@ export class VideoGeneratorComponent implements OnDestroy {
     getSlideUrl(index: number): string {
         if (!this.job) return '';
         // Point to the Python service static mount
-        return `http://localhost:8000/static/video/${this.job.jobId}/slides/slide_${(index + 1).toString().padStart(2, '0')}.png`;
+        return `${apiUrl('/ai')}/static/video/${this.job.jobId}/slides/slide_${(index + 1).toString().padStart(2, '0')}.png`;
     }
 
     ngOnDestroy() {

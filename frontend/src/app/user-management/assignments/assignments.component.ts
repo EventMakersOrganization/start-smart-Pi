@@ -25,7 +25,7 @@ interface AssignmentCard {
 })
 export class AssignmentsComponent implements OnInit {
   private apiUrl = apiUrl('/api/courses');
-  private aiServiceUrl = 'http://localhost:8000';
+  private aiServiceUrl = apiUrl('/ai');
 
   isInstructor = false;
   loadingCourses = false;

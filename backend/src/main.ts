@@ -51,38 +51,27 @@ async function bootstrap() {
 
   app.use("/uploads", express.static(uploadsRoot));
 
-  // Rate limiting - disabled in development, permissive in production
-  if (process.env.NODE_ENV === "production") {
-    app.use(
-      rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
-        skip: (req) =>
-          req.path === "/metrics" ||
-          req.path === "/api/auth/login" ||
-          // Kubernetes HTTP probes hit /api; do not count them or readiness/liveness will get 429
-          (typeof req.headers["user-agent"] === "string" &&
-            req.headers["user-agent"].includes("kube-probe")),
-      }),
-    );
-    // Auth-specific limiter (stricter for login)
+  // Rate limiting
+  const isProduction = process.env.NODE_ENV === "production";
+  app.use(
+    rateLimit({
+      windowMs: isProduction ? 15 * 60 * 1000 : 60 * 1000,
+      max: isProduction ? 500 : 1000,
+      skip: (req) =>
+        req.path === "/metrics" ||
+        (typeof req.headers["user-agent"] === "string" &&
+          req.headers["user-agent"].includes("kube-probe")),
+    }),
+  );
+  if (isProduction) {
     const authLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 10, // Max 10 login attempts per 15 min
+      windowMs: 15 * 60 * 1000,
+      max: 20,
       message: "Too many login attempts, please try again later.",
       standardHeaders: true,
       legacyHeaders: false,
     });
     app.use("/api/auth/login", authLimiter);
-  } else {
-    // Development: very permissive limits
-    app.use(
-      rateLimit({
-        windowMs: 60 * 1000, // 1 minute
-        max: 1000, // Allow up to 1000 requests per minute in development
-        skip: (req) => req.path === "/metrics",
-      }),
-    );
   }
 
   // Global validation pipe

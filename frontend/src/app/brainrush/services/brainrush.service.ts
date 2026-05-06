@@ -8,7 +8,7 @@ import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api
 })
 export class BrainrushService {
   private nestUrl = apiUrl('/api/brainrush');
-  private aiUrl = 'http://localhost:8000';
+  private aiUrl = apiUrl('/ai');
 
   constructor(private http: HttpClient) { }
 

@@ -517,7 +517,7 @@ export interface PostEvaluationAreaScore {
 export class AdaptiveLearningService {
   private apiUrl = apiUrl('/api/adaptive');
   private chatApiUrl = apiUrl('/api/chat/ai');
-  private aiServiceUrl = 'http://localhost:8000';
+  private aiServiceUrl = apiUrl('/ai');
   private trackingApiUrl = apiUrl('/api');
   private readonly learningRecommendationsSubject = new Subject<any[]>();
   readonly learningRecommendations$ =
