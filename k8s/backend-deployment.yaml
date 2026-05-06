@@ -7,6 +7,9 @@ metadata:
     part-of: start-smart
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
+  progressDeadlineSeconds: 1200
   selector:
     matchLabels:
       app: backend
