@@ -11,7 +11,8 @@ data:
       - name: start-smart-backend
         rules:
           - alert: BackendDown
-            expr: up{job="start-smart-backend"} == 0
+            # Fires whether the scrape fails (up==0) OR the target itself is gone (replicas=0 / no endpoints).
+            expr: (absent(up{job="start-smart-backend"}) == 1) or (up{job="start-smart-backend"} == 0)
             for: 1m
             labels:
               severity: critical
