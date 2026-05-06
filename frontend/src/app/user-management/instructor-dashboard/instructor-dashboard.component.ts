@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { WebinarService } from '../../webinar/services/webinar.service';
 import { ToastService } from '../../shared/services/toast.service';
 import { Webinar } from '../../webinar/services/webinar.interface';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
+import { apiUrl } from '../../core/api-url';
 
 @Component({
   selector: 'app-instructor-dashboard',

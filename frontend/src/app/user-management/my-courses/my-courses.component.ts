@@ -19,7 +19,7 @@ import {
   PrositSubmissionResponse,
   PrositSubmissionService,
 } from '../prosit-submission.service';
-import { apiUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
+import { apiUrl, publicApiOrigin } from '../../core/api-url';
 import {
   SubjectChapterContent,
   SubjectItem as DbSubjectItem,

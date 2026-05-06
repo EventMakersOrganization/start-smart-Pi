@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
+import { apiUrl } from '../../core/api-url';
 
 interface StudentOption {
   id: string;

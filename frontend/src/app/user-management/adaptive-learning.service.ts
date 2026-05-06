@@ -11,7 +11,7 @@ import {
   timeout,
 } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../core/api-url';
+import { apiUrl } from '../core/api-url';
 
 export type TargetLevel = 'beginner' | 'intermediate' | 'advanced';
 
@@ -515,10 +515,10 @@ export interface PostEvaluationAreaScore {
 
 @Injectable({ providedIn: 'root' })
 export class AdaptiveLearningService {
-  private apiUrl = apiUrl('/api/adaptive');
-  private chatApiUrl = apiUrl('/api/chat/ai');
+  private readonly apiUrl = apiUrl('/api/adaptive');
+  private readonly chatApiUrl = apiUrl('/api/chat/ai');
   private aiServiceUrl = apiUrl('/ai');
-  private trackingApiUrl = apiUrl('/api');
+  private readonly trackingApiUrl = apiUrl('/api');
   private readonly learningRecommendationsSubject = new Subject<any[]>();
   readonly learningRecommendations$ =
     this.learningRecommendationsSubject.asObservable();

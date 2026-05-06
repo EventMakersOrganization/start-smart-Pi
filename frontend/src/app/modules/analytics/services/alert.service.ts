@@ -2,13 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Alert } from '../models/analytics.models';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../../core/api-url';
+import { apiUrl } from '../../../core/api-url';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AlertService {
-  private apiUrl = apiUrl('/api/alerts');
+  private readonly apiUrl = apiUrl('/api/alerts');
 
   constructor(private http: HttpClient) {}
 

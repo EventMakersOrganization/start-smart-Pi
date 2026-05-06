@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import type { ExplainabilityLog } from '../models/analytics.models';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../../core/api-url';
+import { apiUrl } from '../../../core/api-url';
 
 @Injectable({
   providedIn: 'root',

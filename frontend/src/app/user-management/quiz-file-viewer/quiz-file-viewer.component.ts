@@ -9,7 +9,7 @@ import {
   AfterViewInit,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
+import { apiUrl } from '../../core/api-url';
 
 @Component({
   selector: 'app-quiz-file-viewer',

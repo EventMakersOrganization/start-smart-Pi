@@ -7,7 +7,7 @@ import * as express from "express";
 import { existsSync, mkdirSync } from "fs";
 import { resolve } from "path";
 
-async function bootstrap() {
+export async function bootstrap() {
   // Bypass self-signed certificate errors in development
   if (process.env.NODE_ENV !== "production") {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -108,4 +108,7 @@ async function bootstrap() {
     throw err;
   }
 }
-bootstrap();
+
+if (require.main === module) {
+  void bootstrap();
+}

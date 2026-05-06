@@ -7,7 +7,7 @@ import { apiUrl } from '../../core/api-url';
   providedIn: 'root'
 })
 export class ChatApiService {
-  private apiUrl = apiUrl('/api/chat');
+  private readonly apiUrl = apiUrl('/api/chat');
 
   constructor(private http: HttpClient) {}
 

@@ -4,7 +4,7 @@ import { AuthService } from '../auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
+import { apiUrl } from '../../core/api-url';
 
 interface ProfileData {
   user: {

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, map, catchError, of, shareReplay } from 'rxjs';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../../core/api-url';
+import { apiUrl } from '../../../core/api-url';
 
 export interface DashboardData {
   totalUsers: number;
@@ -185,8 +185,8 @@ export interface UnifiedStudentAnalytics {
   providedIn: 'root'
 })
 export class AnalyticsService {
-  private apiUrl = apiUrl('/api/analytics');
-  private monitoringUrl = apiUrl('/api/monitoring');
+  private readonly apiUrl = apiUrl('/api/analytics');
+  private readonly monitoringUrl = apiUrl('/api/monitoring');
 
   /** Memoized observables so repeated subscriptions / navigation reuse one HTTP round-trip. Cleared on logout (see AuthService). */
   private readonly sharedObservables = new Map<string, Observable<unknown>>();

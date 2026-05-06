@@ -16,8 +16,8 @@ export function socketBaseUrl(): string {
   if (environment.apiOrigin) {
     return environment.apiOrigin;
   }
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
+  if (typeof globalThis !== 'undefined' && globalThis.location?.origin) {
+    return globalThis.location.origin;
   }
   return 'http://localhost:3000';
 }

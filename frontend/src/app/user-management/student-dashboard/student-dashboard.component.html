@@ -248,6 +248,9 @@
               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div *ngFor="let course of showAllRecommendations ? suggestedCourses : (suggestedCourses | slice: 0 : 3); let i = index" 
                 (click)="navigateToRecommendedCourse(course)"
+                (keyup.enter)="navigateToRecommendedCourse(course)"
+                tabindex="0"
+                role="button"
                 class="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden cursor-pointer"
                 [ngStyle]="{ 'animation-delay': i * 150 + 'ms' }">
                 

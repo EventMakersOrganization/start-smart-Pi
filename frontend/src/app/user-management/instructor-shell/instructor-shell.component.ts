@@ -5,7 +5,7 @@ import { AuthService } from '../auth.service';
 import { AnalyticsService, InterventionTrackingItem } from '../../modules/analytics/services/analytics.service';
 import { SubjectItem, SubjectsService } from '../subjects.service';
 import { catchError, of } from 'rxjs';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
+import { apiUrl } from '../../core/api-url';
 
 @Component({
   selector: 'app-instructor-shell',

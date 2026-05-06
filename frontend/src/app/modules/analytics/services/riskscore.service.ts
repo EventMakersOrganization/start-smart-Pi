@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RiskScore } from '../models/analytics.models';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../../core/api-url';
+import { apiUrl } from '../../../core/api-url';
 
 export interface WeakAreaInsight {
   topic: string;
@@ -38,7 +38,7 @@ export interface RiskRecalculationSummary {
   providedIn: 'root',
 })
 export class RiskScoreService {
-  private apiUrl = apiUrl('/api/riskscores');
+  private readonly apiUrl = apiUrl('/api/riskscores');
 
   constructor(private http: HttpClient) {}
 

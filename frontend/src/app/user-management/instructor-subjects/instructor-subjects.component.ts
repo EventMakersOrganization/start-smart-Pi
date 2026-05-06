@@ -13,7 +13,7 @@ import {
   PrositSubmissionResponse,
   PrositSubmissionService,
 } from '../prosit-submission.service';
-import { apiUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
+import { apiUrl, publicApiOrigin } from '../../core/api-url';
 import {
   SubjectItem,
   SubjectChapter,
@@ -339,7 +339,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   attendanceHistory: any[] = [];
   loadingAttendanceHistory = false;
 
-  private subjectsApiUrl = apiUrl('/api/subjects');
+  private readonly subjectsApiUrl = apiUrl('/api/subjects');
 
   subjectForm: SubjectFormModel = {
     title: '',
@@ -382,7 +382,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     private prositSubmissionService: PrositSubmissionService,
   ) {}
 
-  private classesApi = apiUrl('/api/admin/instructor/classes');
+  private readonly classesApi = apiUrl('/api/admin/instructor/classes');
   selectedClassId: string | null = null;
   className: string | null = null;
 

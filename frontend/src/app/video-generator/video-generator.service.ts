@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, interval, switchMap, takeWhile, share } from 'rxjs';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../core/api-url';
+import { apiUrl } from '../core/api-url';
 
 export interface VideoJob {
     jobId: string;

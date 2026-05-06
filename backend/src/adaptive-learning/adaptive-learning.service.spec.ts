@@ -83,6 +83,41 @@ describe("AdaptiveLearningService", () => {
     jest.clearAllMocks();
   });
 
+  it("uses AI_SERVICE_URL env var when provided", async () => {
+    process.env.AI_SERVICE_URL = "http://ai-service.start-smart.svc.cluster.local:8000";
+    const names = [
+      StudentProfile,
+      StudentPerformance,
+      Recommendation,
+      LevelTest,
+      PostEvaluationTest,
+      Question,
+      ChatAi,
+      ChatInstructor,
+      ChatRoom,
+      ChatMessage,
+      Score,
+      PlayerSession,
+      GoalSettings,
+      QuizSubmission,
+      QuizFileSubmission,
+      Subject,
+      PrositSubmission,
+    ];
+    const providers = names.map((SchemaClass) => ({
+      provide: getModelToken(SchemaClass.name),
+      useValue: buildModelMock(),
+    }));
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [AdaptiveLearningService, ...providers],
+    }).compile();
+    const localService = module.get<AdaptiveLearningService>(AdaptiveLearningService) as any;
+    expect(localService.aiServiceBaseUrl).toBe(
+      "http://ai-service.start-smart.svc.cluster.local:8000",
+    );
+    delete process.env.AI_SERVICE_URL;
+  });
+
   describe("createProfile", () => {
     it("returns upserted profile", async () => {
       const dto: CreateStudentProfileDto = { userId: "user-1", level: "beginner" };

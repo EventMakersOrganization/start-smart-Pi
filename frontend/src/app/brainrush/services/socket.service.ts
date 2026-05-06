@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable } from 'rxjs';
-import { apiUrl, socketBaseUrl, publicApiOrigin, assetUrl } from '../../core/api-url';
+import { socketBaseUrl } from '../../core/api-url';
 
 // ── Shared interfaces ─────────────────────────────────────────────────────
 export interface RoomPlayer {
