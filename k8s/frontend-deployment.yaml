@@ -7,6 +7,7 @@ metadata:
     part-of: start-smart
 spec:
   replicas: 1
+  revisionHistoryLimit: 1
   # With 1 replica, default maxUnavailable/maxSurge (25%) both round to 0 — rollouts can hang until progressDeadline.
   strategy:
     type: Recreate
@@ -22,7 +23,7 @@ spec:
       containers:
         - name: frontend
           image: startsmart-web:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Never
           ports:
             - containerPort: 80
           resources:

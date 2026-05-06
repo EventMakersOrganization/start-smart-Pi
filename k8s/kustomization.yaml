@@ -2,9 +2,15 @@
 #   1. docker compose -f docker-compose.vm-deps.yml up -d   (Mongo + Redis on the VM)
 #   2. kubectl create secret generic backend-secrets -n start-smart --from-env-file=...  (or apply example)
 #   3. Update ai-service-configmap + backend-secret URIs if DHCP changes the VM IP
-#   4. kubectl apply -k k8s/
+#   4. Build + import images (names must match Deployments — see below), then: kubectl apply -k k8s/
 #   5. (Optional) Monitoring: kubectl apply -k k8s/monitoring/
-#   6. kubectl get pods -n start-smart; curl -I http://<node-ip>:30080
+#
+# Local VM images (docker build → docker save → ctr import): use startsmart-api / startsmart-web /
+# startsmart-ai with :latest. Do NOT rewrite to Docker Hub names here — that forces pulls and breaks
+# air-gapped / flaky DNS. CI can use a different overlay or kustomize --load-restrictor.
+#
+# If pods show Evicted: free disk (df -h, docker system prune), delete failed pods, re-import images.
+# Many Evicted ai-service pods = kubelet disk or memory pressure.
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -24,10 +30,8 @@ resources:
 
 images:
   - name: startsmart-api
-    newName: slm334/startsmart-api
     newTag: latest
   - name: startsmart-web
-    newName: slm334/startsmart-web
     newTag: latest
   - name: startsmart-ai
     newTag: latest
