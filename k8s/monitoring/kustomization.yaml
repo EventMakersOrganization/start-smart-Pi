@@ -15,8 +15,12 @@ resources:
   - grafana-secret.yaml
   - prometheus-rbac.yaml
   - prometheus-configmap.yaml
+  - prometheus-rules-configmap.yaml
   - prometheus-deployment.yaml
   - prometheus-service.yaml
+  - alertmanager-configmap.yaml
+  - alertmanager-deployment.yaml
+  - alertmanager-service.yaml
   - grafana-datasource-configmap.yaml
   - grafana-deployment.yaml
   - grafana-service.yaml
