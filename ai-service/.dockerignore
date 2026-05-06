@@ -1,11 +1,60 @@
+# Version control
 .git
+.gitignore
+
+# Python caches
 __pycache__
 *.pyc
+*.pyo
 .pytest_cache
-.coverage
-htmlcov
-chroma_db
-.env
+.mypy_cache
+
+# Virtual environments
 .venv
 venv
+
+# Secrets and config (never ship into the image)
+.env
+*.env
+credentials*.json
+
+# Test artifacts
+tests/
+htmlcov
+.coverage
+coverage.xml
+test-results.xml
+test_*.py
+test_*.txt
+
+# SonarQube
+.sonar/
+sonar-project.properties
+
+# Documentation
 *.md
+docs/
+
+# Data / generated (runtime volumes, not baked in)
+chroma_db/
+generated_videos/
+logs/
+*.log
+
+# Scripts not needed at runtime
+seed_data.py
+seed_courses.py
+migrate_*.py
+ingest_*.py
+debug_*.py
+reorganize_files.py
+_*.py
+pytest.ini
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Load tests
+loadtests/

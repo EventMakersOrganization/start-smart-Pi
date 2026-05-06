@@ -10,7 +10,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy only application source — sensitive files excluded via .dockerignore
+COPY api.py .
+COPY core/ core/
+COPY rag/ rag/
+COPY video/ video/
+COPY embeddings/ embeddings/
+COPY generation/ generation/
+COPY search/ search/
+COPY optimization/ optimization/
+COPY level_test/ level_test/
+COPY learning_state/ learning_state/
+COPY adaptive/ adaptive/
+COPY recommendation/ recommendation/
+COPY analytics/ analytics/
+COPY quality/ quality/
+COPY utils/ utils/
+
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \
+    && chown -R appuser:appgroup /app
+USER appuser
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
