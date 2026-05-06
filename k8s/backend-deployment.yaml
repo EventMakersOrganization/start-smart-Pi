@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: startsmart-api:latest
+          image: docker.io/library/startsmart-api:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 3000

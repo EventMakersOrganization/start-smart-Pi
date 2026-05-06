@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: startsmart-web:latest
+          image: docker.io/library/startsmart-web:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 80

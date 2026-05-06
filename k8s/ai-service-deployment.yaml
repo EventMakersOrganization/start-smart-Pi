@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
         - name: ai-service
-          image: startsmart-ai:latest
-          imagePullPolicy: IfNotPresent
+          image: docker.io/library/startsmart-ai:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8000
           envFrom:

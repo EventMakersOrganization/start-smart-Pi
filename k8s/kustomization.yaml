@@ -5,9 +5,8 @@
 #   4. Build + import images (names must match Deployments — see below), then: kubectl apply -k k8s/
 #   5. (Optional) Monitoring: kubectl apply -k k8s/monitoring/
 #
-# Local VM images (docker build → docker save → ctr import): use startsmart-api / startsmart-web /
-# startsmart-ai with :latest. Do NOT rewrite to Docker Hub names here — that forces pulls and breaks
-# air-gapped / flaky DNS. CI can use a different overlay or kustomize --load-restrictor.
+# Local VM: docker build -t startsmart-*:latest → docker save → ctr -n k8s.io images import.
+# Deployments use docker.io/library/startsmart-* so the name matches crictl (Never pull = exact match).
 #
 # If pods show Evicted: free disk (df -h, docker system prune), delete failed pods, re-import images.
 # Many Evicted ai-service pods = kubelet disk or memory pressure.
@@ -29,9 +28,9 @@ resources:
   - ai-service-service.yaml
 
 images:
-  - name: startsmart-api
+  - name: docker.io/library/startsmart-api
     newTag: latest
-  - name: startsmart-web
+  - name: docker.io/library/startsmart-web
     newTag: latest
-  - name: startsmart-ai
+  - name: docker.io/library/startsmart-ai
     newTag: latest
