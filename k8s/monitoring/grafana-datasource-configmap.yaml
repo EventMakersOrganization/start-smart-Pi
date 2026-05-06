@@ -12,7 +12,8 @@ data:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus:9090
+        # Full in-cluster name (short "prometheus" can fail if search domains / DNS are odd).
+        url: http://prometheus.monitoring.svc.cluster.local:9090
         isDefault: true
         editable: false
         jsonData:

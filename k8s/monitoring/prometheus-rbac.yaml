@@ -1,0 +1,34 @@
+# Lets Prometheus discover Endpoints via the API (scrapes pod IP:port — avoids CoreDNS NXDOMAIN for *.svc.cluster.local).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-k8s-sd
+  labels:
+    app: prometheus
+rules:
+  - apiGroups: [""]
+    resources: [services, endpoints, pods, nodes]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-k8s-sd
+  labels:
+    app: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-k8s-sd
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring
