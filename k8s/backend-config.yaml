@@ -1,12 +1,6 @@
-# AI_SERVICE_URL — where the BACKEND POD finds ai-service (FastAPI on the VM).
-#
-# Use the VM’s LAN IP from: ip -4 addr show dev ens33 (DHCP may change after renewal).
-# ai-service: uvicorn api:app --host 0.0.0.0 --port 8000
-# Value must be http://<that-ip>:8000 — not 127.0.0.1 from the pod’s perspective.
-#
-# Ollama on same VM: ai-service/.env → OLLAMA_BASE_URL=http://127.0.0.1:11434 is OK.
-#
-# Apply after edits: kubectl apply -k k8s/
+# AI_SERVICE_URL — where the BACKEND POD finds ai-service.
+# Now points to the in-cluster ai-service Service (ClusterIP :8000).
+# No dependency on the VM's LAN IP for this value.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -14,4 +8,4 @@ metadata:
   labels:
     part-of: start-smart
 data:
-  AI_SERVICE_URL: "http://192.168.192.130:8000"
+  AI_SERVICE_URL: "http://ai-service.start-smart.svc.cluster.local:8000"
