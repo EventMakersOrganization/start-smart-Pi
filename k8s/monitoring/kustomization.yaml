@@ -1,0 +1,21 @@
+# Apply after the app stack:
+#   kubectl apply -k <repo>/k8s/
+#   kubectl apply -k <repo>/k8s/monitoring/
+#
+# Requires backend /metrics (prom-client) — rebuild + import startsmart-api after backend changes.
+# NodePort on cluster node: Prometheus http://<NODE_IP>:30090  Grafana http://<NODE_IP>:30300
+# Login: admin / changeme (see grafana-secret.yaml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - namespace.yaml
+  - grafana-secret.yaml
+  - prometheus-configmap.yaml
+  - prometheus-deployment.yaml
+  - prometheus-service.yaml
+  - grafana-datasource-configmap.yaml
+  - grafana-deployment.yaml
+  - grafana-service.yaml

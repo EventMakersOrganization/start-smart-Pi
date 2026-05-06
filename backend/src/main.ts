@@ -1,6 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-import { ValidationPipe } from "@nestjs/common";
+import { RequestMethod, ValidationPipe } from "@nestjs/common";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import * as express from "express";
@@ -58,6 +58,7 @@ async function bootstrap() {
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 100, // limit each IP to 100 requests per windowMs
         skip: (req) =>
+          req.path === "/metrics" ||
           req.path === "/api/auth/login" ||
           // Kubernetes HTTP probes hit /api; do not count them or readiness/liveness will get 429
           (typeof req.headers["user-agent"] === "string" &&
@@ -79,6 +80,7 @@ async function bootstrap() {
       rateLimit({
         windowMs: 60 * 1000, // 1 minute
         max: 1000, // Allow up to 1000 requests per minute in development
+        skip: (req) => req.path === "/metrics",
       }),
     );
   }
@@ -95,8 +97,10 @@ async function bootstrap() {
     }),
   );
 
-  // Global prefix
-  app.setGlobalPrefix("api");
+  // Global prefix (/metrics excluded for Prometheus)
+  app.setGlobalPrefix("api", {
+    exclude: [{ path: "/metrics", method: RequestMethod.GET }],
+  });
 
   const port = Number(process.env.PORT) || 3000;
   try {

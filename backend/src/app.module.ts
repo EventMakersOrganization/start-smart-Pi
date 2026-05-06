@@ -13,6 +13,7 @@ import { RiskScoreModule } from './analytics/riskscore.module';
 import { AlertModule } from './analytics/alert.module';
 import { AlertConfigModule } from './alert-config/alert-config.module';
 import { AppController } from './app.controller';
+import { MetricsController } from './metrics/metrics.controller';
 import { ChatModule } from './chat/chat.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { CodebattleModule } from './codebattle/codebattle.module';
@@ -58,7 +59,7 @@ import { CoursesModule } from './courses/courses.module';
     CodebattleModule,
     VideoGeneratorModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, MetricsController],
   providers: [],
 })
 export class AppModule { }

@@ -7,7 +7,8 @@
 #   3. kubectl create secret generic backend-secrets -n start-smart --from-env-file=...  (or apply example)
 #   4. Update backend-config.yaml + secret URIs if DHCP changes the VM IP
 #   5. kubectl apply -k k8s/
-#   6. kubectl get pods -n start-smart; curl -I http://<node-ip>:30080
+#   6. (Optional) Monitoring: kubectl apply -k k8s/monitoring/  — Prometheus :30090, Grafana :30300 on the node
+#   7. kubectl get pods -n start-smart; curl -I http://<node-ip>:30080
 #
 # Frontend nginx proxies /api, /uploads, /socket.io, /brainrush, /codebattle, /webinar to Service backend.
 # Rebuild/push startsmart-web after frontend changes so the cluster gets the new image.
