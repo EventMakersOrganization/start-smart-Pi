@@ -75,3 +75,6 @@ backend/uploads/
 # Local-only folders (not tracked)
 docs/
 scripts/
+
+# Docker image exports (large binaries — transfer via scp/ctr import; never commit)
+*.tar
