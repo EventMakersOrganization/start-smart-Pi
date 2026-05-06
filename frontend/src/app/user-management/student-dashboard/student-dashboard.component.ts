@@ -23,6 +23,7 @@ import {
   GoalSettings,
   LearningAnalyticsResponse,
 } from '../adaptive-learning.service';
+import { apiUrl } from '../../core/api-url';
 import {
   SubjectItem as DbSubjectItem,
   SubjectsService,
@@ -607,7 +608,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadUserInfo(): void {
-    this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
+    this.http.get<any>(apiUrl('/api/user/profile')).subscribe({
       next: (data) => {
         // Merge les infos du backend avec le user actuel
         if (data?.user) {
@@ -625,7 +626,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadProfile() {
-    this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
+    this.http.get<any>(apiUrl('/api/user/profile')).subscribe({
       next: (data) => {
         this.profileData = data;
         this.user = {
@@ -1945,7 +1946,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   private loadBackendInterventionAlerts(): void {
     this.http
-      .get<any[]>('http://localhost:3000/api/alerts/me?limit=6')
+      .get<any[]>(apiUrl('/api/alerts/me?limit=6'))
       .pipe(catchError(() => of([] as any[])))
       .subscribe((rows) => {
         const mapped = (Array.isArray(rows) ? rows : []).map((row) => {

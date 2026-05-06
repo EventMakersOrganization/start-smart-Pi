@@ -1,6 +1,31 @@
 // Frontend CI (Angular / Karma)
+// SonarQube: Jenkins credential ID sonar-token (Secret text). SONAR_HOST_URL default host.docker.internal:9000 when Jenkins is in Docker on Windows.
+// Create Sonar project key start-smart-frontend (same key as frontend/sonar-project.properties) and grant your user Execute analysis (or Create projects).
+// Sonar stage uses SonarScanner CLI zip under ${WORKSPACE}/.ci-tools (not Docker), same reason as Jenkinsfile.back-ci: bind-mounts from Jenkins-in-Docker are often empty on the host Docker daemon.
+// CD chain: stage "Trigger CD" queues DOWNSTREAM_CD_JOB (default cd-front). Jenkins user needs Job/Build on that job.
 pipeline {
   agent any
+
+  parameters {
+    string(
+      name: 'SONAR_HOST_URL',
+      defaultValue: 'http://host.docker.internal:9000',
+      description: 'Sonar URL reachable from the build agent.',
+      trim: true
+    )
+    booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run Karma with --code-coverage + Sonar scan')
+    booleanParam(
+      name: 'TRIGGER_CD_AFTER_SUCCESS',
+      defaultValue: true,
+      description: 'When true and DOWNSTREAM_CD_JOB is non-empty, queue that CD job after this pipeline succeeds (wait: false).'
+    )
+    string(
+      name: 'DOWNSTREAM_CD_JOB',
+      defaultValue: 'cd-front',
+      description: 'Jenkins name of the frontend CD job (folder/job if in a folder). Empty = skip CD trigger.',
+      trim: true
+    )
+  }
 
   options {
     timestamps()
@@ -91,6 +116,16 @@ pipeline {
       }
     }
 
+    stage('Frontend Member4 Tests') {
+      steps {
+        dir('frontend') {
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/modules/analytics/services/analytics.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/modules/analytics/services/riskscore.service.spec.ts'
+          sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/modules/analytics/pages/deep-analytics/deep-analytics.component.spec.ts'
+        }
+      }
+    }
+
     stage('Frontend MemberKmar Tests') {
       steps {
         dir('frontend') {
@@ -111,6 +146,119 @@ pipeline {
           sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/jwt.interceptor.spec.ts'
           sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/role.guard.spec.ts'
           sh 'npx ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/user-management/login/login.component.spec.ts'
+        }
+      }
+    }
+
+    // Full suite + LCOV for Sonar (karma.conf.js). Can take several minutes; CHROME_BIN comes from Prepare Chromium.
+    stage('Frontend — coverage for Sonar') {
+      options {
+        timeout(time: 45, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('frontend') {
+          sh """#!/usr/bin/env bash
+            set -e
+            export CHROME_BIN='${env.CHROME_BIN}'
+            if [ -z "\$CHROME_BIN" ]; then
+              echo "CHROME_BIN empty — Prepare Chromium for Karma stage must run first."
+              exit 1
+            fi
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 38m npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
+            else
+              npx ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage
+            fi
+          """
+        }
+      }
+    }
+
+    stage('SonarQube — Frontend') {
+      options {
+        timeout(time: 25, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('frontend') {
+          withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            sh """#!/usr/bin/env bash
+            set -e
+            export SONAR_HOST_URL='${params.SONAR_HOST_URL}'
+            if command -v curl >/dev/null 2>&1; then
+              curl -sS -m 15 -f "\$SONAR_HOST_URL/api/system/status" >/dev/null || {
+                echo "SonarQube not reachable (SONAR_HOST_URL / firewall)."
+                exit 1
+              }
+            fi
+            if ! command -v curl >/dev/null 2>&1; then
+              echo "curl required to download SonarScanner CLI."
+              exit 1
+            fi
+            if [ ! -d src ]; then
+              echo "Sonar: expected ./src from frontend/ (cwd=\$(pwd))"
+              ls -la
+              exit 1
+            fi
+            SCAN_VER="6.2.1.4610"
+            SCAN_ROOT="\${WORKSPACE}/.ci-tools"
+            SCAN_HOME="\$SCAN_ROOT/sonar-scanner-\${SCAN_VER}-linux-x64"
+            SCAN_BIN="\$SCAN_HOME/bin/sonar-scanner"
+            if [ ! -x "\$SCAN_BIN" ]; then
+              echo "Installing SonarScanner CLI \${SCAN_VER} under \$SCAN_ROOT ..."
+              mkdir -p "\$SCAN_ROOT"
+              curl -fSL --retry 3 --connect-timeout 20 \\
+                -o /tmp/sonar-scanner-cli.zip \\
+                "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-\${SCAN_VER}-linux-x64.zip"
+              rm -rf "\$SCAN_HOME"
+              mkdir -p /tmp/sonar-scan-unpack
+              rm -rf /tmp/sonar-scan-unpack/*
+              if command -v unzip >/dev/null 2>&1; then
+                unzip -q /tmp/sonar-scanner-cli.zip -d /tmp/sonar-scan-unpack
+              else
+                python3 -c "import zipfile; zipfile.ZipFile('/tmp/sonar-scanner-cli.zip').extractall('/tmp/sonar-scan-unpack')"
+              fi
+              mv /tmp/sonar-scan-unpack/sonar-scanner-\${SCAN_VER}-linux-x64 "\$SCAN_HOME"
+              rm -f /tmp/sonar-scanner-cli.zip
+            fi
+            SONAR_OPTS=(
+              -Dsonar.projectKey=start-smart-frontend
+              -Dsonar.projectName=StartSmart-Frontend
+              -Dsonar.sources=src
+              -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/coverage/**
+              -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info
+              -Dsonar.typescript.lcov.reportPaths=coverage/frontend/lcov.info
+              -Dsonar.host.url="\$SONAR_HOST_URL"
+              -Dsonar.token="\$SONAR_TOKEN"
+            )
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 18m "\$SCAN_BIN" "\${SONAR_OPTS[@]}"
+            else
+              "\$SCAN_BIN" "\${SONAR_OPTS[@]}"
+            fi
+          """
+          }
+        }
+      }
+    }
+
+    stage('Trigger CD') {
+      when {
+        allOf {
+          expression { params.TRIGGER_CD_AFTER_SUCCESS == true }
+          expression { return (params.DOWNSTREAM_CD_JOB ?: '').trim().length() > 0 }
+        }
+      }
+      steps {
+        script {
+          def downstream = params.DOWNSTREAM_CD_JOB.trim()
+          echo "CI succeeded — queueing downstream CD: ${downstream} (wait: false, propagate: false)"
+          build job: downstream, wait: false, propagate: false
         }
       }
     }

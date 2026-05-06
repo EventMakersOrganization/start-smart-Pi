@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { apiUrl } from '../core/api-url';
 
 export interface SubjectQuizQuestion {
   question: string;
@@ -65,8 +66,8 @@ export function normalizeSubjectItem(raw: any): SubjectItem {
 
 @Injectable({ providedIn: 'root' })
 export class SubjectsService {
-  private apiUrl = 'http://localhost:3000/api/subjects';
-  private coursesApiUrl = 'http://localhost:3000/api/courses';
+  private readonly apiUrl = apiUrl('/api/subjects');
+  private readonly coursesApiUrl = apiUrl('/api/courses');
 
   constructor(private http: HttpClient) {}
 

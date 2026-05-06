@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { apiUrl } from '../../../core/api-url';
 
 export interface AnalyticsWebhookItem {
   _id: string;
@@ -13,7 +14,7 @@ export interface AnalyticsWebhookItem {
 
 @Injectable({ providedIn: 'root' })
 export class AnalyticsWebhookApiService {
-  private readonly base = 'http://localhost:3000/api/analytics/webhooks';
+  private readonly base = apiUrl('/api/analytics/webhooks');
 
   constructor(private readonly http: HttpClient) {}
 

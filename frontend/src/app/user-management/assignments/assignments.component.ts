@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../auth.service';
+import { apiUrl } from '../../core/api-url';
 
 interface AssignmentCard {
   id: number;
@@ -23,8 +24,8 @@ interface AssignmentCard {
   styleUrls: ['./assignments.component.css'],
 })
 export class AssignmentsComponent implements OnInit {
-  private apiUrl = 'http://localhost:3000/api/courses';
-  private aiServiceUrl = 'http://localhost:8000';
+  private readonly apiUrl = apiUrl('/api/courses');
+  private aiServiceUrl = apiUrl('/ai');
 
   isInstructor = false;
   loadingCourses = false;

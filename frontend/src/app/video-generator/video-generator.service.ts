@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, interval, switchMap, takeWhile, share } from 'rxjs';
+import { apiUrl } from '../core/api-url';
 
 export interface VideoJob {
     jobId: string;
@@ -16,7 +17,7 @@ export interface VideoJob {
 @Injectable({ providedIn: 'root' })
 export class VideoGeneratorService {
     // IMPORTANT: The backend app has a global "api" prefix set in main.ts
-    private readonly BASE = 'http://localhost:3000/api/video-generator';
+    private readonly BASE = apiUrl('/api/video-generator');
 
     constructor(private http: HttpClient) { }
 

@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { apiUrl } from '../../core/api-url';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatApiService {
-  private apiUrl = 'http://localhost:3000/api/chat';
+  private readonly apiUrl = apiUrl('/api/chat');
 
   constructor(private http: HttpClient) {}
 
@@ -58,7 +59,7 @@ export class ChatApiService {
 
   getUsersByRole(role: string): Observable<any> {
     const t = new Date().getTime();
-    return this.http.get(`http://localhost:3000/api/user?role=${role}&t=${t}`);
+    return this.http.get(apiUrl(`/api/user?role=${role}&t=${t}`));
   }
 
   getAvailableInstructors(): Observable<any> {

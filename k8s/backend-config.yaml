@@ -1,0 +1,11 @@
+# AI_SERVICE_URL — where the BACKEND POD finds ai-service.
+# Now points to the in-cluster ai-service Service (ClusterIP :8000).
+# No dependency on the VM's LAN IP for this value.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  labels:
+    part-of: start-smart
+data:
+  AI_SERVICE_URL: "http://ai-service.start-smart.svc.cluster.local:8000"

@@ -1,0 +1,33 @@
+# --- Who runs what (your layout) ---
+# - Docker commands: WSL Ubuntu (`docker`, `docker compose`). Docker Desktop on Windows supplies
+#   the engine — that is normal. You are not required to run Docker in PowerShell.
+# - Jenkins: often WSL — builds/pushes images (e.g. slm334/startsmart-*) to Docker Hub.
+# - Kubernetes pods: VMware Ubuntu VM — different machine from WSL.
+#
+# --- Where to run THIS compose (Mongo + Redis) ---
+#
+# Option A — Easiest for pods-on-VM: install Docker on the VMware Ubuntu VM, copy this file,
+#   run `docker compose -f docker-compose.vm-deps.yml up -d` ON THE VM.
+#   Use the VM’s LAN IP in MONGODB_URI (example): mongodb://192.168.192.130:27017/...
+#
+# Option B — Mongo/Redis in WSL (this file, Docker Desktop): containers run on your PC.
+#   Pods on the VMware VM must reach your host over the network — use an IP the VM can ping
+#   (often the Windows host on NAT: check from VM with `ip route` / ping gateway).
+#   MONGODB_URI=mongodb://<host-ip-from-VM-perspective>:27017/...
+#   You may need Windows Firewall rules for 27017/6379 from the VM subnet. More fragile than A.
+#
+# Pods are not localhost on your PC: secrets always use a real reachable IP, never 127.0.0.1
+# from the pod’s point of view. UFW on the K8s VM: allow 10.244.0.0/16 to host ports you expose.
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:6379:6379"

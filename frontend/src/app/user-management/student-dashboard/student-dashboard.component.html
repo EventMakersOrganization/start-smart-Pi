@@ -254,9 +254,11 @@
 
             <div *ngIf="!recommendationsLoading && suggestedCourses.length > 0"
               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div *ngFor="let course of showAllRecommendations ? suggestedCourses : (suggestedCourses | slice: 0 : 3); let i = index" 
+              <button
+                type="button"
+                *ngFor="let course of showAllRecommendations ? suggestedCourses : (suggestedCourses | slice: 0 : 3); let i = index" 
                 (click)="navigateToRecommendedCourse(course)"
-                class="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden cursor-pointer"
+                class="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden cursor-pointer text-left w-full"
                 [ngStyle]="{ 'animation-delay': i * 150 + 'ms' }">
                 
                 <!-- Card Header/Image Area -->
@@ -295,7 +297,7 @@
                     </div>
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
           <!-- ── Daily Challenge ── -->

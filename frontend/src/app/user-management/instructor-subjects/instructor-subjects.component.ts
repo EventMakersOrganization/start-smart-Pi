@@ -13,6 +13,7 @@ import {
   PrositSubmissionResponse,
   PrositSubmissionService,
 } from '../prosit-submission.service';
+import { apiUrl, publicApiOrigin } from '../../core/api-url';
 import {
   SubjectItem,
   SubjectChapter,
@@ -142,7 +143,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     const isPPT = url.toLowerCase().endsWith('.ppt') || url.toLowerCase().endsWith('.pptx');
 
     if (isPPT && url) {
-      const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url}`;
+      const fullUrl = url.startsWith('http') ? url : `${publicApiOrigin()}${url}`;
       const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullUrl)}&embedded=true`;
       window.open(googleViewerUrl, '_blank');
       return;
@@ -153,7 +154,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     if (url && (isDocx || isText)) {
       this.selectedContentForView.loadingPreview = true;
       try {
-        const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url}`;
+        const fullUrl = url.startsWith('http') ? url : `${publicApiOrigin()}${url}`;
         const response = await fetch(fullUrl);
         
         if (isDocx) {
@@ -416,7 +417,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   attendanceHistory: any[] = [];
   loadingAttendanceHistory = false;
 
-  private subjectsApiUrl = 'http://localhost:3000/api/subjects';
+  private readonly subjectsApiUrl = apiUrl('/api/subjects');
 
   subjectForm: SubjectFormModel = {
     title: '',
@@ -459,7 +460,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     private prositSubmissionService: PrositSubmissionService,
   ) {}
 
-  private classesApi = 'http://localhost:3000/api/admin/instructor/classes';
+  private readonly classesApi = apiUrl('/api/admin/instructor/classes');
   selectedClassId: string | null = null;
   className: string | null = null;
 
@@ -531,7 +532,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
     });
     this.attendanceRecords = defaultRecords;
 
-    this.http.get(`http://localhost:3000/api/admin/attendance/${this.selectedClassId}/${this.attendanceDate}/${this.attendanceSession}`).subscribe({
+    this.http.get(apiUrl(`/api/admin/attendance/${this.selectedClassId}/${this.attendanceDate}/${this.attendanceSession}`)).subscribe({
       next: (res: any) => {
         if (res && res.records) {
           res.records.forEach((record: any) => {
@@ -638,7 +639,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
   loadAttendanceHistory(): void {
     if (!this.selectedClassId) return;
     this.loadingAttendanceHistory = true;
-    this.http.get(`http://localhost:3000/api/admin/attendance/${this.selectedClassId}`).subscribe({
+    this.http.get(apiUrl(`/api/admin/attendance/${this.selectedClassId}`)).subscribe({
       next: (res: any) => {
         this.attendanceHistory = res || [];
         
@@ -748,7 +749,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
       })),
     };
 
-    this.http.post('http://localhost:3000/api/admin/attendance', payload).subscribe({
+    this.http.post(apiUrl('/api/admin/attendance'), payload).subscribe({
       next: () => {
         this.attendanceSuccess = true;
         this.submittingAttendance = false;
@@ -964,7 +965,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
       return path;
     }
     if (path.startsWith('/')) {
-      return `http://localhost:3000${path}`;
+      return `${publicApiOrigin()}${path}`;
     }
     return null;
   }
@@ -1638,7 +1639,7 @@ export class InstructorSubjectsComponent implements OnInit, OnDestroy {
 
     this.loadingQuizFileContent = true;
     try {
-      const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url}`;
+      const fullUrl = url.startsWith('http') ? url : `${publicApiOrigin()}${url}`;
       const response = await fetch(fullUrl);
       const arrayBuffer = await response.arrayBuffer();
       const mammothModule: any = await import('mammoth/mammoth.browser');

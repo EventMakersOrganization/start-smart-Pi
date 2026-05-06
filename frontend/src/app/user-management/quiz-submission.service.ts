@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { apiUrl } from '../core/api-url';
 
 interface QuizAnswerDto {
   questionIndex: number;
@@ -74,7 +75,7 @@ export interface GradeQuizFileSubmissionRequestDto {
   providedIn: 'root',
 })
 export class QuizSubmissionService {
-  private apiUrl = 'http://localhost:3000/api/subjects';
+  private readonly apiUrl = apiUrl('/api/subjects');
 
   constructor(private http: HttpClient) {}
 

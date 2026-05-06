@@ -1,13 +1,13 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-import { ValidationPipe } from "@nestjs/common";
+import { RequestMethod, ValidationPipe } from "@nestjs/common";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import * as express from "express";
 import { existsSync, mkdirSync } from "fs";
 import { resolve } from "path";
 
-async function bootstrap() {
+export async function bootstrap() {
   // Bypass self-signed certificate errors in development
   if (process.env.NODE_ENV !== "production") {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -51,32 +51,27 @@ async function bootstrap() {
 
   app.use("/uploads", express.static(uploadsRoot));
 
-  // Rate limiting - disabled in development, permissive in production
-  if (process.env.NODE_ENV === "production") {
-    app.use(
-      rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
-        skip: (req) => req.path === "/api/auth/login", // Exempt login from global limiter
-      }),
-    );
-    // Auth-specific limiter (stricter for login)
+  // Rate limiting
+  const isProduction = process.env.NODE_ENV === "production";
+  app.use(
+    rateLimit({
+      windowMs: isProduction ? 15 * 60 * 1000 : 60 * 1000,
+      max: isProduction ? 500 : 1000,
+      skip: (req) =>
+        req.path === "/metrics" ||
+        (typeof req.headers["user-agent"] === "string" &&
+          req.headers["user-agent"].includes("kube-probe")),
+    }),
+  );
+  if (isProduction) {
     const authLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 10, // Max 10 login attempts per 15 min
+      windowMs: 15 * 60 * 1000,
+      max: 20,
       message: "Too many login attempts, please try again later.",
       standardHeaders: true,
       legacyHeaders: false,
     });
     app.use("/api/auth/login", authLimiter);
-  } else {
-    // Development: very permissive limits
-    app.use(
-      rateLimit({
-        windowMs: 60 * 1000, // 1 minute
-        max: 1000, // Allow up to 1000 requests per minute in development
-      }),
-    );
   }
 
   // Global validation pipe
@@ -91,12 +86,14 @@ async function bootstrap() {
     }),
   );
 
-  // Global prefix
-  app.setGlobalPrefix("api");
+  // Global prefix (/metrics excluded for Prometheus)
+  app.setGlobalPrefix("api", {
+    exclude: [{ path: "/metrics", method: RequestMethod.GET }],
+  });
 
   const port = Number(process.env.PORT) || 3000;
   try {
-    await app.listen(port);
+    await app.listen(port, "0.0.0.0");
     console.log(`Application is running on: ${await app.getUrl()}`);
   } catch (err: unknown) {
     const code =
@@ -111,4 +108,7 @@ async function bootstrap() {
     throw err;
   }
 }
-bootstrap();
+
+if (require.main === module) {
+  void bootstrap();
+}

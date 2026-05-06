@@ -1,7 +1,19 @@
 """Unit tests for FastAPI routes via TestClient — all services mocked."""
 import sys
+import jwt
 import pytest
 from unittest.mock import patch, MagicMock
+
+from core.config import JWT_SECRET
+
+
+def _auth_headers() -> dict[str, str]:
+    token = jwt.encode(
+        {"sub": "unit_test_user", "role": "student"},
+        JWT_SECRET,
+        algorithm="HS256",
+    )
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _noop_rag():
@@ -73,88 +85,103 @@ def client():
 
 class TestRootAndHealth:
     def test_root(self, client):
-        r = client.get("/")
+        r = client.get("/", headers=_auth_headers())
         assert r.status_code == 200
 
     def test_health(self, client):
-        r = client.get("/health")
+        r = client.get("/health", headers=_auth_headers())
         assert r.status_code == 200
 
 
 class TestClassifyRoutes:
     def test_classify_difficulty(self, client):
-        r = client.post("/classify/difficulty", json={
-            "question": {"question": "What is a variable?", "difficulty": "easy"},
-        })
+        r = client.post(
+            "/classify/difficulty",
+            json={"question": {"question": "What is a variable?", "difficulty": "easy"}},
+            headers=_auth_headers(),
+        )
         assert r.status_code == 200
         assert "difficulty" in r.json()
 
     def test_classify_batch(self, client):
-        r = client.post("/classify/difficulty-batch", json={
-            "questions": [
-                {"question": "What is a variable?", "difficulty": "easy"},
-            ],
-        })
+        r = client.post(
+            "/classify/difficulty-batch",
+            json={"questions": [{"question": "What is a variable?", "difficulty": "easy"}]},
+            headers=_auth_headers(),
+        )
         assert r.status_code == 200
 
 
 class TestEvaluateRoutes:
     def test_evaluate_answer(self, client):
-        r = client.post("/evaluate/answer", json={
-            "question": {
-                "type": "MCQ",
-                "question": "Which keyword defines a function?",
-                "options": ["def", "func", "define", "fn"],
-                "correct_answer": "def",
-                "explanation": "def is the keyword.",
-                "difficulty": "easy",
+        r = client.post(
+            "/evaluate/answer",
+            json={
+                "question": {
+                    "type": "MCQ",
+                    "question": "Which keyword defines a function?",
+                    "options": ["def", "func", "define", "fn"],
+                    "correct_answer": "def",
+                    "explanation": "def is the keyword.",
+                    "difficulty": "easy",
+                },
+                "student_answer": "def",
             },
-            "student_answer": "def",
-        })
+            headers=_auth_headers(),
+        )
         assert r.status_code == 200
         assert "is_correct" in r.json()
 
     def test_evaluate_batch(self, client):
-        r = client.post("/evaluate/batch", json={
-            "submissions": [
-                {
-                    "question": {
-                        "type": "TrueFalse",
-                        "question": "Python is compiled.",
-                        "options": ["True", "False"],
-                        "correct_answer": "False",
-                        "explanation": "Interpreted.",
-                        "difficulty": "easy",
+        r = client.post(
+            "/evaluate/batch",
+            json={
+                "submissions": [
+                    {
+                        "question": {
+                            "type": "TrueFalse",
+                            "question": "Python is compiled.",
+                            "options": ["True", "False"],
+                            "correct_answer": "False",
+                            "explanation": "Interpreted.",
+                            "difficulty": "easy",
+                        },
+                        "student_answer": "False",
                     },
-                    "student_answer": "False",
-                },
-            ],
-        })
+                ],
+            },
+            headers=_auth_headers(),
+        )
         assert r.status_code == 200
 
 
 class TestFeedbackRoutes:
     def test_record_feedback(self, client):
-        r = client.post("/feedback/record", json={
-            "signal_type": "question_quality",
-            "value": 0.85,
-            "metadata": {"topic": "loops"},
-        })
+        r = client.post(
+            "/feedback/record",
+            json={
+                "signal_type": "question_quality",
+                "value": 0.85,
+                "metadata": {"topic": "loops"},
+            },
+            headers=_auth_headers(),
+        )
         assert r.status_code == 200
 
     def test_user_rating(self, client):
-        r = client.post("/feedback/user-rating", json={
-            "rating": 4,
-            "context": "good explanation",
-        })
+        r = client.post(
+            "/feedback/user-rating",
+            json={"rating": 4, "context": "good explanation"},
+            headers=_auth_headers(),
+        )
         assert r.status_code == 200
 
 
 class TestMonitorRoutes:
     def test_monitor_health(self, client):
-        r = client.get("/monitor/health")
+        r = client.get("/monitor/health", headers=_auth_headers())
         assert r.status_code == 200
 
     def test_monitor_throughput(self, client):
-        r = client.get("/monitor/throughput")
+        r = client.get("/monitor/throughput", headers=_auth_headers())
         assert r.status_code == 200

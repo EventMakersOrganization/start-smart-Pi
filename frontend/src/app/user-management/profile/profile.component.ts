@@ -4,6 +4,7 @@ import { AuthService } from '../auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AdaptiveLearningService } from '../adaptive-learning.service';
+import { apiUrl } from '../../core/api-url';
 
 interface ProfileData {
   user: {
@@ -103,7 +104,7 @@ export class ProfileComponent implements OnInit {
   }
 
   loadProfile() {
-    this.http.get<ProfileData>('http://localhost:3000/api/user/profile').subscribe({
+    this.http.get<ProfileData>(apiUrl('/api/user/profile')).subscribe({
       next: (data) => {
         this.profileData = data;
         this.profileForm.patchValue({
@@ -138,7 +139,7 @@ export class ProfileComponent implements OnInit {
 
   onSubmit() {
     if (this.profileForm.valid) {
-      this.http.put('http://localhost:3000/api/user/profile', this.profileForm.value).subscribe({
+      this.http.put(apiUrl('/api/user/profile'), this.profileForm.value).subscribe({
         next: () => {
           this.successMessage = 'Profile updated successfully!';
           this.isEditing = false;
@@ -155,7 +156,7 @@ export class ProfileComponent implements OnInit {
   changePassword() {
     if (this.passwordForm.valid) {
       const { current_password, new_password } = this.passwordForm.value;
-      this.http.put('http://localhost:3000/api/user/change-password', { current_password, new_password }).subscribe({
+      this.http.put(apiUrl('/api/user/change-password'), { current_password, new_password }).subscribe({
         next: () => {
           this.pwdSuccessMessage = 'Password changed successfully!';
           this.passwordForm.reset();

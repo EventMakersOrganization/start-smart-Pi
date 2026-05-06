@@ -243,6 +243,8 @@ def chunk_course_content(course_dict: dict) -> list[dict]:
     title = course_dict.get("title") or "Untitled Course"
     description = course_dict.get("description") or ""
     sub_chapters = course_dict.get("subChapters") or course_dict.get("subchapters") or []
+    if not sub_chapters:
+        sub_chapters = course_dict.get("modules") or []
     if not isinstance(sub_chapters, list):
         sub_chapters = [sub_chapters]
 

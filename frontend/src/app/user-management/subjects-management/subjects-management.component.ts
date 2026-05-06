@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { apiUrl } from '../../core/api-url';
 
 interface InstructorOption {
   id: string;
@@ -80,7 +81,7 @@ export class SubjectsManagementComponent implements OnInit {
   }
 
   loadSubjects() {
-    this.http.get<SubjectRow[]>('http://localhost:3000/api/admin/subjects').subscribe({
+    this.http.get<SubjectRow[]>(apiUrl('/api/admin/subjects')).subscribe({
       next: (data) => {
         this.subjects = data;
         this.updateStats();
@@ -106,7 +107,7 @@ export class SubjectsManagementComponent implements OnInit {
   }
 
   loadInstructors() {
-    this.http.get<InstructorOption[]>('http://localhost:3000/api/admin/instructors').subscribe({
+    this.http.get<InstructorOption[]>(apiUrl('/api/admin/instructors')).subscribe({
       next: (data) => {
         this.instructors = data;
       },
@@ -153,7 +154,7 @@ export class SubjectsManagementComponent implements OnInit {
       instructorIds: this.newSubjectInstructorIds,
     };
 
-    this.http.post('http://localhost:3000/api/admin/subjects', body).subscribe({
+    this.http.post(apiUrl('/api/admin/subjects'), body).subscribe({
       next: () => {
         this.addSubjectLoading = false;
         this.showAddSubjectModal = false;
@@ -201,7 +202,7 @@ export class SubjectsManagementComponent implements OnInit {
       return;
     }
 
-    this.http.put(`http://localhost:3000/api/admin/subjects/${id}`, {
+    this.http.put(apiUrl(`/api/admin/subjects/${id}`), {
       name: model.name.trim(),
       description: model.description.trim(),
       instructorIds: model.instructorIds,
@@ -224,7 +225,7 @@ export class SubjectsManagementComponent implements OnInit {
   deleteSubject(id: string) {
     if (!confirm('Delete this subject?')) return;
 
-    this.http.delete(`http://localhost:3000/api/admin/subjects/${id}`).subscribe({
+    this.http.delete(apiUrl(`/api/admin/subjects/${id}`)).subscribe({
       next: () => {
         this.loadSubjects();
         this.success = 'Subject deleted';

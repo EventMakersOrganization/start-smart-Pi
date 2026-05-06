@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable } from 'rxjs';
+import { socketBaseUrl } from '../../core/api-url';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +15,7 @@ export class ChatSocketService {
   connect() {
     if (!this.socket) {
       const token = localStorage.getItem('authToken');
-      this.socket = this.ioFunc('http://localhost:3000', {
+      this.socket = this.ioFunc(socketBaseUrl(), {
         auth: { token }
       });
     }

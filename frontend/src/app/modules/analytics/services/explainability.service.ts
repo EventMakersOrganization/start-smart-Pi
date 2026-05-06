@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import type { ExplainabilityLog } from '../models/analytics.models';
+import { apiUrl } from '../../../core/api-url';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ExplainabilityService {
-  private readonly apiUrl = 'http://localhost:3000/api/analytics/explainability';
+  private readonly apiUrl = apiUrl('/api/analytics/explainability');
 
   constructor(private http: HttpClient) {}
 

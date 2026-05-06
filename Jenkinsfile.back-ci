@@ -1,6 +1,36 @@
 // Backend + ai-service CI (Nest/Jest + pytest)
+// SonarQube (ai-service): Jenkins → Manage Credentials → add "Secret text" with ID exactly: sonar-token
+// Browser: Jenkins http://localhost:8081 and Sonar http://localhost:9000 on Windows is normal.
+// Build agent: logs under /var/jenkins_home mean Jenkins runs IN A CONTAINER — "localhost" there is the container,
+// not your PC. Use host.docker.internal to reach Sonar on the Windows host (Docker Desktop). Pure Linux Docker: try http://172.17.0.1:9000.
+// Backend Sonar stage uses the SonarScanner CLI zip on the agent (not Docker): bind-mounting the Jenkins workspace into
+// sonarsource/sonar-scanner-cli often yields an empty /usr/src when the Docker daemon runs on the host (paths under /var/jenkins_home do not exist there).
+// CD chain: final stage "Trigger CD" queues DOWNSTREAM_CD_JOB (default cd-back) when TRIGGER_CD_AFTER_SUCCESS is true.
+// The Jenkins user must have Job/Build on that job. If your CD job name differs, change the parameter default in the job config.
+// Alternative (no code): Jenkins CD job → Build Triggers → "Build after other projects are built" → ci-back (only if stable).
 pipeline {
   agent any
+
+  parameters {
+    string(
+      name: 'SONAR_HOST_URL',
+      defaultValue: 'http://host.docker.internal:9000',
+      description: 'Sonar URL from the agent. Container agent + Sonar on Windows host: http://host.docker.internal:9000. Agent on host OS: http://localhost:9000.',
+      trim: true
+    )
+    booleanParam(name: 'RUN_SONAR', defaultValue: true, description: 'Run backend + ai-service coverage and SonarQube scans (same sonar-token)')
+    booleanParam(
+      name: 'TRIGGER_CD_AFTER_SUCCESS',
+      defaultValue: true,
+      description: 'When true and DOWNSTREAM_CD_JOB is non-empty, queue that CD job after this pipeline succeeds (wait: false).'
+    )
+    string(
+      name: 'DOWNSTREAM_CD_JOB',
+      defaultValue: 'cd-back',
+      description: 'Jenkins name of the backend CD job (folder/job if in a folder). Empty = skip CD trigger.',
+      trim: true
+    )
+  }
 
   options {
     timestamps()
@@ -62,6 +92,19 @@ pipeline {
       }
     }
 
+    stage('Backend Member4 Tests') {
+      steps {
+        dir('backend') {
+          sh 'npm run test -- --runInBand --testPathPattern=analytics.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=insight.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=kpi.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=alert.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=alert-config.service.spec'
+          sh 'npm run test -- --runInBand --testPathPattern=report.service.spec'
+        }
+      }
+    }
+
     stage('Backend MemberKmar Tests') {
       steps {
         dir('backend') {
@@ -70,7 +113,98 @@ pipeline {
           sh 'npm run test -- --runInBand --testPathPattern=subjects.service.spec'
           sh 'npm run test -- --runInBand --testPathPattern=academic.service.spec'
           sh 'npm run test -- --runInBand --testPathPattern=exercises.service.spec'
-          sh 'npm run test -- --runInBand --testPathPattern=kpi.service.spec'
+        }
+      }
+    }
+
+    // Jest coverage → coverage/lcov.info (see backend/sonar-project.properties). Same caveats as ai-service: use SONAR_HOST_URL reachable from agent (host.docker.internal on Docker Desktop).
+    stage('Backend — coverage for Sonar') {
+      options {
+        timeout(time: 35, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('backend') {
+          sh '''#!/usr/bin/env bash
+            set -e
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 28m npm run test:cov -- --runInBand
+            else
+              npm run test:cov -- --runInBand
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('SonarQube — Backend') {
+      options {
+        timeout(time: 25, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('backend') {
+          withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            sh """#!/usr/bin/env bash
+            set -e
+            export SONAR_HOST_URL='${params.SONAR_HOST_URL}'
+            if command -v curl >/dev/null 2>&1; then
+              curl -sS -m 15 -f "\$SONAR_HOST_URL/api/system/status" >/dev/null || {
+                echo "SonarQube not reachable (check SONAR_HOST_URL for container agents)."
+                exit 1
+              }
+            fi
+            if ! command -v curl >/dev/null 2>&1; then
+              echo "curl required to download SonarScanner CLI."
+              exit 1
+            fi
+            if [ ! -d src ]; then
+              echo "Sonar: expected ./src from backend/ (cwd=\$(pwd))"
+              ls -la
+              exit 1
+            fi
+            SCAN_VER="6.2.1.4610"
+            SCAN_ROOT="\${WORKSPACE}/.ci-tools"
+            SCAN_HOME="\$SCAN_ROOT/sonar-scanner-\${SCAN_VER}-linux-x64"
+            SCAN_BIN="\$SCAN_HOME/bin/sonar-scanner"
+            if [ ! -x "\$SCAN_BIN" ]; then
+              echo "Installing SonarScanner CLI \${SCAN_VER} under \$SCAN_ROOT ..."
+              mkdir -p "\$SCAN_ROOT"
+              curl -fSL --retry 3 --connect-timeout 20 \\
+                -o /tmp/sonar-scanner-cli.zip \\
+                "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-\${SCAN_VER}-linux-x64.zip"
+              rm -rf "\$SCAN_HOME"
+              mkdir -p /tmp/sonar-scan-unpack
+              rm -rf /tmp/sonar-scan-unpack/*
+              if command -v unzip >/dev/null 2>&1; then
+                unzip -q /tmp/sonar-scanner-cli.zip -d /tmp/sonar-scan-unpack
+              else
+                python3 -c "import zipfile; zipfile.ZipFile('/tmp/sonar-scanner-cli.zip').extractall('/tmp/sonar-scan-unpack')"
+              fi
+              mv /tmp/sonar-scan-unpack/sonar-scanner-\${SCAN_VER}-linux-x64 "\$SCAN_HOME"
+              rm -f /tmp/sonar-scanner-cli.zip
+            fi
+            SONAR_OPTS=(
+              -Dsonar.projectKey=start-smart-backend
+              -Dsonar.projectName=StartSmart-Backend
+              -Dsonar.sources=src
+              -Dsonar.exclusions=**/*.spec.ts,**/node_modules/**,**/dist/**,**/coverage/**
+              -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+              -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+              -Dsonar.host.url="\$SONAR_HOST_URL"
+              -Dsonar.token="\$SONAR_TOKEN"
+            )
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 18m "\$SCAN_BIN" "\${SONAR_OPTS[@]}"
+            else
+              "\$SCAN_BIN" "\${SONAR_OPTS[@]}"
+            fi
+          """
+          }
         }
       }
     }
@@ -122,6 +256,19 @@ pipeline {
       }
     }
 
+    stage('AI Service Member4 Tests') {
+      steps {
+        dir('ai-service') {
+          sh '''#!/usr/bin/env bash
+            set -e
+            if [ -x .venv/bin/pytest ]; then .venv/bin/pytest tests/test_intervention_effectiveness.py tests/test_feedback_autorecord.py -q
+            else python3 -m pytest tests/test_intervention_effectiveness.py tests/test_feedback_autorecord.py -q
+            fi
+          '''
+        }
+      }
+    }
+
     stage('AI Service MemberKmar Tests') {
       steps {
         dir('ai-service') {
@@ -144,6 +291,110 @@ pipeline {
             else python3 -m pytest tests/test_unit_api_auth.py -q
             fi
           '''
+        }
+      }
+    }
+
+    // coverage.xml + test-results.xml for Sonar.
+    // No --cov=. (stacks with pytest.ini). Omit --cov=api here: tracing api.py during route tests is very slow.
+    // LANGCHAIN_TRACING_V2=false: langsmith pytest plugin can block on network in CI.
+    stage('AI Service — coverage for Sonar') {
+      options {
+        timeout(time: 35, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('ai-service') {
+          sh '''#!/usr/bin/env bash
+            set -e
+            export LANGCHAIN_TRACING_V2=false
+            export LANGCHAIN_API_KEY=""
+            export LANGSMITH_TRACING=false
+            # Faster coverage tracer (Python 3.12+); ignored on older coverage if unsupported.
+            export COVERAGE_CORE=sysmon
+            COV_PKGS="--cov=adaptive --cov=analytics --cov=core --cov=embeddings --cov=generation"
+            COV_PKGS="$COV_PKGS --cov=learning_state --cov=level_test --cov=optimization --cov=quality"
+            COV_PKGS="$COV_PKGS --cov=rag --cov=recommendation --cov=search --cov=utils --cov=video"
+            # Parallel workers: same 183 tests, shorter wall time. Set AI_PYTEST_XDIST=0 in job env to disable if flaky.
+            XDIST_ARGS=
+            if [ "${AI_PYTEST_XDIST:-1}" != "0" ]; then
+              XDIST_ARGS="-n auto --dist worksteal"
+            fi
+            PY_ARGS=(tests/test_unit_*.py
+              $XDIST_ARGS
+              --override-ini "addopts=-q --tb=short --strict-markers"
+              $COV_PKGS
+              --cov-report=xml:coverage.xml
+              --junitxml=test-results.xml)
+            if [ -x .venv/bin/pytest ]; then PY=.venv/bin/pytest; else PY="python3 -m pytest"; fi
+            if command -v timeout >/dev/null 2>&1; then
+              timeout 25m $PY "${PY_ARGS[@]}"
+            else
+              $PY "${PY_ARGS[@]}"
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('SonarQube — AI Service') {
+      options {
+        timeout(time: 20, unit: 'MINUTES')
+      }
+      when {
+        expression { params.RUN_SONAR == true }
+      }
+      steps {
+        dir('ai-service') {
+          withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            sh """#!/usr/bin/env bash
+              set -e
+              export SONAR_HOST_URL='${params.SONAR_HOST_URL}'
+              echo "Checking SonarQube at \$SONAR_HOST_URL ..."
+              if command -v curl >/dev/null 2>&1; then
+                curl -sS -m 15 -f "\$SONAR_HOST_URL/api/system/status" >/dev/null || {
+                  echo "SonarQube not reachable from agent (wrong SONAR_HOST_URL?). Try host.docker.internal:9000 if Jenkins is in Docker on Windows."
+                  exit 1
+                }
+              fi
+              if [ -x .venv/bin/pip ]; then
+                .venv/bin/pip install -q pysonar
+                SCAN=.venv/bin/pysonar
+              else
+                python3 -m pip install -q pysonar --break-system-packages
+                SCAN=pysonar
+              fi
+              if command -v timeout >/dev/null 2>&1; then
+                timeout 15m \$SCAN \\
+                  --sonar-host-url="\$SONAR_HOST_URL" \\
+                  --sonar-token="\$SONAR_TOKEN" \\
+                  --sonar-project-key=start-smart-ai-service
+              else
+                \$SCAN \\
+                  --sonar-host-url="\$SONAR_HOST_URL" \\
+                  --sonar-token="\$SONAR_TOKEN" \\
+                  --sonar-project-key=start-smart-ai-service
+              fi
+            """
+          }
+        }
+      }
+    }
+
+    stage('Trigger CD') {
+      when {
+        allOf {
+          expression { params.TRIGGER_CD_AFTER_SUCCESS == true }
+          expression { return (params.DOWNSTREAM_CD_JOB ?: '').trim().length() > 0 }
+        }
+      }
+      steps {
+        script {
+          def downstream = params.DOWNSTREAM_CD_JOB.trim()
+          echo "CI succeeded — queueing downstream CD: ${downstream} (wait: false, propagate: false)"
+          build job: downstream, wait: false, propagate: false
         }
       }
     }

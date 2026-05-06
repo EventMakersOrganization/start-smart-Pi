@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { WebinarService } from '../../webinar/services/webinar.service';
 import { Webinar } from '../../webinar/services/webinar.interface';
+import { apiUrl } from '../../core/api-url';
 
 @Component({
   selector: 'app-instructor-layout',
@@ -37,7 +38,7 @@ export class InstructorLayoutComponent implements OnInit {
   }
 
   loadProfile(): void {
-    this.http.get<any>('http://localhost:3000/api/user/profile').subscribe({
+    this.http.get<any>(apiUrl('/api/user/profile')).subscribe({
       next: (data) => {
         this.profileData = data;
         if (this.user && data?.user?.phone) {

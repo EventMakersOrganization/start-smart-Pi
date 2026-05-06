@@ -1852,7 +1852,7 @@
           <!-- Hosted MP4 -->
           <video
             *ngIf="selectedContentForView.url.endsWith('.mp4') || selectedContentForView.url.includes('/uploads/') || selectedContentForView.url.includes('/api/')"
-            [src]="'http://localhost:3000' + selectedContentForView.url" class="w-full h-full" controls></video>
+            [src]="selectedContentForView.url | assetUrl" class="w-full h-full" controls></video>
           <!-- Embed (YouTube/Vimeo) -->
           <iframe
             *ngIf="!(selectedContentForView.url.endsWith('.mp4') || selectedContentForView.url.includes('/uploads/'))"
@@ -1890,7 +1890,7 @@
              </div>
 
              <div class="flex items-center gap-3">
-                <a [href]="selectedContentForView.url.startsWith('http') ? selectedContentForView.url : 'http://localhost:3000' + selectedContentForView.url"
+                <a [href]="selectedContentForView.url | assetUrl"
                   target="_blank"
                   class="h-14 px-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10 dark:shadow-white/5">
                   <span class="material-symbols-outlined text-xl">download</span>
@@ -1916,7 +1916,7 @@
           <!-- PDF Preview -->
           <iframe
             *ngIf="!selectedContentForView.previewHtml && selectedContentForView.url.toLowerCase().endsWith('.pdf')"
-            [src]="(selectedContentForView.url.startsWith('http') ? selectedContentForView.url : 'http://localhost:3000' + selectedContentForView.url) + '#toolbar=0&navpanes=0' | safeUrl"
+            [src]="(selectedContentForView.url | assetUrl) + '#toolbar=0&navpanes=0' | safeUrl"
             class="w-full h-full border-none"></iframe>
 
                   <!-- Fallback link if nothing else works -->

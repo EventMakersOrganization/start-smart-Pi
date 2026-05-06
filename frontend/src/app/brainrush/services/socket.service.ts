@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable } from 'rxjs';
+import { socketBaseUrl } from '../../core/api-url';
 
 // ── Shared interfaces ─────────────────────────────────────────────────────
 export interface RoomPlayer {
@@ -26,8 +27,7 @@ export interface RoomData {
 })
 export class SocketService implements OnDestroy {
   private socket!: Socket;
-  private readonly socketUrl = 'http://localhost:3000/brainrush';
-
+  
   // ── Connect / Disconnect ────────────────────────────────────────────────
 
   connect(token?: string): void {
@@ -38,7 +38,7 @@ export class SocketService implements OnDestroy {
       opts.extraHeaders = { Authorization: `Bearer ${token}` };
     }
 
-    this.socket = io(this.socketUrl, opts);
+    this.socket = io(socketBaseUrl() + '/brainrush', opts);
 
     this.socket.on('connect', () =>
       console.log('[SocketService] Connected:', this.socket.id)

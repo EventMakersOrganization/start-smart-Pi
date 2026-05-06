@@ -9,6 +9,7 @@ import {
   AfterViewInit,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { apiUrl } from '../../core/api-url';
 
 @Component({
   selector: 'app-quiz-file-viewer',
@@ -231,7 +232,7 @@ export class QuizFileViewerComponent implements OnInit, AfterViewInit {
 
     // ✅ Endpoint correct (celui qui existe dans ton backend)
     const res = await fetch(
-      'http://localhost:3000/api/subjects/quiz-file-submissions/submit',
+      apiUrl('/api/subjects/quiz-file-submissions/submit'),
       {
         method: 'POST',
         body: formData,

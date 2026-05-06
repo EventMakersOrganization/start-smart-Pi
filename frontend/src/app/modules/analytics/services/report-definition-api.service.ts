@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { apiUrl } from '../../../core/api-url';
 
 export interface ReportDefinitionItem {
   _id: string;
@@ -13,7 +14,7 @@ export interface ReportDefinitionItem {
 
 @Injectable({ providedIn: 'root' })
 export class ReportDefinitionApiService {
-  private readonly base = 'http://localhost:3000/api/reports/definitions';
+  private readonly base = apiUrl('/api/reports/definitions');
 
   constructor(private readonly http: HttpClient) {}
 
