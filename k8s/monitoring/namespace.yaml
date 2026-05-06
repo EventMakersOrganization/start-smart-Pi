@@ -4,3 +4,7 @@ metadata:
   name: monitoring
   labels:
     app.kubernetes.io/part-of: start-smart
+    # Allow Prometheus/Grafana images without hitting restricted-PSA rejections (no Pod objects created).
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline
