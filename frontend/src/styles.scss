@@ -5,3 +5,49 @@
 @import 'highlight.js/styles/github-dark.css';
 
 /* You can add global styles to this file, and also import other style files */
+:root {
+  --app-bg: #f8f9ff;
+  --app-dot: rgba(99, 102, 241, 0.36);
+  --floating-card-bg: rgba(255, 255, 255, 0.82);
+  --floating-card-border: rgba(200, 200, 230, 0.5);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--app-bg);
+  background-image: radial-gradient(circle, var(--app-dot) 1.2px, transparent 1.2px);
+  background-size: 22px 22px;
+  background-attachment: fixed;
+}
+
+/* Allow global textured background to show through layout wrappers. */
+.bg-background-light {
+  background-color: transparent !important;
+}
+
+:where(.card, .dashboard-panel, .mat-mdc-card, .mat-card, .floating-card) {
+  background: var(--floating-card-bg);
+  border: 0.5px solid var(--floating-card-border);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+:where(.card, .dashboard-panel, .mat-mdc-card, .mat-card, .floating-card):hover {
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Existing dashboard cards in this app often use this class. */
+.widget-card {
+  background: var(--floating-card-bg) !important;
+  border: 0.5px solid var(--floating-card-border) !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}

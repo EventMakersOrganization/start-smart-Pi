@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import axios from "axios";
-import {
+import type {
   StudentProfile,
   StudentProfileDocument,
 } from "../users/schemas/student-profile.schema";
@@ -69,7 +69,7 @@ export class AdaptiveLearningService {
     process.env.AI_SERVICE_URL || "http://localhost:8000";
 
   constructor(
-    @InjectModel(StudentProfile.name)
+    @InjectModel("StudentProfile")
     private profileModel: Model<StudentProfileDocument>,
     @InjectModel(StudentPerformance.name)
     private performanceModel: Model<StudentPerformanceDocument>,
